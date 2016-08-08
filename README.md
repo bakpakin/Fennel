@@ -14,6 +14,23 @@ The fnl.lua module exports the following functions:
 * fnl.parse(str) - Reads a string and returns an AST.
 * fnl.compileAst - Compiles an AST into a Lua string.
 
+## Example
+
+#### Hello World
+```
+(print 'hello, world!')
+```
+
+#### Fibonacci sequence
+```
+(fn fib [n] (or (and (> n 1)
+    (+ (fib (- n 1))
+       (fib (- n 2))))
+    1))
+
+(print (fib 10))
+```
+
 ## Try it
 
 Clone the repository, and run 'lua repl.lua' to quickly start a repl.

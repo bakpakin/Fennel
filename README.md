@@ -1,8 +1,19 @@
 # Fnl
 
-Fnl is a lisp that compiles to Lua. It aims to be easy to use, expressive, and have almost
+Fnl is a lisp that compiles to Lua. It aims to be easy to use, expressive, and has almost
 zero overhead compared to handwritten Lua. It's currently a single file Lua library that can
 be dragged into any Lua project.
+
+The documentation is currently sparse, but I don't want to commit too many features to documentation
+that haven't been fully defined. Current and projected features inlclude:
+
+* Full Lua compatibility - You can use any function from Lua
+* Zero overhead - Compiled code should be fast, standalone, and just as or more efficient than hand-written Lua.
+* Compile time only macros - Macros exist only at compile time and are not output in the final Lua compilation. In fact,
+  macros are just a special case of special forms.
+* Ability to write custom special forms - Special forms are s-expressions that, when evaulated, directly output Lua code.    This feature may be removed, in preference for macros.
+
+Eventually, I also hope to add optional source maps, aither embedded in the comments of the generated code, or in separate files. A standard library also needs to be made.
 
 ## Lua API
 

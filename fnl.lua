@@ -203,6 +203,9 @@ local function parseSequence(str, dispatch, index, opener)
             if rawSubstring == 'nil' then return nil end
             if rawSubstring == 'true' then return true end
             if rawSubstring == 'false' then return false end
+            if rawSubstring:match('^:[%w_-]$') then -- keyword style strings
+                return rawSubstring:sub(2, -1)
+            end
             return tonumber(rawSubstring) or sym(rawSubstring)
         end
     end
@@ -287,26 +290,7 @@ function toStrings.number(num)
     return ('%.17g'):format(num)
 end
 
--- Expand a macro until it is no longer expandable.
--- Does not recursively expand sub expressions
-local function macroExpand(ast, macros)
-    if not isList(ast) then return ast end
-    while true do
-        local first = assert(isSym(ast[1]), 'expected symbol in macro expansion')
-        local macro = macros[first]
-        if macro then
-            ast = macro(unpack(ast, 2))
-        else
-            break
-        end
-    end
-    return assert(isList(ast), 'expected list')
-end
-
 -- Compilation
-
--- Special Forms
-local SPECIALS = {}
 
 -- Creat a new Scope, optionally under a parent scope. Scopes are compile time constructs
 -- that are responsible for keeping track of local variables, name mangling, and macros.
@@ -320,11 +304,8 @@ local function makeScope(parent)
         manglings = setmetatable({}, {
             __index = parent and parent.manglings
         }),
-        macros = setmetatable({}, {
-            __index = parent and parent.macros
-        }),
         specials = setmetatable({}, {
-            __index = parent and parent.specials or SPECIALS
+            __index = parent and parent.specials
         }),
         parent = parent,
         vararg = parent and parent.vararg,
@@ -332,30 +313,22 @@ local function makeScope(parent)
     }
 end
 
+local function scopeInside(outer, inner)
+    repeat
+        if inner == outer then return true end
+        inner = inner.parent
+    until not inner
+    return false
+end
+
 local GLOBAL_SCOPE = makeScope()
+local SPECIALS = GLOBAL_SCOPE.specials
+local COMPILER_SCOPE = makeScope(GLOBAL_SCOPE)
 
 local luaKeywords = {
-    'and',
-    'break',
-    'do',
-    'else',
-    'elseif',
-    'end',
-    'false',
-    'for',
-    'function',
-    'if',
-    'in',
-    'local',
-    'nil',
-    'not',
-    'or',
-    'repeat',
-    'return',
-    'then',
-    'true',
-    'until',
-    'while'
+    'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 'function',
+    'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true',
+    'until', 'while'
 }
 for i, v in ipairs(luaKeywords) do
     luaKeywords[v] = i
@@ -439,7 +412,6 @@ local compileTossRest
 -- add lines to parent by appending strings. Add indented blocks by appending
 -- tables of more lines.
 local function compileExpr(ast, scope, parent)
-    ast = macroExpand(ast, scope.macros)
     local head = {}
     if isList(ast) then
         local len = ast.n
@@ -452,6 +424,7 @@ local function compileExpr(ast, scope, parent)
         if special and isSym(ast[1]) then
             local ret = special(ast, scope, parent)
             ret = ret or {}
+            if type(ret.expr) == 'string' then ret.expr = list(ret.expr) end
             ret.expr = ret.expr or list()
             return ret
         else
@@ -524,23 +497,17 @@ function compileTossRest(ast, scope, parent)
     return tossRest(compileExpr(ast, scope, parent), scope, parent)
 end
 
--- Helper for flattening a tree of Lua source lines.
-local function flattenChunk(chunk, tab)
+-- Flatten a tree of Lua source code lines.
+-- Tab is what is used to indent a block. By default it is two spaces.
+local function flattenChunk(chunk, tab, subChunk)
     if type(chunk) == 'string' then
         return chunk
     end
     tab = tab or '  ' -- 2 spaces
     for i = 1, #chunk do
-        chunk[i] = tab .. flattenChunk(chunk[i], tab):gsub('\n', '\n' .. tab)
-    end
-    return table.concat(chunk, '\n')
-end
-
--- Flatten a tree of Lua source code lines.
--- Tab is what is used to indent a block. By default it is two spaces.
-local function rootFlatten(chunk, tab)
-    for i = 1, #chunk do
-        chunk[i] = flattenChunk(chunk[i], tab)
+        local sub = flattenChunk(chunk[i], tab, true)
+        if subChunk then sub = sub:gsub('\n', '\n' .. tab) end
+        chunk[i] = tab .. sub
     end
     return table.concat(chunk, '\n')
 end
@@ -563,7 +530,7 @@ local function transpile(ast, scope, options)
             end
         end
     end
-    return rootFlatten(root, options.tab)
+    return flattenChunk(root, options.tab)
 end
 
 -- The fn special declares a function. Syntax is similar to other lisps;
@@ -603,6 +570,32 @@ SPECIALS['fn'] = function(ast, scope, parent)
     }
 end
 
+SPECIALS['special'] = function(ast, scope, parent)
+    assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare special forms in \'eval-compiler\'')
+    local spec = SPECIALS.fn(ast, scope, parent)
+    local specialName = spec.expr[1] -- the fn special form always returns a value
+    local lit = literalToString(specialName)
+    parent[#parent + 1] = ('_SCOPE.specials[%s] = %s'):format(lit, specialName)
+    return spec
+end
+
+SPECIALS['macro'] = function(ast, scope, parent)
+    assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare macros in \'eval-compiler\'')
+    local mac = SPECIALS.fn(ast, scope, parent)
+    local macroName = mac.expr[1] -- the fn special form always returns a value
+    local lit = literalToString(macroName)
+    local s = gensym(scope)
+    parent[#parent + 1] = ('local function %s(ast, scope, chunk)'):format(s)
+    parent[#parent + 1] = {
+        'local unpack = table.unpack or unpack',
+        ('return _FNL.compileExpr(%s(unpack(ast, 2, ast.n), scope, chunk))'):format(macroName)
+    }
+    parent[#parent + 1] = 'end'
+    parent[#parent + 1] = ('_SCOPE.specials[%s] = %s'):format(lit, s)
+    mac.expr = list(s)
+    return mac
+end
+
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
     local lhs = compileTossRest(ast[2], scope, parent)
@@ -613,6 +606,17 @@ SPECIALS['.'] = function(ast, scope, parent)
         singleEval = true,
         sideEffects = true
     }
+end
+
+-- Wrap a variadic number of arguments into a table. Does NOT do length capture.
+SPECIALS['pack'] = function(ast, scope, parent)
+    local tail = SPECIALS.values(ast, scope, parent)
+    local expr = '{' .. table.concat(tail.expr, ', ') .. '}'
+    tail.expr = list(expr)
+    tail.unknownExprCount = false
+    tail.singleEval = true
+    tail.sideEffects = true -- Are there necessarily side-effects? Is creating a table a side effect?
+    return tail
 end
 
 local function defineSetterSpecial(name, prefix)
@@ -632,10 +636,75 @@ local function defineSetterSpecial(name, prefix)
     end
 end
 
--- Simple wrapper for declaring local vars.
+-- Simple wrappers for declaring and setting locals.
 defineSetterSpecial('var', 'local ')
--- Simple wrapper for setting local vars.
 defineSetterSpecial('set', '')
+
+-- Implements destructuring for forms like let, bindings, etc.
+-- Currently, due to table order being non determinisitic, compilation
+-- is non-deterministic. This is undesirable.
+local function destructure(left, right, scope, parent)
+    if isSym(left) then
+        parent[#parent + 1] = ('local %s = %s'):format(left[1], compileTossRest(right, scope, parent).expr[1])
+    elseif isTable(left) then
+        local i, hitAs, hitRest = 0, false, false
+        while i < #left do
+            i = i + 1
+            local sub = left[i]
+            if type(sub) == 'string' then -- check for special syntax
+                i = i + 1
+                local n = left[i]
+                if sub == 'rest' then -- Bind remainder of right (packed) to symbol sym(n)
+                    if hitRest then error 'already found rest in destructure' end
+                    hitRest = true
+                    -- TODO
+                elseif sub == 'as' then -- Bind all of right (packed) to symbol sym(n)
+                    if hitAs then error 'already found as in destructure' end
+                    hitAs = true
+                    -- TODO
+                else
+                    error('unknwon key in destructure: ' .. sub)
+                end
+            else
+                destructure(sub, right[i], scope, parent)
+            end
+        end
+        -- Iterate keys for map destructuring.
+        local hitKeys = false
+        hitAs = false
+        for k, v in pairs(left) do
+            if type(k) ~= 'number' then
+                if isSym(k) then
+                    destructure(k, right[v], scope, parent)
+                elseif type(k) == 'string' then
+                    if k == 'keys' then
+                        if hitKeys then error 'already found keys in destructure' end
+                        -- TODO
+                    elseif k == 'as' then
+                        if hitAs then error 'already found as in destructure' end
+                        -- TODO
+                    else
+                        error('unknown key in destructure: ' .. k)
+                    end
+                end
+            end
+        end
+    else
+        error('unable to destructure ' .. literalToString(left))
+    end
+end
+
+-- For setting items in a table
+SPECIALS['tset'] = function(ast, scope, parent)
+    local root = compileExpr(ast[2], scope, parent).expr[1]
+    local keys = {}
+    for i = 3, ast.n - 1 do
+        local key = compileTossRest(ast[i], scope, parent).expr[1]
+        keys[#keys + 1] = key
+    end
+    local value = compileTossRest(ast[ast.n], scope, parent).expr[1]
+    parent[#parent + 1] = ('%s[%s] = %s'):format(root, table.concat(keys, ']['), value)
+end
 
 -- Add a comment to the generated code.
 SPECIALS['--'] = function(ast, scope, parent)
@@ -678,14 +747,13 @@ SPECIALS['values'] = function(ast, scope, parent)
         if tail.sideEffects then sideEffects = true end
         if tail.singleEval then singleEval = true end
     end
-    local ret = {
+    return {
         scoped = scoped,
         sideEffects = sideEffects,
         singleEval = singleEval,
         expr = returnValues,
         unknownExprCount = unknownExprCount
     }
-    return ret
 end
 
 -- Executes a series of statements in order. Returns the result of the last statment.
@@ -697,7 +765,7 @@ SPECIALS['do'] = function(ast, scope, parent)
         compileDo(ast[i], subScope, chunk)
     end
     local tail = compileExpr(ast[len], subScope, chunk)
-    local expr, sideEffects, singleEval, validStatement, unknownExprCounti, scoped =
+    local expr, sideEffects, singleEval, validStatement, unknownExprCount, scoped =
         tail.expr, tail.sideEffects, tail.singleEval, tail.validStatement, tail.unknownExprCount, tail.scoped
     if tail.unknownExprCount then -- Use imediately invoked closure to wrap instead of do ... end
         chunk[#chunk + 1] = ('return %s'):format(table.concat(expr, ', '))
@@ -966,19 +1034,14 @@ local function repl(options)
     end
 end
 
-SPECIALS['*compiler'] = function(ast, scope, parent)
-    local source = ast[2]
-    local luaSource = compileAst(source)
-    luaSource = 'local _S, _M, _C, _A, __COMPILER_ENV__ = ...\n' .. luaSource
-    local loader = loadCode(luaSource)
-    loader(scope, scope.macros, parent, ast, true)
-end
-
-return {
+local module = {
     parse = parse,
     astToString = astToString,
     compile = compile,
     compileAst = compileAst,
+    compileExpr = compileExpr,
+    compileTossRest = compileTossRest,
+    compileDo = compileDo,
     list = list,
     sym = sym,
     scope = makeScope,
@@ -987,3 +1050,23 @@ return {
     eval = eval,
     repl = repl
 }
+
+SPECIALS['eval-compiler'] = function(ast, scope, parent)
+    local oldFirst = ast[1]
+    ast[1] = sym('do')
+    local luaSource = compileAst(ast, {
+        scope = makeScope(COMPILER_SCOPE)
+    })
+    ast[1] = oldFirst
+    local env = setmetatable({
+        _FNL = module,
+        _SCOPE = scope,
+        _CHUNK = parent,
+        _AST = ast,
+        _IS_COMPILER = true
+    }, { __index = _ENV or _G })
+    local loader = loadCode(luaSource, env)
+    loader()
+end
+
+return module

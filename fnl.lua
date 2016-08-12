@@ -27,6 +27,9 @@ local select = select
 local pairs = pairs
 local ipairs = ipairs
 local unpack = unpack or table.unpack
+local tpack = table.pack or function(...)
+    return {n = select('#', ...), ...}
+end
 
 local SYMBOL_MT = { 'SYMBOL' }
 local VARARG = setmetatable({ '...' }, { 'VARARG' })
@@ -77,7 +80,7 @@ end
 -- Checks if an object any kind of table, EXCEPT list or symbol
 local function isTable(x)
     return type(x) == 'table' and
-        x ~= VARARG,
+        x ~= VARARG and
         getmetatable(x) ~= LIST_MT and getmetatable(x) ~= SYMBOL_MT and x
 end
 
@@ -271,24 +274,32 @@ end
 local toStrings = {}
 
 -- Serialize an AST into a string that can be read back again with the parser.
-local function astToString(ast)
-    return (toStrings[type(ast)] or tostring)(ast)
+-- Cyclic and other non-normal tables are not readable but should print fine.
+local function astToString(ast, seen)
+    return (toStrings[type(ast)] or tostring)(ast, seen)
 end
 
-function toStrings.table(tab)
+function toStrings.table(tab, seen)
+    seen = seen or {n = 0}
+    if seen[tab] then
+        return ('<cycle %d>'):format(seen[tab])
+    end
+    local n = seen.n + 1
+    seen[tab] = n
+    seen.n = n
     if isSym(tab) then
         return tab[1]
     elseif isList(tab) then
         local buffer = {}
         for i = 1, tab.n do
-            buffer[i] = astToString(tab[i])
+            buffer[i] = astToString(tab[i], G)
         end
         return '(' .. table.concat(buffer, ' ') .. ')'
     else
         local buffer = {}
         for k, v in pairs(tab) do
-            buffer[#buffer + 1] = astToString(k)
-            buffer[#buffer + 1] = astToString(v)
+            buffer[#buffer + 1] = astToString(k, seen)
+            buffer[#buffer + 1] = astToString(v, seen)
         end
         return '{' .. table.concat(buffer, ' ') .. '}'
     end
@@ -350,6 +361,7 @@ for i, v in ipairs(luaKeywords) do
 end
 
 local function isMultiSym(str)
+    if type(str) ~= 'string' then return end
     local parts = {}
     for part in str:gmatch('[^%.]+') do
         parts[#parts + 1] = part
@@ -376,14 +388,15 @@ local function stringMangle(str, scope)
         local ret
         for i = 1, #parts do
             if parts[i]:match('^%d+$') then
-                ret = ret .. '[' .. parts[i] .. ']'
+                ret = nil
+                break
             elseif ret then
                 ret = ret .. '.' .. stringMangle(parts[i], scope)
             else
                 ret = stringMangle(parts[i], scope)
             end
         end
-        return ret
+        if ret then return ret end
     end
     if luaKeywords[mangling] then
         mangling = '_' .. mangling
@@ -588,6 +601,7 @@ local function destructure(left, right, scope, parent)
     local rightFirst = compileTossRest(right, scope, parent)
     local skeyPairs, rest, as, keys = {}
     if isSym(left) then
+        assert(not isMultiSym(left[1]), 'did not expect multi symbol')
         parent[#parent + 1] = ('local %s = %s'):format(
             stringMangle(left[1], scope), rightFirst.expr[1])
         return
@@ -601,6 +615,7 @@ local function destructure(left, right, scope, parent)
                 if sub == 'as' then -- Bind remainder of right (packed) to symbol n
                     if as then error 'already found as in destructure' end
                     as = assert(isSym(left[i]), 'expected symbol instead of ' .. literalToString(left[i]))
+                    assert(not isMultiSym(as[1]), 'did not expect multi symbol')
                     as = stringMangle(as, scope)
                 else
                     error('unknwon key in destructure: ' .. sub)
@@ -723,6 +738,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local fScope = makeScope(scope)
     local index = 2
     local fnName = isSym(ast[index])
+    local isLocalFn = not isMultiSym(fnName[1])
     if fnName then
         fnName = stringMangle(fnName[1], scope)
         index = index + 1
@@ -744,8 +760,8 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local tail = compileTail(ast, fScope, fChunk, index + 1)
     local expr = table.concat(tail.expr, ', ')
     fChunk[#fChunk + 1] = 'return ' .. expr
-    parent[#parent + 1] = ('local function %s(%s)')
-        :format(fnName, table.concat(argNameList, ', '))
+    parent[#parent + 1] = ('%sfunction %s(%s)')
+        :format(isLocalFn and 'local ' or '', fnName, table.concat(argNameList, ', '))
     parent[#parent + 1] = fChunk
     parent[#parent + 1] = 'end'
     return {
@@ -797,15 +813,18 @@ SPECIALS['pack'] = function(ast, scope, parent)
     return pack(ast, scope, parent)
 end
 
-local function defineSetterSpecial(name, prefix)
+local function defineSetterSpecial(name, prefix, noMulti)
     local formatString = ('%s%%s = %%s'):format(prefix)
     SPECIALS[name] = function(ast, scope, parent)
         local vars = {}
         for i = 2, math.max(2, ast.n - 1) do
             local s = assert(isSym(ast[i]))
+            if noMulti then
+                assert(not isMultiSym(s[1]), 'did not expect multi symbol')
+            end
             vars[i - 1] = stringMangle(s[1], scope)
         end
-        varname = table.concat(vars, ', ')
+        local varname = table.concat(vars, ', ')
         local assign = table.concat(compileExpr(ast[ast.n], scope, parent).expr, ', ')
         if assign == '' then
             assign = 'nil'
@@ -815,7 +834,7 @@ local function defineSetterSpecial(name, prefix)
 end
 
 -- Simple wrappers for declaring and setting locals.
-defineSetterSpecial('var', 'local ')
+defineSetterSpecial('var', 'local ', true)
 defineSetterSpecial('set', '')
 
 SPECIALS['let'] = function(ast, scope, parent)
@@ -1062,18 +1081,18 @@ local function repl(options)
         end)
         local ok, err = pcall(function()
             return parse(reader, function(x)
-                x = list(sym('print'), x)
                 local luaSource = compileAst(x, {
                     returnTail = true
                 })
-                print('-- SOURCE START --')
-                print(luaSource)
-                print('--- SOURCE END ---')
                 local loader, err = loadCode(luaSource, env)
                 if err then
                     print(err)
                 else
-                    loader()
+                    local ret = tpack(loader())
+                    for i = 1, ret.n do
+                        ret[i] = astToString(ret[i])
+                    end
+                    print(unpack(ret))
                     io.write(env._P or defaultPrompt)
                     io.flush()
                 end

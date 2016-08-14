@@ -871,35 +871,60 @@ SPECIALS['block'] = function(ast, scope, parent)
 end
 
 SPECIALS['if'] = function(ast, scope, parent)
-    -- First condition
-    local conditions = {}
-    local possibleReturns = {}
-    local subScopes = {}
-    local scoped, unknownExprCount = false, false
-    local maxExprCount = 0
-    for i = 2, ast.n - 1, 2 do
-        local subScope = makeScope(scope)
-        subScopes[#subScope + 1] = subScope
-        local condition = compileTossRest(ast[i], scope, parent)
-        local possibleReturn = compileExpr(ast[i + 1], subScope, parent)
-        possibleReturns[#possibleReturns + 1] = possibleReturn
-        maxExprCount = math.max(maxExprCount, possibleReturn.expr.n)
-        if possibleReturn.scoped then scoped = true end
-        if possibleReturn.unknownExprCount then unknownExprCount = true end
+    local cond = compileTossRest(ast[2], scope, parent)
+    local ifScope, ifChunk = makeScope(scope), {}
+    local elseScope, elseChunk = makeScope(scope), {}
+    local elseTail
+    local ifTail = compileExpr(ast[3], ifScope, ifChunk)
+    if ast[4] then -- Optional else
+        elseTail = compileExpr(ast[4], elseScope, elseChunk)
     end
+    local buffer = { ('if %s then'):format(cond.expr[1]), ifChunk }
+    if elseTail then
+        buffer[#buffer + 1] = 'else'
+        buffer[#buffer + 1] = elseChunk
+    end
+    buffer[#buffer + 1] = 'end'
+    local unknownExprCount = ifTail.unknownExprCount or (elseTail and elseTail.unknownExprCount)
+    local expr
     if unknownExprCount then -- Use CPS in a closure
+        local s = gensym(scope, ifScope, elseScope)
+        ifChunk[#ifChunk + 1] = ('return %s'):format(table.concat(ifTail.expr, ', '))
+        if elseTail then
+            elseChunk[#elseChunk + 1] = ('return %s'):format(table.concat(elseTail.expr, ', '))
+        else
+            elseChunk[#elseChunk] = 'return nil' -- Not often needed, but keeps behavior consistent.
+            -- Returning nil and returning nothing are technically different, especially when the calling
+            -- function uses select('#', ...)
+        end
         local va = scope.vararg and '...' or ''
-        local s = gensym(scope)
+        expr = list(('%s(%s)'):format(s, va))
         parent[#parent + 1] = ('local function %s(%s)'):format(s, va)
-    else -- Use external locals in do end
-
+        parent[#parent + 1] = buffer
+        parent[#parent + 1] = 'end'
+    else -- Use external locals
+        local numLocals = math.max(ifTail.expr.n, elseTail and elseTail.expr.n or 0)
+        local locals = {}
+        for i = 1, numLocals do
+            locals[i] = gensym(scope, ifScope, elseScope)
+        end
+        local combined = table.concat(locals, ', ')
+        expr = list(unpack(locals))
+        parent[#parent + 1] = 'local ' .. combined
+        ifChunk[#ifChunk + 1] = combined .. ' = ' .. table.concat(ifTail.expr, ', ')
+        if elseTail then
+            elseChunk[#elseChunk + 1] = combined .. ' = ' .. table.concat(elseTail.expr, ', ')
+        end
+        for i = 1, #buffer do
+            table.insert(parent, buffer[i])
+        end
     end
     return {
-        scoped = scoped,
+        scoped = true,
         unknownExprCount = unknownExprCount,
-        singleEval = true,
-        sideEffects = true,
-        expr: list(s)
+        singleEval = unknownExprCount,
+        sideEffects = unknownExprCount,
+        expr = expr
     }
 end
 
@@ -1068,6 +1093,9 @@ local function repl(options)
                 local luaSource = compileAst(x, {
                     returnTail = true
                 })
+                print('-- GENERATED CODE --')
+                print(luaSource)
+                print('-- GENERATED CODE END --')
                 local loader, err = loadCode(luaSource, env)
                 if err then
                     print(err)

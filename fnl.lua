@@ -84,8 +84,7 @@ local function isTable(x)
         getmetatable(x) ~= LIST_MT and getmetatable(x) ~= SYMBOL_MT and x
 end
 
--- Append b to list a. Return a. If b is a list and not 'force', append all
--- elements of b to a.
+-- Append b to list a. Return a.
 local function listAppend(a, b)
     assert(isList(a), 'expected list')
     assert(isList(b), 'expected list')
@@ -94,25 +93,6 @@ local function listAppend(a, b)
     end
     a.n = b.n + a.n
     return a
-end
-
--- Turn a list like table of values into a non-sequence table by
--- assigning successive elements as key-value pairs. mapify {1, 'a', 'b', true}
--- should become {[1] = 'a', ['b'] = true}
-local function mapify(tab)
-    local max = 0
-    for k, v in pairs(tab) do
-        if type(k) == 'number' then
-            max = max > k and max or k
-        end
-    end
-    local ret = {}
-    for i = 1, max, 2 do
-        if tab[i] ~= nil then
-            ret[tab[i]] = tab[i + 1]
-        end
-    end
-    return ret
 end
 
 local READER_INDEX = { length = math.huge }
@@ -197,6 +177,7 @@ local function parseSequence(str, dispatch, index, opener)
     local function readValue()
         local start = str:byte(index)
         local stringStartIndex = index
+        local line = currentLine
         -- Check if quoted string
         if start == 34 or start == 39 then
             local last, current
@@ -207,7 +188,7 @@ local function parseSequence(str, dispatch, index, opener)
             local raw = str:sub(stringStartIndex, index)
             local loadFn = loadCode(('return %s'):format(raw))
             index = index + 1
-            return loadFn()
+            return loadFn(), line, stringStartIndex
         else -- non-quoted string - symbol, number, or nil
             while not onWhitespace(true) do
                 index = index + 1
@@ -222,11 +203,12 @@ local function parseSequence(str, dispatch, index, opener)
             end
             local forceNumber = rawSubstring:match('^%d')
             if forceNumber then
-                return tonumber(rawSubstring) or error('could not read token "' .. rawSubstring .. '"')
+                return tonumber(rawSubstring) or error('could not read token "' .. rawSubstring .. '"'), stringStartIndex
             end
-            return tonumber(rawSubstring) or sym(rawSubstring)
+            return tonumber(rawSubstring) or sym(rawSubstring), stringStartIndex
         end
     end
+    -- The main parse loop - skip whitespce, check for delimiters, read token. Repeat.
     while index < strlen do
         while index < strlen and onWhitespace() do
             index = index + 1
@@ -236,12 +218,16 @@ local function parseSequence(str, dispatch, index, opener)
         free(index - 1)
         local value, vlen
         if type(delims[b]) == 'number' then -- Opening delimiter
-            value, index, vlen  = parseSequence(str, nil, index + 1, b)
+            value, index, vlen = parseSequence(str, nil, index + 1, b)
             if b == 40 then
                 value.n = vlen
                 value = setmetatable(value, LIST_MT)
             elseif b == 123 then
-                value = mapify(value)
+                local newValue = {}
+                for i = 1, vlen, 2 do
+                    newValue[value[i]] = value[i + 1]
+                end
+                value = newValue
             end
         elseif delims[b] then -- Closing delimiter
             if delims[opener] ~= b then
@@ -360,6 +346,10 @@ for i, v in ipairs(luaKeywords) do
     luaKeywords[v] = i
 end
 
+-- A multi symbol is a symbol that is actually composed of
+-- two or more symbols using the dot syntax. The main differences
+-- from normal symbols is that they cannot be declared local, and
+-- they may have side effects on invocation (metatables)
 local function isMultiSym(str)
     if type(str) ~= 'string' then return end
     local parts = {}
@@ -377,7 +367,7 @@ end
 -- Creates a symbol from a string by mangling it.
 -- ensures that the generated symbol is unique
 -- if the input string is unique in the scope.
-local function stringMangle(str, scope)
+local function stringMangle(str, scope, noMulti)
     if scope.manglings[str] then
         return scope.manglings[str]
     end
@@ -387,16 +377,16 @@ local function stringMangle(str, scope)
     if parts then
         local ret
         for i = 1, #parts do
-            if parts[i]:match('^%d+$') then
-                ret = nil
-                break
-            elseif ret then
-                ret = ret .. '.' .. stringMangle(parts[i], scope)
+            if ret then
+                ret = ret .. '[' .. toStrings.string(parts[i]) .. ']'
             else
                 ret = stringMangle(parts[i], scope)
             end
         end
-        if ret then return ret end
+        if ret then
+            if noMulti then error 'did not expect a multi symbol' end
+            return ret
+        end
     end
     if luaKeywords[mangling] then
         mangling = '_' .. mangling
@@ -414,13 +404,25 @@ local function stringMangle(str, scope)
     return mangling
 end
 
--- Generates a unique symbol in the scope.
-local function gensym(scope)
+-- Generates a unique symbol in the scope, ensuring it is unique in child scopes as well
+-- if they are passed in.
+local function gensym(...)
+    local scope = ... -- the root scope
+    assert(scope, 'expected at least 1 scope')
+    local len = select('#', ...)
     local mangling, append = nil, 0
+    local function done(...)
+        for i = 1, len do
+            if select(i, ...).unmanglings[mangling] then
+                return false
+            end
+        end
+        return true
+    end
     repeat
-        mangling = '_' .. append
+        mangling = '_' .. append .. '_'
         append = append + 1
-    until not scope.unmanglings[mangling]
+    until done(...)
     scope.unmanglings[mangling] = true
     return mangling
 end
@@ -494,6 +496,8 @@ local function compileExpr(ast, scope, parent)
         end
     else
         head.expr = list(literalToString(ast, scope))
+        head.singleEval = type(ast) == 'table'
+        head.sideEffects = type(ast) == 'table'
     end
     return head
 end
@@ -601,9 +605,8 @@ local function destructure(left, right, scope, parent)
     local rightFirst = compileTossRest(right, scope, parent)
     local skeyPairs, rest, as, keys = {}
     if isSym(left) then
-        assert(not isMultiSym(left[1]), 'did not expect multi symbol')
         parent[#parent + 1] = ('local %s = %s'):format(
-            stringMangle(left[1], scope), rightFirst.expr[1])
+            stringMangle(left[1], scope, true), rightFirst.expr[1])
         return
     elseif isTable(left) then
         local i = 0
@@ -614,15 +617,14 @@ local function destructure(left, right, scope, parent)
                 i = i + 1
                 if sub == 'as' then -- Bind remainder of right (packed) to symbol n
                     if as then error 'already found as in destructure' end
-                    as = assert(isSym(left[i]), 'expected symbol instead of ' .. literalToString(left[i]))
-                    assert(not isMultiSym(as[1]), 'did not expect multi symbol')
-                    as = stringMangle(as, scope)
+                    as = assert(isSym(left[i]), 'expected symbol instead of ' .. literalToString(left[i], scope))
+                    as = stringMangle(as[1], scope, true)
                 else
-                    error('unknwon key in destructure: ' .. sub)
+                    error('unknown key in destructure: ' .. sub)
                 end
             else
                 skeyPairs[#skeyPairs + 1] = {
-                    expr = stringMangle(sub, scope),
+                    expr = stringMangle(sub[1], scope, true),
                     key = i
                 }
             end
@@ -685,7 +687,7 @@ end
 local function doImpl(ast, scope, parent, subScope, chunk, start, forceScoped)
     subScope = subScope or makeScope(scope)
     chunk = chunk or {}
-    local tail = compileTail(ast, subScope, chunk)
+    local tail = compileTail(ast, subScope, chunk, start)
     local expr, sideEffects, singleEval, validStatement, unknownExprCount, scoped =
         tail.expr, tail.sideEffects, tail.singleEval, tail.validStatement, tail.unknownExprCount, tail.scoped
     if unknownExprCount then -- Use imediately invoked closure to wrap instead of do ... end
@@ -706,7 +708,7 @@ local function doImpl(ast, scope, parent, subScope, chunk, start, forceScoped)
             singleEval, sideEffects, validStatement = false, false, false
             local syms = {n = expr.n}
             for i = 1, expr.n do
-                syms[i] = gensym(scope)
+                syms[i] = gensym(scope, subScope)
             end
             local s = table.concat(syms, ', ')
             parent[#parent + 1] = 'local ' .. s
@@ -738,8 +740,9 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local fScope = makeScope(scope)
     local index = 2
     local fnName = isSym(ast[index])
-    local isLocalFn = not isMultiSym(fnName[1])
+    local isLocalFn
     if fnName then
+        isLocalFn = not isMultiSym(fnName[1])
         fnName = stringMangle(fnName[1], scope)
         index = index + 1
     else
@@ -760,8 +763,13 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local tail = compileTail(ast, fScope, fChunk, index + 1)
     local expr = table.concat(tail.expr, ', ')
     fChunk[#fChunk + 1] = 'return ' .. expr
-    parent[#parent + 1] = ('%sfunction %s(%s)')
-        :format(isLocalFn and 'local ' or '', fnName, table.concat(argNameList, ', '))
+    if isLocalFn then
+        parent[#parent + 1] = ('local function %s(%s)')
+            :format(fnName, table.concat(argNameList, ', '))
+    else
+        parent[#parent + 1] = ('%s = function(%s)')
+            :format(fnName, table.concat(argNameList, ', '))
+    end
     parent[#parent + 1] = fChunk
     parent[#parent + 1] = 'end'
     return {
@@ -813,29 +821,19 @@ SPECIALS['pack'] = function(ast, scope, parent)
     return pack(ast, scope, parent)
 end
 
-local function defineSetterSpecial(name, prefix, noMulti)
-    local formatString = ('%s%%s = %%s'):format(prefix)
-    SPECIALS[name] = function(ast, scope, parent)
-        local vars = {}
-        for i = 2, math.max(2, ast.n - 1) do
-            local s = assert(isSym(ast[i]))
-            if noMulti then
-                assert(not isMultiSym(s[1]), 'did not expect multi symbol')
-            end
-            vars[i - 1] = stringMangle(s[1], scope)
-        end
-        local varname = table.concat(vars, ', ')
-        local assign = table.concat(compileExpr(ast[ast.n], scope, parent).expr, ', ')
-        if assign == '' then
-            assign = 'nil'
-        end
-        parent[#parent + 1] = formatString:format(varname, assign)
+SPECIALS['set'] = function(ast, scope, parent)
+    local vars = {}
+    for i = 2, math.max(2, ast.n - 1) do
+        local s = assert(isSym(ast[i]))
+        vars[i - 1] = stringMangle(s[1], scope, noMulti)
     end
+    local varname = table.concat(vars, ', ')
+    local assign = table.concat(compileExpr(ast[ast.n], scope, parent).expr, ', ')
+    if assign == '' then
+        assign = 'nil'
+    end
+    parent[#parent + 1] = ('%s = %s'):format(varname, assign)
 end
-
--- Simple wrappers for declaring and setting locals.
-defineSetterSpecial('var', 'local ', true)
-defineSetterSpecial('set', '')
 
 SPECIALS['let'] = function(ast, scope, parent)
     local bindings = ast[2]
@@ -860,15 +858,6 @@ SPECIALS['tset'] = function(ast, scope, parent)
     parent[#parent + 1] = ('%s[%s] = %s'):format(root, table.concat(keys, ']['), value)
 end
 
--- Add a comment to the generated code.
-SPECIALS['--'] = function(ast, scope, parent)
-    for i = 2, ast.n do
-        local com = ast[i]
-        assert(type(com) == 'string', 'expected string comment')
-        parent[#parent + 1] = '-- ' .. com:gsub('\n', '\n-- ')
-    end
-end
-
 -- Executes a series of statements. Unlike do, evaultes to nil.
 -- this potentially simplifies the resulting Lua code. It certainly
 -- simplifies the implementation.
@@ -881,42 +870,37 @@ SPECIALS['block'] = function(ast, scope, parent)
     parent[#parent + 1] = 'end'
 end
 
--- Special form for branching - covers all situations with if, elseif, and else.
--- Not meant to be used in most user code, targeted by macros.
-SPECIALS['*branch'] = function(ast, scope, parent)
+SPECIALS['if'] = function(ast, scope, parent)
     -- First condition
-    local condition = compileTossRest(ast[2], scope, parent)
-    parent[#parent + 1] = 'if ' .. condition.expr[1] .. ' then'
-    local len = ast.n or #asr
-    local subScope = makeScope(scope)
-    local subChunk = {}
-    local i = 3
-    while i <= len do
-        local subAst = ast[i]
-        if isSym(subAst) and subAst[1] == '*branch' then
-            parent[#parent + 1] = subChunk
-            subChunk = {}
-            i = i + 1
-            local nextSym = ast[i]
-            assert(isSym(nextSym), 'expected symbol after branch')
-            local symVal = nextSym[1]
-            subScope = makeScope(scope)
-            if symVal == 'else' then
-                parent[#parent + 1] = 'else'
-            elseif symVal == 'elseif' then
-                i = i + 1
-                condition = compileTossRest(ast[i], scope, parent)
-                parent[#parent + 1] = 'elseif ' .. condition.expr[1] .. ' then'
-            else
-                error('expected \'else\' or \'elseif\' after \'branch\'.')
-            end
-        else
-            compileDo(ast[i], subScope, subChunk)
-        end
-        i = i + 1
+    local conditions = {}
+    local possibleReturns = {}
+    local subScopes = {}
+    local scoped, unknownExprCount = false, false
+    local maxExprCount = 0
+    for i = 2, ast.n - 1, 2 do
+        local subScope = makeScope(scope)
+        subScopes[#subScope + 1] = subScope
+        local condition = compileTossRest(ast[i], scope, parent)
+        local possibleReturn = compileExpr(ast[i + 1], subScope, parent)
+        possibleReturns[#possibleReturns + 1] = possibleReturn
+        maxExprCount = math.max(maxExprCount, possibleReturn.expr.n)
+        if possibleReturn.scoped then scoped = true end
+        if possibleReturn.unknownExprCount then unknownExprCount = true end
     end
-    parent[#parent + 1] = subChunk
-    parent[#parent + 1] = 'end'
+    if unknownExprCount then -- Use CPS in a closure
+        local va = scope.vararg and '...' or ''
+        local s = gensym(scope)
+        parent[#parent + 1] = ('local function %s(%s)'):format(s, va)
+    else -- Use external locals in do end
+
+    end
+    return {
+        scoped = scoped,
+        unknownExprCount = unknownExprCount,
+        singleEval = true,
+        sideEffects = true,
+        expr: list(s)
+    }
 end
 
 SPECIALS['*while'] = function(ast, scope, parent)
@@ -1079,7 +1063,7 @@ local function repl(options)
         local reader = createReader(function()
             return io.read() .. '\n'
         end)
-        local ok, err = pcall(function()
+        print(select(2, xpcall(function()
             return parse(reader, function(x)
                 local luaSource = compileAst(x, {
                     returnTail = true
@@ -1097,10 +1081,7 @@ local function repl(options)
                     io.flush()
                 end
             end)
-        end)
-        if not ok then
-            print(debug.traceback(err))
-        end
+        end, debug.traceback)))
     end
 end
 

@@ -481,6 +481,8 @@ local function compileExpr(ast, scope, parent)
         else
             local fargs = list()
             local fcall = compileTossRest(ast[1], scope, parent).expr[1]
+            -- TODO: Pass more info to children during compilation to allow
+            -- for more optimization. i.e, if the child ast is in tail position
             for i = 2, len do
                 if i == len then
                     listAppend(fargs, compileExpr(ast[i], scope, parent).expr)
@@ -559,6 +561,8 @@ end
 
 -- Compile a sub expression, and return a tail that contains exactly one expression.
 function compileTossRest(ast, scope, parent)
+    -- Possible Optimization: let sub expressions know that their return values
+    -- will not be used during compilation, rather than after.
     return tossRest(compileExpr(ast, scope, parent), scope, parent)
 end
 
@@ -871,54 +875,71 @@ SPECIALS['block'] = function(ast, scope, parent)
 end
 
 SPECIALS['if'] = function(ast, scope, parent)
-    local cond = compileTossRest(ast[2], scope, parent)
-    local ifScope, ifChunk = makeScope(scope), {}
-    local elseScope, elseChunk = makeScope(scope), {}
-    local elseTail
-    local ifTail = compileExpr(ast[3], ifScope, ifChunk)
-    if ast[4] then -- Optional else
-        elseTail = compileExpr(ast[4], elseScope, elseChunk)
+    local doScope, buffer = makeScope(scope), {}
+    local conds, rets, scopes, chunks, condChunks = {}, {}, {}, {}, {}
+    local unknownExprCount, exprCount, expr = false, 0, nil
+    local function appendRet(i)
+        local j = #scopes + 1
+        scopes[j], chunks[j] = makeScope(doScope), {}
+        rets[j] = compileExpr(ast[i], scopes[j], chunks[j])
+        if rets[j].unknownExprCount then unknownExprCount = true end
+        exprCount = math.max(exprCount, rets[j].expr.n)
     end
-    local buffer = { ('if %s then'):format(cond.expr[1]), ifChunk }
-    if elseTail then
-        buffer[#buffer + 1] = 'else'
-        buffer[#buffer + 1] = elseChunk
+    for i = 2, ast.n - 1, 2 do
+        local cchunk = {}
+        table.insert(condChunks, cchunk)
+        conds[i / 2] = compileTossRest(ast[i], doScope, cchunk)
+        appendRet(i + 1)
     end
-    buffer[#buffer + 1] = 'end'
-    local unknownExprCount = ifTail.unknownExprCount or (elseTail and elseTail.unknownExprCount)
-    local expr
-    if unknownExprCount then -- Use CPS in a closure
-        local s = gensym(scope, ifScope, elseScope)
-        ifChunk[#ifChunk + 1] = ('return %s'):format(table.concat(ifTail.expr, ', '))
-        if elseTail then
-            elseChunk[#elseChunk + 1] = ('return %s'):format(table.concat(elseTail.expr, ', '))
-        else
-            elseChunk[#elseChunk] = 'return nil' -- Not often needed, but keeps behavior consistent.
-            -- Returning nil and returning nothing are technically different, especially when the calling
-            -- function uses select('#', ...)
+    local hasElse = ast.n > 3 and ast.n % 2 == 0
+    if hasElse then
+        appendRet(ast.n)
+    end
+    local returnPrefix = 'return '
+    if not unknownExprCount then
+        local syms = {}
+        for i = 1, exprCount do
+            syms[i] = gensym(scope, unpack(scopes))
         end
+        expr = list(unpack(syms))
+        local vars = table.concat(syms, ', ')
+        parent[#parent + 1] = 'local ' .. vars
+        parent[#parent + 1] = 'do'
+        returnPrefix = vars .. ' = '
+    else
+        local s = gensym(scope)
         local va = scope.vararg and '...' or ''
-        expr = list(('%s(%s)'):format(s, va))
-        parent[#parent + 1] = ('local function %s(%s)'):format(s, va)
-        parent[#parent + 1] = buffer
-        parent[#parent + 1] = 'end'
-    else -- Use external locals
-        local numLocals = math.max(ifTail.expr.n, elseTail and elseTail.expr.n or 0)
-        local locals = {}
-        for i = 1, numLocals do
-            locals[i] = gensym(scope, ifScope, elseScope)
+        local fCall = ('%s(%s)'):format(s, va)
+        parent[#parent + 1] = 'local function' .. fCall
+        expr = list(fCall)
+    end
+    local buffer = {}
+    parent[#parent + 1] = buffer
+    local lastBuffer = buffer
+    for i = 1, #conds do
+        for j = 1, #condChunks[i] do
+            table.insert(lastBuffer, condChunks[i][j])
         end
-        local combined = table.concat(locals, ', ')
-        expr = list(unpack(locals))
-        parent[#parent + 1] = 'local ' .. combined
-        ifChunk[#ifChunk + 1] = combined .. ' = ' .. table.concat(ifTail.expr, ', ')
-        if elseTail then
-            elseChunk[#elseChunk + 1] = combined .. ' = ' .. table.concat(elseTail.expr, ', ')
-        end
-        for i = 1, #buffer do
-            table.insert(parent, buffer[i])
+        local condLine = ('if %s then'):format(conds[i].expr[1])
+        table.insert(lastBuffer, condLine)
+        table.insert(lastBuffer, chunks[i])
+        table.insert(chunks[i], returnPrefix .. table.concat(rets[i].expr, ', '))
+        if i == #conds then
+            if hasElse then
+                table.insert(lastBuffer, 'else')
+                table.insert(lastBuffer, chunks[i + 1])
+                table.insert(chunks[i + 1], returnPrefix .. table.concat(rets[i + 1].expr, ', '))
+            end
+            table.insert(lastBuffer, 'end')
+        else
+            table.insert(lastBuffer, 'else')
+            local nextBuffer = {}
+            table.insert(lastBuffer, nextBuffer)
+            table.insert(lastBuffer, 'end')
+            lastBuffer = nextBuffer
         end
     end
+    parent[#parent + 1] = 'end'
     return {
         scoped = true,
         unknownExprCount = unknownExprCount,

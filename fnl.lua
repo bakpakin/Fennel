@@ -782,6 +782,30 @@ SPECIALS['fn'] = function(ast, scope, parent)
     }
 end
 
+SPECIALS['$'] = function(ast, scope, parent)
+    local maxArg = 0
+    local function walk(node)
+        if type(node) ~= 'table' then return end
+        if isSym(node) then
+            local num = node[1]:match('^%$(%d+)$')
+            if num then
+                maxArg = math.max(maxArg, tonumber(num))
+            end
+            return
+        end
+        for k, v in pairs(node) do
+            walk(k)
+            walk(v)
+        end
+    end
+    walk(ast)
+    local fargs = {}
+    for i = 1, maxArg do table.insert(fargs, sym('$' .. i)) end
+    table.remove(ast, 1)
+    ast.n = ast.n - 1
+    return SPECIALS.fn({'', sym('$$'), fargs, ast, n = 4}, scope, parent)
+end
+
 SPECIALS['special'] = function(ast, scope, parent)
     assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare special forms in \'eval-compiler\'')
     local spec = SPECIALS.fn(ast, scope, parent)

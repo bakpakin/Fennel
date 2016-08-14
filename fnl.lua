@@ -1114,9 +1114,6 @@ local function repl(options)
                 local luaSource = compileAst(x, {
                     returnTail = true
                 })
-                print('-- GENERATED CODE --')
-                print(luaSource)
-                print('-- GENERATED CODE END --')
                 local loader, err = loadCode(luaSource, env)
                 if err then
                     print(err)

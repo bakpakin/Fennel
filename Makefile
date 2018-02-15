@@ -1,0 +1,2 @@
+luacheck:
+	luacheck fnl.lua

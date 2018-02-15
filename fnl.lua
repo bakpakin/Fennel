@@ -177,7 +177,7 @@ local function parseSequence(str, dispatch, index, opener)
     local function readValue()
         local start = str:byte(index)
         local stringStartIndex = index
-        local line = currentLine
+        local line = nil
         -- Check if quoted string
         if start == 34 or start == 39 then
             local last, current
@@ -203,7 +203,9 @@ local function parseSequence(str, dispatch, index, opener)
             end
             local forceNumber = rawSubstring:match('^%d')
             if forceNumber then
-                return tonumber(rawSubstring) or error('could not read token "' .. rawSubstring .. '"'), stringStartIndex
+                return tonumber(rawSubstring) or
+                    error('could not read token "' ..
+                              rawSubstring .. '"'), stringStartIndex
             end
             return tonumber(rawSubstring) or sym(rawSubstring), stringStartIndex
         end
@@ -278,7 +280,7 @@ function toStrings.table(tab, seen)
     elseif isList(tab) then
         local buffer = {}
         for i = 1, tab.n do
-            buffer[i] = astToString(tab[i], G)
+            buffer[i] = astToString(tab[i], _G)
         end
         return '(' .. table.concat(buffer, ' ') .. ')'
     else
@@ -607,7 +609,7 @@ end
 -- Implements destructuring for forms like let, bindings, etc.
 local function destructure(left, right, scope, parent)
     local rightFirst = compileTossRest(right, scope, parent)
-    local skeyPairs, rest, as, keys = {}
+    local skeyPairs, as = {}
     if isSym(left) then
         parent[#parent + 1] = ('local %s = %s'):format(
             stringMangle(left[1], scope, true), rightFirst.expr[1])
@@ -643,7 +645,7 @@ local function destructure(left, right, scope, parent)
     else
         as = rightFirst.expr[1]
     end
-    for i, skpair in ipairs(skeyPairs) do
+    for _, skpair in ipairs(skeyPairs) do
         parent[#parent + 1] = ('local %s = %s[%s]'):format(skpair.expr, as, skpair.key)
     end
 end
@@ -853,7 +855,7 @@ SPECIALS['set'] = function(ast, scope, parent)
     local vars = {}
     for i = 2, math.max(2, ast.n - 1) do
         local s = assert(isSym(ast[i]))
-        vars[i - 1] = stringMangle(s[1], scope, noMulti)
+        vars[i - 1] = stringMangle(s[1], scope, true)
     end
     local varname = table.concat(vars, ', ')
     local assign = table.concat(compileExpr(ast[ast.n], scope, parent).expr, ', ')
@@ -899,9 +901,9 @@ SPECIALS['block'] = function(ast, scope, parent)
 end
 
 SPECIALS['if'] = function(ast, scope, parent)
-    local doScope, buffer = makeScope(scope), {}
+    local doScope = makeScope(scope)
     local conds, rets, scopes, chunks, condChunks = {}, {}, {}, {}, {}
-    local unknownExprCount, exprCount, expr = false, 0, nil
+    local unknownExprCount, exprCount, expr = false, 0
     local function appendRet(i)
         local j = #scopes + 1
         scopes[j], chunks[j] = makeScope(doScope), {}
@@ -1008,7 +1010,7 @@ SPECIALS['*for'] = function(ast, scope, parent)
 end
 
 -- Do wee need this? Is there a more elegnant way to comile with break?
-SPECIALS['*break'] = function(ast, scope, parent)
+SPECIALS['*break'] = function(_, _, parent)
     parent[#parent + 1] = 'break'
 end
 

@@ -1,5 +1,7 @@
+LUA ?= lua
+
 test:
-	lua test.lua
+	$(LUA) test.lua
 
 luacheck:
 	luacheck fnl.lua

@@ -44,7 +44,7 @@ The fnl.lua module exports the following functions:
 
 ## Try it
 
-Clone the repository, and run `lua fnl.lua --repl` to quickly start a repl.
+Clone the repository, and run `lua fnlcli.lua --repl` to quickly start a repl.
 
 ## License
 

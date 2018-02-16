@@ -7,11 +7,11 @@ if arg[1] == "--repl" then
     print("Welcome to fnl!")
     fnl.repl()
 elseif arg[1] == "--compile" then
-    local f = assert(io.open(args[2], "rb"))
+    local f = assert(io.open(arg[2], "rb"))
     print(fnl.compile(f:read("*all")))
     f:close()
 elseif #arg == 1 then
-    local f = assert(io.open(args[1], "rb"))
+    local f = assert(io.open(arg[1], "rb"))
     fnl.eval(f:read("*all"))
     f:close()
 else

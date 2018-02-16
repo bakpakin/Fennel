@@ -32,6 +32,11 @@ local functions = {
          (f 9 5 (f3 f2)))"]=44,
     ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
     ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
+    ["(let [res (pack (pcall error \"oh no\"))] (. res 2))"]="oh no",
+    ["(let [l (lambda [x] (+ x x))] (l 4))"]=8,
+    ["(let [l (λ [x] x) res (pack (pcall l))] (. res 1))"]=false,
+    ["(let [l (λ [x y] x) r (pack (pcall l 1))]\
+        (string.match (. r 2) \"Missing argument: y\")"]="Missing argument: y",
 }
 
 local conditionals = {

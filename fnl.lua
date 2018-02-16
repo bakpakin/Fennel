@@ -512,6 +512,14 @@ local function compileExpr(ast, scope, parent)
     return head
 end
 
+-- Convert a Lua table representing an expression
+-- to a valid Lua expression string.
+local function normalizeExpr(expr)
+    local luaexpr = table.concat(expr, ', ')
+    if luaexpr == '' then luaexpr = 'nil' end
+    return luaexpr
+end
+
 -- Compile an AST, and ensure that the expression
 -- is fully executed in it scope. compileExpr doesn't necesarrily
 -- compile all of its code into parent, and might return some code
@@ -551,7 +559,7 @@ local function tossRest(tail, scope, parent)
         -- The first AST MUST be evaluated first.
         if tail.expr.n > 1 then
             local s = gensym(scope)
-            parent[#parent + 1] = ('local %s = %s'):format(s, tail.expr[1])
+            parent[#parent + 1] = ('local %s = %s'):format(s, tail.expr[1] or 'nil')
             tail.expr[1] = s
             tail = { -- Remove non expr keys
                 expr = tail.expr,
@@ -568,6 +576,7 @@ local function tossRest(tail, scope, parent)
 end
 
 -- Compile a sub expression, and return a tail that contains exactly one expression.
+-- This function was forward declared above
 function compileTossRest(ast, scope, parent)
     -- Possible Optimization: let sub expressions know that their return values
     -- will not be used during compilation, rather than after.
@@ -774,7 +783,8 @@ SPECIALS['fn'] = function(ast, scope, parent)
         end
     end
     local fChunk = {}
-    local tail = compileTail(ast, fScope, fChunk, index + 1)
+    local tail = index < ast.n and compileTail(ast, fScope, fChunk, index + 1)
+        or { expr = list('nil'), validStatement = true }
     local expr = table.concat(tail.expr, ', ')
     fChunk[#fChunk + 1] = 'return ' .. expr
     if isLocalFn then
@@ -908,16 +918,19 @@ SPECIALS['if'] = function(ast, scope, parent)
     local conds, rets, scopes, chunks, condChunks = {}, {}, {}, {}, {}
     local unknownExprCount, exprCount, expr = false, 0
     local function appendRet(i)
-        local j = #scopes + 1
-        scopes[j], chunks[j] = makeScope(doScope), {}
-        rets[j] = compileExpr(ast[i], scopes[j], chunks[j])
-        if rets[j].unknownExprCount then unknownExprCount = true end
-        exprCount = math.max(exprCount, rets[j].expr.n)
+        local nextchunk = {}
+        local nextscope = makeScope(doScope)
+        local nextret = compileExpr(ast[i], nextscope, nextchunk)
+        if nextret.unknownExprCount then unknownExprCount = true end
+        exprCount = math.max(exprCount, nextret.expr.n)
+        table.insert(chunks, nextchunk)
+        table.insert(scopes, nextscope)
+        table.insert(rets, nextret)
     end
     for i = 2, ast.n - 1, 2 do
         local cchunk = {}
         table.insert(condChunks, cchunk)
-        conds[i / 2] = compileTossRest(ast[i], doScope, cchunk)
+        table.insert(conds, compileTossRest(ast[i], doScope, cchunk))
         appendRet(i + 1)
     end
     local hasElse = ast.n > 3 and ast.n % 2 == 0
@@ -925,16 +938,21 @@ SPECIALS['if'] = function(ast, scope, parent)
         appendRet(ast.n)
     end
     local returnPrefix = 'return '
-    if not unknownExprCount then
+    if exprCount == 0 then
+        local s = gensym(doScope)
+        returnPrefix = s .. ' = '
+        parent[#parent + 1] = 'do'
+        expr = list(s)
+    elseif not unknownExprCount then
         local syms = {}
         for i = 1, exprCount do
             syms[i] = gensym(scope, unpack(scopes))
         end
-        expr = list(unpack(syms))
         local vars = table.concat(syms, ', ')
         parent[#parent + 1] = 'local ' .. vars
         parent[#parent + 1] = 'do'
         returnPrefix = vars .. ' = '
+        expr = list(unpack(syms))
     else
         local s = gensym(scope)
         local va = scope.vararg and '...' or ''
@@ -942,8 +960,8 @@ SPECIALS['if'] = function(ast, scope, parent)
         parent[#parent + 1] = 'local function' .. fCall
         expr = list(fCall)
     end
+    -- Compile
     local buffer = {}
-    parent[#parent + 1] = buffer
     local lastBuffer = buffer
     for i = 1, #conds do
         for j = 1, #condChunks[i] do
@@ -952,12 +970,12 @@ SPECIALS['if'] = function(ast, scope, parent)
         local condLine = ('if %s then'):format(conds[i].expr[1])
         table.insert(lastBuffer, condLine)
         table.insert(lastBuffer, chunks[i])
-        table.insert(chunks[i], returnPrefix .. table.concat(rets[i].expr, ', '))
+        table.insert(chunks[i], returnPrefix .. normalizeExpr(rets[i].expr))
         if i == #conds then
             if hasElse then
                 table.insert(lastBuffer, 'else')
                 table.insert(lastBuffer, chunks[i + 1])
-                table.insert(chunks[i + 1], returnPrefix .. table.concat(rets[i + 1].expr, ', '))
+                table.insert(chunks[i + 1], returnPrefix .. normalizeExpr(rets[i + 1].expr))
             end
             table.insert(lastBuffer, 'end')
         else
@@ -968,6 +986,7 @@ SPECIALS['if'] = function(ast, scope, parent)
             lastBuffer = nextBuffer
         end
     end
+    parent[#parent + 1] = buffer
     parent[#parent + 1] = 'end'
     return {
         scoped = true,

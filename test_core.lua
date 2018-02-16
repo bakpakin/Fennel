@@ -5,7 +5,13 @@ local make_test = function(data)
     return function()
         for code, expected in pairs(data) do
             local msg = "Expected " .. code .. " to be " .. tostring(expected)
-            t.assert_equal(expected, fnl.eval(code), msg)
+            local ok, res = pcall(fnl.eval, code)
+            if not ok then
+                print(fnl.compile(code))
+            end
+            if expected ~= fnl.eval(code) then
+                print(msg)
+            end
         end
     end
 end
@@ -25,14 +31,12 @@ local functions = {
             f3 (fn [f] (fn [x] (f 5 x)))]\
          (f 9 5 (f3 f2)))"]=44,
     ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
-    -- TODO: functions without a body don't return nil
-    -- ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
+    ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
 }
 
 local conditionals = {
     ["(let [x 1 y 2] (if (= (* 2 x) y) \"yep\"))"]="yep",
-    -- TODO: currently if cannot be used for side-effects
-    -- ["(let [x 12] (if true (block (set x 22) x) 0))"]=22,
+    ["(let [x 12] (if true (do (set x 22) x) 0))"]=22,
     ["(if false \"yep\" \"nope\")"]="nope",
     ["(if non-existent 1 (* 3 9))"]=27,
     ["(do (when true (set a 192) (set z 12)) (+ z a))"]=204,
@@ -44,8 +48,7 @@ local core = {
     ["(table.concat [\"ab\" \"cde\"] \",\")"]="ab,cde",
     ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
     ["(let [t {} k :key] (tset t k :val) t.key)"]="val",
-    -- TODO: setting multiple things at once is broken?
-    -- ["(do (set x 1 y 2) y)"]=2,
+    ["(do (set x y z (values 1 2 3)) y)"]=2,
 }
 
 local booleans = {

@@ -178,6 +178,12 @@ local function parseSequence(str, dispatch, index, opener)
         local start = str:byte(index)
         local stringStartIndex = index
         local line = nil
+        -- Ignore comments
+        if str:sub(index, index) == ";" then
+            while str:sub(index, index) ~= "\n" do
+                index = index + 1
+            end
+        end
         -- Check if quoted string
         if start == 34 or start == 39 then
             local last, current

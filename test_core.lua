@@ -41,8 +41,7 @@ local conditionals = {
 }
 
 local core = {
-    -- TODO: we, uhm. don't have comments yet.
-    -- ["(do (set x 12) ;; (set x 99)\n x)"]=12,
+    ["(do (set x 12) ;; (set x 99)\n x)"]=12,
     ["(table.concat [\"ab\" \"cde\"] \",\")"]="ab,cde",
     ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
     ["(let [t {} k :key] (tset t k :val) t.key)"]="val",

@@ -178,6 +178,12 @@ local function parseSequence(str, dispatch, index, opener)
         local start = str:byte(index)
         local stringStartIndex = index
         local line = nil
+        -- Ignore comments
+        if str:sub(index, index) == ";" then
+            while str:sub(index, index) ~= "\n" do
+                index = index + 1
+            end
+        end
         -- Check if quoted string
         if start == 34 or start == 39 then
             local last, current
@@ -737,6 +743,8 @@ end
 
 SPECIALS['do'] = doImpl
 SPECIALS['values'] = values
+
+-- Wrap a variadic number of arguments into a table. Does NOT do length capture
 SPECIALS['pack'] = pack
 
 -- The fn special declares a function. Syntax is similar to other lisps;
@@ -846,16 +854,11 @@ SPECIALS['.'] = function(ast, scope, parent)
     }
 end
 
--- Wrap a variadic number of arguments into a table. Does NOT do length capture.
-SPECIALS['pack'] = function(ast, scope, parent)
-    return pack(ast, scope, parent)
-end
-
 SPECIALS['set'] = function(ast, scope, parent)
     local vars = {}
     for i = 2, math.max(2, ast.n - 1) do
         local s = assert(isSym(ast[i]))
-        vars[i - 1] = stringMangle(s[1], scope, true)
+        vars[i - 1] = stringMangle(s[1], scope)
     end
     local varname = table.concat(vars, ', ')
     local assign = table.concat(compileExpr(ast[ast.n], scope, parent).expr, ', ')

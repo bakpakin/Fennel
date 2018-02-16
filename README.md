@@ -44,7 +44,14 @@ The fnl.lua module exports the following functions:
 
 ## Try it
 
-Clone the repository, and run `lua fnlcli.lua --repl` to quickly start a repl.
+Clone the repository, and run `lua fnl --repl` to quickly start a repl.
+
+## Install with Luarocks
+
+You can install the dev package from luarocks via
+```sh
+luarocks install --server=http://luarocks.org/dev fnl
+```
 
 ## License
 

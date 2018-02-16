@@ -1,3 +1,5 @@
+#!/usr/bin/env lua
+
 package.path = arg[0]:match("(.-)[^\\/]+$") .. "?.lua;" .. package.path
 local fnl = require('fnl')
 

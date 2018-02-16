@@ -975,6 +975,13 @@ SPECIALS['if'] = function(ast, scope, parent)
     }
 end
 
+SPECIALS['when'] = function(ast, scope, parent)
+    table.remove(ast, 1)
+    local condition = table.remove(ast, 1)
+    local new_ast = list(sym("if"), condition, list(sym("block"), unpack(ast)))
+    return SPECIALS["if"](new_ast, scope, parent)
+end
+
 SPECIALS['*while'] = function(ast, scope, parent)
     local condition = compileTossRest(ast[2], scope, parent)
     parent[#parent + 1] = 'while ' .. condition.expr[1] .. ' do'

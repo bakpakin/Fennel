@@ -35,9 +35,8 @@ local conditionals = {
     -- ["(let [x 12] (if true (block (set x 22) x) 0))"]=22,
     ["(if false \"yep\" \"nope\")"]="nope",
     ["(if non-existent 1 (* 3 9))"]=27,
-    -- TODO: implement when
-    -- ["(do (when true (set a 192) (set z 12)) (+ z a))"]=204,
-    -- ["(do (when (= 12 88) (os.exit 1)) false)"]=false,
+    ["(do (when true (set a 192) (set z 12)) (+ z a))"]=204,
+    ["(do (when (= 12 88) (os.exit 1)) false)"]=false,
 }
 
 local core = {

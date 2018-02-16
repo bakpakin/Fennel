@@ -913,6 +913,8 @@ SPECIALS['block'] = function(ast, scope, parent)
     parent[#parent + 1] = 'end'
 end
 
+-- The if special form behaves like the cond form in
+-- many languages
 SPECIALS['if'] = function(ast, scope, parent)
     local doScope = makeScope(scope)
     local conds, rets, scopes, chunks, condChunks = {}, {}, {}, {}, {}

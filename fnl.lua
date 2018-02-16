@@ -737,6 +737,8 @@ end
 
 SPECIALS['do'] = doImpl
 SPECIALS['values'] = values
+
+-- Wrap a variadic number of arguments into a table. Does NOT do length capture
 SPECIALS['pack'] = pack
 
 -- The fn special declares a function. Syntax is similar to other lisps;
@@ -844,11 +846,6 @@ SPECIALS['.'] = function(ast, scope, parent)
         singleEval = true,
         sideEffects = true
     }
-end
-
--- Wrap a variadic number of arguments into a table. Does NOT do length capture.
-SPECIALS['pack'] = function(ast, scope, parent)
-    return pack(ast, scope, parent)
 end
 
 SPECIALS['set'] = function(ast, scope, parent)

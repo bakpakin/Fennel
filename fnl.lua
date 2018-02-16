@@ -1193,4 +1193,18 @@ SPECIALS['eval-compiler'] = function(ast, scope, parent)
     loader()
 end
 
-return module
+local args = {...}
+if(args[1] == "--repl") then
+    print("Welcome to fnl!")
+    module.repl()
+elseif(args[1] == "--compile") then
+    local lines = {}
+    for line in io.lines(args[2]) do table.insert(lines, line) end
+    print(compile(table.concat(lines, "\n")))
+elseif(#args == 1) then
+    local lines = {}
+    for line in io.lines(args[1]) do table.insert(lines, line) end
+    eval(table.concat(lines, "\n"))
+else
+    return module
+end

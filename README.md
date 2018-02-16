@@ -13,35 +13,41 @@ that haven't been fully defined. Current and projected features inlclude:
   macros are just a special case of special forms.
 * Ability to write custom special forms - Special forms are s-expressions that, when evaulated, directly output Lua code.    This feature may be removed, in preference for macros.
 
-Eventually, I also hope to add optional source maps, aither embedded in the comments of the generated code, or in separate files. A standard library also needs to be made.
+Eventually, I also hope to add optional source maps, either embedded in the comments of the generated code, or in separate files. A standard library also needs to be made.
 
 ## Lua API
 
 The fnl.lua module exports the following functions:
 
-* fnl.repl() - Starts a simple REPL.
-* fnl.eval(str, options) - Evaluates a string of Fnl.
-* fnl.compile(str, options) - Compiles a string of Fnl into a string of Lua
-* fnl.parse(str) - Reads a string and returns an AST.
-* fnl.compileAst - Compiles an AST into a Lua string.
+* `fnl.repl()` - Starts a simple REPL.
+* `fnl.eval(str, options)` - Evaluates a string of Fnl.
+* `fnl.compile(str, options)` - Compiles a string of Fnl into a string of Lua
+* `fnl.parse(str)` - Reads a string and returns an AST.
+* `fnl.compileAst(ast)` - Compiles an AST into a Lua string.
 
 ## Example
 
 #### Hello World
 ```
-(print 'hello, world!')
+(print "hello, world!")
 ```
 
 #### Fibonacci sequence
 ```
-(fn fib [n] (or (and (> n 1)
-    (+ (fib (- n 1))
-       (fib (- n 2))))
-    1))
+(set fib (fn [n] (or (and (> n 1)
+                          (+ (fib (- n 1))
+                             (fib (- n 2))))
+                     1)))
 
 (print (fib 10))
 ```
 
 ## Try it
 
-Clone the repository, and run 'lua repl.lua' to quickly start a repl.
+Clone the repository, and run `lua fnl.lua --repl` to quickly start a repl.
+
+## License
+
+Copyright © 2016 Calvin Rose
+
+Released under the MIT license

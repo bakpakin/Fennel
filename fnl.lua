@@ -1162,8 +1162,9 @@ local function repl(options)
         __index = _ENV or _G
     })
     while true do
-        io.write(env._P or defaultPrompt)
         local reader = createReader(function()
+            io.write(env._P or defaultPrompt)
+            io.flush(io.stdout)
             return io.read() .. '\n'
         end)
         print(select(2, xpcall(function()
@@ -1180,8 +1181,6 @@ local function repl(options)
                         ret[i] = astToString(ret[i])
                     end
                     print(unpack(ret))
-                    io.write(env._P or defaultPrompt)
-                    io.flush()
                 end
             end)
         end, debug.traceback)))

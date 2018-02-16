@@ -852,7 +852,7 @@ SPECIALS['set'] = function(ast, scope, parent)
     local vars = {}
     for i = 2, math.max(2, ast.n - 1) do
         local s = assert(isSym(ast[i]))
-        vars[i - 1] = stringMangle(s[1], scope, true)
+        vars[i - 1] = stringMangle(s[1], scope)
     end
     local varname = table.concat(vars, ', ')
     local assign = table.concat(compileExpr(ast[ast.n], scope, parent).expr, ', ')

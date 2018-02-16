@@ -981,7 +981,9 @@ end
 SPECIALS['when'] = function(ast, scope, parent)
     table.remove(ast, 1)
     local condition = table.remove(ast, 1)
-    local new_ast = list(sym("if"), condition, list(sym("block"), unpack(ast)))
+    local body = list(sym("do"), unpack(ast))
+    body.n = body.n + 1 -- throw an extra nil on the end
+    local new_ast = list(sym("if"), condition, body)
     return SPECIALS["if"](new_ast, scope, parent)
 end
 

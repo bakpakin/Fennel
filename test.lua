@@ -58,6 +58,9 @@ local cases = {
     loops = {
         ["(let [x 0] (*for y [1 5] (set x (+ x 1))) x)"]=5,
         ["(let [x 0] (*while (< x 7) (set x (+ x 1))) x)"]=7,
+        ["(let [t {:a 1 :b 2} t2 {}]\
+            (each [k v (pairs t)]\
+              (tset t2 k v)) (+ t2.a t2.b))"]=3,
     },
 }
 
@@ -69,12 +72,15 @@ for name, tests in pairs(cases) do
         local ok, res = pcall(fnl.eval, code)
         if not ok then
             err = err + 1
-            print("  Error: " .. fnl.compile(code))
-        elseif expected ~= fnl.eval(code) then
-            fail = fail + 1
-            print("  Expected " .. code .. " to be " .. tostring(expected))
+            print("  Error: " .. res .. " in: ".. fnl.compile(code))
         else
-            pass = pass + 1
+            local actual = fnl.eval(code)
+            if expected ~= actual then
+                fail = fail + 1
+                print(" Expected " .. actual .. " to be " .. tostring(expected))
+            else
+                pass = pass + 1
+            end
         end
     end
 end

@@ -13,7 +13,8 @@ Current features include:
 * Zero overhead - Compiled code should be fast, standalone, and just as or more efficient than hand-written Lua.
 * Compile time only macros - Macros exist only at compile time and are not output in the final Lua compilation. In fact,
   macros are just a special case of special forms.
-* Ability to write custom special forms - Special forms are s-expressions that, when evaulated, directly output Lua code.    This feature may be removed, in preference for macros.
+* Ability to write custom special forms - Special forms are s-expressions that, when evaulated, directly output Lua code.
+* Fnl is a library as well as a compiler. Embed it in other projects. 
 
 Eventually, I also hope to add optional source maps, either embedded in the comments of the generated code, or in separate files. An optional standard library also needs to be made.
 
@@ -53,6 +54,19 @@ Clone the repository, and run `lua fnl --repl` to quickly start a repl.
 You can install the dev package from luarocks via
 ```sh
 luarocks install --server=http://luarocks.org/dev fnl
+``` 
+
+This will install both the fnl module, which can be required into via `local fnl = require 'fnl'`,
+as well as the fnl executable which can be used to run a repl or compile fnl to Lua.
+
+To start a repl:
+```sh
+fnl --repl
+```
+
+To compile a file:
+```sh
+fnl --compile myscript.fnl > myscript.lua
 ```
 
 ## License

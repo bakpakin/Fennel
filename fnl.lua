@@ -114,23 +114,23 @@ function READER_INDEX:free(index)
     self.buffer = self.buffer:sub(dOffset + 1)
 end
 
-function READER_INDEX:getMore()
-    local chunk = self.more()
-    self.buffer = self.buffer .. chunk
-end
+local eof = false
 
 function READER_INDEX:byte(i)
+    if eof then return end
     i = i or 1
     local index = i - self.offset
     assert(index > 0, 'index below buffer range')
     while index > #self.buffer do
-        self:getMore()
+        local chunk = self.more()
+        if chunk == nil then eof = true return end
+        self.buffer = self.buffer .. chunk
     end
     return self.buffer:byte(index)
 end
 
 -- Create a reader. A reader emulates a subset of the string api
--- in order to allow streams to be parsed as if the were strings.
+-- in order to allow streams to be parsed as if they were strings.
 local function createReader(more)
     return setmetatable({
         more = more or io.read,
@@ -176,6 +176,7 @@ local function parseSequence(str, dispatch, index, opener)
     end
     local function readValue()
         local start = str:byte(index)
+        if eof then return end
         local stringStartIndex = index
         local line = nil
         -- Ignore comments
@@ -190,6 +191,7 @@ local function parseSequence(str, dispatch, index, opener)
             repeat
                 index = index + 1
                 current, last = str:byte(index), current
+                if eof then return end
             until index >= strlen or (current == start and last ~= 92)
             local raw = str:sub(stringStartIndex, index)
             local loadFn = loadCode(('return %s'):format(raw))
@@ -222,7 +224,7 @@ local function parseSequence(str, dispatch, index, opener)
             index = index + 1
         end
         local b = str:byte(index)
-        if not b then break end
+        if eof or not b then break end
         free(index - 1)
         local value, vlen
         if type(delims[b]) == 'number' then -- Opening delimiter
@@ -258,6 +260,7 @@ end
 
 -- Parse a string and return an AST, along with its length as the second return value.
 local function parse(str, dispatch)
+    eof = false
     local values, _, len = parseSequence(str, dispatch)
     values.n = len
     return setmetatable(values, LIST_MT), len
@@ -1170,7 +1173,7 @@ local function repl(givenOptions)
     local env = options.env or setmetatable({}, {
         __index = _ENV or _G
     })
-    while true do
+    while not eof do
         local reader = createReader(function()
             options.write(options.prompt)
             options.flush()

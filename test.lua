@@ -56,7 +56,8 @@ local cases = {
     },
 
     loops = {
-        ["(let [x 0] (*for y [1 5] (set x (+ x 1))) x)"]=5,
+        ["(let [x 0] (for [y 1 5] (set x (+ x 1))) x)"]=5,
+        ["(let [x 0] (for [y 1 20 2] (set x (+ x 1))) x)"]=10,
         ["(let [x 0] (*while (< x 7) (set x (+ x 1))) x)"]=7,
         ["(let [t {:a 1 :b 2} t2 {}]\
             (each [k v (pairs t)]\

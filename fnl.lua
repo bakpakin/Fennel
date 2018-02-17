@@ -1042,18 +1042,20 @@ SPECIALS['*dowhile'] = function(ast, scope, parent)
     parent[#parent + 1] = 'until ' .. condition.expr[1]
 end
 
-SPECIALS['*for'] = function(ast, scope, parent)
-    local bindingSym = assert(isSym(ast[2]), 'expected symbol in *for')
-    local ranges = assert(isTable(ast[3]), 'expected list table in *for')
+SPECIALS['for'] = function(ast, scope, parent)
+    local ranges = assert(isTable(ast[2]), 'expected binding table in for')
+    local bindingSym = assert(isSym(table.remove(ast[2], 1)),
+                              'expected iterator symbol in for')
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
         rangeArgs[i] = compileTossRest(ranges[i], scope, parent).expr[1]
     end
     parent[#parent + 1] = ('for %s = %s do')
-        :format(literalToString(bindingSym, scope), table.concat(rangeArgs, ', '))
+        :format(literalToString(bindingSym, scope),
+                table.concat(rangeArgs, ', '))
     local chunk = {}
     local subScope = makeScope(scope)
-    compileDo(ast, subScope, chunk, 4)
+    compileDo(ast, subScope, chunk, 3)
     parent[#parent + 1] = chunk
     parent[#parent + 1] = 'end'
 end

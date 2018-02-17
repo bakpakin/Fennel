@@ -1,5 +1,5 @@
 package = "fennel"
-version = "scm-0"
+version = "scm-1"
 source = {
     url = "git://github.com/bakpakin/Fennel"
 }

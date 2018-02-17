@@ -3,21 +3,32 @@
 package.path = arg[0]:match("(.-)[^\\/]+$") .. "?.lua;" .. package.path
 local fennel = require('fennel')
 
-if arg[1] == "--repl" then
+local help = [[
+Usage: fennel [FLAG] [FILE]
+
+  --repl          :  Launch an interactive repl session
+  --compile FILES :  Compile files and write their Lua to stdout
+
+  With a single file argument, runs that file.]]
+
+if arg[1] == "--repl" or #arg == 0 then
     print("Welcome to fennel!")
     fennel.repl()
 elseif arg[1] == "--compile" then
-    local f = assert(io.open(arg[2], "rb"))
-    print(fennel.compile(f:read("*all")))
-    f:close()
+    for i = 2, #arg do
+        local f = assert(io.open(arg[i], "rb"))
+        print(fennel.compile(f:read("*all")))
+        f:close()
+    end
 elseif #arg == 1 then
-    local f = assert(io.open(arg[1], "rb"))
-    fennel.eval(f:read("*all"))
-    f:close()
+    local filename = table.remove(arg, 1) -- let the script have remaining args
+    local f = io.open(filename, "rb")
+    if f then
+        fennel.eval(f:read("*all"))
+        f:close()
+    else
+        print(help)
+    end
 else
-    print [[
-Usage: fennel --options scripts
-
-  --repl    :  Launch a repl
-  --compile :  Compile a file and write the Lua to stdout]]
+    print(help)
 end

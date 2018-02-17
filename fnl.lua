@@ -1022,6 +1022,24 @@ SPECIALS['when'] = function(ast, scope, parent)
     return SPECIALS["if"](new_ast, scope, parent)
 end
 
+-- (each [k v (pairs t)] body)
+SPECIALS['each'] = function(ast, scope, parent)
+    local binding = assert(isTable(ast[2]), 'expected binding table in each')
+    local iter = table.remove(binding, #binding) -- last item is iterator call
+    local bindVars = {}
+    for _, v in ipairs(binding) do
+        table.insert(bindVars, literalToString(v, scope))
+    end
+    parent[#parent + 1] = ('for %s in %s do')
+        :format(table.concat(bindVars, ', '),
+                compileTossRest(iter, scope, parent).expr[1])
+    local chunk = {}
+    local subScope = makeScope(scope)
+    compileDo(ast, subScope, chunk, 3)
+    parent[#parent + 1] = chunk
+    parent[#parent + 1] = 'end'
+end
+
 SPECIALS['*while'] = function(ast, scope, parent)
     local condition = compileTossRest(ast[2], scope, parent)
     parent[#parent + 1] = 'while ' .. condition.expr[1] .. ' do'
@@ -1040,18 +1058,20 @@ SPECIALS['*dowhile'] = function(ast, scope, parent)
     parent[#parent + 1] = 'until ' .. condition.expr[1]
 end
 
-SPECIALS['*for'] = function(ast, scope, parent)
-    local bindingSym = assert(isSym(ast[2]), 'expected symbol in *for')
-    local ranges = assert(isTable(ast[3]), 'expected list table in *for')
+SPECIALS['for'] = function(ast, scope, parent)
+    local ranges = assert(isTable(ast[2]), 'expected binding table in for')
+    local bindingSym = assert(isSym(table.remove(ast[2], 1)),
+                              'expected iterator symbol in for')
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
         rangeArgs[i] = compileTossRest(ranges[i], scope, parent).expr[1]
     end
     parent[#parent + 1] = ('for %s = %s do')
-        :format(literalToString(bindingSym, scope), table.concat(rangeArgs, ', '))
+        :format(literalToString(bindingSym, scope),
+                table.concat(rangeArgs, ', '))
     local chunk = {}
     local subScope = makeScope(scope)
-    compileDo(ast, subScope, chunk, 4)
+    compileDo(ast, subScope, chunk, 3)
     parent[#parent + 1] = chunk
     parent[#parent + 1] = 'end'
 end

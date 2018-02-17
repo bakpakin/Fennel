@@ -5,7 +5,9 @@ zero overhead compared to handwritten Lua. It's currently a single file Lua libr
 be dragged into any Lua project.
 
 The documentation is currently sparse, but I don't want to commit too many features to documentation
-that haven't been fully defined. Current and projected features inlclude:
+that haven't been fully defined. See `test.lua` for usage examples for most features.
+
+Current features include:
 
 * Full Lua compatibility - You can use any function from Lua
 * Zero overhead - Compiled code should be fast, standalone, and just as or more efficient than hand-written Lua.
@@ -13,7 +15,7 @@ that haven't been fully defined. Current and projected features inlclude:
   macros are just a special case of special forms.
 * Ability to write custom special forms - Special forms are s-expressions that, when evaulated, directly output Lua code.    This feature may be removed, in preference for macros.
 
-Eventually, I also hope to add optional source maps, either embedded in the comments of the generated code, or in separate files. A standard library also needs to be made.
+Eventually, I also hope to add optional source maps, either embedded in the comments of the generated code, or in separate files. An optional standard library also needs to be made.
 
 ## Lua API
 
@@ -55,6 +57,6 @@ luarocks install --server=http://luarocks.org/dev fnl
 
 ## License
 
-Copyright © 2016 Calvin Rose
+Copyright © 2016-2018 Calvin Rose and contributors
 
 Released under the MIT license

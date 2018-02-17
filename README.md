@@ -1,6 +1,6 @@
-# Fnl
+# Fennel
 
-Fnl is a lisp that compiles to Lua. It aims to be easy to use, expressive, and has almost
+Fennel (formerly fnl) is a lisp that compiles to Lua. It aims to be easy to use, expressive, and has almost
 zero overhead compared to handwritten Lua. It's currently a single file Lua library that can
 be dragged into any Lua project.
 
@@ -14,19 +14,19 @@ Current features include:
 * Compile time only macros - Macros exist only at compile time and are not output in the final Lua compilation. In fact,
   macros are just a special case of special forms.
 * Ability to write custom special forms - Special forms are s-expressions that, when evaulated, directly output Lua code.
-* Fnl is a library as well as a compiler. Embed it in other projects. 
+* Fennel is a library as well as a compiler. Embed it in other projects. 
 
 Eventually, I also hope to add optional source maps, either embedded in the comments of the generated code, or in separate files. An optional standard library also needs to be made.
 
 ## Lua API
 
-The fnl.lua module exports the following functions:
+The fennel module exports the following functions:
 
-* `fnl.repl()` - Starts a simple REPL.
-* `fnl.eval(str, options)` - Evaluates a string of Fnl.
-* `fnl.compile(str, options)` - Compiles a string of Fnl into a string of Lua
-* `fnl.parse(str)` - Reads a string and returns an AST.
-* `fnl.compileAst(ast)` - Compiles an AST into a Lua string.
+* `fennel.repl()` - Starts a simple REPL.
+* `fennel.eval(str, options)` - Evaluates a string of Fennel.
+* `fennel.compile(str, options)` - Compiles a string of Fennel into a string of Lua
+* `fennel.parse(str)` - Reads a string and returns an AST.
+* `fennel.compileAst(ast)` - Compiles an AST into a Lua string.
 
 ## Example
 
@@ -47,26 +47,26 @@ The fnl.lua module exports the following functions:
 
 ## Try it
 
-Clone the repository, and run `lua fnl --repl` to quickly start a repl.
+Clone the repository, and run `lua fennel --repl` to quickly start a repl.
 
 ## Install with Luarocks
 
 You can install the dev package from luarocks via
 ```sh
-luarocks install --server=http://luarocks.org/dev fnl
+luarocks install --server=http://luarocks.org/dev fennel
 ``` 
 
-This will install both the fnl module, which can be required into via `local fnl = require 'fnl'`,
-as well as the fnl executable which can be used to run a repl or compile fnl to Lua.
+This will install both the fennel module, which can be required into via `local fennel = require 'fennel'`,
+as well as the `fennel` executable which can be used to run a repl or compile Fennel to Lua.
 
 To start a repl:
 ```sh
-fnl --repl
+fennel --repl
 ```
 
 To compile a file:
 ```sh
-fnl --compile myscript.fnl > myscript.lua
+fennel --compile myscript.fnl > myscript.lua
 ```
 
 ## License

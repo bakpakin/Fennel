@@ -1,4 +1,4 @@
-local fnl = require("fnl")
+local fennel = require("fennel")
 
 local cases = {
     calculations = {
@@ -70,12 +70,12 @@ local pass, fail, err = 0, 0, 0
 for name, tests in pairs(cases) do
     print("Running tests for " .. name .. "...")
     for code, expected in pairs(tests) do
-        local ok, res = pcall(fnl.eval, code)
+        local ok, res = pcall(fennel.eval, code)
         if not ok then
             err = err + 1
-            print("  Error: " .. res .. " in: ".. fnl.compile(code))
+            print("  Error: " .. res .. " in: ".. fennel.compile(code))
         else
-            local actual = fnl.eval(code)
+            local actual = fennel.eval(code)
             if expected ~= actual then
                 fail = fail + 1
                 print(" Expected " .. actual .. " to be " .. tostring(expected))

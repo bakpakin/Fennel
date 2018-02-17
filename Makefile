@@ -4,9 +4,9 @@ test:
 	$(LUA) test.lua
 
 luacheck:
-	luacheck fnl.lua
+	luacheck fennel.lua
 
 count:
-	cloc fnl.lua
+	cloc fennel.lua
 
 ci: luacheck test count

@@ -1155,32 +1155,42 @@ local function eval(str, options)
 end
 
 -- Implements a simple repl
-local function repl(options)
-    local defaultPrompt = '>> '
-    options = options or {}
+local function repl(givenOptions)
+    local options = {
+        prompt = '>> ',
+        read = io.read,
+        write = io.write,
+        flush = io.flush,
+        print = print,
+    }
+    for k,v in pairs(givenOptions or {}) do
+        options[k] = v
+    end
+
     local env = options.env or setmetatable({}, {
         __index = _ENV or _G
     })
     while true do
         local reader = createReader(function()
-            io.write(env._P or defaultPrompt)
-            io.flush(io.stdout)
-            return io.read() .. '\n'
+            options.write(options.prompt)
+            options.flush()
+            local input = options.read() -- EOF returns nil here
+            return input and input .. '\n'
         end)
-        print(select(2, xpcall(function()
-            return parse(reader, function(x)
+        options.print(select(2, xpcall(function()
+            parse(reader, function(x)
                 local luaSource = compileAst(x, {
                     returnTail = true
                 })
                 local loader, err = loadCode(luaSource, env)
                 if err then
-                    print(err)
+                    options.print(err)
                 else
                     local ret = tpack(loader())
                     for i = 1, ret.n do
                         ret[i] = astToString(ret[i])
                     end
-                    print(unpack(ret))
+                    options.print(unpack(ret))
                 end
             end)
         end, debug.traceback)))

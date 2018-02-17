@@ -166,23 +166,23 @@ local function parseSequence(str, dispatch, index, opener)
             str:free(i)
         end
     end
+    local onComment = false
     local function onWhitespace(includeParen)
         local b = str:byte(index)
         if not b then return false end
+        if b == 59 then -- ;
+            onComment = true
+        elseif onComment and b == 10 then -- newline
+            onComment = false
+        end
         return b == 32 or (b >= 9 and b <= 13) or
-            (includeParen and delims[b])
+            (includeParen and delims[b]) or onComment
     end
     local function readValue()
         local start = str:byte(index)
         if eof then return end
         local stringStartIndex = index
         local line = nil
-        -- Ignore comments
-        if str:sub(index, index) == ";" then
-            while str:sub(index, index) ~= "\n" do
-                index = index + 1
-            end
-        end
         -- Check if quoted string
         if start == 34 or start == 39 then
             local last, current
@@ -218,7 +218,7 @@ local function parseSequence(str, dispatch, index, opener)
     end
     -- The main parse loop - skip whitespce, check for delimiters, read token. Repeat.
     while index < strlen do
-        while index < strlen and onWhitespace() do
+        while index <= strlen and onWhitespace() do
             index = index + 1
         end
         local b = str:byte(index)

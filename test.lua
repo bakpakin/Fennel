@@ -30,6 +30,7 @@ local cases = {
 
     core = {
         ["(do (set x 12) ;; (set x 99)\n x)"]=12,
+        ["74 ; (require \"hey.dude\")"]=74,
         ["(table.concat [\"ab\" \"cde\"] \",\")"]="ab,cde",
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
         ["(let [t {} k :key] (tset t k :val) t.key)"]="val",
@@ -60,8 +61,8 @@ local cases = {
         ["(let [x 0] (for [y 1 20 2] (set x (+ x 1))) x)"]=10,
         ["(let [x 0] (*while (< x 7) (set x (+ x 1))) x)"]=7,
         ["(let [t {:a 1 :b 2} t2 {}]\
-            (each [k v (pairs t)]\
-              (tset t2 k v)) (+ t2.a t2.b))"]=3,
+               (each [k v (pairs t)]\
+               (tset t2 k v)) (+ t2.a t2.b))"]=3,
     },
 }
 
@@ -78,7 +79,7 @@ for name, tests in pairs(cases) do
             local actual = fennel.eval(code)
             if expected ~= actual then
                 fail = fail + 1
-                print(" Expected " .. actual .. " to be " .. tostring(expected))
+                print(" Expected " .. tostring(actual) .. " to be " .. tostring(expected))
             else
                 pass = pass + 1
             end

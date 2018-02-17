@@ -34,14 +34,14 @@ local VARARG = setmetatable({ '...' }, { 'VARARG' })
 local LIST_MT = { 'LIST' }
 
 -- Load code with an environment in all recent Lua versions
-local function loadCode(code, environment)
+local function loadCode(code, environment, filename)
     environment = environment or _ENV or _G
     if setfenv and loadstring then
-        local f = assert(loadstring(code))
+        local f = assert(loadstring(code, filename))
         setfenv(f, environment)
         return f
     else
-        return assert(load(code, nil, "t", environment))
+        return assert(load(code, filename, "t", environment))
     end
 end
 
@@ -1187,7 +1187,7 @@ end
 local function eval(str, options)
     options = options or {}
     local luaSource = compile(str, options)
-    local loader = loadCode(luaSource, options.env)
+    local loader = loadCode(luaSource, options.env, options.filename)
     return loader()
 end
 

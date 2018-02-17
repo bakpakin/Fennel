@@ -24,7 +24,7 @@ elseif #arg == 1 then
     local filename = table.remove(arg, 1) -- let the script have remaining args
     local f = io.open(filename, "rb")
     if f then
-        fennel.eval(f:read("*all"))
+        fennel.eval(f:read("*all"), {filename = filename})
         f:close()
     else
         print(help)

@@ -826,6 +826,22 @@ SPECIALS['$'] = function(ast, scope, parent)
     return SPECIALS.fn({'', sym('$$'), fargs, ast, n = 4}, scope, parent)
 end
 
+SPECIALS['lambda'] = function(ast, scope, parent)
+    table.remove(ast, 1)
+    local arglist = table.remove(ast, 1)
+    for _,arg in ipairs(arglist) do
+        if not arg[1]:match("^?") then
+            table.insert(ast, 1,
+                         list(sym("when"), list(sym("not"), arg),
+                              list(sym("error"),
+                                   "Missing argument: " .. arg[1])))
+        end
+    end
+    local new = list(sym("lambda"), arglist, unpack(ast))
+    return SPECIALS.fn(new, scope, parent)
+end
+SPECIALS['λ'] = SPECIALS['lambda']
+
 SPECIALS['special'] = function(ast, scope, parent)
     assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare special forms in \'eval-compiler\'')
     local spec = SPECIALS.fn(ast, scope, parent)

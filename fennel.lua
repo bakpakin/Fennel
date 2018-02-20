@@ -24,14 +24,33 @@ local assert = assert
 local select = select
 local pairs = pairs
 local ipairs = ipairs
+local tostring = tostring
 local unpack = unpack or table.unpack
 local tpack = table.pack or function(...)
     return {n = select('#', ...), ...}
 end
 
-local SYMBOL_MT = { 'SYMBOL' }
+local SYMBOL_MT = { 'SYMBOL',
+    __tostring = function (self)
+        return self[1]
+    end
+}
+local LIST_MT = { 'LIST',
+    __tostring = function (self)
+        local strs = {}
+        local n = self.n or #self
+        for i = 1, n do
+            strs[i] = tostring(self[i])
+        end
+        return '(' .. table.concat(strs, ', ', 1, n) .. ')'
+    end
+}
+local EXPR_MT = { 'EXPR',
+    __tostring = function (self)
+        return tostring(self[1])
+    end
+}
 local VARARG = setmetatable({ '...' }, { 'VARARG' })
-local LIST_MT = { 'LIST' }
 
 -- Load code with an environment in all recent Lua versions
 local function loadCode(code, environment, filename)
@@ -57,6 +76,17 @@ local function sym(str, scope)
     return setmetatable({ str, scope = scope }, SYMBOL_MT)
 end
 
+-- Create a new expr
+-- etype should be one of
+--   "literal", -- literals like numbers, strings, nil, true, false
+--   "expression", -- Complex strigns of Lua code, may have side effects, etc, but is an expression
+--   "statement", -- Same as expression, but is also a valid statement (function calls).
+--   "vargs", -- varargs symbol
+--   "sym", -- symbol reference
+local function expr(strcode, etype)
+    return setmetatable({ strcode, type = etype }, EXPR_MT)
+end
+
 local function varg()
     return VARARG
 end
@@ -80,17 +110,6 @@ local function isTable(x)
     return type(x) == 'table' and
         x ~= VARARG and
         getmetatable(x) ~= LIST_MT and getmetatable(x) ~= SYMBOL_MT and x
-end
-
--- Append b to list a. Return a.
-local function listAppend(a, b)
-    assert(isList(a), 'expected list')
-    assert(isList(b), 'expected list')
-    for i = 1, b.n do
-        a[a.n + i] = b[i]
-    end
-    a.n = b.n + a.n
-    return a
 end
 
 local READER_INDEX = { length = math.huge }
@@ -458,132 +477,6 @@ local function literalToString(x, scope)
     return tostring(x)
 end
 
--- Forward declaration
-local compileTossRest
-
--- Compile an AST expression in the scope into parent, a tree
--- of lines that is eventually compiled into Lua code. Also
--- returns some information about the evaluation of the compiled expression,
--- which can be used by the calling function. Macros
--- are resolved here, as well as special forms in that order.
--- the 'ast' param is the root AST to compile
--- the 'scope' param is the scope in which we are compiling
--- the 'parent' param is the table of lines that we are compiling into.
--- add lines to parent by appending strings. Add indented blocks by appending
--- tables of more lines.
-local function compileExpr(ast, scope, parent)
-    local head = {}
-    if isList(ast) then
-        local len = ast.n
-        -- Test for special form
-        local first = ast[1]
-        if isSym(first) then -- Resolve symbol
-            first = first[1]
-        end
-        local special = scope.specials[first]
-        if special and isSym(ast[1]) then
-            local ret = special(ast, scope, parent)
-            ret = ret or {}
-            if type(ret.expr) == 'string' then ret.expr = list(ret.expr) end
-            ret.expr = ret.expr or list()
-            return ret
-        else
-            local fargs = list()
-            local fcall = compileTossRest(ast[1], scope, parent).expr[1]
-            -- TODO: Pass more info to children during compilation to allow
-            -- for more optimization. i.e, if the child ast is in tail position
-            for i = 2, len do
-                if i == len then
-                    listAppend(fargs, compileExpr(ast[i], scope, parent).expr)
-                else
-                    listAppend(fargs, compileTossRest(ast[i], scope, parent).expr)
-                end
-            end
-            head.validStatement = true
-            head.singleEval = true
-            head.sideEffects = true
-            head.expr = list(('%s(%s)'):format(fcall, table.concat(fargs, ', ')))
-            head.unknownExprCount = true
-        end
-    else
-        head.expr = list(literalToString(ast, scope))
-        head.singleEval = type(ast) == 'table'
-        head.sideEffects = type(ast) == 'table'
-    end
-    return head
-end
-
--- Convert a Lua table representing an expression
--- to a valid Lua expression string.
-local function normalizeExpr(expr)
-    local luaexpr = table.concat(expr, ', ')
-    if luaexpr == '' then luaexpr = 'nil' end
-    return luaexpr
-end
-
--- Compile an AST, and ensure that the expression
--- is fully executed in it scope. compileExpr doesn't necesarrily
--- compile all of its code into parent, and might return some code
--- to the calling function to allow inlining.
-local function compileDo(ast, scope, parent, i, j)
-    if i then
-        for x = i, j or ast.n do
-            compileDo(ast[x], scope, parent)
-        end
-        return
-    end
-    local tail = compileExpr(ast, scope, parent)
-    if tail.expr.n > 0 and tail.sideEffects then
-        local stringExpr = table.concat(tail.expr, ', ')
-        if tail.validStatement then
-            parent[#parent + 1] = stringExpr
-        else
-            parent[#parent + 1] = ('do local _ = %s end'):format(stringExpr)
-        end
-    end
-end
-
-local function compileTail(ast, scope, parent, start)
-    local len = ast.n or #ast
-    compileDo(ast, scope, parent, start or 2, len - 1)
-    return compileExpr(ast[len], scope, parent)
-end
-
--- Toss out the later expressions (non first) in the tail. Also
--- sets the empty expression to 'nil'.
--- This ensures exactly one return value for most manipulations.
-local function tossRest(tail, scope, parent)
-    if tail.expr.n == 0 then
-        tail.expr[1] = 'nil'
-    else
-        -- Ensure proper order of evaluation
-        -- The first AST MUST be evaluated first.
-        if tail.expr.n > 1 then
-            local s = gensym(scope)
-            parent[#parent + 1] = ('local %s = %s'):format(s, tail.expr[1] or 'nil')
-            tail.expr[1] = s
-            tail = { -- Remove non expr keys
-                expr = tail.expr,
-                scoped = true
-            }
-        end
-        for i = 2, tail.expr.n do
-            parent[#parent + 1] = ('do local _ = %s end'):format(tail.expr[i])
-            tail.expr[i] = nil -- Not strictly necesarry
-        end
-    end
-    tail.expr.n = 1
-    return tail
-end
-
--- Compile a sub expression, and return a tail that contains exactly one expression.
--- This function was forward declared above
-function compileTossRest(ast, scope, parent)
-    -- Possible Optimization: let sub expressions know that their return values
-    -- will not be used during compilation, rather than after.
-    return tossRest(compileExpr(ast, scope, parent), scope, parent)
-end
-
 -- Flatten a tree of Lua source code lines.
 -- Tab is what is used to indent a block. By default it is two spaces.
 local function flattenChunk(chunk, tab, subChunk)
@@ -598,157 +491,287 @@ local function flattenChunk(chunk, tab, subChunk)
     end
     return table.concat(chunk, '\n')
 end
---
--- Convert an ast into a chunk of Lua source code by compiling it and flattening.
--- Optionally appends a return statement at the end to return the last statement.
-local function transpile(ast, scope, options)
-    scope = scope or GLOBAL_SCOPE
-    local root = {}
-    local head = compileExpr(ast, scope, root)
-    if head.expr.n > 0 then
-        local expr = table.concat(head.expr, ', ')
-        if options.returnTail then
-            root[#root + 1] = 'return ' .. expr
-        elseif head.sideEffects then
-            if head.validStatement then
-                root[#root + 1] = expr
-            else
-                root[#root + 1] = ('do local _ = %s end'):format(expr)
+
+-- Convert expressions to Lua string
+local function exprs1(exprs)
+    local t = {}
+    for _, e in ipairs(exprs) do
+        t[#t + 1] = e[1]
+    end
+    return table.concat(t, ', ')
+end
+
+-- Compile sideffects for a chunk
+local function keepSideEffects(exprs, chunk, start)
+    start = start or 1
+    for j = start, #exprs do
+        local se = exprs[j]
+        if se.type == 'expression' then
+            chunk[#chunk + 1] = ('do local _ = %s end'):format(tostring(se))
+        elseif se.type == 'statement' then
+            chunk[#chunk + 1] = tostring(se)
+        end
+    end
+end
+
+-- Make sure a list of expression has the correct arity
+-- Modify exprs
+local function checkNval(exprs, parent, n)
+    if n ~= #exprs then
+        local len = #exprs
+        if len > n then
+            -- Drop extra
+            keepSideEffects(exprs, parent, n + 1)
+            for i = n, len do
+                exprs[i] = nil
+            end
+        else
+            -- Should we pad with nils?
+            -- Pad with nils
+            for i = #exprs + 1, n do
+                exprs[i] = expr('nil', 'literal')
             end
         end
     end
-    return flattenChunk(root, options.tab)
+    return exprs
+end
+
+-- Does some common handling of returns and register
+-- targets for special forms.
+local function handleCompileOpts(exprs, parent, opts)
+    if opts.nval then
+        checkNval(exprs, parent, opts.nval)
+    end
+    if opts.tail then
+        parent[#parent + 1] = ('return %s'):format(exprs1(exprs))
+    end
+    if opts.target then
+        parent[#parent + 1] = ('%s = %s'):format(opts.target, exprs1(exprs))
+    end
+    if opts.tail or opts.target then
+        exprs = {}
+    end
+    return exprs
+end
+
+-- Compile an AST expression in the scope into parent, a tree
+-- of lines that is eventually compiled into Lua code. Also
+-- returns some information about the evaluation of the compiled expression,
+-- which can be used by the calling function. Macros
+-- are resolved here, as well as special forms in that order.
+-- the 'ast' param is the root AST to compile
+-- the 'scope' param is the scope in which we are compiling
+-- the 'parent' param is the table of lines that we are compiling into.
+-- add lines to parent by appending strings. Add indented blocks by appending
+-- tables of more lines.
+-- the 'opts' param contains info about where the form is being compiled.
+-- Options include:
+--   'target' - mangled name of symbol(s) being compiled to.
+--   'tail' - boolean indicating tail position if set.
+local function compile1(ast, scope, parent, opts)
+    opts = opts or {}
+    local exprs = {}
+    local target = opts.target
+
+    -- Compile the form
+    if isList(ast) then
+        -- Function call or special form
+        local len = ast.n
+        -- Test for special form
+        local first = ast[1]
+        if isSym(first) then -- Resolve symbol
+            first = first[1]
+        end
+        local special = scope.specials[first]
+        if special and isSym(ast[1]) then
+            -- Special form
+            exprs = special(ast, scope, parent, opts) or {}
+            -- Be very accepting of strings or expression
+            -- as well as lists or expressions
+            if type(exprs) == 'string' then exprs = expr(exprs, 'expression') end
+            if getmetatable(exprs) == EXPR_MT then exprs = {exprs} end
+            if not exprs.returned then
+                exprs = handleCompileOpts(exprs, parent, opts)
+            end
+            if opts.tail or opts.target then
+                exprs = {}
+            end
+            exprs.returned = true
+            return exprs
+        else
+            -- Function call
+            local fargs = {}
+            local fcallee = tostring(compile1(ast[1], scope, parent, {
+                nval = 1
+            })[1])
+            for i = 2, len do
+                local subexprs = compile1(ast[i], scope, parent, {
+                    nval = i ~= len and 1 or nil
+                })
+                fargs[#fargs + 1] = subexprs[1] or expr('nil', 'literal')
+                if i == len then
+                    -- Add sub expressions to function args
+                    for j = 2, #subexprs do
+                        fargs[#fargs + 1] = subexprs[j]
+                    end
+                else
+                    -- Emit sub expression only for side effects
+                    keepSideEffects(subexprs, parent, 2)
+                end
+            end
+            local call = ('%s(%s)'):format(tostring(fcallee), exprs1(fargs))
+            if opts.tail then
+                -- Tail calls
+                parent[#parent + 1] = ('return %s'):format(call)
+            elseif target then
+                parent[#parent + 1] = ('%s = %s'):format(target, call)
+            else
+                exprs[1] = expr(call, 'statement')
+            end
+        end
+    else
+        -- Literal (string, number, etc.)
+        local literal = literalToString(ast, scope)
+        if opts.tail then
+            parent[#parent + 1] = ('return %s'):format(literal)
+        elseif target then
+            parent[#parent + 1] = ('%s = %s'):format(target, literal)
+        else
+            exprs[1] = expr(literal, 'literal')
+        end
+    end
+    if opts.nval then
+        checkNval(exprs, parent, opts.nval)
+    end
+    exprs.returned = true
+    return exprs
 end
 
 -- SPECIALS --
 
 -- Implements destructuring for forms like let, bindings, etc.
-local function destructure(left, right, scope, parent)
-    local rightFirst = compileTossRest(right, scope, parent)
-    local skeyPairs, as = {}
+local function destructure1(left, rightexpr, scope, parent)
     if isSym(left) then
-        parent[#parent + 1] = ('local %s = %s'):format(
-            stringMangle(left[1], scope, true), rightFirst.expr[1])
+        parent[#parent + 1] = ('local %s = %s'):format(left[1], tostring(rightexpr))
         return
-    elseif isTable(left) then
-        local i = 0
-        while i < #left do
-            i = i + 1
-            local sub = left[i]
-            if type(sub) == 'string' then -- check for special syntax
-                i = i + 1
-                if sub == 'as' then -- Bind remainder of right (packed) to symbol n
-                    if as then error 'already found as in destructure' end
-                    as = assert(isSym(left[i]), 'expected symbol instead of ' .. literalToString(left[i], scope))
-                    as = stringMangle(as[1], scope, true)
-                else
-                    error('unknown key in destructure: ' .. sub)
-                end
-            else
-                skeyPairs[#skeyPairs + 1] = {
-                    expr = stringMangle(sub[1], scope, true),
-                    key = i
-                }
-            end
-        end
-    else
-        error('unable to destructure ' .. literalToString(left))
     end
-    -- Now build it
-    if as or rightFirst.singleEval then
-        if not as then as = gensym(scope) end
-        parent[#parent + 1] = ('local %s = %s'):format(as, rightFirst.expr[1])
-    else
-        as = rightFirst.expr[1]
+    if not isTable(left) then
+        error('unable to destructure ' .. literalToString(left, scope))
     end
-    for _, skpair in ipairs(skeyPairs) do
-        parent[#parent + 1] = ('local %s = %s[%s]'):format(skpair.expr, as, skpair.key)
+    local s = gensym(scope)
+    parent[#parent + 1] = ('local %s = %s'):format(s, tostring(rightexpr))
+    for i, v in ipairs(left) do
+        local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
+        destructure1(v, subexpr, scope, parent)
     end
+end
+
+local function destructure(left, right, scope, parent)
+    local rexp = compile1(right, scope, parent, {nval = 1})[1]
+    local ret = destructure1(left, rexp[1], scope, parent)
+    return ret
 end
 
 -- Unlike most expressions and specials, 'values' resolves with multiple
 -- values, one for each argument, allowing multiple return values. The last
 -- expression, can return multiple arguments as well, allowing for more than the number
 -- of expected arguments.
-local function values(ast, scope, parent, start)
-    local returnValues = list()
-    local scoped, sideEffects, singleEval, unknownExprCount = false, false, false, false
-    for i = start or 2, ast.n do
-        local tail
-        if i == ast.n then
-            tail = compileExpr(ast[i], scope, parent)
+local function values(ast, scope, parent)
+    local len = ast.n
+    local exprs = {}
+    for i = 2, len do
+        local subexprs = compile1(ast[i], scope, parent, {})
+        exprs[#exprs + 1] = subexprs[1] or expr('nil', 'literal')
+        if i == len then
+            for j = 2, #subexprs do
+                exprs[#exprs + 1] = subexprs[j]
+            end
         else
-            tail = compileTossRest(ast[i], scope, parent)
+            -- Emit sub expression only for side effects
+            keepSideEffects(subexprs, parent, 2)
         end
-        listAppend(returnValues, tail.expr)
-        if tail.scoped then scoped = true end
-        if tail.sideEffects then sideEffects = true end
-        if tail.singleEval then singleEval = true end
     end
-    return {
-        scoped = scoped,
-        sideEffects = sideEffects,
-        singleEval = singleEval,
-        expr = returnValues,
-        unknownExprCount = unknownExprCount
-    }
+    return exprs
 end
 
 -- Implements packing an ast into a single value.
-local function pack(ast, scope, parent, i, j)
-    local tail = SPECIALS.values(ast, scope, parent)
-    local expr = '{' .. table.concat(tail.expr, ', ', i, j) .. '}'
-    tail.expr = list(expr)
-    tail.unknownExprCount = false
-    tail.singleEval = true
-    tail.sideEffects = true -- Are there necessarily side-effects? Is creating a table a side effect?
-    return tail
+local function pack(ast, scope, parent)
+    local subexprs = SPECIALS.values(ast, scope, parent, {})
+    local exprs = {expr('{' .. table.concat(subexprs, ', ') .. '}', 'expression')}
+    return exprs
+end
+
+-- Compile a list of forms for side effects
+local function compileDo(ast, scope, parent, start)
+    start = start or 2
+    local len = ast.n or #ast
+    local subScope = makeScope(scope)
+    for i = start, len do
+        compile1(ast[i], subScope, parent, {
+            nval = 0
+        })
+    end
 end
 
 -- Implements a do statment, starting at the 'start' element. By default, start is 2.
-local function doImpl(ast, scope, parent, subScope, chunk, start, forceScoped)
+local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
+    start = start or 2
     subScope = subScope or makeScope(scope)
     chunk = chunk or {}
-    local tail = compileTail(ast, subScope, chunk, start)
-    local expr, sideEffects, singleEval, validStatement, unknownExprCount, scoped =
-        tail.expr, tail.sideEffects, tail.singleEval, tail.validStatement, tail.unknownExprCount, tail.scoped
-    if unknownExprCount then -- Use imediately invoked closure to wrap instead of do ... end
-        chunk[#chunk + 1] = ('return %s'):format(table.concat(expr, ', '))
-        local s = gensym(scope)
-        -- Use CPS to make varargs accesible to inner function scope.
-        local farg = scope.vararg and '...' or ''
-        parent[#parent + 1] = ('local function %s(%s)'):format(s, farg)
-        parent[#parent + 1] = chunk
-        parent[#parent + 1] = 'end'
-        expr = list(s .. ('(%s)'):format(farg))
-        singleEval = true
-        scoped = true
-        sideEffects = true
-        validStatement = true
-    else -- Use do ... end - preferred because more efficient
-        if expr.n > 0 and (scoped or forceScoped) then
-            singleEval, sideEffects, validStatement = false, false, false
-            local syms = {n = expr.n}
-            for i = 1, expr.n do
-                syms[i] = gensym(scope, subScope)
+    local len = ast.n
+    local outerTarget = opts.target
+    local outerTail = opts.tail
+    local retexprs = {returned = true}
+
+    -- See if we need special handling to get the return values
+    -- of the do block
+    if not outerTarget and opts.nval ~= 0 and not outerTail then
+        if opts.nval then
+            -- Generate a local target
+            local syms = {}
+            for i = 1, opts.nval do
+                local s = gensym(scope)
+                syms[i] = s
+                retexprs[i] = expr(s, 'sym')
             end
-            local s = table.concat(syms, ', ')
-            parent[#parent + 1] = 'local ' .. s
-            chunk[#chunk + 1] = ('%s = %s'):format(s, table.concat(expr, ', '))
-            expr = setmetatable(syms, LIST_MT)
+            outerTarget = table.concat(syms, ', ')
+            parent[#parent + 1] = ('local %s'):format(outerTarget)
+            parent[#parent + 1] = 'do'
+        else
+            -- We will use an IIFE for the do
+            local fname = gensym(scope)
+            parent[#parent + 1] = ('local function %s()'):format(fname)
+            retexprs = expr(fname .. '()', 'statement')
+            outerTail = true
+            outerTarget = nil
         end
+    else
         parent[#parent + 1] = 'do'
-        parent[#parent + 1] = chunk
-        parent[#parent + 1] = 'end'
     end
-    return {
-        scoped = scoped or forceScoped,
-        expr = expr,
-        sideEffects = sideEffects,
-        singleEval = singleEval,
-        validStatement = validStatement,
-        unknownExprCount = unknownExprCount
-    }
+    -- Compile the body
+    if start > len then
+        -- In the unlikely case we do a do with no arguments.
+        compile1(nil, subScope, chunk, {
+            tail = outerTail,
+            target = outerTarget
+        })
+        -- There will be no side effects
+    else
+        for i = start, len do
+            local subopts = {
+                nval = i ~= len and 0 or nil,
+                tail = i == len and outerTail or nil,
+                target = i == len and outerTarget or nil
+            }
+            local subexprs = compile1(ast[i], subScope, chunk, subopts)
+            if i ~= len then
+                keepSideEffects(subexprs, parent)
+            end
+        end
+    end
+    parent[#parent + 1] = chunk
+    parent[#parent + 1] = 'end'
+    return retexprs
 end
 
 SPECIALS['do'] = doImpl
@@ -762,6 +785,7 @@ SPECIALS['pack'] = pack
 -- Further decoration such as docstrings, meta info, and multibody functions a possibility.
 SPECIALS['fn'] = function(ast, scope, parent)
     local fScope = makeScope(scope)
+    local fChunk = {}
     local index = 2
     local fnName = isSym(ast[index])
     local isLocalFn
@@ -770,6 +794,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
         fnName = stringMangle(fnName[1], scope)
         index = index + 1
     else
+        isLocalFn = true
         fnName = gensym(scope)
     end
     local argList = assert(isTable(ast[index]), 'expected vector arg list [a b ...]')
@@ -780,27 +805,25 @@ SPECIALS['fn'] = function(ast, scope, parent)
             fScope.vararg = true
         else
             argNameList[i] = stringMangle(assert(isSym(argList[i]),
-                'expected symbol for function parameter')[1], fScope)
+            'expected symbol for function parameter')[1], fScope)
         end
     end
-    local fChunk = {}
-    local tail = index < ast.n and compileTail(ast, fScope, fChunk, index + 1)
-        or { expr = list('nil'), validStatement = true }
-    local expr = table.concat(tail.expr, ', ')
-    fChunk[#fChunk + 1] = 'return ' .. expr
+    for i = index + 1, ast.n do
+        compile1(ast[i], fScope, fChunk, {
+            tail = i == ast.n,
+            nval = i ~= ast.n and 0 or nil
+        })
+    end
     if isLocalFn then
         parent[#parent + 1] = ('local function %s(%s)')
-            :format(fnName, table.concat(argNameList, ', '))
+        :format(fnName, table.concat(argNameList, ', '))
     else
         parent[#parent + 1] = ('%s = function(%s)')
-            :format(fnName, table.concat(argNameList, ', '))
+        :format(fnName, table.concat(argNameList, ', '))
     end
     parent[#parent + 1] = fChunk
     parent[#parent + 1] = 'end'
-    return {
-        expr = list(fnName),
-        scoped = true
-    }
+    return fnName
 end
 
 SPECIALS['$'] = function(ast, scope, parent)
@@ -830,12 +853,10 @@ end
 SPECIALS['lambda'] = function(ast, scope, parent)
     table.remove(ast, 1)
     local arglist = table.remove(ast, 1)
-    for _,arg in ipairs(arglist) do
+    for _, arg in ipairs(arglist) do
         if not arg[1]:match("^?") then
             table.insert(ast, 1,
-                         list(sym("when"), list(sym("not"), arg),
-                              list(sym("error"),
-                                   "Missing argument: " .. arg[1])))
+                list(sym("assert"), arg, "Missing argument: " .. arg[1]))
         end
     end
     local new = list(sym("lambda"), arglist, unpack(ast))
@@ -845,57 +866,48 @@ SPECIALS['λ'] = SPECIALS['lambda']
 
 SPECIALS['special'] = function(ast, scope, parent)
     assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare special forms in \'eval-compiler\'')
-    local spec = SPECIALS.fn(ast, scope, parent)
-    local specialName = spec.expr[1] -- the fn special form always returns a value
-    local lit = literalToString(specialName)
-    parent[#parent + 1] = ('_SCOPE.specials[%s] = %s'):format(lit, specialName)
-    return spec
+    assert(isSym(ast[2]), "expected symbol for name of special form")
+    local specname = tostring(ast[2])
+    local spec = SPECIALS.fn(ast, scope, parent, {nval = 1})[1]
+    parent[#parent + 1] = ('_SCOPE.specials[%q] = %s'):format(
+        stringMangle(specname, scope), tostring(spec))
 end
 
-SPECIALS['macro'] = function(ast, scope, parent)
+SPECIALS['macro'] = function(ast, scope, parent, opts)
     assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare macros in \'eval-compiler\'')
-    local mac = SPECIALS.fn(ast, scope, parent)
-    local macroName = mac.expr[1] -- the fn special form always returns a value
-    local lit = literalToString(macroName)
+    local mac = SPECIALS.fn(ast, scope, parent, opts)[1]
+    local macroName = tostring(mac) -- the fn special form always returns a value
     local s = gensym(scope)
-    parent[#parent + 1] = ('local function %s(ast, scope, chunk)'):format(s)
+    parent[#parent + 1] = ('local function %s(ast, scope, chunk, opts)'):format(s)
     parent[#parent + 1] = {
         'local unpack = table.unpack or unpack',
-        ('return _FNL.compileExpr(%s(unpack(ast, 2, ast.n), scope, chunk))'):format(macroName)
+        ('return _FNL.compile1(%s(unpack(ast, 2, ast.n)), scope, chunk, opts)'):format(macroName)
     }
     parent[#parent + 1] = 'end'
-    parent[#parent + 1] = ('_SCOPE.specials[%s] = %s'):format(lit, s)
-    mac.expr = list(s)
-    return mac
+    parent[#parent + 1] = ('_SCOPE.specials[%s] = %s'):format(macroName, s)
 end
 
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
-    local lhs = compileTossRest(ast[2], scope, parent)
-    local rhs = compileTossRest(ast[3], scope, parent)
-    return {
-        expr = list(('%s[%s]'):format(lhs.expr[1], rhs.expr[1])),
-        scoped = lhs.scoped or rhs.scoped,
-        singleEval = true,
-        sideEffects = true
-    }
+    local lhs = compile1(ast[2], scope, parent, {nval = 1})
+    local rhs = compile1(ast[3], scope, parent, {nval = 1})
+    return ('%s[%s]'):format(tostring(lhs[1]), tostring(rhs[1]))
 end
 
 SPECIALS['set'] = function(ast, scope, parent)
     local vars = {}
     for i = 2, math.max(2, ast.n - 1) do
-        local s = assert(isSym(ast[i]))
+        local s = assert(isSym(ast[i]), "expected symbol")
         vars[i - 1] = stringMangle(s[1], scope)
     end
+    assert(#vars > 0, "expected at least 1 variable to set")
     local varname = table.concat(vars, ', ')
-    local assign = table.concat(compileExpr(ast[ast.n], scope, parent).expr, ', ')
-    if assign == '' then
-        assign = 'nil'
-    end
-    parent[#parent + 1] = ('%s = %s'):format(varname, assign)
+    return compile1(ast[ast.n], scope, parent, {
+        target = varname
+    })
 end
 
-SPECIALS['let'] = function(ast, scope, parent)
+SPECIALS['let'] = function(ast, scope, parent, opts)
     local bindings = ast[2]
     assert(isTable(bindings), 'expected table for destructuring')
     local subScope = makeScope(scope)
@@ -903,98 +915,75 @@ SPECIALS['let'] = function(ast, scope, parent)
     for i = 1, bindings.n or #bindings, 2 do
         destructure(bindings[i], bindings[i + 1], subScope, subChunk)
     end
-    return doImpl(ast, scope, parent, subScope, subChunk, 3, true)
+    return doImpl(ast, scope, parent, opts, 3, subChunk, subScope)
 end
 
 -- For setting items in a table
 SPECIALS['tset'] = function(ast, scope, parent)
-    local root = compileExpr(ast[2], scope, parent).expr[1]
+    local root = compile1(ast[2], scope, parent, {nval = 1})[1]
     local keys = {}
     for i = 3, ast.n - 1 do
-        local key = compileTossRest(ast[i], scope, parent).expr[1]
-        keys[#keys + 1] = key
+        local key = compile1(ast[i], scope, parent, {nval = 1})[1]
+        keys[#keys + 1] = tostring(key)
     end
-    local value = compileTossRest(ast[ast.n], scope, parent).expr[1]
-    parent[#parent + 1] = ('%s[%s] = %s'):format(root, table.concat(keys, ']['), value)
-end
-
--- Executes a series of statements. Unlike do, evaultes to nil.
--- this potentially simplifies the resulting Lua code. It certainly
--- simplifies the implementation.
-SPECIALS['block'] = function(ast, scope, parent)
-    local subScope = makeScope(scope)
-    parent[#parent + 1] = 'do'
-    local chunk = {}
-    compileDo(ast, subScope, chunk, 2)
-    parent[#parent + 1] = chunk
-    parent[#parent + 1] = 'end'
+    local value = compile1(ast[ast.n], scope, parent, {nval = 1})[1]
+    parent[#parent + 1] = ('%s[%s] = %s'):format(tostring(root), table.concat(keys, ']['), tostring(value))
 end
 
 -- The if special form behaves like the cond form in
 -- many languages
-SPECIALS['if'] = function(ast, scope, parent)
+SPECIALS['if'] = function(ast, scope, parent, opts)
     local doScope = makeScope(scope)
-    local conds, rets, scopes, chunks, condChunks = {}, {}, {}, {}, {}
-    local unknownExprCount, exprCount, expr = false, 0
-    local function appendRet(i)
-        local nextchunk = {}
-        local nextscope = makeScope(doScope)
-        local nextret = compileExpr(ast[i], nextscope, nextchunk)
-        if nextret.unknownExprCount then unknownExprCount = true end
-        exprCount = math.max(exprCount, nextret.expr.n)
-        table.insert(chunks, nextchunk)
-        table.insert(scopes, nextscope)
-        table.insert(rets, nextret)
+    local branches = {}
+    local elseBranch = nil
+
+    -- Calculate some external stuff. Optimizes for tail calls and what not
+    local outerTail = true
+    local outerTarget = nil
+    local wrapper = 'iife'
+    if opts.tail then
+        wrapper = 'none'
+    end
+
+    -- Compile bodies and conditions
+    local bodyOpts = {
+        tail = outerTail,
+        target = outerTarget
+    }
+    local function compileBody(i)
+        local chunk = {}
+        local cscope = makeScope(doScope)
+        compile1(ast[i], cscope, chunk, bodyOpts)
+        return {
+            chunk = chunk,
+            scope = cscope
+        }
     end
     for i = 2, ast.n - 1, 2 do
-        local cchunk = {}
-        table.insert(condChunks, cchunk)
-        table.insert(conds, compileTossRest(ast[i], doScope, cchunk))
-        appendRet(i + 1)
+        local condchunk = {}
+        local cond =  compile1(ast[i], doScope, condchunk, {nval = 1})
+        local branch = compileBody(i + 1)
+        branch.cond = cond
+        branch.condchunk = condchunk
+        table.insert(branches, branch)
     end
     local hasElse = ast.n > 3 and ast.n % 2 == 0
-    if hasElse then
-        appendRet(ast.n)
-    end
-    local returnPrefix = 'return '
-    if exprCount == 0 then
-        local s = gensym(doScope)
-        returnPrefix = s .. ' = '
-        parent[#parent + 1] = 'do'
-        expr = list(s)
-    elseif not unknownExprCount then
-        local syms = {}
-        for i = 1, exprCount do
-            syms[i] = gensym(scope, unpack(scopes))
-        end
-        local vars = table.concat(syms, ', ')
-        parent[#parent + 1] = 'local ' .. vars
-        parent[#parent + 1] = 'do'
-        returnPrefix = vars .. ' = '
-        expr = list(unpack(syms))
-    else
-        local s = gensym(scope)
-        local va = scope.vararg and '...' or ''
-        local fCall = ('%s(%s)'):format(s, va)
-        parent[#parent + 1] = 'local function' .. fCall
-        expr = list(fCall)
-    end
-    -- Compile
+    if hasElse then elseBranch = compileBody(ast.n) end
+
+    -- Emit code
+    local s = gensym(scope)
     local buffer = {}
     local lastBuffer = buffer
-    for i = 1, #conds do
-        for j = 1, #condChunks[i] do
-            table.insert(lastBuffer, condChunks[i][j])
-        end
-        local condLine = ('if %s then'):format(conds[i].expr[1])
+    for i = 1, #branches do
+        local branch = branches[i]
+        local condLine = ('if %s then'):format(tostring(branch.cond[1]))
+        table.insert(lastBuffer, branch.condchunk)
         table.insert(lastBuffer, condLine)
-        table.insert(lastBuffer, chunks[i])
-        table.insert(chunks[i], returnPrefix .. normalizeExpr(rets[i].expr))
-        if i == #conds then
+        table.insert(lastBuffer, branch.chunk)
+        if i == #branches then
             if hasElse then
                 table.insert(lastBuffer, 'else')
-                table.insert(lastBuffer, chunks[i + 1])
-                table.insert(chunks[i + 1], returnPrefix .. normalizeExpr(rets[i + 1].expr))
+                table.insert(lastBuffer, elseBranch.chunk)
             end
             table.insert(lastBuffer, 'end')
         else
@@ -1005,25 +994,35 @@ SPECIALS['if'] = function(ast, scope, parent)
             lastBuffer = nextBuffer
         end
     end
-    parent[#parent + 1] = buffer
-    parent[#parent + 1] = 'end'
-    return {
-        scoped = true,
-        unknownExprCount = unknownExprCount,
-        singleEval = unknownExprCount,
-        sideEffects = unknownExprCount,
-        expr = expr
-    }
+
+    if wrapper == 'iife' then
+        parent[#parent + 1] = ('local function %s()'):format(tostring(s))
+        parent[#parent + 1] = buffer
+        parent[#parent + 1] = 'end'
+        return expr(('%s()'):format(tostring(s)), 'statement')
+    elseif wrapper == 'none' then
+        -- Splice result right into code
+        for i = 1, #buffer do
+            parent[#parent + 1] = buffer[i]
+        end
+        return {returned = true}
+    end
 end
 
-SPECIALS['when'] = function(ast, scope, parent)
+-- (when condition body...) => []
+SPECIALS['when'] = function(ast, scope, parent, opts)
     table.remove(ast, 1)
     local condition = table.remove(ast, 1)
     local new_ast = list(sym("if"), condition, list(sym("block"), unpack(ast)))
-    return SPECIALS["if"](new_ast, scope, parent)
+    return SPECIALS["if"](new_ast, scope, parent, opts)
 end
 
--- (each [k v (pairs t)] body)
+-- (block body...) => []
+SPECIALS['block'] = function(ast, scope, parent)
+    compileDo(ast, scope, parent, 2)
+end
+
+-- (each [k v (pairs t)] body...) => []
 SPECIALS['each'] = function(ast, scope, parent)
     local binding = assert(isTable(ast[2]), 'expected binding table in each')
     local iter = table.remove(binding, #binding) -- last item is iterator call
@@ -1031,9 +1030,9 @@ SPECIALS['each'] = function(ast, scope, parent)
     for _, v in ipairs(binding) do
         table.insert(bindVars, literalToString(v, scope))
     end
-    parent[#parent + 1] = ('for %s in %s do')
-        :format(table.concat(bindVars, ', '),
-                compileTossRest(iter, scope, parent).expr[1])
+    parent[#parent + 1] = ('for %s in %s do'):format(
+        table.concat(bindVars, ', '),
+        tostring(compile1(iter, scope, parent, {nval = 1})[1]))
     local chunk = {}
     local subScope = makeScope(scope)
     compileDo(ast, subScope, chunk, 3)
@@ -1041,35 +1040,41 @@ SPECIALS['each'] = function(ast, scope, parent)
     parent[#parent + 1] = 'end'
 end
 
+-- (while condition body...) => []
 SPECIALS['*while'] = function(ast, scope, parent)
-    local condition = compileTossRest(ast[2], scope, parent)
-    parent[#parent + 1] = 'while ' .. condition.expr[1] .. ' do'
+    local len1 = #parent
+    local condition = compile1(ast[2], scope, parent, {nval = 1})[1]
+    local len2 = #parent
     local subChunk = {}
+    if len1 ~= len2 then
+        -- Compound condition
+        parent[#parent + 1] = 'while true do'
+        -- Move new compilation to subchunk
+        for i = len1 + 1, len2 do
+            subChunk[#subChunk + 1] = parent[i]
+            parent[i] = nil
+        end
+        parent[#parent + 1] = ('if %s then break end'):format(condition[1])
+    else
+        -- Simple condition
+        parent[#parent + 1] = 'while ' .. tostring(condition) .. ' do'
+    end
     compileDo(ast, makeScope(scope), subChunk, 3)
     parent[#parent + 1] = subChunk
     parent[#parent + 1] = 'end'
-end
-
-SPECIALS['*dowhile'] = function(ast, scope, parent)
-    local condition = compileTossRest(ast[2], scope, parent)
-    parent[#parent + 1] = 'repeat'
-    local subChunk = {}
-    compileDo(ast, makeScope(scope), subChunk, 3)
-    parent[#parent + 1] = subChunk
-    parent[#parent + 1] = 'until ' .. condition.expr[1]
 end
 
 SPECIALS['for'] = function(ast, scope, parent)
     local ranges = assert(isTable(ast[2]), 'expected binding table in for')
     local bindingSym = assert(isSym(table.remove(ast[2], 1)),
-                              'expected iterator symbol in for')
+    'expected iterator symbol in for')
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
-        rangeArgs[i] = compileTossRest(ranges[i], scope, parent).expr[1]
+        rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
     end
-    parent[#parent + 1] = ('for %s = %s do')
-        :format(literalToString(bindingSym, scope),
-                table.concat(rangeArgs, ', '))
+    parent[#parent + 1] = ('for %s = %s do'):format(
+        literalToString(bindingSym, scope),
+        table.concat(rangeArgs, ', '))
     local chunk = {}
     local subScope = makeScope(scope)
     compileDo(ast, subScope, chunk, 3)
@@ -1077,7 +1082,7 @@ SPECIALS['for'] = function(ast, scope, parent)
     parent[#parent + 1] = 'end'
 end
 
--- Do wee need this? Is there a more elegnant way to comile with break?
+-- Do we need this? Is there a more elegnant way to compile with break?
 SPECIALS['*break'] = function(_, _, parent)
     parent[#parent + 1] = 'break'
 end
@@ -1086,35 +1091,24 @@ local function defineArithmeticSpecial(name, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
     SPECIALS[name] = function(ast, scope, parent)
         local len = ast.n or #ast
-        local head = {}
-        if len == 0 then
-            head.expr = list(unaryPrefix or '0')
+        if len == 1 then
+            return unaryPrefix or '0'
         else
-            local operands = list()
-            local subSingleEval, sideEffects, scoped = false, false, false
+            local operands = {}
             for i = 2, len do
-                local subTree
-                if i == len then
-                    subTree = compileExpr(ast[i], scope, parent)
-                else
-                    subTree = compileTossRest(ast[i], scope, parent)
+                local subexprs = compile1(ast[i], scope, parent, {
+                    nval = (i == 1 and 1 or nil)
+                })
+                for j = 1, #subexprs do
+                    operands[#operands + 1] = tostring(subexprs[j])
                 end
-                listAppend(operands, subTree.expr)
-                if subTree.singleEval then subSingleEval = true end
-                if subTree.sideEffects then sideEffects = true end
-                if subTree.scoped then scoped = true end
             end
-            head.sideEffects = sideEffects
-            head.scoped = scoped
             if #operands == 1 and unaryPrefix then
-                head.singleEval = true
-                head.expr = list('(' .. unaryPrefix .. paddedOp .. operands[1] .. ')')
+                return '(' .. unaryPrefix .. paddedOp .. operands[1] .. ')'
             else
-                head.singleEval = #operands > 1 or subSingleEval
-                head.expr = list('(' .. table.concat(operands, paddedOp) .. ')')
+                return '(' .. table.concat(operands, paddedOp) .. ')'
             end
         end
-        return head
     end
 end
 
@@ -1131,14 +1125,9 @@ defineArithmeticSpecial('and')
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
-        local lhs = compileTossRest(ast[2], scope, parent)
-        local rhs = compileTossRest(ast[3], scope, parent)
-        return {
-            sideEffects = lhs.sideEffects or rhs.sideEffects,
-            singleEval = true,
-            expr = list(('((%s) %s (%s))'):format(lhs.expr[1], op, rhs.expr[1])),
-            scoped = lhs.scoped or rhs.scoped
-        }
+        local lhs = compile1(ast[2], scope, parent, {nval = 1})
+        local rhs = compile1(ast[3], scope, parent, {nval = 1})
+        return ('((%s) %s (%s))'):format(tostring(lhs[1]), op, tostring(rhs[1]))
     end
 end
 
@@ -1151,42 +1140,40 @@ defineComparatorSpecial('~=')
 
 local function defineUnarySpecial(op, realop)
     SPECIALS[op] = function(ast, scope, parent)
-        local tail = compileTossRest(ast[2], scope, parent)
-        return {
-            singleEval = true,
-            sideEffects = tail.sideEffects,
-            expr = list((realop or op) .. tail.expr[1]),
-            scoped = tail.scoped
-        }
+        local tail = compile1(ast[2], scope, parent, {nval = 1})
+        return (realop or op) .. tostring(tail[1])
     end
 end
 
 defineUnarySpecial('not', 'not ')
 defineUnarySpecial('#')
 
-local function compileAst(ast, options)
+local function compile(ast, options)
     options = options or {}
+    local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
-    return transpile(ast, scope, options)
+    local exprs = compile1(ast, scope, chunk, {tail = true})
+    keepSideEffects(exprs, chunk)
+    return flattenChunk(chunk, options.indent)
 end
 
-local function compile(str, options)
+local function compileString(str, options)
     options = options or {}
     local asts, len = parse(str)
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
-    local bodies = {}
+    local chunk = {}
     for i = 1, len do
-        local source = transpile(asts[i], scope, {
-            returnTail = i == len
+        local exprs = compile1(asts[i], scope, chunk, {
+            tail = i == len
         })
-        bodies[#bodies + 1] = source
+        keepSideEffects(exprs, chunk)
     end
-    return table.concat(bodies, '\n')
+    return flattenChunk(chunk, options.indent)
 end
 
 local function eval(str, options)
     options = options or {}
-    local luaSource = compile(str, options)
+    local luaSource = compileString(str, options)
     local loader = loadCode(luaSource, options.env, options.filename)
     return loader()
 end
@@ -1216,9 +1203,7 @@ local function repl(givenOptions)
         end)
         options.print(select(2, xpcall(function()
             parse(reader, function(x)
-                local luaSource = compileAst(x, {
-                    returnTail = true
-                })
+                local luaSource = compile(x)
                 local loader, err = loadCode(luaSource, env)
                 if err then
                     options.print(err)
@@ -1238,10 +1223,8 @@ local module = {
     parse = parse,
     astToString = astToString,
     compile = compile,
-    compileAst = compileAst,
-    compileExpr = compileExpr,
-    compileTossRest = compileTossRest,
-    compileDo = compileDo,
+    compileString = compileString,
+    compile1 = compile1,
     list = list,
     sym = sym,
     varg = varg,
@@ -1255,7 +1238,7 @@ local module = {
 SPECIALS['eval-compiler'] = function(ast, scope, parent)
     local oldFirst = ast[1]
     ast[1] = sym('do')
-    local luaSource = compileAst(ast, {
+    local luaSource = compile(ast, {
         scope = makeScope(COMPILER_SCOPE)
     })
     ast[1] = oldFirst

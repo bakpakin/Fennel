@@ -976,7 +976,7 @@ SPECIALS['if'] = function(ast, scope, parent)
         local s = gensym(scope)
         local va = scope.vararg and '...' or ''
         local fCall = ('%s(%s)'):format(s, va)
-        parent[#parent + 1] = 'local function' .. fCall
+        parent[#parent + 1] = 'local function ' .. fCall
         expr = list(fCall)
     end
     -- Compile

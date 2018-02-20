@@ -304,53 +304,6 @@ local function parse(getbyte)
     return true, retval
 end
 
--- Serializer
-
-local toStrings = {}
-
--- Serialize an AST into a string that can be read back again with the parser.
--- Cyclic and other non-normal tables are not readable but should print fine.
-local function astToString(ast, seen)
-    return (toStrings[type(ast)] or tostring)(ast, seen)
-end
-
-function toStrings.table(tab, seen)
-    seen = seen or {n = 0}
-    if seen[tab] then
-        return ('<cycle %d>'):format(seen[tab])
-    end
-    local n = seen.n + 1
-    seen[tab] = n
-    seen.n = n
-    if isSym(tab) then
-        return tab[1]
-    elseif isList(tab) then
-        local buffer = {}
-        for i = 1, tab.n do
-            buffer[i] = astToString(tab[i], _G)
-        end
-        return '(' .. table.concat(buffer, ' ') .. ')'
-    else
-        local buffer = {}
-        for k, v in pairs(tab) do
-            buffer[#buffer + 1] = astToString(k, seen)
-            buffer[#buffer + 1] = astToString(v, seen)
-        end
-        return '{' .. table.concat(buffer, ' ') .. '}'
-    end
-end
-
-function toStrings.string(str)
-    local ret = ("%q"):format(str):gsub('\n', 'n'):gsub("[\128-\255]", function(c)
-        return "\\" .. c:byte()
-    end)
-    return ret
-end
-
-function toStrings.number(num)
-    return ('%.17g'):format(num)
-end
-
 -- Compilation
 
 -- Creat a new Scope, optionally under a parent scope. Scopes are compile time constructs
@@ -395,6 +348,14 @@ for i, v in ipairs(luaKeywords) do
     luaKeywords[v] = i
 end
 
+-- Allow printing a string to Lua
+local function serializeString(str)
+    local s = ("%q"):format(str):gsub('\n', 'n'):gsub("[\128-\255]", function(c)
+        return "\\" .. c:byte()
+    end)
+    return s
+end
+
 -- A multi symbol is a symbol that is actually composed of
 -- two or more symbols using the dot syntax. The main differences
 -- from normal symbols is that they cannot be declared local, and
@@ -427,7 +388,7 @@ local function stringMangle(str, scope, noMulti)
         local ret
         for i = 1, #parts do
             if ret then
-                ret = ret .. '[' .. toStrings.string(parts[i]) .. ']'
+                ret = ret .. '[' .. serializeString(parts[i]) .. ']'
             else
                 ret = stringMangle(parts[i], scope)
             end
@@ -474,28 +435,6 @@ local function gensym(...)
     until done(...)
     scope.unmanglings[mangling] = true
     return mangling
-end
-
--- Convert a literal in the AST to a Lua string. Note that this is very different from astToString,
--- which converts and AST into a MLP readable string.
-local function literalToString(x, scope)
-    if isSym(x) then return stringMangle(x[1], scope) end
-    if x == VARARG then return '...' end
-    if type(x) == 'number' then return ('%.17g'):format(x) end
-    if type(x) == 'string' then return toStrings.string(x) end
-    if type(x) == 'table' then
-        local buffer = {}
-        for i = 1, #x do -- Write numeric keyed values.
-            buffer[#buffer + 1] = literalToString(x[i], scope)
-        end
-        for k, v in pairs(x) do -- Write other keys.
-            if type(k) ~= 'number' or math.floor(k) ~= k or k < 1 or k > #x then
-                buffer[#buffer + 1] = ('[%s] = %s'):format(literalToString(k, scope), literalToString(v, scope))
-            end
-        end
-        return '{' .. table.concat(buffer, ', ') ..'}'
-    end
-    return tostring(x)
 end
 
 -- Flatten a tree of Lua source code lines.
@@ -547,7 +486,6 @@ local function checkNval(exprs, parent, n)
                 exprs[i] = nil
             end
         else
-            -- Should we pad with nils?
             -- Pad with nils
             for i = #exprs + 1, n do
                 exprs[i] = expr('nil', 'literal')
@@ -592,7 +530,6 @@ end
 local function compile1(ast, scope, parent, opts)
     opts = opts or {}
     local exprs = {}
-    local target = opts.target
 
     -- Compile the form
     if isList(ast) then
@@ -644,30 +581,36 @@ local function compile1(ast, scope, parent, opts)
                 end
             end
             local call = ('%s(%s)'):format(tostring(fcallee), exprs1(fargs))
-            if opts.tail then
-                -- Tail calls
-                parent[#parent + 1] = ('return %s'):format(call)
-            elseif target then
-                parent[#parent + 1] = ('%s = %s'):format(target, call)
-            else
-                exprs[1] = expr(call, 'statement')
+            exprs = handleCompileOpts({expr(call, 'statement')}, parent, opts)
+        end
+    elseif isVarg(ast) then
+        exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts)
+    elseif isSym(ast) then
+        exprs = handleCompileOpts({expr(stringMangle(ast[1], scope), 'sym')}, parent, opts)
+    elseif type(ast) == 'nil' or type(ast) == 'boolean' then
+        exprs = handleCompileOpts({expr(tostring(ast), 'literal')}, parent, opts)
+    elseif type(ast) == 'number' then
+        local n = ('%.17g'):format(ast)
+        exprs = handleCompileOpts({expr(n, 'literal')}, parent, opts)
+    elseif type(ast) == 'string' then
+        local s = serializeString(ast)
+        exprs = handleCompileOpts({expr(s, 'literal')}, parent, opts)
+    elseif type(ast) == 'table' then
+        local buffer = {}
+        for i = 1, #ast do -- Write numeric keyed values.
+            buffer[#buffer + 1] = tostring(compile1(ast[i], scope, parent, {nval = 1})[1])
+        end
+        for k, v in pairs(ast) do -- Write other keys.
+            if type(k) ~= 'number' or math.floor(k) ~= k or k < 1 or k > #ast then
+                buffer[#buffer + 1] = ('[%s] = %s'):format(
+                    tostring(compile1(k, scope, parent, {nval = 1})[1]),
+                    tostring(compile1(v, scope, parent, {nval = 1})[1]))
             end
         end
+        local tbl = '({' .. table.concat(buffer, ', ') ..'})'
+        exprs = handleCompileOpts({expr(tbl, 'expression')}, parent, opts)
     else
-        -- Literal or symbol (string, number, etc.)
-        local literal = literalToString(ast, scope)
-        if opts.tail then
-            parent[#parent + 1] = ('return %s'):format(literal)
-        elseif target then
-            parent[#parent + 1] = ('%s = %s'):format(target, literal)
-        elseif isSym(ast) then
-            exprs[1] = expr(literal, 'sym')
-        else
-            exprs[1] = expr(literal, 'literal')
-        end
-    end
-    if opts.nval then
-        checkNval(exprs, parent, opts.nval)
+        error('could not compile value of type ' .. type(ast))
     end
     exprs.returned = true
     return exprs
@@ -682,7 +625,7 @@ local function destructure1(left, rightexpr, scope, parent)
         return
     end
     if not isTable(left) then
-        error('unable to destructure ' .. literalToString(left, scope))
+        error('unable to destructure ' .. tostring(left))
     end
     local s = gensym(scope)
     parent[#parent + 1] = ('local %s = %s'):format(s, tostring(rightexpr))
@@ -1058,7 +1001,7 @@ SPECIALS['each'] = function(ast, scope, parent)
     local bindVars = {}
     for _, v in ipairs(binding) do
         assert(isSym(v), 'expected iterator symbol in each')
-        table.insert(bindVars, literalToString(v, scope))
+        table.insert(bindVars, stringMangle(v[1], scope))
     end
     parent[#parent + 1] = ('for %s in %s do'):format(
         table.concat(bindVars, ', '),
@@ -1103,7 +1046,7 @@ SPECIALS['for'] = function(ast, scope, parent)
         rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
     end
     parent[#parent + 1] = ('for %s = %s do'):format(
-        literalToString(bindingSym, scope),
+        stringMangle(bindingSym[1], scope),
         table.concat(rangeArgs, ', '))
     local chunk = {}
     local subScope = makeScope(scope)
@@ -1263,9 +1206,11 @@ local function repl(givenOptions)
                         end)
                     if loadok then
                         for i = 1, ret.n do
-                            ret[i] = astToString(ret[i])
+                            ret[i] = ret[i]
                         end
                         options.print(unpack(ret))
+                        env._ = ret[1]
+                        env.__ = ret
                     end
                 end
             end
@@ -1280,7 +1225,6 @@ local module = {
     parse = parse,
     granulate = granulate,
     stringstream = stringstream,
-    astToString = astToString,
     compile = compile,
     compileString = compileString,
     compileStream = compileStream,

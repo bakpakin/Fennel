@@ -36,6 +36,9 @@ local SYMBOL_MT = { 'SYMBOL',
     end
 }
 local LIST_MT = { 'LIST',
+    __len = function (self)
+        return self.n or rawlen(self)
+    end,
     __tostring = function (self)
         local strs = {}
         local n = self.n or #self
@@ -47,7 +50,7 @@ local LIST_MT = { 'LIST',
 }
 local EXPR_MT = { 'EXPR',
     __tostring = function (self)
-        return tostring(self[1])
+        return self[1]
     end
 }
 local VARARG = setmetatable({ '...' }, { 'VARARG' })
@@ -112,48 +115,42 @@ local function isTable(x)
         getmetatable(x) ~= LIST_MT and getmetatable(x) ~= SYMBOL_MT and x
 end
 
-local READER_INDEX = { length = math.huge }
-local READER_MT = {__index = READER_INDEX}
+-- Parser
 
-function READER_INDEX:sub(a, b)
-    assert(a and b, 'reader sub requires two arguments')
-    assert(a > 0 and b > 0, 'no non-zero sub support')
-    a, b = a - self.offset, b - self.offset
-    return self.buffer:sub(a, b)
-end
-
-function READER_INDEX:free(index)
-    local dOffset = index - self.offset
-    if dOffset < 1 then
-        return
+-- Convert a stream of chunks to a stream of bytes.
+-- Also returns a second function to clear the buffer in the byte stream
+local function granulate(getchunk)
+    local c = ''
+    local index = 1
+    local done = false
+    return function ()
+        if done then return nil end
+        if index <= #c then
+            local b = c:byte(index)
+            index = index + 1
+            return b
+        else
+            c = getchunk()
+            if not c or c == '' then
+                done = true
+                return nil
+            end
+            index = 2
+            return c:byte(1)
+        end
+    end, function ()
+        c = ''
     end
-    self.offset = index
-    self.buffer = self.buffer:sub(dOffset + 1)
 end
 
-local eof = false
-
-function READER_INDEX:byte(i)
-    if eof then return end
-    i = i or 1
-    local index = i - self.offset
-    assert(index > 0, 'index below buffer range')
-    while index > #self.buffer do
-        local chunk = self.more()
-        if chunk == nil then eof = true return end
-        self.buffer = self.buffer .. chunk
+-- Convert a string into a stream of bytes
+local function stringstream(str)
+    local index = 1
+    return function()
+        local r = str:byte(index)
+        index = index + 1
+        return r
     end
-    return self.buffer:byte(index)
-end
-
--- Create a reader. A reader emulates a subset of the string api
--- in order to allow streams to be parsed as if they were strings.
-local function createReader(more)
-    return setmetatable({
-        more = more or io.read,
-        buffer = '',
-        offset = 0
-    }, READER_MT)
 end
 
 -- Table of delimiter bytes - (, ), [, ], {, }
@@ -168,119 +165,143 @@ local delims = {
     [125] = true      -- }
 }
 
--- Parser
--- Parse a string into an AST. The ast is a list-like table consiting of
--- strings, symbols, numbers, booleans, nils, and other ASTs. Each AST has
--- a value 'n' for length, as ASTs can have nils which do not cooperate with
--- Lua's semantics for table length.
--- Returns an AST containing multiple expressions. For example, "(+ 1 2) (+ 3 4)"
--- would parse and return a single AST containing two sub trees.
-local function parseSequence(str, dispatch, index, opener)
-    index = index or 1
-    local seqLen = 0
-    local values = {}
-    local strlen = str.length or #str
-    local function free(i)
-        if str.free then
-            str:free(i)
-        end
-    end
-    local onComment = false
-    local function onWhitespace(includeParen)
-        local b = str:byte(index)
-        if not b then return false end
-        if b == 59 then -- ;
-            onComment = true
-        elseif onComment and b == 10 then -- newline
-            onComment = false
-        end
-        return b == 32 or (b >= 9 and b <= 13) or
-            (includeParen and delims[b]) or onComment
-    end
-    local function readValue()
-        local start = str:byte(index)
-        if eof then return end
-        local stringStartIndex = index
-        local line = nil
-        -- Check if quoted string
-        if start == 34 or start == 39 then
-            local last, current
-            repeat
-                index = index + 1
-                current, last = str:byte(index), current
-                if eof then return end
-            until index >= strlen or (current == start and last ~= 92)
-            local raw = str:sub(stringStartIndex, index)
-            local loadFn = loadCode(('return %s'):format(raw))
-            index = index + 1
-            return loadFn(), line, stringStartIndex
-        else -- non-quoted string - symbol, number, or nil
-            while not onWhitespace(true) do
-                index = index + 1
-            end
-            local rawSubstring = str:sub(stringStartIndex, index - 1)
-            if rawSubstring == 'nil' then return nil end
-            if rawSubstring == 'true' then return true end
-            if rawSubstring == 'false' then return false end
-            if rawSubstring == '...' then return VARARG end
-            if rawSubstring:match('^:[%w_-]*$') then -- keyword style strings
-                return rawSubstring:sub(2)
-            end
-            local forceNumber = rawSubstring:match('^%d')
-            if forceNumber then
-                return tonumber(rawSubstring) or
-                    error('could not read token "' ..
-                              rawSubstring .. '"'), stringStartIndex
-            end
-            return tonumber(rawSubstring) or sym(rawSubstring), stringStartIndex
-        end
-    end
-    -- The main parse loop - skip whitespce, check for delimiters, read token. Repeat.
-    while index < strlen do
-        while index <= strlen and onWhitespace() do
-            index = index + 1
-        end
-        local b = str:byte(index)
-        if eof or not b then break end
-        free(index - 1)
-        local value, vlen
-        if type(delims[b]) == 'number' then -- Opening delimiter
-            value, index, vlen = parseSequence(str, nil, index + 1, b)
-            if b == 40 then
-                value.n = vlen
-                value = setmetatable(value, LIST_MT)
-            elseif b == 123 then
-                local newValue = {}
-                for i = 1, vlen, 2 do
-                    newValue[value[i]] = value[i + 1]
-                end
-                value = newValue
-            end
-        elseif delims[b] then -- Closing delimiter
-            if delims[opener] ~= b then
-                error('unexpected delimiter ' .. string.char(b))
-            end
-            index = index + 1
-            break
-        else -- Other values
-            value = readValue()
-        end
-        seqLen = seqLen + 1
-        if dispatch then
-            dispatch(value)
-        else
-            values[seqLen] = value
-        end
-    end
-    return values, index, seqLen
+local function iswhitespace(b)
+    return b == 32 or (b >= 9 and b <= 13) or b == 44
 end
 
--- Parse a string and return an AST, along with its length as the second return value.
-local function parse(str, dispatch)
-    eof = false
-    local values, _, len = parseSequence(str, dispatch)
-    values.n = len
-    return setmetatable(values, LIST_MT), len
+local function issymbolchar(b)
+    return b > 32 and
+        not delims[b] and
+        b ~= 127 and
+        b ~= 34 and
+        b ~= 39 and
+        b ~= 59 and
+        b ~= 44
+end
+
+-- Parse one value given a function that
+-- returns sequential bytes. Will throw an error as soon
+-- as possible without getting more bytes on bad input. Returns
+-- if a value was read, and then the value read. Will return nil
+-- when input stream is finished.
+local function parse(getbyte)
+    -- Stack of unfinished values
+    local stack = {}
+
+    -- Provide one character buffer
+    local lastb
+    local function ungetb(ub)
+        lastb = ub
+    end
+    local function getb()
+        if lastb then
+            local r = lastb
+            lastb = nil
+            return r
+        end
+        return getbyte()
+    end
+
+    -- Dispatch when we complete a value
+    local done, retval
+    local function dispatch(v)
+        if #stack == 0 then
+            retval = v
+            done = true
+        else
+            local last = stack[#stack]
+            last.n = last.n + 1
+            last[last.n] = v
+        end
+    end
+
+    -- The main parse loop
+    repeat
+        local b
+
+        -- Skip whitespace
+        repeat
+            b = getb()
+        until not b or not iswhitespace(b)
+        if not b then 
+            if #stack > 0 then error 'unexpected end of source' end
+            return nil
+        end
+
+        if b == 59 then -- ; Comment
+            repeat
+                b = getb()
+            until not b or b == 10 -- newline
+        elseif type(delims[b]) == 'number' then -- Opening delimiter
+            table.insert(stack, setmetatable({
+                closer = delims[b],
+                n = 0
+            }, LIST_MT))
+        elseif delims[b] then -- Closing delimiter
+            if #stack == 0 then error 'unexpected closing delimiter' end
+            local last = stack[#stack]
+            local val
+            if last.closer ~= b then
+                error('unexpected delimiter ' .. string.char(b) .. ', expected ' .. string.char(last.closer))
+            end
+            if b == 41 then -- )
+                val = last
+            elseif b == 93 then -- ]
+                val = {}
+                for i = 1, last.n do
+                    val[i] = last[i]
+                end
+            else -- }
+                if last.n % 2 ~= 0 then
+                    error 'expected even number of values in table literal'
+                end
+                val = {}
+                for i = 1, last.n, 2 do
+                    val[last[i]] = last[i + 1]
+                end
+            end
+            stack[#stack] = nil
+            dispatch(val)
+        elseif b == 34 or b == 39 then -- Quoted string
+            local start = b
+            local last
+            local chars = {start}
+            repeat
+                last = b
+                b = getb()
+                chars[#chars + 1] = b
+            until not b or (b == start and last ~= 92)
+            if not b then error 'unexpected end of source' end
+            local raw = string.char(unpack(chars))
+            local loadFn = loadCode(('return %s'):format(raw))
+            dispatch(loadFn())
+        else -- Try symbol
+            local chars = {}
+            repeat
+                chars[#chars + 1] = b
+                b = getb()
+            until not b or not issymbolchar(b)
+            if b then ungetb(b) end
+            local rawstr = string.char(unpack(chars))
+            if rawstr == 'nil' then dispatch(nil)
+            elseif rawstr == 'true' then dispatch(true)
+            elseif rawstr == 'false' then dispatch(false)
+            elseif rawstr == '...' then dispatch(VARARG)
+            elseif rawstr:match('^:[%w_-]*$') then -- keyword style strings
+                dispatch(rawstr:sub(2))
+            else
+                local forceNumber = rawstr:match('^%d')
+                local x
+                if forceNumber then
+                    x = tonumber(rawstr) or error('could not read token "' .. rawstr .. '"')
+                else
+                    x = tonumber(rawstr) or sym(rawstr)
+                end
+                dispatch(x)
+            end
+        end
+    until done
+    return true, retval
 end
 
 -- Serializer
@@ -1157,18 +1178,28 @@ local function compile(ast, options)
     return flattenChunk(chunk, options.indent)
 end
 
-local function compileString(str, options)
+local function compileStream(strm, options)
     options = options or {}
-    local asts, len = parse(str)
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
+    local vals = {}
+    while true do
+        local ok, val = parse(strm)
+        if not ok then break end
+        vals[#vals + 1] = val
+    end
     local chunk = {}
-    for i = 1, len do
-        local exprs = compile1(asts[i], scope, chunk, {
-            tail = i == len
+    for i = 1, #vals do
+        local exprs = compile1(vals[i], scope, chunk, {
+            tail = i == #vals
         })
         keepSideEffects(exprs, chunk)
     end
     return flattenChunk(chunk, options.indent)
+end
+
+local function compileString(str, options)
+    local strm = stringstream(str)
+    return compileStream(strm, options)
 end
 
 local function eval(str, options)
@@ -1194,43 +1225,56 @@ local function repl(givenOptions)
     local env = options.env or setmetatable({}, {
         __index = _ENV or _G
     })
-    while not eof do
-        local reader = createReader(function()
-            options.write(options.prompt)
-            options.flush()
-            local input = options.read() -- EOF returns nil here
-            return input and input .. '\n'
-        end)
-        options.print(select(2, xpcall(function()
-            parse(reader, function(x)
-                local luaSource = compile(x)
-                local loader, err = loadCode(luaSource, env)
-                if err then
-                    options.print(err)
-                else
-                    local ret = tpack(loader())
+    local bytestream, clearstream = granulate(function()
+        options.write(options.prompt)
+        options.flush()
+        local input = options.read()
+        return input and input .. '\n'
+    end)
+    while true do
+        local ok, parseok, x = pcall(parse, bytestream)
+        if ok then
+            if not parseok then break end -- eof
+            local luaSource = compile(x)
+            local loader, err = loadCode(luaSource, env)
+            if err then
+                clearstream()
+                options.print(err)
+            else
+                local ok, ret = xpcall(function () return tpack(loader()) end, 
+                    function (err)
+                        -- We can do more sophisticated display here
+                        options.print(err)
+                    end)
+                if ok then
                     for i = 1, ret.n do
                         ret[i] = astToString(ret[i])
                     end
                     options.print(unpack(ret))
                 end
-            end)
-        end, debug.traceback)))
+            end
+        else
+            -- parse error
+            options.print(parseok)
+            clearstream()
+        end
     end
 end
 
 local module = {
     parse = parse,
+    granulate = granulate,
+    stringstream = stringstream,
     astToString = astToString,
     compile = compile,
     compileString = compileString,
+    compileStream = compileStream,
     compile1 = compile1,
     list = list,
     sym = sym,
     varg = varg,
     scope = makeScope,
     gensym = gensym,
-    createReader = createReader,
     eval = eval,
     repl = repl
 }

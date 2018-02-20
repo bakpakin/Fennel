@@ -28,9 +28,9 @@ The fennel module exports the following functions:
 
 * `fennel.repl()` - Starts a simple REPL.
 * `fennel.eval(str, options)` - Evaluates a string of Fennel.
-* `fennel.compile(str, options)` - Compiles a string of Fennel into a string of Lua
+* `fennel.compileString(str, options)` - Compiles a string of Fennel into a string of Lua
 * `fennel.parse(str)` - Reads a string and returns an AST.
-* `fennel.compileAst(ast)` - Compiles an AST into a Lua string.
+* `fennel.compile(ast)` - Compiles an AST into a Lua string.
 
 ## Example
 

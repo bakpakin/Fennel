@@ -819,6 +819,14 @@ SPECIALS['$'] = function(ast, scope, parent)
     return SPECIALS.fn({'', sym('$$'), fargs, ast, n = 4}, scope, parent)
 end
 
+SPECIALS['luaexpr'] = function(ast)
+    return tostring(ast[2])
+end
+
+SPECIALS['luastatement'] = function(ast)
+    return expr(tostring(ast[2]), 'statement')
+end
+
 SPECIALS['lambda'] = function(ast, scope, parent)
     table.remove(ast, 1) -- lambda symbol
     local arglist = table.remove(ast, 1)
@@ -826,7 +834,7 @@ SPECIALS['lambda'] = function(ast, scope, parent)
     for _, arg in ipairs(arglist) do
         if not arg[1]:match("^?") then
             table.insert(ast, 1,
-                list(sym("assert"), arg, "Missing argument: " .. arg[1]))
+                list(sym("assert"), list(sym('~='), nil, arg), "Missing argument: " .. arg[1]))
         end
     end
     local new = list(sym("lambda"), arglist, unpack(ast))
@@ -1161,7 +1169,7 @@ local function eval(str, options)
     return loader()
 end
 
--- Implements a simple repl
+-- Implements a configurable repl
 local function repl(givenOptions)
     local options = {
         prompt = '>> ',
@@ -1197,6 +1205,9 @@ local function repl(givenOptions)
                 if not luacompileok then
                     clearstream()
                     options.print('Bad code generated - likely a bug with the compiler:')
+                    options.print('--- Generated Lua Start ---')
+                    options.print(luaSource)
+                    options.print('--- Generated Lua End ---')
                     options.print('Compiler error: ' .. loader)
                 else
                     local loadok, ret = xpcall(function () return tpack(loader()) end,

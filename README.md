@@ -29,7 +29,9 @@ The fennel module exports the following functions:
 * `fennel.repl()` - Starts a simple REPL.
 * `fennel.eval(str, options)` - Evaluates a string of Fennel.
 * `fennel.compileString(str, options)` - Compiles a string of Fennel into a string of Lua
-* `fennel.parse(str)` - Reads a string and returns an AST.
+* `fennel.stringStream(str)` - Converts a string to a stream of bytes
+* `fennel.granulate(chunks)` - Converts an iterator for chunks into a stream of bytes
+* `fennel.parse(strm)` - Reads a stream and returns an AST.
 * `fennel.compile(ast)` - Compiles an AST into a Lua string.
 
 ## Example

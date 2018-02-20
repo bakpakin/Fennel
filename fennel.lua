@@ -223,7 +223,7 @@ local function parse(getbyte)
         repeat
             b = getb()
         until not b or not iswhitespace(b)
-        if not b then 
+        if not b then
             if #stack > 0 then error 'unexpected end of source' end
             return nil
         end
@@ -1236,17 +1236,17 @@ local function repl(givenOptions)
         if ok then
             if not parseok then break end -- eof
             local luaSource = compile(x)
-            local loader, err = loadCode(luaSource, env)
-            if err then
+            local loader, compileErr = loadCode(luaSource, env)
+            if compileErr then
                 clearstream()
-                options.print(err)
+                options.print(compileErr)
             else
-                local ok, ret = xpcall(function () return tpack(loader()) end, 
-                    function (err)
+                local loadok, ret = xpcall(function () return tpack(loader()) end,
+                    function (runtimeErr)
                         -- We can do more sophisticated display here
-                        options.print(err)
+                        options.print(runtimeErr)
                     end)
-                if ok then
+                if loadok then
                     for i = 1, ret.n do
                         ret[i] = astToString(ret[i])
                     end
@@ -1254,8 +1254,8 @@ local function repl(givenOptions)
                 end
             end
         else
-            -- parse error
-            options.print(parseok)
+            local parseErr = parseok
+            options.print(parseErr)
             clearstream()
         end
     end

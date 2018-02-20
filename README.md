@@ -5,7 +5,11 @@ zero overhead compared to handwritten Lua. It's currently a single file Lua libr
 be dragged into any Lua project.
 
 The documentation is currently sparse, but I don't want to commit too many features to documentation
-that haven't been fully defined. See `test.lua` for usage examples for most features.
+that haven't been fully defined.
+
+See `test.lua` for usage examples for most features. For a small
+complete example that uses the LÖVE game engine, see
+[pong.fnl](https://p.hagelb.org/pong.fnl.html).
 
 Current features include:
 
@@ -68,6 +72,11 @@ To compile a file:
 ```sh
 fennel --compile myscript.fnl > myscript.lua
 ```
+
+## Resources
+
+* [Emacs support](https://gitlab.com/technomancy/fennel-mode)
+* [LÖVE game demo](https://p.hagelb.org/pong.fnl.html)
 
 ## License
 

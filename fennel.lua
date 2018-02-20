@@ -144,7 +144,7 @@ local function granulate(getchunk)
 end
 
 -- Convert a string into a stream of bytes
-local function stringstream(str)
+local function stringStream(str)
     local index = 1
     return function()
         local r = str:byte(index)
@@ -1150,7 +1150,7 @@ local function compileStream(strm, options)
 end
 
 local function compileString(str, options)
-    local strm = stringstream(str)
+    local strm = stringStream(str)
     return compileStream(strm, options)
 end
 
@@ -1224,7 +1224,7 @@ end
 local module = {
     parse = parse,
     granulate = granulate,
-    stringstream = stringstream,
+    stringStream = stringStream,
     compile = compile,
     compileString = compileString,
     compileStream = compileStream,

@@ -828,8 +828,9 @@ SPECIALS['$'] = function(ast, scope, parent)
 end
 
 SPECIALS['lambda'] = function(ast, scope, parent)
-    table.remove(ast, 1)
+    table.remove(ast, 1) -- lambda symbol
     local arglist = table.remove(ast, 1)
+    assert(#ast > 0, "lambda missing body expression")
     for _,arg in ipairs(arglist) do
         if not arg[1]:match("^?") then
             table.insert(ast, 1,
@@ -873,6 +874,7 @@ end
 SPECIALS['.'] = function(ast, scope, parent)
     local lhs = compileTossRest(ast[2], scope, parent)
     local rhs = compileTossRest(ast[3], scope, parent)
+    assert(#ast == 3, ". expected table and key argument")
     return {
         expr = list(('%s[%s]'):format(lhs.expr[1], rhs.expr[1])),
         scoped = lhs.scoped or rhs.scoped,
@@ -898,6 +900,7 @@ end
 SPECIALS['let'] = function(ast, scope, parent)
     local bindings = ast[2]
     assert(isTable(bindings), 'expected table for destructuring')
+    assert(#ast > 2, 'let form missing body expression')
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, bindings.n or #bindings, 2 do
@@ -1023,12 +1026,12 @@ SPECIALS['when'] = function(ast, scope, parent)
     return SPECIALS["if"](new_ast, scope, parent)
 end
 
--- (each [k v (pairs t)] body)
 SPECIALS['each'] = function(ast, scope, parent)
     local binding = assert(isTable(ast[2]), 'expected binding table in each')
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local bindVars = {}
     for _, v in ipairs(binding) do
+        assert(isSym(v), 'expected iterator symbol in each')
         table.insert(bindVars, literalToString(v, scope))
     end
     parent[#parent + 1] = ('for %s in %s do')

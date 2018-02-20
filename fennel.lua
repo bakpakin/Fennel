@@ -184,7 +184,7 @@ end
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
-local function parse(getbyte)
+local function parse(getbyte, state)
     -- Stack of unfinished values
     local stack = {}
 
@@ -199,7 +199,7 @@ local function parse(getbyte)
             lastb = nil
             return r
         end
-        return getbyte()
+        return getbyte(state)
     end
 
     -- Dispatch when we complete a value

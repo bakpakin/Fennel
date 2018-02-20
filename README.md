@@ -26,13 +26,53 @@ Eventually, I also hope to add optional source maps, either embedded in the comm
 
 The fennel module exports the following functions:
 
-* `fennel.repl()` - Starts a simple REPL.
-* `fennel.eval(str, options)` - Evaluates a string of Fennel.
-* `fennel.compileString(str, options)` - Compiles a string of Fennel into a string of Lua
-* `fennel.stringStream(str)` - Converts a string to a stream of bytes
-* `fennel.granulate(chunks)` - Converts an iterator for chunks into a stream of bytes
-* `fennel.parse(strm)` - Reads a stream and returns an AST.
-* `fennel.compile(ast)` - Compiles an AST into a Lua string.
+Start a configurable repl.
+```lua
+fennel.repl([options])
+```
+
+Evaulate a string of Fennel.
+```lua
+local result = fennel.eval(str[, options])
+```
+
+Compile a string into Lua. Can throw errors.
+```lua
+local lua = fennel.compileString(str[, options])
+```
+
+Compile an iterator of bytes into a string of Lua. Can throw errors.
+```lua
+local lua = fennel.compileStream(strm, options)
+```
+
+Get an iterator over the bytes in a string.
+```lua
+local stream = fennel.stringStream(str)
+```
+    
+Converts an iterator for strings into an iterator over their bytes. Useful
+for the REPL or reading files in chunks. This will NOT insert newlines or
+other whitespace between chunks, so be careful when using with io.read().
+Returns a second function, clearstream, which will clear the current buffered
+chunk when called. Useful for implementing a repl.
+```lua
+local bytestream, clearstream = fennel.granulate(chunks)
+```
+    
+Get the next top level value parsed from a stream of
+bytes. Returns true in the first return value if a value was read, and
+returns nil if and end of file was reached without error. Will error
+on bad input or unexpected end of source.
+```lua
+local ok, value = fennel.parse(strm)
+```
+
+Compile a data structure (AST) into Lua source code. The code can be loaded
+via dostring or other methods. Will error on bad input.
+```lua
+local lua = fennel.compile(ast)
+```
 
 ## Example
 

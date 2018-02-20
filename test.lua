@@ -75,7 +75,7 @@ for name, tests in pairs(cases) do
         local ok, res = pcall(fennel.eval, code)
         if not ok then
             err = err + 1
-            print("  Error: " .. res .. " in: ".. fennel.compile(code))
+            print(" Error: " .. res .. " in: ".. fennel.compile(code))
         else
             local actual = fennel.eval(code)
             if expected ~= actual then
@@ -85,6 +85,28 @@ for name, tests in pairs(cases) do
                 pass = pass + 1
             end
         end
+    end
+end
+
+local compile_failures = {
+    -- ["(f"]="unbalanced",
+    -- ["(+))"]="unbalanced",
+    ["(fn)"]="expected vector arg list",
+    ["(lambda [x])"]="missing body",
+    ["(let [x 1])"]="missing body",
+    ["(. tbl)"]="table and key argument",
+    ["(each [x 34 (pairs {})] 21)"]="expected iterator symbol",
+    ["(for [32 34 32] 21)"]="expected iterator symbol",
+}
+
+print("Running compiler failure tests...")
+for code, expected_msg in pairs(compile_failures) do
+    local ok, msg = pcall(fennel.compile, code)
+    if(ok) then
+        print(" Expected failure when compiling " .. code .. ": " .. msg)
+    elseif(not msg:match(expected_msg)) then
+        print(" Expected " .. expected_msg .. " when compiling " .. code ..
+                  " but got " .. msg)
     end
 end
 

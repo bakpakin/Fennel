@@ -598,6 +598,7 @@ local function compile1(ast, scope, parent, opts)
     if isList(ast) then
         -- Function call or special form
         local len = ast.n
+        assert(len > 0, "expected a function to call")
         -- Test for special form
         local first = ast[1]
         if isSym(first) then -- Resolve symbol
@@ -622,9 +623,11 @@ local function compile1(ast, scope, parent, opts)
         else
             -- Function call
             local fargs = {}
-            local fcallee = tostring(compile1(ast[1], scope, parent, {
+            local fcallee = compile1(ast[1], scope, parent, {
                 nval = 1
-            })[1])
+            })[1]
+            assert(fcallee.type ~= 'literal', 'cannot call literal value')
+            fcallee = tostring(fcallee)
             for i = 2, len do
                 local subexprs = compile1(ast[i], scope, parent, {
                     nval = i ~= len and 1 or nil
@@ -651,12 +654,14 @@ local function compile1(ast, scope, parent, opts)
             end
         end
     else
-        -- Literal (string, number, etc.)
+        -- Literal or symbol (string, number, etc.)
         local literal = literalToString(ast, scope)
         if opts.tail then
             parent[#parent + 1] = ('return %s'):format(literal)
         elseif target then
             parent[#parent + 1] = ('%s = %s'):format(target, literal)
+        elseif isSym(ast) then
+            exprs[1] = expr(literal, 'sym')
         else
             exprs[1] = expr(literal, 'literal')
         end
@@ -872,8 +877,9 @@ SPECIALS['$'] = function(ast, scope, parent)
 end
 
 SPECIALS['lambda'] = function(ast, scope, parent)
-    table.remove(ast, 1)
+    table.remove(ast, 1) -- lambda symbol
     local arglist = table.remove(ast, 1)
+    assert(#ast > 0, "lambda missing body expression")
     for _, arg in ipairs(arglist) do
         if not arg[1]:match("^?") then
             table.insert(ast, 1,
@@ -910,6 +916,7 @@ end
 
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
+    assert(ast.n == 3, ". expected table and key argument")
     local lhs = compile1(ast[2], scope, parent, {nval = 1})
     local rhs = compile1(ast[3], scope, parent, {nval = 1})
     return ('%s[%s]'):format(tostring(lhs[1]), tostring(rhs[1]))
@@ -931,6 +938,7 @@ end
 SPECIALS['let'] = function(ast, scope, parent, opts)
     local bindings = ast[2]
     assert(isTable(bindings), 'expected table for destructuring')
+    assert(#ast > 2, 'let form missing body expression')
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, bindings.n or #bindings, 2 do
@@ -1049,6 +1057,7 @@ SPECIALS['each'] = function(ast, scope, parent)
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local bindVars = {}
     for _, v in ipairs(binding) do
+        assert(isSym(v), 'expected iterator symbol in each')
         table.insert(bindVars, literalToString(v, scope))
     end
     parent[#parent + 1] = ('for %s in %s do'):format(
@@ -1235,27 +1244,33 @@ local function repl(givenOptions)
         local ok, parseok, x = pcall(parse, bytestream)
         if ok then
             if not parseok then break end -- eof
-            local luaSource = compile(x)
-            local loader, compileErr = loadCode(luaSource, env)
-            if compileErr then
+            local compileOk, luaSource = pcall(compile, x)
+            if not compileOk then
+                -- Compiler error
                 clearstream()
-                options.print(compileErr)
+                options.print('Compile error: ' .. luaSource)
             else
-                local loadok, ret = xpcall(function () return tpack(loader()) end,
-                    function (runtimeErr)
-                        -- We can do more sophisticated display here
-                        options.print(runtimeErr)
-                    end)
-                if loadok then
-                    for i = 1, ret.n do
-                        ret[i] = astToString(ret[i])
+                local luacompileok, loader = pcall(loadCode, luaSource, env)
+                if not luacompileok then
+                    clearstream()
+                    options.print('Bad code generated - likely a bug with the compiler:')
+                    options.print('Compiler error: ' .. loader)
+                else
+                    local loadok, ret = xpcall(function () return tpack(loader()) end,
+                        function (runtimeErr)
+                            -- We can do more sophisticated display here
+                            options.print(runtimeErr)
+                        end)
+                    if loadok then
+                        for i = 1, ret.n do
+                            ret[i] = astToString(ret[i])
+                        end
+                        options.print(unpack(ret))
                     end
-                    options.print(unpack(ret))
                 end
             end
         else
-            local parseErr = parseok
-            options.print(parseErr)
+            options.print('Parse error: ' .. parseok)
             clearstream()
         end
     end

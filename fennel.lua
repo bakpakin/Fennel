@@ -621,7 +621,8 @@ end
 -- Implements destructuring for forms like let, bindings, etc.
 local function destructure1(left, rightexpr, scope, parent)
     if isSym(left) then
-        parent[#parent + 1] = ('local %s = %s'):format(left[1], tostring(rightexpr))
+        parent[#parent + 1] = ('local %s = %s'):
+            format(stringMangle(left[1], scope), tostring(rightexpr))
         return
     end
     if not isTable(left) then

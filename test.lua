@@ -38,7 +38,7 @@ local cases = {
         ["74 ; (require \"hey.dude\")"]=74,
         ["(table.concat [\"ab\" \"cde\"] \",\")"]="ab,cde",
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
-        ["(let [t {} k :key] (tset t k :val) t.key)"]="val",
+        ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         ["(do (set x y z (values 1 2 3)) y)"]=2,
     },
 

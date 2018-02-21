@@ -623,16 +623,20 @@ local function destructure1(left, rightexpr, scope, parent)
     if isSym(left) then
         parent[#parent + 1] = ('local %s = %s'):
             format(stringMangle(left[1], scope), tostring(rightexpr))
-        return
-    end
-    if not isTable(left) then
+    elseif(isTable(left)) then
+        local s = gensym(scope)
+        parent[#parent + 1] = ('local %s = %s'):format(s, tostring(rightexpr))
+        for i, v in ipairs(left) do
+            local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
+            destructure1(v, subexpr, scope, parent)
+        end
+    elseif(type(left) == "table" and left.n) then
+        local leftNames = {}
+        for _,name in ipairs(left) do table.insert(leftNames, name[1]) end
+        parent[#parent + 1] = ('local %s = %s'):
+            format(table.concat(leftNames, ","), tostring(rightexpr))
+    else
         error('unable to destructure ' .. tostring(left))
-    end
-    local s = gensym(scope)
-    parent[#parent + 1] = ('local %s = %s'):format(s, tostring(rightexpr))
-    for i, v in ipairs(left) do
-        local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
-        destructure1(v, subexpr, scope, parent)
     end
 end
 

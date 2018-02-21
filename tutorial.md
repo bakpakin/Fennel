@@ -227,10 +227,10 @@ Error handling in Lua has two forms. Functions in Lua can return any
 number of values, and most functions will indicate failure by using
 multiple return values: `nil` followed by a failure message
 string. You can interact with this style of function in Fennel by
-putting the values into a sequential table and destructuring it.
+destructuring with parens instead of square brackets:
 
 ```lisp
-(let [[f msg] [(io.open "file" "rb")]]
+(let [(f msg) (io.open "file" "rb")]
   ;; when io.open succeeds, f will be a file, but if it fails f will be
   ;; nil and msg will be the failure string
   (if f
@@ -256,7 +256,7 @@ similar to the way throwing an exception works in many languages. You
 can make a protected call with `pcall`:
 
 ```lisp
-(let [[ok val-or-msg] [(pcall potentially-disastrous-call filename)]]
+(let [(ok val-or-msg) (pcall potentially-disastrous-call filename)]
   (if ok
       (print "Got value" val-or-msg)
       (print "Could not get value:" val-or-msg)))
@@ -283,9 +283,6 @@ used to turn failures into errors:
 
 In this example because `io.open` returns `nil` and an error message
 upon failure, a failure will trigger an `error` and halt execution.
-
-Future versions of Fennel may include support for destructuring
-multiple values directly without putting them in a table first.
 
 ## Gotchas
 

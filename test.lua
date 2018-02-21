@@ -19,9 +19,9 @@ local cases = {
         ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
         ["((lambda [x] (+ x 2)) 4)"]=6,
         ["((lambda [x ...] (+ x 2)) 4)"]=6,
-        ["(let [[ok e] [(pcall (lambda [x] (+ x 2)))]]\
+        ["(let [(ok e) (pcall (lambda [x] (+ x 2)))]\
             (string.match e \"Missing argument: x\"))"]="Missing argument: x",
-        ["(let [[ok val] [(pcall (λ [?x] (+ (or ?x 1) 8)))]] (and ok val))"]=9,
+        ["(let [(ok val) (pcall (λ [?x] (+ (or ?x 1) 8)))] (and ok val))"]=9,
     },
 
     conditionals = {
@@ -41,6 +41,16 @@ local cases = {
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         ["(do (set x y z (values 1 2 3)) y)"]=2,
+    },
+
+    destructuring = {
+        -- regular tables
+        ["(let [[a b c d] [4 2 43 7]] (+ (* a b) (- c d)))"]=44,
+        -- mismatched count
+        ["(let [[a b c] [4 2]] (or c :missing))"]="missing",
+        ["(let [[a b] [9 2 49]] (+ a b))"]=11,
+        -- multiple values
+        ["(let [(a b) ((fn [] (values 4 2)))] (+ a b))"]=6,
     },
 
     booleans = {
@@ -67,8 +77,8 @@ local cases = {
         ["(let [x 0] (for [y 1 20 2] (set x (+ x 1))) x)"]=10,
         ["(let [x 0] (*while (< x 7) (set x (+ x 1))) x)"]=7,
         ["(let [t {:a 1 :b 2} t2 {}]\
-            (each [k v (pairs t)]\
-              (tset t2 k v))\
+               (each [k v (pairs t)]\
+               (tset t2 k v))\
             (+ t2.a t2.b))"]=3,
     },
 }

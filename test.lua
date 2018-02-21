@@ -18,6 +18,7 @@ local cases = {
         ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
         ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
         ["((lambda [x] (+ x 2)) 4)"]=6,
+        ["((lambda [x ...] (+ x 2)) 4)"]=6,
         ["(let [[ok e] [(pcall (lambda [x] (+ x 2)))]]\
             (string.match e \"Missing argument: x\"))"]="Missing argument: x",
         ["(let [[ok val] [(pcall (λ [?x] (+ (or ?x 1) 8)))]] (and ok val))"]=9,

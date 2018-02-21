@@ -833,7 +833,7 @@ SPECIALS['lambda'] = function(ast, scope, parent)
     local arglist = ast[2]
     local checks = {}
     for _, arg in ipairs(arglist) do
-        if not arg[1]:match("^?") then
+        if not arg[1]:match("^?") and arg[1] ~= "..." then
             table.insert(checks, 1,
                          list(sym("assert"), list(sym('~='), nil, arg),
                               "Missing argument: " .. arg[1]))

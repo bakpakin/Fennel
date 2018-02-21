@@ -828,16 +828,21 @@ SPECIALS['luastatement'] = function(ast)
 end
 
 SPECIALS['lambda'] = function(ast, scope, parent)
-    table.remove(ast, 1) -- lambda symbol
-    local arglist = table.remove(ast, 1)
-    assert(#ast > 0, "lambda missing body expression")
+    assert(ast.n >= 3, "lambda missing body expression")
+    local arglist = ast[2]
+    local checks = {}
     for _, arg in ipairs(arglist) do
         if not arg[1]:match("^?") then
-            table.insert(ast, 1,
-                list(sym("assert"), list(sym('~='), nil, arg), "Missing argument: " .. arg[1]))
+            table.insert(checks, 1,
+                         list(sym("assert"), list(sym('~='), nil, arg),
+                              "Missing argument: " .. arg[1]))
         end
     end
-    local new = list(sym("lambda"), arglist, unpack(ast))
+    local new = list(sym("lambda"), arglist, unpack(checks))
+    for i = 3, ast.n do
+        table.insert(new, ast[i])
+        new.n = new.n + 1
+    end
     return SPECIALS.fn(new, scope, parent)
 end
 SPECIALS['λ'] = SPECIALS['lambda']
@@ -889,7 +894,7 @@ end
 SPECIALS['let'] = function(ast, scope, parent, opts)
     local bindings = ast[2]
     assert(isTable(bindings), 'expected table for destructuring')
-    assert(#ast > 2, 'let form missing body expression')
+    assert(ast.n >= 3, 'let form missing body expression')
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, bindings.n or #bindings, 2 do

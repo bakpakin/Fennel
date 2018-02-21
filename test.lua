@@ -17,6 +17,10 @@ local cases = {
          (f 9 5 (f3 f2)))"]=44,
         ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
         ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
+        ["((lambda [x] (+ x 2)) 4)"]=6,
+        ["(let [[ok e] [(pcall (lambda [x] (+ x 2)))]]\
+            (string.match e \"Missing argument: x\"))"]="Missing argument: x",
+        ["(let [[ok val] [(pcall (λ [?x] (+ (or ?x 1) 8)))]] (and ok val))"]=9,
     },
 
     conditionals = {
@@ -62,8 +66,9 @@ local cases = {
         ["(let [x 0] (for [y 1 20 2] (set x (+ x 1))) x)"]=10,
         ["(let [x 0] (*while (< x 7) (set x (+ x 1))) x)"]=7,
         ["(let [t {:a 1 :b 2} t2 {}]\
-               (each [k v (pairs t)]\
-               (tset t2 k v)) (+ t2.a t2.b))"]=3,
+            (each [k v (pairs t)]\
+              (tset t2 k v))\
+            (+ t2.a t2.b))"]=3,
     },
 }
 
@@ -99,9 +104,9 @@ local compile_failures = {
     ["(for [32 34 32] 21)"]="expected iterator symbol",
 }
 
-print("Running compiler failure tests...")
+print("Running tests for compile errors...")
 for code, expected_msg in pairs(compile_failures) do
-    local ok, msg = pcall(fennel.compile, code)
+    local ok, msg = pcall(fennel.compileString, code)
     if(ok) then
         print(" Expected failure when compiling " .. code .. ": " .. msg)
     elseif(not msg:match(expected_msg)) then

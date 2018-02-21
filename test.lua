@@ -21,6 +21,7 @@ local cases = {
         ["(let [[ok e] [(pcall (lambda [x] (+ x 2)))]]\
             (string.match e \"Missing argument: x\"))"]="Missing argument: x",
         ["(let [[ok val] [(pcall (λ [?x] (+ (or ?x 1) 8)))]] (and ok val))"]=9,
+        ["(let [s \"method\"] (: s :find \"hod\"))"]=4,
     },
 
     conditionals = {

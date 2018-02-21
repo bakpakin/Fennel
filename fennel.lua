@@ -287,7 +287,7 @@ local function parse(getbyte, state)
             elseif rawstr == 'true' then dispatch(true)
             elseif rawstr == 'false' then dispatch(false)
             elseif rawstr == '...' then dispatch(VARARG)
-            elseif rawstr:match('^:[%w_-]*$') then -- keyword style strings
+            elseif rawstr:match('^:[%w_-]+$') then -- keyword style strings
                 dispatch(rawstr:sub(2))
             else
                 local forceNumber = rawstr:match('^%d')
@@ -1067,6 +1067,16 @@ SPECIALS['for'] = function(ast, scope, parent)
     compileDo(ast, subScope, chunk, 3)
     parent[#parent + 1] = chunk
     parent[#parent + 1] = 'end'
+end
+
+SPECIALS[':'] = function(ast, scope, parent)
+    local method = ast[3]
+    ast[1] = list(sym("."), ast[2], method)
+    table.remove(ast, 3)
+    ast.n = ast.n - 1
+    local call = compile1(ast, scope, parent)
+    call[1].type = "expression" -- this seems to have no effect
+    parent[#parent + 1] = call
 end
 
 -- Do we need this? Is there a more elegnant way to compile with break?

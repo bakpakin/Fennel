@@ -1216,10 +1216,7 @@ local function repl(givenOptions)
                             options.print(runtimeErr)
                         end)
                     if loadok then
-                        for i = 1, ret.n do
-                            ret[i] = ret[i]
-                        end
-                        options.print(unpack(ret))
+                        options.print(unpack(ret, 1, ret.n))
                         env._ = ret[1]
                         env.__ = ret
                     end

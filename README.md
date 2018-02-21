@@ -4,12 +4,10 @@ Fennel (formerly fnl) is a lisp that compiles to Lua. It aims to be easy to use,
 zero overhead compared to handwritten Lua. It's currently a single file Lua library that can
 be dragged into any Lua project.
 
-The documentation is currently sparse, but I don't want to commit too many features to documentation
-that haven't been fully defined.
-
-See `test.lua` for usage examples for most features. For a small
-complete example that uses the LÖVE game engine, see
-[pong.fnl](https://p.hagelb.org/pong.fnl.html).
+See [the tutorial](https://github.com/bakpakin/Fennel/tree/master/tutorial.md)
+for an overview of the language features. The `test.lua` suite has usage
+examples for most features. For a small complete example that uses the LÖVE
+game engine, see [pong.fnl](https://p.hagelb.org/pong.fnl.html).
 
 Current features include:
 
@@ -18,7 +16,7 @@ Current features include:
 * Compile time only macros - Macros exist only at compile time and are not output in the final Lua compilation. In fact,
   macros are just a special case of special forms.
 * Ability to write custom special forms - Special forms are s-expressions that, when evaulated, directly output Lua code.
-* Fennel is a library as well as a compiler. Embed it in other projects. 
+* Fennel is a library as well as a compiler. Embed it in other projects.
 
 Eventually, I also hope to add optional source maps, either embedded in the comments of the generated code, or in separate files. An optional standard library also needs to be made.
 
@@ -118,7 +116,6 @@ fennel --compile myscript.fnl > myscript.lua
 ## Resources
 
 * [Emacs support](https://gitlab.com/technomancy/fennel-mode)
-* [LÖVE game demo](https://p.hagelb.org/pong.fnl.html)
 
 ## License
 

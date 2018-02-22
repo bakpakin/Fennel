@@ -38,6 +38,10 @@ local cases = {
          (f 9 5 (f3 f2)))"]=44,
         -- closures can set variables they close over
         ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
+        -- partial application
+        ["(let [add (fn [x y] (+ x y)) inc (partial add 1)] (inc 99))"]=100,
+        ["(let [add (fn [x y z] (+ x y z)) f2 (partial add 1 2)] (f2 6))"]=9,
+        ["(let [add (fn [x y] (+ x y)) add2 (partial add)] (add2 99 2))"]=101,
         -- functions with empty bodies return nil
         ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
         -- basic lambda

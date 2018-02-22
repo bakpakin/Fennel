@@ -330,8 +330,7 @@ You can use the `require` function to load code from Lua files.
 (let [lume (require "lume")
       tbl [52 99 412 654]
       plus (fn [x y] (+ x y))]
-  ;; lume.fn does partial application
-  (lume.map tbl (lume.fn plus 2))) ; -> [54 101 414 656]
+  (lume.map tbl (partial plus 2))) ; -> [54 101 414 656]
 ```
 
 Modules in Lua are simply tables which contain functions and other values.

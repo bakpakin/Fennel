@@ -350,7 +350,7 @@ end
 
 -- Allow printing a string to Lua
 local function serializeString(str)
-    local s = ("%q"):format(str):gsub('\n', 'n'):gsub("[\128-\255]", function(c)
+    local s = ("(%q)"):format(str):gsub('\n', 'n'):gsub("[\128-\255]", function(c)
         return "\\" .. c:byte()
     end)
     return s
@@ -619,26 +619,43 @@ end
 -- SPECIALS --
 
 -- Implements destructuring for forms like let, bindings, etc.
-local function destructure1(left, rightexpr, scope, parent)
+local function destructure1(left, rightexprs, scope, parent, nonlocal)
+    local setter = nonlocal and "%s = %s" or "local %s = %s"
     if isSym(left) then
-        parent[#parent + 1] = ('local %s = %s'):
-            format(stringMangle(left[1], scope), tostring(rightexpr))
-        return
-    end
-    if not isTable(left) then
+        parent[#parent + 1] = (setter):
+            format(stringMangle(left[1], scope), exprs1(rightexprs))
+    elseif isTable(left) then -- table destructuring
+        local s = gensym(scope)
+        parent[#parent + 1] = (setter):format(s, exprs1(rightexprs))
+        for i, v in ipairs(left) do
+            local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
+            destructure1(v, {subexpr}, scope, parent, nonlocal)
+        end
+    elseif isList(left)  then -- values destructuring
+        local leftNames, tables = {}, {}
+        for i, name in ipairs(left) do
+            local symname
+            if isSym(name)  then -- binding directly to a name
+                symname = stringMangle(name[1], scope)
+            else -- further destructuring of tables inside values
+                symname = gensym(scope)
+                tables[i] = {name, expr(symname, 'sym')}
+            end
+            table.insert(leftNames, symname)
+        end
+        parent[#parent + 1] = (setter):
+            format(table.concat(leftNames, ", "), exprs1(rightexprs))
+        for i, pair in pairs(tables) do -- recurse if left-side tables found
+            destructure1(pair[1], {pair[2]}, scope, parent, nonlocal)
+        end
+    else
         error('unable to destructure ' .. tostring(left))
-    end
-    local s = gensym(scope)
-    parent[#parent + 1] = ('local %s = %s'):format(s, tostring(rightexpr))
-    for i, v in ipairs(left) do
-        local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
-        destructure1(v, subexpr, scope, parent)
     end
 end
 
-local function destructure(left, right, scope, parent)
-    local rexp = compile1(right, scope, parent, {nval = 1})[1]
-    local ret = destructure1(left, rexp[1], scope, parent)
+local function destructure(left, right, scope, parent, nonlocal)
+    local rexps = compile1(right, scope, parent)
+    local ret = destructure1(left, rexps, scope, parent, nonlocal)
     return ret
 end
 
@@ -833,7 +850,7 @@ SPECIALS['lambda'] = function(ast, scope, parent)
     local arglist = ast[2]
     local checks = {}
     for _, arg in ipairs(arglist) do
-        if not arg[1]:match("^?") then
+        if not arg[1]:match("^?") and arg[1] ~= "..." then
             table.insert(checks, 1,
                          list(sym("assert"), list(sym('~='), nil, arg),
                               "Missing argument: " .. arg[1]))
@@ -880,16 +897,8 @@ SPECIALS['.'] = function(ast, scope, parent)
 end
 
 SPECIALS['set'] = function(ast, scope, parent)
-    local vars = {}
-    for i = 2, math.max(2, ast.n - 1) do
-        local s = assert(isSym(ast[i]), "expected symbol")
-        vars[i - 1] = stringMangle(s[1], scope)
-    end
-    assert(#vars > 0, "expected at least 1 variable to set")
-    local varname = table.concat(vars, ', ')
-    return compile1(ast[ast.n], scope, parent, {
-        target = varname
-    })
+    assert(ast.n == 3, "expected name and value to set")
+    destructure(ast[2], ast[3], scope, parent, true)
 end
 
 SPECIALS['let'] = function(ast, scope, parent, opts)
@@ -1069,14 +1078,12 @@ SPECIALS['for'] = function(ast, scope, parent)
     parent[#parent + 1] = 'end'
 end
 
-SPECIALS[':'] = function(ast, scope, parent)
+SPECIALS[':'] = function(ast, scope, parent, opts)
     local method = ast[3]
     ast[1] = list(sym("."), ast[2], method)
     table.remove(ast, 3)
     ast.n = ast.n - 1
-    local call = compile1(ast, scope, parent)
-    call[1].type = "expression" -- this seems to have no effect
-    parent[#parent + 1] = call
+    return compile1(ast, scope, parent, opts)
 end
 
 -- Do we need this? Is there a more elegnant way to compile with break?

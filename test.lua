@@ -77,8 +77,6 @@ local cases = {
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
         -- local names with dashes in them
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
-        -- multi-valued set
-        ["(do (set x y z (values 1 2 3)) y)"]=2,
     },
 
     destructuring = {
@@ -93,10 +91,10 @@ local cases = {
         ["(let [(a b) ((fn [] (values 4 2)))] (+ a b))"]=6,
         -- multiple values recursively
         ["(let [(a [b [c] d]) ((fn [] (values 4 [2 [1] 9])))] (+ a b c d))"]=16,
-        -- -- set destructures tables
-        -- ["(do (set [a b c d] [4 2 43 7]) (+ (* a b) (- c d)))"]=44,
-        -- -- set multiple values
-        -- ["(do (set (a b c d) (values 4 2 43 7)) (+ (* a b) (- c d)))"]=44,
+        -- set destructures tables
+        ["(do (set [a b c d] [4 2 43 7]) (+ (* a b) (- c d)))"]=44,
+        -- set multiple values
+        ["(do (set (a b) ((fn [] (values 4 29)))) (+ a b))"]=33,
     },
 
     loops = {

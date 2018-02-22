@@ -623,18 +623,28 @@ local function destructure1(left, rightexpr, scope, parent)
     if isSym(left) then
         parent[#parent + 1] = ('local %s = %s'):
             format(stringMangle(left[1], scope), tostring(rightexpr))
-    elseif(isTable(left)) then
+    elseif(isTable(left)) then -- table destructuring
         local s = gensym(scope)
         parent[#parent + 1] = ('local %s = %s'):format(s, tostring(rightexpr))
         for i, v in ipairs(left) do
             local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
             destructure1(v, subexpr, scope, parent)
         end
-    elseif(type(left) == "table" and left.n) then
-        local leftNames = {}
-        for _,name in ipairs(left) do table.insert(leftNames, name[1]) end
+    elseif(type(left) == "table" and left.n) then -- values destructuring
+        local leftNames, tables = {}, {}
+        for i,name in ipairs(left) do
+            if(isSym(name)) then -- binding directly to a name
+                table.insert(leftNames, name[1])
+            else -- further destructuring of tables inside values
+                tables[i] = {name, gensym(scope)}
+                table.insert(leftNames, tables[i][2])
+            end
+        end
         parent[#parent + 1] = ('local %s = %s'):
             format(table.concat(leftNames, ","), tostring(rightexpr))
+        for i, pair in pairs(tables) do -- recurse if left-side tables found
+            destructure1(pair[1], pair[2], scope, parent)
+        end
     else
         error('unable to destructure ' .. tostring(left))
     end

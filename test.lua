@@ -9,50 +9,6 @@ local cases = {
         ["(% 1 2 (- 1 2))"]=0,
     },
 
-    functions = {
-        ["((fn [x] (* x 2)) 26)"]=52,
-        ["(let [f (fn [x y f2] (+ x (f2 y)))\
-            f2 (fn [x y] (* x (+ 2 y)))\
-            f3 (fn [f] (fn [x] (f 5 x)))]\
-         (f 9 5 (f3 f2)))"]=44,
-        ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
-        ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
-        ["((lambda [x] (+ x 2)) 4)"]=6,
-        ["((lambda [x ...] (+ x 2)) 4)"]=6,
-        ["(let [(ok e) (pcall (lambda [x] (+ x 2)))]\
-            (string.match e \"Missing argument: x\"))"]="Missing argument: x",
-        ["(let [(ok val) (pcall (λ [?x] (+ (or ?x 1) 8)))] (and ok val))"]=9,
-    },
-
-    conditionals = {
-        ["(let [x 1 y 2] (if (= (* 2 x) y) \"yep\"))"]="yep",
-        ["(let [x 12] (if true (do (set x 22) x) 0))"]=22,
-        ["(if false \"yep\" \"nope\")"]="nope",
-        ["(if non-existent 1 (* 3 9))"]=27,
-        ["(if false (abc) 123)"]=123,
-        ["(do (when true (set a 192) (set z 12)) (+ z a))"]=204,
-        ["(do (when (= 12 88) (os.exit 1)) false)"]=false,
-    },
-
-    core = {
-        ["(do (set x 12) ;; (set x 99)\n x)"]=12,
-        ["74 ; (require \"hey.dude\")"]=74,
-        ["(table.concat [\"ab\" \"cde\"] \",\")"]="ab,cde",
-        ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
-        ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
-        ["(do (set x y z (values 1 2 3)) y)"]=2,
-    },
-
-    destructuring = {
-        -- regular tables
-        ["(let [[a b c d] [4 2 43 7]] (+ (* a b) (- c d)))"]=44,
-        -- mismatched count
-        ["(let [[a b c] [4 2]] (or c :missing))"]="missing",
-        ["(let [[a b] [9 2 49]] (+ a b))"]=11,
-        -- multiple values
-        ["(let [(a b) ((fn [] (values 4 2)))] (+ a b))"]=6,
-    },
-
     booleans = {
         ["(or false nil true 12 false)"]=true,
         ["(or 11 true false)"]=11,
@@ -72,10 +28,85 @@ local cases = {
         ["(~= 33 1)"]=true,
     },
 
+    functions = {
+        -- regular function
+        ["((fn [x] (* x 2)) 26)"]=52,
+        -- nested functions
+        ["(let [f (fn [x y f2] (+ x (f2 y)))\
+            f2 (fn [x y] (* x (+ 2 y)))\
+            f3 (fn [f] (fn [x] (f 5 x)))]\
+         (f 9 5 (f3 f2)))"]=44,
+        -- closures can set variables they close over
+        ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
+        -- functions with empty bodies return nil
+        ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
+        -- basic lambda
+        ["((lambda [x] (+ x 2)) 4)"]=6,
+        -- vararg lambda
+        ["((lambda [x ...] (+ x 2)) 4)"]=6,
+        -- lambdas perform arity checks
+        ["(let [(ok e) (pcall (lambda [x] (+ x 2)))]\
+            (string.match e \"Missing argument: x\"))"]="Missing argument: x",
+        -- lambda arity checks skip argument names starting with ?
+        ["(let [(ok val) (pcall (λ [?x] (+ (or ?x 1) 8)))] (and ok val))"]=9,
+    },
+
+    conditionals = {
+        -- basic if
+        ["(let [x 1 y 2] (if (= (* 2 x) y) \"yep\"))"]="yep",
+        -- if can contain side-effects
+        ["(let [x 12] (if true (set x 22) 0) x)"]=22,
+        -- else branch works
+        ["(if false \"yep\" \"nope\")"]="nope",
+        -- else branch runs on nil
+        ["(if non-existent 1 (* 3 9))"]=27,
+        -- when is for side-effects
+        ["(do (when true (set a 192) (set z 12)) (+ z a))"]=204,
+        -- when body does not run on false
+        ["(do (when (= 12 88) (os.exit 1)) false)"]=false,
+    },
+
+    core = {
+        -- comments
+        ["74 ; (require \"hey.dude\")"]=74,
+        -- comments go to the end of the line
+        ["(do (set x 12) ;; (set x 99)\n x)"]=12,
+        -- calling built-in lua functions
+        ["(table.concat [\"ab\" \"cde\"] \",\")"]="ab,cde",
+        -- table lookup
+        ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
+        -- local names with dashes in them
+        ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
+        -- multi-valued set
+        ["(do (set x y z (values 1 2 3)) y)"]=2,
+    },
+
+    destructuring = {
+        -- regular tables
+        ["(let [[a b c d] [4 2 43 7]] (+ (* a b) (- c d)))"]=44,
+        -- mismatched count
+        ["(let [[a b c] [4 2]] (or c :missing))"]="missing",
+        ["(let [[a b] [9 2 49]] (+ a b))"]=11,
+        -- recursively
+        ["(let [[a [b c] d] [4 [2 43] 7]] (+ (* a b) (- c d)))"]=44,
+        -- multiple values
+        ["(let [(a b) ((fn [] (values 4 2)))] (+ a b))"]=6,
+        -- multiple values recursively
+        ["(let [(a [b [c] d]) ((fn [] (values 4 [2 [1] 9])))] (+ a b c d))"]=16,
+        -- -- set destructures tables
+        -- ["(do (set [a b c d] [4 2 43 7]) (+ (* a b) (- c d)))"]=44,
+        -- -- set multiple values
+        -- ["(do (set (a b c d) (values 4 2 43 7)) (+ (* a b) (- c d)))"]=44,
+    },
+
     loops = {
+        -- numeric loop
         ["(let [x 0] (for [y 1 5] (set x (+ x 1))) x)"]=5,
+        -- numeric loop with step
         ["(let [x 0] (for [y 1 20 2] (set x (+ x 1))) x)"]=10,
+        -- while loop
         ["(let [x 0] (*while (< x 7) (set x (+ x 1))) x)"]=7,
+        -- each loop iterates over tables
         ["(let [t {:a 1 :b 2} t2 {}]\
                (each [k v (pairs t)]\
                (tset t2 k v))\
@@ -105,8 +136,8 @@ for name, tests in pairs(cases) do
 end
 
 local compile_failures = {
-    -- ["(f"]="unbalanced",
-    -- ["(+))"]="unbalanced",
+    ["(f"]="unexpected end of source",
+    ["(+))"]="unexpected closing delimiter",
     ["(fn)"]="expected vector arg list",
     ["(lambda [x])"]="missing body",
     ["(let [x 1])"]="missing body",

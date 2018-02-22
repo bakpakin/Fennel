@@ -290,9 +290,7 @@ There are a few surprises that might bite seasoned lispers. Most of
 these result necessarily from Fennel's insistence upon imposing zero
 runtime overhead over Lua.
 
-* The arithmetic, boolean, and comparison operators are not
-  first-class functions. Other than `not`, `-`, and `/` they always
-  require two arguments.
+* The arithmetic and comparison operators are not first-class functions.
 
 * There is no `apply` function; use `unpack` instead: `(f 1 3 (unpack [4 9])`.
 

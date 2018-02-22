@@ -619,32 +619,34 @@ end
 -- SPECIALS --
 
 -- Implements destructuring for forms like let, bindings, etc.
-local function destructure1(left, rightexpr, scope, parent, nonlocal)
+local function destructure1(left, rightexprs, scope, parent, nonlocal)
     local setter = nonlocal and "%s = %s" or "local %s = %s"
     if isSym(left) then
         parent[#parent + 1] = (setter):
-            format(stringMangle(left[1], scope), tostring(rightexpr))
-    elseif(isTable(left)) then -- table destructuring
+            format(stringMangle(left[1], scope), exprs1(rightexprs))
+    elseif isTable(left) then -- table destructuring
         local s = gensym(scope)
-        parent[#parent + 1] = (setter):format(s, tostring(rightexpr))
+        parent[#parent + 1] = (setter):format(s, exprs1(rightexprs))
         for i, v in ipairs(left) do
             local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
-            destructure1(v, subexpr, scope, parent, nonlocal)
+            destructure1(v, {subexpr}, scope, parent, nonlocal)
         end
-    elseif(type(left) == "table" and left.n) then -- values destructuring
+    elseif isList(left)  then -- values destructuring
         local leftNames, tables = {}, {}
-        for i,name in ipairs(left) do
-            if(isSym(name)) then -- binding directly to a name
-                table.insert(leftNames, name[1])
+        for i, name in ipairs(left) do
+            local symname
+            if isSym(name)  then -- binding directly to a name
+                symname = stringMangle(name[1], scope)
             else -- further destructuring of tables inside values
-                tables[i] = {name, gensym(scope)}
-                table.insert(leftNames, tables[i][2])
+                symname = gensym(scope)
+                tables[i] = {name, expr(symname, 'sym')}
             end
+            table.insert(leftNames, symname)
         end
         parent[#parent + 1] = (setter):
-            format(table.concat(leftNames, ","), tostring(rightexpr))
+            format(table.concat(leftNames, ", "), exprs1(rightexprs))
         for i, pair in pairs(tables) do -- recurse if left-side tables found
-            destructure1(pair[1], pair[2], scope, parent, nonlocal)
+            destructure1(pair[1], {pair[2]}, scope, parent, nonlocal)
         end
     else
         error('unable to destructure ' .. tostring(left))
@@ -652,8 +654,8 @@ local function destructure1(left, rightexpr, scope, parent, nonlocal)
 end
 
 local function destructure(left, right, scope, parent, nonlocal)
-    local rexp = compile1(right, scope, parent, {nval = 1})[1]
-    local ret = destructure1(left, rexp[1], scope, parent, nonlocal)
+    local rexps = compile1(right, scope, parent)
+    local ret = destructure1(left, rexps, scope, parent, nonlocal)
     return ret
 end
 

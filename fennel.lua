@@ -1130,6 +1130,7 @@ defineArithmeticSpecial('and')
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
+        assert(ast.n == 3, "comparators currently require two arguments")
         local lhs = compile1(ast[2], scope, parent, {nval = 1})
         local rhs = compile1(ast[3], scope, parent, {nval = 1})
         return ('((%s) %s (%s))'):format(tostring(lhs[1]), op, tostring(rhs[1]))

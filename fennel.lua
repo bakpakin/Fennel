@@ -30,6 +30,10 @@ local tpack = table.pack or function(...)
     return {n = select('#', ...), ...}
 end
 
+--
+-- Main Types and support functions
+--
+
 local SYMBOL_MT = { 'SYMBOL',
     __tostring = function (self)
         return self[1]
@@ -115,7 +119,9 @@ local function isTable(x)
         getmetatable(x) ~= LIST_MT and getmetatable(x) ~= SYMBOL_MT and x
 end
 
+--
 -- Parser
+--
 
 -- Convert a stream of chunks to a stream of bytes.
 -- Also returns a second function to clear the buffer in the byte stream
@@ -304,7 +310,9 @@ local function parse(getbyte, state)
     return true, retval
 end
 
+--
 -- Compilation
+-- 
 
 -- Creat a new Scope, optionally under a parent scope. Scopes are compile time constructs
 -- that are responsible for keeping track of local variables, name mangling, and macros.
@@ -474,32 +482,28 @@ local function keepSideEffects(exprs, chunk, start)
     end
 end
 
--- Make sure a list of expression has the correct arity
--- Modify exprs
-local function checkNval(exprs, parent, n)
-    if n ~= #exprs then
-        local len = #exprs
-        if len > n then
-            -- Drop extra
-            keepSideEffects(exprs, parent, n + 1)
-            for i = n, len do
-                exprs[i] = nil
-            end
-        else
-            -- Pad with nils
-            for i = #exprs + 1, n do
-                exprs[i] = expr('nil', 'literal')
-            end
-        end
-    end
-    return exprs
-end
-
 -- Does some common handling of returns and register
--- targets for special forms.
+-- targets for special forms. Also ensures a list expression
+-- has an accetable number of expressions if opts contains the
+-- "nval" option.
 local function handleCompileOpts(exprs, parent, opts)
     if opts.nval then
-        checkNval(exprs, parent, opts.nval)
+        local n = opts.nval
+        if n ~= #exprs then
+            local len = #exprs
+            if len > n then
+                -- Drop extra
+                keepSideEffects(exprs, parent, n + 1)
+                for i = n, len do
+                    exprs[i] = nil
+                end
+            else
+                -- Pad with nils
+                for i = #exprs + 1, n do
+                    exprs[i] = expr('nil', 'literal')
+                end
+            end
+        end
     end
     if opts.tail then
         parent[#parent + 1] = ('return %s'):format(exprs1(exprs))
@@ -508,6 +512,11 @@ local function handleCompileOpts(exprs, parent, opts)
         parent[#parent + 1] = ('%s = %s'):format(opts.target, exprs1(exprs))
     end
     if opts.tail or opts.target then
+        -- Prevent statements and expression from being used twice if they
+        -- have side-effects. Since if the target or tail options are set,
+        -- the expressions are already emitted, we should not return them. This
+        -- is fine, as when these options are set, the caller doesn't need the result
+        -- anyways.
         exprs = {}
     end
     return exprs
@@ -526,7 +535,9 @@ end
 -- the 'opts' param contains info about where the form is being compiled.
 -- Options include:
 --   'target' - mangled name of symbol(s) being compiled to.
---   'tail' - boolean indicating tail position if set.
+--      Could be one variable, 'a', or a list, like 'a, b, _0_'.
+--   'tail' - boolean indicating tail position if set. If set, form will generate a return
+--   instruction.
 local function compile1(ast, scope, parent, opts)
     opts = opts or {}
     local exprs = {}
@@ -549,10 +560,11 @@ local function compile1(ast, scope, parent, opts)
             -- as well as lists or expressions
             if type(exprs) == 'string' then exprs = expr(exprs, 'expression') end
             if getmetatable(exprs) == EXPR_MT then exprs = {exprs} end
+            -- Unless the special form explicitely handles the target, tail, and nval properties,
+            -- (indicated via the 'returned' flag, handle these options.
             if not exprs.returned then
                 exprs = handleCompileOpts(exprs, parent, opts)
-            end
-            if opts.tail or opts.target then
+            elseif opts.tail or opts.target then
                 exprs = {}
             end
             exprs.returned = true
@@ -899,6 +911,11 @@ end
 SPECIALS['set'] = function(ast, scope, parent)
     assert(ast.n == 3, "expected name and value to set")
     destructure(ast[2], ast[3], scope, parent, true)
+end
+
+SPECIALS['local'] = function(ast, scope, parent)
+    assert(ast.n == 3, "expected name and value to set")
+    destructure(ast[2], ast[3], scope, parent, false)
 end
 
 SPECIALS['let'] = function(ast, scope, parent, opts)

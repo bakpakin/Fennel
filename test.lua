@@ -95,6 +95,8 @@ local cases = {
         ["(do (set [a b c d] [4 2 43 7]) (+ (* a b) (- c d)))"]=44,
         -- set multiple values
         ["(do (set (a b) ((fn [] (values 4 29)))) (+ a b))"]=33,
+        -- local keyword
+        ["(do (local (-a -b) ((fn [] (values 4 29)))) (+ -a -b))"]=33,
     },
 
     loops = {

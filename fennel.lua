@@ -877,6 +877,15 @@ SPECIALS['lambda'] = function(ast, scope, parent)
 end
 SPECIALS['λ'] = SPECIALS['lambda']
 
+SPECIALS['partial'] = function(ast, scope, parent)
+    local f = ast[2]
+    local innerArgs = {}
+    for i = 3, ast.n do table.insert(innerArgs, ast[i]) end
+    table.insert(innerArgs, VARARG)
+    local new = list(sym("fn"), {VARARG}, list(f, unpack(innerArgs)))
+    return SPECIALS.fn(new, scope, parent)
+end
+
 SPECIALS['special'] = function(ast, scope, parent)
     assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare special forms in \'eval-compiler\'')
     assert(isSym(ast[2]), "expected symbol for name of special form")
@@ -1138,6 +1147,7 @@ defineArithmeticSpecial('and')
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
+        assert(ast.n == 3, "comparators currently require two arguments")
         local lhs = compile1(ast[2], scope, parent, {nval = 1})
         local rhs = compile1(ast[3], scope, parent, {nval = 1})
         return ('((%s) %s (%s))'):format(tostring(lhs[1]), op, tostring(rhs[1]))

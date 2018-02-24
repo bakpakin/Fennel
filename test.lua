@@ -51,6 +51,8 @@ local cases = {
         -- lambdas perform arity checks
         ["(let [(ok e) (pcall (lambda [x] (+ x 2)))]\
             (string.match e \"Missing argument: x\"))"]="Missing argument: x",
+        ["(let [[ok val] [(pcall (λ [?x] (+ (or ?x 1) 8)))]] (and ok val))"]=9,
+        ["(let [s \"method\"] (: s :find \"hod\"))"]=4,
         -- lambda arity checks skip argument names starting with ?
         ["(let [(ok val) (pcall (λ [?x] (+ (or ?x 1) 8)))] (and ok val))"]=9,
     },
@@ -97,6 +99,8 @@ local cases = {
         ["(let [(a b) ((fn [] (values 4 2)))] (+ a b))"]=6,
         -- multiple values recursively
         ["(let [(a [b [c] d]) ((fn [] (values 4 [2 [1] 9])))] (+ a b c d))"]=16,
+        -- multiple values without function wrapper
+        ["(let [(a [b [c] d]) (values 4 [2 [1] 9])] (+ a b c d))"]=16,
         -- set destructures tables
         ["(do (set [a b c d] [4 2 43 7]) (+ (* a b) (- c d)))"]=44,
         -- set multiple values

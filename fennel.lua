@@ -293,7 +293,7 @@ local function parse(getbyte, state)
             elseif rawstr == 'true' then dispatch(true)
             elseif rawstr == 'false' then dispatch(false)
             elseif rawstr == '...' then dispatch(VARARG)
-            elseif rawstr:match('^:[%w_-]*$') then -- keyword style strings
+            elseif rawstr:match('^:[%w_-]+$') then -- keyword style strings
                 dispatch(rawstr:sub(2))
             else
                 local forceNumber = rawstr:match('^%d')
@@ -358,7 +358,7 @@ end
 
 -- Allow printing a string to Lua
 local function serializeString(str)
-    local s = ("%q"):format(str):gsub('\n', 'n'):gsub("[\128-\255]", function(c)
+    local s = ("(%q)"):format(str):gsub('\n', 'n'):gsub("[\128-\255]", function(c)
         return "\\" .. c:byte()
     end)
     return s
@@ -1100,6 +1100,14 @@ SPECIALS['for'] = function(ast, scope, parent)
     compileDo(ast, scope, chunk, 3)
     parent[#parent + 1] = chunk
     parent[#parent + 1] = 'end'
+end
+
+SPECIALS[':'] = function(ast, scope, parent, opts)
+    local method = ast[3]
+    ast[1] = list(sym("."), ast[2], method)
+    table.remove(ast, 3)
+    ast.n = ast.n - 1
+    return compile1(ast, scope, parent, opts)
 end
 
 -- Do we need this? Is there a more elegnant way to compile with break?

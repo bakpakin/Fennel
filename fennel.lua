@@ -1052,12 +1052,11 @@ SPECIALS['each'] = function(ast, scope, parent)
         assert(isSym(v), 'expected iterator symbol in each')
         table.insert(bindVars, stringMangle(v[1], scope))
     end
-    parent[#parent + 1] = ('for %s in %s do'):format(
-        table.concat(bindVars, ', '),
-        tostring(compile1(iter, scope, parent, {nval = 1})[1]))
+    table.insert(parent, ('for %s in %s do'):format(
+                     table.concat(bindVars, ', '),
+                     tostring(compile1(iter, scope, parent, {nval = 1})[1])))
     local chunk = {}
-    local subScope = makeScope(scope)
-    compileDo(ast, subScope, chunk, 3)
+    compileDo(ast, scope, chunk, 3)
     parent[#parent + 1] = chunk
     parent[#parent + 1] = 'end'
 end
@@ -1098,8 +1097,7 @@ SPECIALS['for'] = function(ast, scope, parent)
         stringMangle(bindingSym[1], scope),
         table.concat(rangeArgs, ', '))
     local chunk = {}
-    local subScope = makeScope(scope)
-    compileDo(ast, subScope, chunk, 3)
+    compileDo(ast, scope, chunk, 3)
     parent[#parent + 1] = chunk
     parent[#parent + 1] = 'end'
 end

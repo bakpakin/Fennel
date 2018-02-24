@@ -81,6 +81,8 @@ local cases = {
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
         -- local names with dashes in them
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
+        -- functions inside each
+        ["(do (each [_ ((fn [] (pairs [1])))] (set i 1)) i)"]=1,
     },
 
     destructuring = {

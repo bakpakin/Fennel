@@ -50,7 +50,7 @@ local cases = {
         ["((lambda [x ...] (+ x 2)) 4)"]=6,
         -- lambdas perform arity checks
         ["(let [(ok e) (pcall (lambda [x] (+ x 2)))]\
-            (string.match e \"Missing argument: x\"))"]="Missing argument: x",
+            (string.match e \"Missing argument x\"))"]="Missing argument x",
         -- lambda arity checks skip argument names starting with ?
         ["(let [(ok val) (pcall (λ [?x] (+ (or ?x 1) 8)))] (and ok val))"]=9,
     },
@@ -145,11 +145,16 @@ local compile_failures = {
     ["(f"]="unexpected end of source",
     ["(+))"]="unexpected closing delimiter",
     ["(fn)"]="expected vector arg list",
+    ["(fn [12])"]="expected symbol for function parameter",
     ["(lambda [x])"]="missing body",
     ["(let [x 1])"]="missing body",
-    ["(. tbl)"]="table and key argument",
-    ["(each [x 34 (pairs {})] 21)"]="expected iterator symbol",
-    ["(for [32 34 32] 21)"]="expected iterator symbol",
+    -- line numbers
+    ["(set)"]="Compile error in `set' unknown:1: expected name and value",
+    ["(let [b 9\nq (. tbl)] q)"]="2: expected table and key argument",
+    ["(do\n\n\n(each \n[x 34 (pairs {})] 21))"]="4: expected iterator symbol",
+    ["(fn []\n(for [32 34 32] 21))"]="2: expected iterator symbol",
+    ["\n\n(let [f (lambda []\n(local))] (f))"]="4: expected name and value",
+    ["(do\n\n\n(each \n[x (pairs {})] (when)))"]="5: expected body",
 }
 
 print("Running tests for compile errors...")

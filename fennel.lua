@@ -351,7 +351,7 @@ end
 -- Assert a condition and emit a compile error with line numbers. The ast arg
 -- should be unmodified so that its first element is the form being called.
 local function assertCompile(condition, msg, ast)
-    return assert(condition, string.format("Compile error in `%s' %s:%s - %s",
+    return assert(condition, string.format("Compile error in `%s' %s:%s: %s",
                                            ast[1][1], filename or "unknown",
                                            ast.line, msg))
 end

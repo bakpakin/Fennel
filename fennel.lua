@@ -59,8 +59,10 @@ local EXPR_MT = { 'EXPR',
 }
 local VARARG = setmetatable({ '...' }, { 'VARARG' })
 
+local filename = nil
+
 -- Load code with an environment in all recent Lua versions
-local function loadCode(code, environment, filename)
+local function loadCode(code, environment)
     environment = environment or _ENV or _G
     if setfenv and loadstring then
         local f = assert(loadstring(code, filename))
@@ -344,6 +346,13 @@ local function scopeInside(outer, inner)
         inner = inner.parent
     until not inner
     return false
+end
+
+-- Assert a condition and emit a compile error with line numbers. The ast arg
+-- should be unmodified so that its first element is the form being called.
+local function compileAssert(condition, message, ast)
+    assert(condition, string.format("Compile error in `%s' %s:%s - %s",
+                                    ast[1][1], filename, ast.line, message))
 end
 
 local GLOBAL_SCOPE = makeScope()
@@ -1035,9 +1044,13 @@ end
 
 -- (when condition body...) => []
 SPECIALS['when'] = function(ast, scope, parent, opts)
+    compileAssert(ast.n > 2, 'expected body', ast)
     table.remove(ast, 1)
     local condition = table.remove(ast, 1)
-    local new_ast = list(sym("if"), condition, list(sym("block"), unpack(ast)))
+    ast.n = ast.n - 2
+    local body = list(sym("do"), unpack(ast))
+    body.line = ast.line
+    local new_ast = list(sym("if"), condition, body)
     return SPECIALS["if"](new_ast, scope, parent, opts)
 end
 
@@ -1209,8 +1222,9 @@ end
 
 local function eval(str, options)
     options = options or {}
+    filename = options.filename or filename
     local luaSource = compileString(str, options)
-    local loader = loadCode(luaSource, options.env, options.filename)
+    local loader = loadCode(luaSource, options.env)
     return loader()
 end
 

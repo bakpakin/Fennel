@@ -312,7 +312,7 @@ end
 
 --
 -- Compilation
--- 
+--
 
 -- Creat a new Scope, optionally under a parent scope. Scopes are compile time constructs
 -- that are responsible for keeping track of local variables, name mangling, and macros.
@@ -657,7 +657,7 @@ local function destructure1(left, rightexprs, scope, parent, nonlocal)
         end
         parent[#parent + 1] = (setter):
             format(table.concat(leftNames, ", "), exprs1(rightexprs))
-        for i, pair in pairs(tables) do -- recurse if left-side tables found
+        for _, pair in pairs(tables) do -- recurse if left-side tables found
             destructure1(pair[1], {pair[2]}, scope, parent, nonlocal)
         end
     else

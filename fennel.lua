@@ -350,9 +350,9 @@ end
 
 -- Assert a condition and emit a compile error with line numbers. The ast arg
 -- should be unmodified so that its first element is the form being called.
-local function compileAssert(condition, message, ast)
-    assert(condition, string.format("Compile error in `%s' %s:%s - %s",
-                                    ast[1][1], filename, ast.line, message))
+local function compileAssert(condition, msg, ast)
+    return assert(condition, string.format("Compile error in `%s' %s:%s - %s",
+                                           ast[1][1], filename, ast.line, msg))
 end
 
 local GLOBAL_SCOPE = makeScope()
@@ -808,13 +808,15 @@ SPECIALS['fn'] = function(ast, scope, parent)
         isLocalFn = true
         fnName = gensym(scope)
     end
-    local argList = assert(isTable(ast[index]), 'expected vector arg list [a b ...]')
+    local argList = compileAssert(isTable(ast[index]),
+                                  'expected vector arg list [a b ...]', ast)
     local argNameList = {}
     for i = 1, #argList do
         if isVarg(argList[i]) then
             argNameList[i] = '...'
             fScope.vararg = true
         else
+            -- compileAssert
             argNameList[i] = stringMangle(assert(isSym(argList[i]),
             'expected symbol for function parameter')[1], fScope)
         end
@@ -870,7 +872,7 @@ SPECIALS['luastatement'] = function(ast)
 end
 
 SPECIALS['lambda'] = function(ast, scope, parent)
-    assert(ast.n >= 3, "lambda missing body expression")
+    compileAssert(ast.n >= 3, "missing body expression", ast)
     local arglist = ast[2]
     local checks = {}
     for _, arg in ipairs(arglist) do
@@ -899,8 +901,9 @@ SPECIALS['partial'] = function(ast, scope, parent)
 end
 
 SPECIALS['special'] = function(ast, scope, parent)
-    assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare special forms in \'eval-compiler\'')
-    assert(isSym(ast[2]), "expected symbol for name of special form")
+    compileAssert(scopeInside(COMPILER_SCOPE, scope),
+                  "can only declare special forms in 'eval-compiler'", ast)
+    compileAssert(isSym(ast[2]), "expected symbol for name of special form", ast)
     local specname = tostring(ast[2])
     local spec = SPECIALS.fn(ast, scope, parent, {nval = 1})[1]
     parent[#parent + 1] = ('_SCOPE.specials[%q] = %s'):format(
@@ -908,7 +911,8 @@ SPECIALS['special'] = function(ast, scope, parent)
 end
 
 SPECIALS['macro'] = function(ast, scope, parent, opts)
-    assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare macros in \'eval-compiler\'')
+    compileAssert(scopeInside(COMPILER_SCOPE, scope),
+                  "can only declare macros in 'eval-compiler'", ast)
     local mac = SPECIALS.fn(ast, scope, parent, opts)[1]
     local macroName = tostring(mac) -- the fn special form always returns a value
     local s = gensym(scope)
@@ -923,26 +927,26 @@ end
 
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
-    assert(ast.n == 3, ". expected table and key argument")
+    compileAssert(ast.n == 3, "expected table and key argument", ast)
     local lhs = compile1(ast[2], scope, parent, {nval = 1})
     local rhs = compile1(ast[3], scope, parent, {nval = 1})
     return ('%s[%s]'):format(tostring(lhs[1]), tostring(rhs[1]))
 end
 
 SPECIALS['set'] = function(ast, scope, parent)
-    assert(ast.n == 3, "expected name and value to set")
+    compileAssert(ast.n == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], scope, parent, true)
 end
 
 SPECIALS['local'] = function(ast, scope, parent)
-    assert(ast.n == 3, "expected name and value to set")
+    compileAssert(ast.n == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], scope, parent, false)
 end
 
 SPECIALS['let'] = function(ast, scope, parent, opts)
     local bindings = ast[2]
-    assert(isTable(bindings), 'expected table for destructuring')
-    assert(ast.n >= 3, 'let form missing body expression')
+    compileAssert(isTable(bindings), 'expected table for destructuring', ast)
+    compileAssert(ast.n >= 3, 'missing body expression', ast)
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, bindings.n or #bindings, 2 do
@@ -1061,11 +1065,11 @@ end
 
 -- (each [k v (pairs t)] body...) => []
 SPECIALS['each'] = function(ast, scope, parent)
-    local binding = assert(isTable(ast[2]), 'expected binding table in each')
+    local binding = compileAssert(isTable(ast[2]), 'expected binding table', ast)
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local bindVars = {}
     for _, v in ipairs(binding) do
-        assert(isSym(v), 'expected iterator symbol in each')
+        compileAssert(isSym(v), 'expected iterator symbol', ast)
         table.insert(bindVars, stringMangle(v[1], scope))
     end
     table.insert(parent, ('for %s in %s do'):format(
@@ -1102,9 +1106,9 @@ SPECIALS['*while'] = function(ast, scope, parent)
 end
 
 SPECIALS['for'] = function(ast, scope, parent)
-    local ranges = assert(isTable(ast[2]), 'expected binding table in for')
-    local bindingSym = assert(isSym(table.remove(ast[2], 1)),
-    'expected iterator symbol in for')
+    local ranges = compileAssert(isTable(ast[2]), 'expected binding table', ast)
+    local bindingSym = compileAssert(isSym(table.remove(ast[2], 1)),
+                                     'expected iterator symbol', ast)
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
         rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
@@ -1161,7 +1165,7 @@ defineArithmeticSpecial('and')
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
-        assert(ast.n == 3, "comparators currently require two arguments")
+        compileAssert(ast.n == 3, 'expected two arguments', ast)
         local lhs = compile1(ast[2], scope, parent, {nval = 1})
         local rhs = compile1(ast[3], scope, parent, {nval = 1})
         return ('((%s) %s (%s))'):format(tostring(lhs[1]), op, tostring(rhs[1]))

@@ -879,10 +879,12 @@ SPECIALS['lambda'] = function(ast, scope, parent)
         if not arg[1]:match("^?") and arg[1] ~= "..." then
             table.insert(checks, 1,
                          list(sym("assert"), list(sym('~='), nil, arg),
-                              "Missing argument: " .. arg[1]))
+                              string.format("Missing arg %s on %s:%s",
+                                            arg[1], filename, ast.line)))
         end
     end
     local new = list(sym("lambda"), arglist, unpack(checks))
+    new.line = ast.line
     for i = 3, ast.n do
         table.insert(new, ast[i])
         new.n = new.n + 1
@@ -897,6 +899,7 @@ SPECIALS['partial'] = function(ast, scope, parent)
     for i = 3, ast.n do table.insert(innerArgs, ast[i]) end
     table.insert(innerArgs, VARARG)
     local new = list(sym("fn"), {VARARG}, list(f, unpack(innerArgs)))
+    new.line = ast.line
     return SPECIALS.fn(new, scope, parent)
 end
 
@@ -1053,8 +1056,8 @@ SPECIALS['when'] = function(ast, scope, parent, opts)
     local condition = table.remove(ast, 1)
     ast.n = ast.n - 2
     local body = list(sym("do"), unpack(ast))
-    body.line = ast.line
     local new_ast = list(sym("if"), condition, body)
+    new_ast.line, body.line = ast.line, ast.line
     return SPECIALS["if"](new_ast, scope, parent, opts)
 end
 
@@ -1191,6 +1194,7 @@ defineUnarySpecial('#')
 
 local function compile(ast, options)
     options = options or {}
+    filename, line = options.filename, 1
     line = 1
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
@@ -1201,7 +1205,7 @@ end
 
 local function compileStream(strm, options)
     options = options or {}
-    line = 1
+    filename, line = options.filename, 1
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local vals = {}
     while true do
@@ -1226,7 +1230,6 @@ end
 
 local function eval(str, options)
     options = options or {}
-    filename = options.filename or filename
     local luaSource = compileString(str, options)
     local loader = loadCode(luaSource, options.env)
     return loader()

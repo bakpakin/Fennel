@@ -190,6 +190,7 @@ end
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
+local line = 1
 local function parse(getbyte, state)
     -- Stack of unfinished values
     local stack = {}
@@ -197,15 +198,18 @@ local function parse(getbyte, state)
     -- Provide one character buffer
     local lastb
     local function ungetb(ub)
+        if ub == 10 then line = line - 1 end
         lastb = ub
     end
     local function getb()
+        local r
         if lastb then
-            local r = lastb
-            lastb = nil
-            return r
+            r, lastb = lastb, nil
+        else
+            r = getbyte(state)
         end
-        return getbyte(state)
+        if r == 10 then line = line + 1 end
+        return r
     end
 
     -- Dispatch when we complete a value
@@ -239,10 +243,9 @@ local function parse(getbyte, state)
                 b = getb()
             until not b or b == 10 -- newline
         elseif type(delims[b]) == 'number' then -- Opening delimiter
-            table.insert(stack, setmetatable({
-                closer = delims[b],
-                n = 0
-            }, LIST_MT))
+            local l = setmetatable({closer = delims[b], n = 0}, LIST_MT)
+            l.line = line
+            table.insert(stack, l)
         elseif delims[b] then -- Closing delimiter
             if #stack == 0 then error 'unexpected closing delimiter' end
             local last = stack[#stack]
@@ -1171,6 +1174,7 @@ defineUnarySpecial('#')
 
 local function compile(ast, options)
     options = options or {}
+    line = 1
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
@@ -1180,6 +1184,7 @@ end
 
 local function compileStream(strm, options)
     options = options or {}
+    line = 1
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local vals = {}
     while true do

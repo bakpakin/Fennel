@@ -4,7 +4,7 @@ test:
 	$(LUA) test.lua
 
 luacheck:
-	luacheck fennel.lua
+	luacheck fennel.lua fennel
 
 count:
 	cloc fennel.lua

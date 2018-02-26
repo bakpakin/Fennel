@@ -1309,7 +1309,7 @@ local function repl(givenOptions)
         local ok, parseok, x = pcall(read)
         if ok then
             if not parseok then break end -- eof
-            local compileOk, luaSource = pcall(compile, x)
+            local compileOk, luaSource = pcall(compile, x, options)
             if not compileOk then
                 -- Compiler error
                 clearstream()

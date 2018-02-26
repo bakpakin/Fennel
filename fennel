@@ -11,14 +11,25 @@ Usage: fennel [FLAG] [FILE]
 
   With a single file argument, runs that file.]]
 
+local flags = {"--accurate"}
+local options = {}
+for _, flag in pairs(flags) do
+    for i = #arg, 1, -1 do
+        if arg[i] == flag then
+            table.remove(arg, i)
+            options[flag:gsub("[-][-]", "")] = true
+        end
+    end
+end
+
 if arg[1] == "--repl" or #arg == 0 then
     print("Welcome to fennel!")
     fennel.repl()
 elseif arg[1] == "--compile" then
     for i = 2, #arg do
         local f = assert(io.open(arg[i], "rb"))
-        local ok, val = pcall(fennel.compileString, f:read("*all"),
-                              {filename=arg[1]})
+        options.filename=arg[i]
+        local ok, val = pcall(fennel.compileString, f:read("*all"), options)
         print(val)
         if(not ok) then os.exit(1) end
         f:close()
@@ -27,7 +38,8 @@ elseif #arg == 1 then
     local filename = table.remove(arg, 1) -- let the script have remaining args
     local f = io.open(filename, "rb")
     if f then
-        local ok, val = pcall(fennel.eval, f:read("*all"), {filename=filename})
+        options.filename = filename
+        local ok, val = pcall(fennel.eval, f:read("*all"), options)
         print(val)
         if(not ok) then os.exit(1) end
         f:close()

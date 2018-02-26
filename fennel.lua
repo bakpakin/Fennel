@@ -288,7 +288,7 @@ local function parser(getbyte, filename)
                 until not b or (b == start and last ~= 92)
                 if not b then error 'unexpected end of source' end
                 local raw = string.char(unpack(chars))
-                local loadFn = loadCode(('return %s'):format(raw), filename)
+                local loadFn = loadCode(('return %s'):format(raw), nil, filename)
                 dispatch(loadFn())
             else -- Try symbol
                 local chars = {}

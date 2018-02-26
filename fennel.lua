@@ -192,10 +192,10 @@ end
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
-local line = 1
-local function parse(getbyte, state)
+local function parse(getbyte)
     -- Stack of unfinished values
     local stack = {}
+    local line = 1
 
     -- Provide one character buffer
     local lastb
@@ -208,7 +208,7 @@ local function parse(getbyte, state)
         if lastb then
             r, lastb = lastb, nil
         else
-            r = getbyte(state)
+            r = getbyte()
         end
         if r == 10 then line = line + 1 end
         return r
@@ -1194,8 +1194,7 @@ defineUnarySpecial('#')
 
 local function compile(ast, options)
     options = options or {}
-    filename, line = options.filename, 1
-    line = 1
+    filename = options.filename
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
@@ -1205,7 +1204,7 @@ end
 
 local function compileStream(strm, options)
     options = options or {}
-    filename, line = options.filename, 1
+    filename = options.filename
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local vals = {}
     while true do

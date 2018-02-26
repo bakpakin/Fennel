@@ -465,14 +465,14 @@ end
 
 -- Flatten a tree of indented Lua source code lines.
 -- Tab is what is used to indent a block. By default it is two spaces.
-local function flattenChunkPretty(chunk, tab, subChunk)
+local function flattenChunkPretty(chunk, tab, depth)
     if type(chunk) == 'string' then
         return chunk
     end
     tab = tab or '  ' -- 2 spaces
     for i = 1, #chunk do
-        local sub = flattenChunkPretty(chunk[i], tab, true)
-        if subChunk then sub = tab .. sub:gsub('\n', '\n' .. tab) end
+        local sub = flattenChunkPretty(chunk[i], tab, depth + 1)
+        if depth > 2 then sub = tab .. sub:gsub('\n', '\n' .. tab) end
         chunk[i] = sub
     end
     return table.concat(chunk, '\n')
@@ -508,7 +508,7 @@ local function flattenChunk(chunk, tab, accurate)
         end
         return table.concat(out, "\n")
     else
-        return flattenChunkPretty(chunk, tab)
+        return flattenChunkPretty(chunk, tab, 0)
     end
 end
 
@@ -522,7 +522,7 @@ local function exprs1(exprs)
 end
 
 local function emit(chunk, out, ast)
-    table.insert(chunk, {out, line= ast and ast.line})
+    table.insert(chunk, {out, line = ast and ast.line})
 end
 
 -- Compile sideffects for a chunk

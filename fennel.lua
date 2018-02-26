@@ -888,7 +888,7 @@ SPECIALS['lambda'] = function(ast, scope, parent)
         end
     end
     local new = list(sym("lambda"), arglist, unpack(checks))
-    new.line = ast.line
+    new.line, new.filename = ast.line, ast.filename
     for i = 3, ast.n do
         table.insert(new, ast[i])
         new.n = new.n + 1
@@ -903,7 +903,7 @@ SPECIALS['partial'] = function(ast, scope, parent)
     for i = 3, ast.n do table.insert(innerArgs, ast[i]) end
     table.insert(innerArgs, VARARG)
     local new = list(sym("fn"), {VARARG}, list(f, unpack(innerArgs)))
-    new.line = ast.line
+    new.line, new.filename = ast.line, ast.filename
     return SPECIALS.fn(new, scope, parent)
 end
 
@@ -1062,6 +1062,7 @@ SPECIALS['when'] = function(ast, scope, parent, opts)
     local body = list(sym("do"), unpack(ast))
     local new_ast = list(sym("if"), condition, body)
     new_ast.line, body.line = ast.line, ast.line
+    new_ast.filename, body.filename = ast.filename, ast.filename
     return SPECIALS["if"](new_ast, scope, parent, opts)
 end
 

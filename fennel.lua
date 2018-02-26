@@ -192,12 +192,14 @@ end
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
-local line = 1
-local function parse(getbyte, state)
+local function parser(getbyte)
+
     -- Stack of unfinished values
     local stack = {}
 
-    -- Provide one character buffer
+    -- Provide one character buffer and keep
+    -- track of current line
+    local line = 1
     local lastb
     local function ungetb(ub)
         if ub == 10 then line = line - 1 end
@@ -208,111 +210,115 @@ local function parse(getbyte, state)
         if lastb then
             r, lastb = lastb, nil
         else
-            r = getbyte(state)
+            r = getbyte()
         end
         if r == 10 then line = line + 1 end
         return r
     end
 
-    -- Dispatch when we complete a value
-    local done, retval
-    local function dispatch(v)
-        if #stack == 0 then
-            retval = v
-            done = true
-        else
-            local last = stack[#stack]
-            last.n = last.n + 1
-            last[last.n] = v
-        end
-    end
+    -- Parse stream
+    return function ()
 
-    -- The main parse loop
-    repeat
-        local b
-
-        -- Skip whitespace
-        repeat
-            b = getb()
-        until not b or not iswhitespace(b)
-        if not b then
-            if #stack > 0 then error 'unexpected end of source' end
-            return nil
-        end
-
-        if b == 59 then -- ; Comment
-            repeat
-                b = getb()
-            until not b or b == 10 -- newline
-        elseif type(delims[b]) == 'number' then -- Opening delimiter
-            local l = setmetatable({closer = delims[b], n = 0}, LIST_MT)
-            l.line = line
-            table.insert(stack, l)
-        elseif delims[b] then -- Closing delimiter
-            if #stack == 0 then error 'unexpected closing delimiter' end
-            local last = stack[#stack]
-            local val
-            if last.closer ~= b then
-                error('unexpected delimiter ' .. string.char(b) .. ', expected ' .. string.char(last.closer))
-            end
-            if b == 41 then -- )
-                val = last
-            elseif b == 93 then -- ]
-                val = {}
-                for i = 1, last.n do
-                    val[i] = last[i]
-                end
-            else -- }
-                if last.n % 2 ~= 0 then
-                    error 'expected even number of values in table literal'
-                end
-                val = {}
-                for i = 1, last.n, 2 do
-                    val[last[i]] = last[i + 1]
-                end
-            end
-            stack[#stack] = nil
-            dispatch(val)
-        elseif b == 34 or b == 39 then -- Quoted string
-            local start = b
-            local last
-            local chars = {start}
-            repeat
-                last = b
-                b = getb()
-                chars[#chars + 1] = b
-            until not b or (b == start and last ~= 92)
-            if not b then error 'unexpected end of source' end
-            local raw = string.char(unpack(chars))
-            local loadFn = loadCode(('return %s'):format(raw))
-            dispatch(loadFn())
-        else -- Try symbol
-            local chars = {}
-            repeat
-                chars[#chars + 1] = b
-                b = getb()
-            until not b or not issymbolchar(b)
-            if b then ungetb(b) end
-            local rawstr = string.char(unpack(chars))
-            if rawstr == 'nil' then dispatch(nil)
-            elseif rawstr == 'true' then dispatch(true)
-            elseif rawstr == 'false' then dispatch(false)
-            elseif rawstr == '...' then dispatch(VARARG)
-            elseif rawstr:match('^:[%w_-]*$') then -- keyword style strings
-                dispatch(rawstr:sub(2))
+        -- Dispatch when we complete a value
+        local done, retval
+        local function dispatch(v)
+            if #stack == 0 then
+                retval = v
+                done = true
             else
-                local forceNumber = rawstr:match('^%d')
-                local x
-                if forceNumber then
-                    x = tonumber(rawstr) or error('could not read token "' .. rawstr .. '"')
-                else
-                    x = tonumber(rawstr) or sym(rawstr)
-                end
-                dispatch(x)
+                local last = stack[#stack]
+                last.n = last.n + 1
+                last[last.n] = v
             end
         end
-    until done
-    return true, retval
+
+        -- The main parse loop
+        repeat
+            local b
+
+            -- Skip whitespace
+            repeat
+                b = getb()
+            until not b or not iswhitespace(b)
+            if not b then
+                if #stack > 0 then error 'unexpected end of source' end
+                return nil
+            end
+
+            if b == 59 then -- ; Comment
+                repeat
+                    b = getb()
+                until not b or b == 10 -- newline
+            elseif type(delims[b]) == 'number' then -- Opening delimiter
+                local l = setmetatable({closer = delims[b], n = 0}, LIST_MT)
+                l.line = line
+                table.insert(stack, l)
+            elseif delims[b] then -- Closing delimiter
+                if #stack == 0 then error 'unexpected closing delimiter' end
+                local last = stack[#stack]
+                local val
+                if last.closer ~= b then
+                    error('unexpected delimiter ' .. string.char(b) .. ', expected ' .. string.char(last.closer))
+                end
+                if b == 41 then -- )
+                    val = last
+                elseif b == 93 then -- ]
+                    val = {}
+                    for i = 1, last.n do
+                        val[i] = last[i]
+                    end
+                else -- }
+                    if last.n % 2 ~= 0 then
+                        error 'expected even number of values in table literal'
+                    end
+                    val = {}
+                    for i = 1, last.n, 2 do
+                        val[last[i]] = last[i + 1]
+                    end
+                end
+                stack[#stack] = nil
+                dispatch(val)
+            elseif b == 34 or b == 39 then -- Quoted string
+                local start = b
+                local last
+                local chars = {start}
+                repeat
+                    last = b
+                    b = getb()
+                    chars[#chars + 1] = b
+                until not b or (b == start and last ~= 92)
+                if not b then error 'unexpected end of source' end
+                local raw = string.char(unpack(chars))
+                local loadFn = loadCode(('return %s'):format(raw))
+                dispatch(loadFn())
+            else -- Try symbol
+                local chars = {}
+                repeat
+                    chars[#chars + 1] = b
+                    b = getb()
+                until not b or not issymbolchar(b)
+                if b then ungetb(b) end
+                local rawstr = string.char(unpack(chars))
+                if rawstr == 'nil' then dispatch(nil)
+                elseif rawstr == 'true' then dispatch(true)
+                elseif rawstr == 'false' then dispatch(false)
+                elseif rawstr == '...' then dispatch(VARARG)
+                elseif rawstr:match('^:[%w_-]*$') then -- keyword style strings
+                    dispatch(rawstr:sub(2))
+                else
+                    local forceNumber = rawstr:match('^%d')
+                    local x
+                    if forceNumber then
+                        x = tonumber(rawstr) or error('could not read token "' .. rawstr .. '"')
+                    else
+                        x = tonumber(rawstr) or sym(rawstr)
+                    end
+                    dispatch(x)
+                end
+            end
+        until done
+        return true, retval
+    end
 end
 
 --
@@ -352,8 +358,8 @@ end
 -- should be unmodified so that its first element is the form being called.
 local function assertCompile(condition, msg, ast)
     return assert(condition, string.format("Compile error in `%s' %s:%s: %s",
-                                           ast[1][1], filename or "unknown",
-                                           ast.line, msg))
+    ast[1][1], filename or "unknown",
+    ast.line or '?', msg))
 end
 
 local GLOBAL_SCOPE = makeScope()
@@ -388,11 +394,11 @@ local function isMultiSym(str)
         parts[#parts + 1] = part
     end
     return #parts > 0 and
-        str:match('%.') and
-        (not str:match('%.%.')) and
-        str:byte() ~= string.byte '.' and
-        str:byte(-1) ~= string.byte '.' and
-        parts
+    str:match('%.') and
+    (not str:match('%.%.')) and
+    str:byte() ~= string.byte '.' and
+    str:byte(-1) ~= string.byte '.' and
+    parts
 end
 
 -- Creates a symbol from a string by mangling it.
@@ -880,7 +886,7 @@ SPECIALS['lambda'] = function(ast, scope, parent)
             table.insert(checks, 1,
                          list(sym("assert"), list(sym('~='), nil, arg),
                               string.format("Missing argument %s on %s:%s",
-                                            arg[1], filename, ast.line)))
+                                            arg[1], filename or 'unknown', ast.line or '?')))
         end
     end
     local new = list(sym("lambda"), arglist, unpack(checks))
@@ -1194,8 +1200,7 @@ defineUnarySpecial('#')
 
 local function compile(ast, options)
     options = options or {}
-    filename, line = options.filename, 1
-    line = 1
+    filename = options.filename
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
@@ -1205,11 +1210,10 @@ end
 
 local function compileStream(strm, options)
     options = options or {}
-    filename, line = options.filename, 1
+    filename = options.filename
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local vals = {}
-    while true do
-        local ok, val = parse(strm)
+    for ok, val in parser(strm) do
         if not ok then break end
         vals[#vals + 1] = val
     end
@@ -1257,8 +1261,9 @@ local function repl(givenOptions)
         local input = options.read()
         return input and input .. '\n'
     end)
+    local read = parser(bytestream)
     while true do
-        local ok, parseok, x = pcall(parse, bytestream)
+        local ok, parseok, x = pcall(read)
         if ok then
             if not parseok then break end -- eof
             local compileOk, luaSource = pcall(compile, x)
@@ -1296,7 +1301,7 @@ local function repl(givenOptions)
 end
 
 local module = {
-    parse = parse,
+    parser = parser,
     granulate = granulate,
     stringStream = stringStream,
     compile = compile,

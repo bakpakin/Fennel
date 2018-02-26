@@ -59,10 +59,8 @@ local EXPR_MT = { 'EXPR',
 }
 local VARARG = setmetatable({ '...' }, { 'VARARG' })
 
-local filename = nil
-
 -- Load code with an environment in all recent Lua versions
-local function loadCode(code, environment)
+local function loadCode(code, environment, filename)
     environment = environment or _ENV or _G
     if setfenv and loadstring then
         local f = assert(loadstring(code, filename))
@@ -192,7 +190,7 @@ end
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
-local function parser(getbyte)
+local function parser(getbyte, filename)
 
     -- Stack of unfinished values
     local stack = {}
@@ -251,7 +249,7 @@ local function parser(getbyte)
                 until not b or b == 10 -- newline
             elseif type(delims[b]) == 'number' then -- Opening delimiter
                 local l = setmetatable({closer = delims[b], n = 0}, LIST_MT)
-                l.line = line
+                l.line, l.filename = line, filename
                 table.insert(stack, l)
             elseif delims[b] then -- Closing delimiter
                 if #stack == 0 then error 'unexpected closing delimiter' end
@@ -289,7 +287,7 @@ local function parser(getbyte)
                 until not b or (b == start and last ~= 92)
                 if not b then error 'unexpected end of source' end
                 local raw = string.char(unpack(chars))
-                local loadFn = loadCode(('return %s'):format(raw))
+                local loadFn = loadCode(('return %s'):format(raw), filename)
                 dispatch(loadFn())
             else -- Try symbol
                 local chars = {}
@@ -358,7 +356,7 @@ end
 -- should be unmodified so that its first element is the form being called.
 local function assertCompile(condition, msg, ast)
     return assert(condition, string.format("Compile error in `%s' %s:%s: %s",
-    ast[1][1], filename or "unknown",
+    ast[1][1], ast.filename or "unknown",
     ast.line or '?', msg))
 end
 
@@ -886,7 +884,7 @@ SPECIALS['lambda'] = function(ast, scope, parent)
             table.insert(checks, 1,
                          list(sym("assert"), list(sym('~='), nil, arg),
                               string.format("Missing argument %s on %s:%s",
-                                            arg[1], filename or 'unknown', ast.line or '?')))
+                                            arg[1], ast.filename or 'unknown', ast.line or '?')))
         end
     end
     local new = list(sym("lambda"), arglist, unpack(checks))
@@ -1200,7 +1198,6 @@ defineUnarySpecial('#')
 
 local function compile(ast, options)
     options = options or {}
-    filename = options.filename
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
@@ -1210,10 +1207,9 @@ end
 
 local function compileStream(strm, options)
     options = options or {}
-    filename = options.filename
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local vals = {}
-    for ok, val in parser(strm) do
+    for ok, val in parser(strm, options.filename) do
         if not ok then break end
         vals[#vals + 1] = val
     end
@@ -1235,7 +1231,7 @@ end
 local function eval(str, options)
     options = options or {}
     local luaSource = compileString(str, options)
-    local loader = loadCode(luaSource, options.env)
+    local loader = loadCode(luaSource, options.env, options.filename)
     return loader()
 end
 

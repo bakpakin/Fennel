@@ -462,19 +462,53 @@ local function gensym(...)
     return mangling
 end
 
--- Flatten a tree of Lua source code lines.
+-- Flatten a tree of indented Lua source code lines.
 -- Tab is what is used to indent a block. By default it is two spaces.
-local function flattenChunk(chunk, tab, subChunk)
+local function flattenChunkPretty(chunk, tab, subChunk)
     if type(chunk) == 'string' then
         return chunk
     end
     tab = tab or '  ' -- 2 spaces
     for i = 1, #chunk do
-        local sub = flattenChunk(chunk[i], tab, true)
+        local sub = flattenChunkPretty(chunk[i], tab, true)
         if subChunk then sub = tab .. sub:gsub('\n', '\n' .. tab) end
         chunk[i] = sub
     end
     return table.concat(chunk, '\n')
+end
+
+-- Place strings from chunk inside out table in a place that corresponds
+-- as best possible with its line number data from parser/emit.
+local function flattenChunkTables(chunk, out, lastLine)
+    if type(chunk) == 'string' then
+        if out[lastLine] then
+            out[lastLine] = out[lastLine] .. " " .. chunk
+        else
+            out[lastLine] = chunk
+        end
+    else
+        lastLine = math.max(chunk.line or 0, lastLine)
+        for _, line in ipairs(chunk) do
+            lastLine = flattenChunkTables(line, out, lastLine)
+        end
+    end
+    return lastLine
+end
+
+-- Turn a chunk into a single code string, either with indentation (default)
+-- or by attempting to preserve line numbering if accurate is true.
+local function flattenChunk(chunk, tab, accurate)
+    if accurate then
+        local out = {}
+        local lineCount = flattenChunkTables(chunk, out, 1)
+        -- fill in the gaps
+        for i = 1, lineCount do
+            if not out[i] then out[i] = "" end
+        end
+        return table.concat(out, "\n")
+    else
+        return flattenChunkPretty(chunk, tab)
+    end
 end
 
 -- Convert expressions to Lua string
@@ -487,7 +521,7 @@ local function exprs1(exprs)
 end
 
 local function emit(chunk, out, ast)
-    table.insert(chunk, out)
+    table.insert(chunk, {out, line= ast and ast.line})
 end
 
 -- Compile sideffects for a chunk
@@ -1208,7 +1242,7 @@ local function compile(ast, options)
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
-    return flattenChunk(chunk, options.indent)
+    return flattenChunk(chunk, options.indent, options.accurate)
 end
 
 local function compileStream(strm, options)
@@ -1226,7 +1260,7 @@ local function compileStream(strm, options)
         })
         keepSideEffects(exprs, chunk, nil, vals[i])
     end
-    return flattenChunk(chunk, options.indent)
+    return flattenChunk(chunk, options.indent, options.accurate)
 end
 
 local function compileString(str, options)

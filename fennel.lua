@@ -79,8 +79,9 @@ local function list(...)
 end
 
 -- Create a new symbol
-local function sym(str, scope)
-    return setmetatable({ str, scope = scope }, SYMBOL_MT)
+local function sym(str, scope, line, filename)
+    return setmetatable({ str, scope = scope, line = line, filename = filename},
+        SYMBOL_MT)
 end
 
 -- Create a new expr
@@ -309,7 +310,7 @@ local function parser(getbyte, filename)
                     if forceNumber then
                         x = tonumber(rawstr) or error('could not read token "' .. rawstr .. '"')
                     else
-                        x = tonumber(rawstr) or sym(rawstr)
+                        x = tonumber(rawstr) or sym(rawstr, nil, line, filename)
                     end
                     dispatch(x)
                 end
@@ -899,10 +900,13 @@ SPECIALS['$'] = function(ast, scope, parent)
     end
     walk(ast)
     local fargs = {}
-    for i = 1, maxArg do table.insert(fargs, sym('$' .. i)) end
+    for i = 1, maxArg do
+        table.insert(fargs, sym('$' .. i), nil, ast.line, ast.filename)
+    end
     table.remove(ast, 1)
     ast.n = ast.n - 1
-    return SPECIALS.fn({'', sym('$$'), fargs, ast, n = 4}, scope, parent)
+    return SPECIALS.fn({'', sym('$$', nil, ast.line, ast.filename),
+                        fargs, ast, n = 4}, scope, parent)
 end
 
 SPECIALS['luaexpr'] = function(ast)
@@ -920,12 +924,14 @@ SPECIALS['lambda'] = function(ast, scope, parent)
     for _, arg in ipairs(arglist) do
         if not arg[1]:match("^?") and arg[1] ~= "..." then
             table.insert(checks, 1,
-                         list(sym("assert"), list(sym('~='), nil, arg),
+                         list(sym("assert", ast.line, ast.filename),
+                              list(sym('~='), nil, arg),
                               string.format("Missing argument %s on %s:%s",
                                             arg[1], ast.filename or 'unknown', ast.line or '?')))
         end
     end
-    local new = list(sym("lambda"), arglist, unpack(checks))
+    local new = list(sym("lambda", ast[1].line, ast[1].filename),
+                     arglist, unpack(checks))
     new.line, new.filename = ast.line, ast.filename
     for i = 3, ast.n do
         table.insert(new, ast[i])
@@ -940,7 +946,8 @@ SPECIALS['partial'] = function(ast, scope, parent)
     local innerArgs = {}
     for i = 3, ast.n do table.insert(innerArgs, ast[i]) end
     table.insert(innerArgs, VARARG)
-    local new = list(sym("fn"), {VARARG}, list(f, unpack(innerArgs)))
+    local new = list(sym("fn", ast[1].line, ast[1].filename),
+                     {VARARG}, list(f, unpack(innerArgs)))
     new.line, new.filename = ast.line, ast.filename
     return SPECIALS.fn(new, scope, parent)
 end
@@ -1098,7 +1105,7 @@ SPECIALS['when'] = function(ast, scope, parent, opts)
     table.remove(ast, 1)
     local condition = table.remove(ast, 1)
     ast.n = ast.n - 2
-    local body = list(sym("do"), unpack(ast))
+    local body = list(sym("do", ast[1].line, ast[1].filename), unpack(ast))
     local new_ast = list(sym("if"), condition, body)
     new_ast.line, body.line = ast.line, ast.line
     new_ast.filename, body.filename = ast.filename, ast.filename

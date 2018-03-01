@@ -53,6 +53,11 @@ local cases = {
             (string.match e \"Missing argument x\"))"]="Missing argument x",
         -- lambda arity checks skip argument names starting with ?
         ["(let [(ok val) (pcall (λ [?x] (+ (or ?x 1) 8)))] (and ok val))"]=9,
+        -- method calls work
+        ["(: :hello :find :e)"]=2,
+        -- method calls don't double side effects
+        ["(do (local a 0) (let [f (fn [] (set a (+ a 1)) :hello)]\
+            (: (f) :find :e)) a)"]=1,
     },
 
     conditionals = {

@@ -302,7 +302,7 @@ local function parser(getbyte, filename)
                 elseif rawstr == 'true' then dispatch(true)
                 elseif rawstr == 'false' then dispatch(false)
                 elseif rawstr == '...' then dispatch(VARARG)
-                elseif rawstr:match('^:[%w_-]*$') then -- keyword style strings
+                elseif rawstr:match('^:[%w_-]+$') then -- keyword style strings
                     dispatch(rawstr:sub(2))
                 else
                     local forceNumber = rawstr:match('^%d')
@@ -1179,6 +1179,39 @@ end
 -- Do we need this? Is there a more elegnant way to compile with break?
 SPECIALS['*break'] = function(ast, _, parent)
     emit(parent, 'break', ast)
+end
+
+SPECIALS[':'] = function(ast, scope, parent)
+    assertCompile(ast.n >= 3, 'expected at least 3 arguments', ast)
+    -- Compile object
+    local objectexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
+    if objectexpr.type == 'statement' or objectexpr.type == 'expression' then
+        local s = gensym(scope)
+        emit(parent, ('local %s = %s'):format(s, tostring(objectexpr)), ast)
+        objectexpr = expr(s, 'sym')
+    end
+    -- Compile method selector
+    local methodexpr = compile1(ast[3], scope, parent, {nval = 1})[1]
+    -- Compile arguments
+    local args = {}
+    for i = 4, ast.n do
+        local subexprs = compile1(ast[i], scope, parent, {
+            nval = i ~= ast.n and 1 or nil
+        })
+        for j = 1, #subexprs do
+            args[#args + 1] = tostring(subexprs[j])
+        end
+    end
+    -- Make object first argument
+    table.insert(args, 1, tostring(objectexpr))
+    -- Wrap literals in parens (strings)
+    local fstring = objectexpr.type == 'literal'
+        and '(%s)[%s](%s)'
+        or '%s[%s](%s)'
+    return expr(fstring:format(
+        tostring(objectexpr),
+        tostring(methodexpr),
+        table.concat(args, ', ')), 'statement')
 end
 
 local function defineArithmeticSpecial(name, unaryPrefix)

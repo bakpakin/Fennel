@@ -84,7 +84,7 @@ local cases = {
         -- functions inside each
         ["(do (each [_ ((fn [] (pairs [1])))] (set i 1)) i)"]=1,
         -- nested let inside loop
-        ["(for [_ 1 3] (let [] (table.concat []) 33))"]=33,
+        ["(do (for [_ 1 3] (let [] (table.concat []) (set a 33))) a)"]=33,
     },
 
     destructuring = {

@@ -814,7 +814,7 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     else
         for i = start, len do
             local subopts = {
-                nval = i ~= len and 0 or nil,
+                nval = i ~= len and 0 or opts.nval,
                 tail = i == len and outerTail or nil,
                 target = i == len and outerTarget or nil
             }

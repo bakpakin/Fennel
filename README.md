@@ -58,12 +58,19 @@ chunk when called. Useful for implementing a repl.
 local bytestream, clearstream = fennel.granulate(chunks)
 ```
     
-Get the next top level value parsed from a stream of
-bytes. Returns true in the first return value if a value was read, and
+Converts a stream of bytes to a stream of values.
+Valuestream gets the next top level value parsed.
+Returns true in the first return value if a value was read, and
 returns nil if and end of file was reached without error. Will error
 on bad input or unexpected end of source.
 ```lua
-local ok, value = fennel.parse(strm)
+local valuestream = fennel.parser(strm)
+local ok, value = valuestream()
+
+-- Or use in a for loop
+for ok, value in valuestream do
+    print(ok, value)
+end
 ```
 
 Compile a data structure (AST) into Lua source code. The code can be loaded

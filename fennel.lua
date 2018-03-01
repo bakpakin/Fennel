@@ -30,6 +30,10 @@ local tpack = table.pack or function(...)
     return {n = select('#', ...), ...}
 end
 
+--
+-- Main Types and support functions
+--
+
 local SYMBOL_MT = { 'SYMBOL',
     __tostring = function (self)
         return self[1]
@@ -75,8 +79,9 @@ local function list(...)
 end
 
 -- Create a new symbol
-local function sym(str, scope)
-    return setmetatable({ str, scope = scope }, SYMBOL_MT)
+local function sym(str, scope, line, filename)
+    return setmetatable({ str, scope = scope, line = line, filename = filename},
+        SYMBOL_MT)
 end
 
 -- Create a new expr
@@ -115,7 +120,9 @@ local function isTable(x)
         getmetatable(x) ~= LIST_MT and getmetatable(x) ~= SYMBOL_MT and x
 end
 
+--
 -- Parser
+--
 
 -- Convert a stream of chunks to a stream of bytes.
 -- Also returns a second function to clear the buffer in the byte stream
@@ -184,127 +191,138 @@ end
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
-local function parse(getbyte, state)
+local function parser(getbyte, filename)
+
     -- Stack of unfinished values
     local stack = {}
 
-    -- Provide one character buffer
+    -- Provide one character buffer and keep
+    -- track of current line
+    local line = 1
     local lastb
     local function ungetb(ub)
+        if ub == 10 then line = line - 1 end
         lastb = ub
     end
     local function getb()
+        local r
         if lastb then
-            local r = lastb
-            lastb = nil
-            return r
-        end
-        return getbyte(state)
-    end
-
-    -- Dispatch when we complete a value
-    local done, retval
-    local function dispatch(v)
-        if #stack == 0 then
-            retval = v
-            done = true
+            r, lastb = lastb, nil
         else
-            local last = stack[#stack]
-            last.n = last.n + 1
-            last[last.n] = v
+            r = getbyte()
         end
+        if r == 10 then line = line + 1 end
+        return r
     end
 
-    -- The main parse loop
-    repeat
-        local b
+    -- Parse stream
+    return function ()
 
-        -- Skip whitespace
-        repeat
-            b = getb()
-        until not b or not iswhitespace(b)
-        if not b then
-            if #stack > 0 then error 'unexpected end of source' end
-            return nil
-        end
-
-        if b == 59 then -- ; Comment
-            repeat
-                b = getb()
-            until not b or b == 10 -- newline
-        elseif type(delims[b]) == 'number' then -- Opening delimiter
-            table.insert(stack, setmetatable({
-                closer = delims[b],
-                n = 0
-            }, LIST_MT))
-        elseif delims[b] then -- Closing delimiter
-            if #stack == 0 then error 'unexpected closing delimiter' end
-            local last = stack[#stack]
-            local val
-            if last.closer ~= b then
-                error('unexpected delimiter ' .. string.char(b) .. ', expected ' .. string.char(last.closer))
-            end
-            if b == 41 then -- )
-                val = last
-            elseif b == 93 then -- ]
-                val = {}
-                for i = 1, last.n do
-                    val[i] = last[i]
-                end
-            else -- }
-                if last.n % 2 ~= 0 then
-                    error 'expected even number of values in table literal'
-                end
-                val = {}
-                for i = 1, last.n, 2 do
-                    val[last[i]] = last[i + 1]
-                end
-            end
-            stack[#stack] = nil
-            dispatch(val)
-        elseif b == 34 or b == 39 then -- Quoted string
-            local start = b
-            local last
-            local chars = {start}
-            repeat
-                last = b
-                b = getb()
-                chars[#chars + 1] = b
-            until not b or (b == start and last ~= 92)
-            if not b then error 'unexpected end of source' end
-            local raw = string.char(unpack(chars))
-            local loadFn = loadCode(('return %s'):format(raw))
-            dispatch(loadFn())
-        else -- Try symbol
-            local chars = {}
-            repeat
-                chars[#chars + 1] = b
-                b = getb()
-            until not b or not issymbolchar(b)
-            if b then ungetb(b) end
-            local rawstr = string.char(unpack(chars))
-            if rawstr == 'nil' then dispatch(nil)
-            elseif rawstr == 'true' then dispatch(true)
-            elseif rawstr == 'false' then dispatch(false)
-            elseif rawstr == '...' then dispatch(VARARG)
-            elseif rawstr:match('^:[%w_-]+$') then -- keyword style strings
-                dispatch(rawstr:sub(2))
+        -- Dispatch when we complete a value
+        local done, retval
+        local function dispatch(v)
+            if #stack == 0 then
+                retval = v
+                done = true
             else
-                local forceNumber = rawstr:match('^%d')
-                local x
-                if forceNumber then
-                    x = tonumber(rawstr) or error('could not read token "' .. rawstr .. '"')
-                else
-                    x = tonumber(rawstr) or sym(rawstr)
-                end
-                dispatch(x)
+                local last = stack[#stack]
+                last.n = last.n + 1
+                last[last.n] = v
             end
         end
-    until done
-    return true, retval
+
+        -- The main parse loop
+        repeat
+            local b
+
+            -- Skip whitespace
+            repeat
+                b = getb()
+            until not b or not iswhitespace(b)
+            if not b then
+                if #stack > 0 then error 'unexpected end of source' end
+                return nil
+            end
+
+            if b == 59 then -- ; Comment
+                repeat
+                    b = getb()
+                until not b or b == 10 -- newline
+            elseif type(delims[b]) == 'number' then -- Opening delimiter
+                local l = setmetatable({closer = delims[b], n = 0}, LIST_MT)
+                l.line, l.filename = line, filename
+                table.insert(stack, l)
+            elseif delims[b] then -- Closing delimiter
+                if #stack == 0 then error 'unexpected closing delimiter' end
+                local last = stack[#stack]
+                local val
+                if last.closer ~= b then
+                    error('unexpected delimiter ' .. string.char(b) .. ', expected ' .. string.char(last.closer))
+                end
+                if b == 41 then -- )
+                    val = last
+                elseif b == 93 then -- ]
+                    val = {}
+                    for i = 1, last.n do
+                        val[i] = last[i]
+                    end
+                else -- }
+                    if last.n % 2 ~= 0 then
+                        error 'expected even number of values in table literal'
+                    end
+                    val = {}
+                    for i = 1, last.n, 2 do
+                        val[last[i]] = last[i + 1]
+                    end
+                end
+                stack[#stack] = nil
+                dispatch(val)
+            elseif b == 34 or b == 39 then -- Quoted string
+                local start = b
+                local last
+                local chars = {start}
+                repeat
+                    last = b
+                    b = getb()
+                    chars[#chars + 1] = b
+                until not b or (b == start and last ~= 92)
+                if not b then error 'unexpected end of source' end
+                local raw = string.char(unpack(chars))
+                local loadFn = loadCode(('return %s'):format(raw), nil, filename)
+                dispatch(loadFn())
+            else -- Try symbol
+                local chars = {}
+                repeat
+                    chars[#chars + 1] = b
+                    b = getb()
+                until not b or not issymbolchar(b)
+                if b then ungetb(b) end
+                local rawstr = string.char(unpack(chars))
+                if rawstr == 'nil' then dispatch(nil)
+                elseif rawstr == 'true' then dispatch(true)
+                elseif rawstr == 'false' then dispatch(false)
+                elseif rawstr == '...' then dispatch(VARARG)
+                elseif rawstr:match('^:[%w_-]+$') then -- keyword style strings
+                    dispatch(rawstr:sub(2))
+                else
+                    local forceNumber = rawstr:match('^%d')
+                    local x
+                    if forceNumber then
+                        x = tonumber(rawstr) or error('could not read token "' .. rawstr .. '"')
+                    else
+                        x = tonumber(rawstr) or sym(rawstr, nil, line, filename)
+                    end
+                    dispatch(x)
+                end
+            end
+        until done
+        return true, retval
+    end
 end
 
+--
 -- Compilation
+--
 
 -- Creat a new Scope, optionally under a parent scope. Scopes are compile time constructs
 -- that are responsible for keeping track of local variables, name mangling, and macros.
@@ -333,6 +351,14 @@ local function scopeInside(outer, inner)
         inner = inner.parent
     until not inner
     return false
+end
+
+-- Assert a condition and raise a compile error with line numbers. The ast arg
+-- should be unmodified so that its first element is the form being called.
+local function assertCompile(condition, msg, ast)
+    return assert(condition, string.format("Compile error in `%s' %s:%s: %s",
+    ast[1][1], ast.filename or "unknown",
+    ast.line or '?', msg))
 end
 
 local GLOBAL_SCOPE = makeScope()
@@ -367,11 +393,11 @@ local function isMultiSym(str)
         parts[#parts + 1] = part
     end
     return #parts > 0 and
-        str:match('%.') and
-        (not str:match('%.%.')) and
-        str:byte() ~= string.byte '.' and
-        str:byte(-1) ~= string.byte '.' and
-        parts
+    str:match('%.') and
+    (not str:match('%.%.')) and
+    str:byte() ~= string.byte '.' and
+    str:byte(-1) ~= string.byte '.' and
+    parts
 end
 
 -- Creates a symbol from a string by mangling it.
@@ -437,19 +463,53 @@ local function gensym(...)
     return mangling
 end
 
--- Flatten a tree of Lua source code lines.
+-- Flatten a tree of indented Lua source code lines.
 -- Tab is what is used to indent a block. By default it is two spaces.
-local function flattenChunk(chunk, tab, subChunk)
+local function flattenChunkPretty(chunk, tab, depth)
     if type(chunk) == 'string' then
         return chunk
     end
     tab = tab or '  ' -- 2 spaces
     for i = 1, #chunk do
-        local sub = flattenChunk(chunk[i], tab, true)
-        if subChunk then sub = tab .. sub:gsub('\n', '\n' .. tab) end
+        local sub = flattenChunkPretty(chunk[i], tab, depth + 1)
+        if depth > 2 then sub = tab .. sub:gsub('\n', '\n' .. tab) end
         chunk[i] = sub
     end
     return table.concat(chunk, '\n')
+end
+
+-- Place strings from chunk inside out table in a place that corresponds
+-- as best possible with its line number data from parser/emit.
+local function flattenChunkTables(chunk, out, lastLine)
+    if type(chunk) == 'string' then
+        if out[lastLine] then
+            out[lastLine] = out[lastLine] .. " " .. chunk
+        else
+            out[lastLine] = chunk
+        end
+    else
+        lastLine = math.max(chunk.line or 0, lastLine)
+        for _, line in ipairs(chunk) do
+            lastLine = flattenChunkTables(line, out, lastLine)
+        end
+    end
+    return lastLine
+end
+
+-- Turn a chunk into a single code string, either with indentation (default)
+-- or by attempting to preserve line numbering if accurate is true.
+local function flattenChunk(chunk, tab, accurate)
+    if accurate then
+        local out = {}
+        local lineCount = flattenChunkTables(chunk, out, 1)
+        -- fill in the gaps
+        for i = 1, lineCount do
+            if not out[i] then out[i] = "" end
+        end
+        return table.concat(out, "\n")
+    else
+        return flattenChunkPretty(chunk, tab, 0)
+    end
 end
 
 -- Convert expressions to Lua string
@@ -461,53 +521,58 @@ local function exprs1(exprs)
     return table.concat(t, ', ')
 end
 
+local function emit(chunk, out, ast)
+    table.insert(chunk, {out, line = ast and ast.line})
+end
+
 -- Compile sideffects for a chunk
-local function keepSideEffects(exprs, chunk, start)
+local function keepSideEffects(exprs, chunk, start, ast)
     start = start or 1
     for j = start, #exprs do
         local se = exprs[j]
         if se.type == 'expression' then
-            chunk[#chunk + 1] = ('do local _ = %s end'):format(tostring(se))
+            emit(chunk, ('do local _ = %s end'):format(tostring(se)), ast)
         elseif se.type == 'statement' then
-            chunk[#chunk + 1] = tostring(se)
+            emit(chunk, tostring(se), ast)
         end
     end
-end
-
--- Make sure a list of expression has the correct arity
--- Modify exprs
-local function checkNval(exprs, parent, n)
-    if n ~= #exprs then
-        local len = #exprs
-        if len > n then
-            -- Drop extra
-            keepSideEffects(exprs, parent, n + 1)
-            for i = n, len do
-                exprs[i] = nil
-            end
-        else
-            -- Pad with nils
-            for i = #exprs + 1, n do
-                exprs[i] = expr('nil', 'literal')
-            end
-        end
-    end
-    return exprs
 end
 
 -- Does some common handling of returns and register
--- targets for special forms.
-local function handleCompileOpts(exprs, parent, opts)
+-- targets for special forms. Also ensures a list expression
+-- has an accetable number of expressions if opts contains the
+-- "nval" option.
+local function handleCompileOpts(exprs, parent, opts, ast)
     if opts.nval then
-        checkNval(exprs, parent, opts.nval)
+        local n = opts.nval
+        if n ~= #exprs then
+            local len = #exprs
+            if len > n then
+                -- Drop extra
+                keepSideEffects(exprs, parent, n + 1, ast)
+                for i = n, len do
+                    exprs[i] = nil
+                end
+            else
+                -- Pad with nils
+                for i = #exprs + 1, n do
+                    exprs[i] = expr('nil', 'literal')
+                end
+            end
+        end
     end
     if opts.tail then
-        parent[#parent + 1] = ('return %s'):format(exprs1(exprs))
+        emit(parent, ('return %s'):format(exprs1(exprs)), ast)
     end
     if opts.target then
-        parent[#parent + 1] = ('%s = %s'):format(opts.target, exprs1(exprs))
+        emit(parent, ('%s = %s'):format(opts.target, exprs1(exprs)), ast)
     end
     if opts.tail or opts.target then
+        -- Prevent statements and expression from being used twice if they
+        -- have side-effects. Since if the target or tail options are set,
+        -- the expressions are already emitted, we should not return them. This
+        -- is fine, as when these options are set, the caller doesn't need the result
+        -- anyways.
         exprs = {}
     end
     return exprs
@@ -526,7 +591,9 @@ end
 -- the 'opts' param contains info about where the form is being compiled.
 -- Options include:
 --   'target' - mangled name of symbol(s) being compiled to.
---   'tail' - boolean indicating tail position if set.
+--      Could be one variable, 'a', or a list, like 'a, b, _0_'.
+--   'tail' - boolean indicating tail position if set. If set, form will generate a return
+--   instruction.
 local function compile1(ast, scope, parent, opts)
     opts = opts or {}
     local exprs = {}
@@ -549,10 +616,11 @@ local function compile1(ast, scope, parent, opts)
             -- as well as lists or expressions
             if type(exprs) == 'string' then exprs = expr(exprs, 'expression') end
             if getmetatable(exprs) == EXPR_MT then exprs = {exprs} end
+            -- Unless the special form explicitely handles the target, tail, and nval properties,
+            -- (indicated via the 'returned' flag, handle these options.
             if not exprs.returned then
-                exprs = handleCompileOpts(exprs, parent, opts)
-            end
-            if opts.tail or opts.target then
+                exprs = handleCompileOpts(exprs, parent, opts, ast)
+            elseif opts.tail or opts.target then
                 exprs = {}
             end
             exprs.returned = true
@@ -577,16 +645,16 @@ local function compile1(ast, scope, parent, opts)
                     end
                 else
                     -- Emit sub expression only for side effects
-                    keepSideEffects(subexprs, parent, 2)
+                    keepSideEffects(subexprs, parent, 2, ast[i])
                 end
             end
             local call = ('%s(%s)'):format(tostring(fcallee), exprs1(fargs))
-            exprs = handleCompileOpts({expr(call, 'statement')}, parent, opts)
+            exprs = handleCompileOpts({expr(call, 'statement')}, parent, opts, ast)
         end
     elseif isVarg(ast) then
-        exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts)
+        exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts, ast)
     elseif isSym(ast) then
-        exprs = handleCompileOpts({expr(stringMangle(ast[1], scope), 'sym')}, parent, opts)
+        exprs = handleCompileOpts({expr(stringMangle(ast[1], scope), 'sym')}, parent, opts, ast)
     elseif type(ast) == 'nil' or type(ast) == 'boolean' then
         exprs = handleCompileOpts({expr(tostring(ast), 'literal')}, parent, opts)
     elseif type(ast) == 'number' then
@@ -608,7 +676,7 @@ local function compile1(ast, scope, parent, opts)
             end
         end
         local tbl = '({' .. table.concat(buffer, ', ') ..'})'
-        exprs = handleCompileOpts({expr(tbl, 'expression')}, parent, opts)
+        exprs = handleCompileOpts({expr(tbl, 'expression')}, parent, opts, ast)
     else
         error('could not compile value of type ' .. type(ast))
     end
@@ -622,11 +690,11 @@ end
 local function destructure1(left, rightexprs, scope, parent, nonlocal)
     local setter = nonlocal and "%s = %s" or "local %s = %s"
     if isSym(left) then
-        parent[#parent + 1] = (setter):
-            format(stringMangle(left[1], scope), exprs1(rightexprs))
+        emit(parent, (setter):
+                 format(stringMangle(left[1], scope), exprs1(rightexprs)))
     elseif isTable(left) then -- table destructuring
         local s = gensym(scope)
-        parent[#parent + 1] = (setter):format(s, exprs1(rightexprs))
+        emit(parent, (setter):format(s, exprs1(rightexprs)))
         for i, v in ipairs(left) do
             local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
             destructure1(v, {subexpr}, scope, parent, nonlocal)
@@ -643,9 +711,9 @@ local function destructure1(left, rightexprs, scope, parent, nonlocal)
             end
             table.insert(leftNames, symname)
         end
-        parent[#parent + 1] = (setter):
-            format(table.concat(leftNames, ", "), exprs1(rightexprs))
-        for i, pair in pairs(tables) do -- recurse if left-side tables found
+        emit(parent, (setter):
+                 format(table.concat(leftNames, ", "), exprs1(rightexprs)))
+        for _, pair in pairs(tables) do -- recurse if left-side tables found
             destructure1(pair[1], {pair[2]}, scope, parent, nonlocal)
         end
     else
@@ -675,7 +743,7 @@ local function values(ast, scope, parent)
             end
         else
             -- Emit sub expression only for side effects
-            keepSideEffects(subexprs, parent, 2)
+            keepSideEffects(subexprs, parent, 2, ast)
         end
     end
     return exprs
@@ -722,18 +790,18 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
                 retexprs[i] = expr(s, 'sym')
             end
             outerTarget = table.concat(syms, ', ')
-            parent[#parent + 1] = ('local %s'):format(outerTarget)
-            parent[#parent + 1] = 'do'
+            emit(parent, ('local %s'):format(outerTarget), ast)
+            emit(parent, 'do', ast)
         else
             -- We will use an IIFE for the do
             local fname = gensym(scope)
-            parent[#parent + 1] = ('local function %s()'):format(fname)
+            emit(parent, ('local function %s()'):format(fname), ast)
             retexprs = expr(fname .. '()', 'statement')
             outerTail = true
             outerTarget = nil
         end
     else
-        parent[#parent + 1] = 'do'
+        emit(parent, 'do', ast)
     end
     -- Compile the body
     if start > len then
@@ -746,18 +814,18 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     else
         for i = start, len do
             local subopts = {
-                nval = i ~= len and 0 or nil,
+                nval = i ~= len and 0 or opts.nval,
                 tail = i == len and outerTail or nil,
                 target = i == len and outerTarget or nil
             }
             local subexprs = compile1(ast[i], subScope, chunk, subopts)
             if i ~= len then
-                keepSideEffects(subexprs, parent)
+                keepSideEffects(subexprs, parent, nil, ast[i])
             end
         end
     end
-    parent[#parent + 1] = chunk
-    parent[#parent + 1] = 'end'
+    emit(parent, chunk, ast)
+    emit(parent, 'end', ast)
     return retexprs
 end
 
@@ -784,15 +852,16 @@ SPECIALS['fn'] = function(ast, scope, parent)
         isLocalFn = true
         fnName = gensym(scope)
     end
-    local argList = assert(isTable(ast[index]), 'expected vector arg list [a b ...]')
+    local argList = assertCompile(isTable(ast[index]),
+                                  'expected vector arg list [a b ...]', ast)
     local argNameList = {}
     for i = 1, #argList do
         if isVarg(argList[i]) then
             argNameList[i] = '...'
             fScope.vararg = true
         else
-            argNameList[i] = stringMangle(assert(isSym(argList[i]),
-            'expected symbol for function parameter')[1], fScope)
+            argNameList[i] = stringMangle(assertCompile(isSym(argList[i]),
+            'expected symbol for function parameter', ast)[1], fScope)
         end
     end
     for i = index + 1, ast.n do
@@ -802,14 +871,14 @@ SPECIALS['fn'] = function(ast, scope, parent)
         })
     end
     if isLocalFn then
-        parent[#parent + 1] = ('local function %s(%s)')
-        :format(fnName, table.concat(argNameList, ', '))
+        emit(parent, ('local function %s(%s)')
+                 :format(fnName, table.concat(argNameList, ', ')), ast)
     else
-        parent[#parent + 1] = ('%s = function(%s)')
-        :format(fnName, table.concat(argNameList, ', '))
+        emit(parent, ('%s = function(%s)')
+                 :format(fnName, table.concat(argNameList, ', ')), ast)
     end
-    parent[#parent + 1] = fChunk
-    parent[#parent + 1] = 'end'
+    emit(parent, fChunk, ast)
+    emit(parent, 'end', ast)
     return fnName
 end
 
@@ -831,10 +900,13 @@ SPECIALS['$'] = function(ast, scope, parent)
     end
     walk(ast)
     local fargs = {}
-    for i = 1, maxArg do table.insert(fargs, sym('$' .. i)) end
+    for i = 1, maxArg do
+        table.insert(fargs, sym('$' .. i), nil, ast.line, ast.filename)
+    end
     table.remove(ast, 1)
     ast.n = ast.n - 1
-    return SPECIALS.fn({'', sym('$$'), fargs, ast, n = 4}, scope, parent)
+    return SPECIALS.fn({'', sym('$$', nil, ast.line, ast.filename),
+                        fargs, ast, n = 4}, scope, parent)
 end
 
 SPECIALS['luaexpr'] = function(ast)
@@ -846,17 +918,21 @@ SPECIALS['luastatement'] = function(ast)
 end
 
 SPECIALS['lambda'] = function(ast, scope, parent)
-    assert(ast.n >= 3, "lambda missing body expression")
+    assertCompile(ast.n >= 3, "missing body expression", ast)
     local arglist = ast[2]
     local checks = {}
     for _, arg in ipairs(arglist) do
         if not arg[1]:match("^?") and arg[1] ~= "..." then
             table.insert(checks, 1,
-                         list(sym("assert"), list(sym('~='), nil, arg),
-                              "Missing argument: " .. arg[1]))
+                         list(sym("assert", ast.line, ast.filename),
+                              list(sym('~='), nil, arg),
+                              string.format("Missing argument %s on %s:%s",
+                                            arg[1], ast.filename or 'unknown', ast.line or '?')))
         end
     end
-    local new = list(sym("lambda"), arglist, unpack(checks))
+    local new = list(sym("lambda", ast[1].line, ast[1].filename),
+                     arglist, unpack(checks))
+    new.line, new.filename = ast.line, ast.filename
     for i = 3, ast.n do
         table.insert(new, ast[i])
         new.n = new.n + 1
@@ -865,46 +941,63 @@ SPECIALS['lambda'] = function(ast, scope, parent)
 end
 SPECIALS['λ'] = SPECIALS['lambda']
 
+SPECIALS['partial'] = function(ast, scope, parent)
+    local f = ast[2]
+    local innerArgs = {}
+    for i = 3, ast.n do table.insert(innerArgs, ast[i]) end
+    table.insert(innerArgs, VARARG)
+    local new = list(sym("fn", ast[1].line, ast[1].filename),
+                     {VARARG}, list(f, unpack(innerArgs)))
+    new.line, new.filename = ast.line, ast.filename
+    return SPECIALS.fn(new, scope, parent)
+end
+
 SPECIALS['special'] = function(ast, scope, parent)
-    assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare special forms in \'eval-compiler\'')
-    assert(isSym(ast[2]), "expected symbol for name of special form")
+    assertCompile(scopeInside(COMPILER_SCOPE, scope),
+                  "can only declare special forms in 'eval-compiler'", ast)
+    assertCompile(isSym(ast[2]), "expected symbol for name of special form", ast)
     local specname = tostring(ast[2])
     local spec = SPECIALS.fn(ast, scope, parent, {nval = 1})[1]
-    parent[#parent + 1] = ('_SCOPE.specials[%q] = %s'):format(
-        stringMangle(specname, scope), tostring(spec))
+    emit(parent, ('_SCOPE.specials[%q] = %s'):format(
+             stringMangle(specname, scope), tostring(spec)), ast)
 end
 
 SPECIALS['macro'] = function(ast, scope, parent, opts)
-    assert(scopeInside(COMPILER_SCOPE, scope), 'can only declare macros in \'eval-compiler\'')
+    assertCompile(scopeInside(COMPILER_SCOPE, scope),
+                  "can only declare macros in 'eval-compiler'", ast)
     local mac = SPECIALS.fn(ast, scope, parent, opts)[1]
     local macroName = tostring(mac) -- the fn special form always returns a value
     local s = gensym(scope)
-    parent[#parent + 1] = ('local function %s(ast, scope, chunk, opts)'):format(s)
-    parent[#parent + 1] = {
-        'local unpack = table.unpack or unpack',
-        ('return _FNL.compile1(%s(unpack(ast, 2, ast.n)), scope, chunk, opts)'):format(macroName)
-    }
-    parent[#parent + 1] = 'end'
-    parent[#parent + 1] = ('_SCOPE.specials[%s] = %s'):format(macroName, s)
+    emit(parent, ('local function %s(ast, scope, chunk, opts)'):format(s), ast)
+    emit(parent, {'local unpack = table.unpack or unpack',
+                  ('return _FNL.compile1(%s(unpack(ast, 2, ast.n)), scope, chunk, opts)')
+                      :format(macroName)}, ast)
+    emit(parent, 'end', ast)
+    emit(parent, ('_SCOPE.specials[%s] = %s'):format(macroName, s), ast)
 end
 
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
-    assert(ast.n == 3, ". expected table and key argument")
+    assertCompile(ast.n == 3, "expected table and key argument", ast)
     local lhs = compile1(ast[2], scope, parent, {nval = 1})
     local rhs = compile1(ast[3], scope, parent, {nval = 1})
     return ('%s[%s]'):format(tostring(lhs[1]), tostring(rhs[1]))
 end
 
 SPECIALS['set'] = function(ast, scope, parent)
-    assert(ast.n == 3, "expected name and value to set")
+    assertCompile(ast.n == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], scope, parent, true)
+end
+
+SPECIALS['local'] = function(ast, scope, parent)
+    assertCompile(ast.n == 3, "expected name and value", ast)
+    destructure(ast[2], ast[3], scope, parent, false)
 end
 
 SPECIALS['let'] = function(ast, scope, parent, opts)
     local bindings = ast[2]
-    assert(isTable(bindings), 'expected table for destructuring')
-    assert(ast.n >= 3, 'let form missing body expression')
+    assertCompile(isTable(bindings), 'expected table for destructuring', ast)
+    assertCompile(ast.n >= 3, 'missing body expression', ast)
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, bindings.n or #bindings, 2 do
@@ -922,7 +1015,9 @@ SPECIALS['tset'] = function(ast, scope, parent)
         keys[#keys + 1] = tostring(key)
     end
     local value = compile1(ast[ast.n], scope, parent, {nval = 1})[1]
-    parent[#parent + 1] = ('%s[%s] = %s'):format(tostring(root), table.concat(keys, ']['), tostring(value))
+    emit(parent, ('%s[%s] = %s'):format(tostring(root),
+                                        table.concat(keys, ']['),
+                                        tostring(value)), ast)
 end
 
 -- The if special form behaves like the cond form in
@@ -991,14 +1086,14 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     end
 
     if wrapper == 'iife' then
-        parent[#parent + 1] = ('local function %s()'):format(tostring(s))
-        parent[#parent + 1] = buffer
-        parent[#parent + 1] = 'end'
+        emit(parent, ('local function %s()'):format(tostring(s)), ast)
+        emit(parent, buffer, ast)
+        emit(parent, 'end', ast)
         return expr(('%s()'):format(tostring(s)), 'statement')
     elseif wrapper == 'none' then
         -- Splice result right into code
         for i = 1, #buffer do
-            parent[#parent + 1] = buffer[i]
+            emit(parent, buffer[i], ast)
         end
         return {returned = true}
     end
@@ -1006,9 +1101,14 @@ end
 
 -- (when condition body...) => []
 SPECIALS['when'] = function(ast, scope, parent, opts)
+    assertCompile(ast.n > 2, 'expected body', ast)
     table.remove(ast, 1)
     local condition = table.remove(ast, 1)
-    local new_ast = list(sym("if"), condition, list(sym("block"), unpack(ast)))
+    ast.n = ast.n - 2
+    local body = list(sym("do", ast[1].line, ast[1].filename), unpack(ast))
+    local new_ast = list(sym("if"), condition, body)
+    new_ast.line, body.line = ast.line, ast.line
+    new_ast.filename, body.filename = ast.filename, ast.filename
     return SPECIALS["if"](new_ast, scope, parent, opts)
 end
 
@@ -1019,21 +1119,20 @@ end
 
 -- (each [k v (pairs t)] body...) => []
 SPECIALS['each'] = function(ast, scope, parent)
-    local binding = assert(isTable(ast[2]), 'expected binding table in each')
+    local binding = assertCompile(isTable(ast[2]), 'expected binding table', ast)
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local bindVars = {}
     for _, v in ipairs(binding) do
-        assert(isSym(v), 'expected iterator symbol in each')
+        assertCompile(isSym(v), 'expected iterator symbol', ast)
         table.insert(bindVars, stringMangle(v[1], scope))
     end
-    parent[#parent + 1] = ('for %s in %s do'):format(
-        table.concat(bindVars, ', '),
-        tostring(compile1(iter, scope, parent, {nval = 1})[1]))
+    emit(parent, ('for %s in %s do'):format(
+             table.concat(bindVars, ', '),
+             tostring(compile1(iter, scope, parent, {nval = 1})[1])), ast)
     local chunk = {}
-    local subScope = makeScope(scope)
-    compileDo(ast, subScope, chunk, 3)
-    parent[#parent + 1] = chunk
-    parent[#parent + 1] = 'end'
+    compileDo(ast, scope, chunk, 3)
+    emit(parent, chunk, ast)
+    emit(parent, 'end', ast)
 end
 
 -- (while condition body...) => []
@@ -1044,38 +1143,37 @@ SPECIALS['*while'] = function(ast, scope, parent)
     local subChunk = {}
     if len1 ~= len2 then
         -- Compound condition
-        parent[#parent + 1] = 'while true do'
+        emit(parent, 'while true do', ast)
         -- Move new compilation to subchunk
         for i = len1 + 1, len2 do
             subChunk[#subChunk + 1] = parent[i]
             parent[i] = nil
         end
-        parent[#parent + 1] = ('if %s then break end'):format(condition[1])
+        emit(parent, ('if %s then break end'):format(condition[1]), ast)
     else
         -- Simple condition
-        parent[#parent + 1] = 'while ' .. tostring(condition) .. ' do'
+        emit(parent, 'while ' .. tostring(condition) .. ' do', ast)
     end
     compileDo(ast, makeScope(scope), subChunk, 3)
-    parent[#parent + 1] = subChunk
-    parent[#parent + 1] = 'end'
+    emit(parent, subChunk, ast)
+    emit(parent, 'end', ast)
 end
 
 SPECIALS['for'] = function(ast, scope, parent)
-    local ranges = assert(isTable(ast[2]), 'expected binding table in for')
-    local bindingSym = assert(isSym(table.remove(ast[2], 1)),
-    'expected iterator symbol in for')
+    local ranges = assertCompile(isTable(ast[2]), 'expected binding table', ast)
+    local bindingSym = assertCompile(isSym(table.remove(ast[2], 1)),
+                                     'expected iterator symbol', ast)
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
         rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
     end
-    parent[#parent + 1] = ('for %s = %s do'):format(
-        stringMangle(bindingSym[1], scope),
-        table.concat(rangeArgs, ', '))
+    emit(parent, ('for %s = %s do'):format(
+             stringMangle(bindingSym[1], scope),
+             table.concat(rangeArgs, ', ')), ast)
     local chunk = {}
-    local subScope = makeScope(scope)
-    compileDo(ast, subScope, chunk, 3)
-    parent[#parent + 1] = chunk
-    parent[#parent + 1] = 'end'
+    compileDo(ast, scope, chunk, 3)
+    emit(parent, chunk, ast)
+    emit(parent, 'end', ast)
 end
 
 SPECIALS[':'] = function(ast, scope, parent, opts)
@@ -1087,8 +1185,41 @@ SPECIALS[':'] = function(ast, scope, parent, opts)
 end
 
 -- Do we need this? Is there a more elegnant way to compile with break?
-SPECIALS['*break'] = function(_, _, parent)
-    parent[#parent + 1] = 'break'
+SPECIALS['*break'] = function(ast, _, parent)
+    emit(parent, 'break', ast)
+end
+
+SPECIALS[':'] = function(ast, scope, parent)
+    assertCompile(ast.n >= 3, 'expected at least 3 arguments', ast)
+    -- Compile object
+    local objectexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
+    if objectexpr.type == 'statement' or objectexpr.type == 'expression' then
+        local s = gensym(scope)
+        emit(parent, ('local %s = %s'):format(s, tostring(objectexpr)), ast)
+        objectexpr = expr(s, 'sym')
+    end
+    -- Compile method selector
+    local methodexpr = compile1(ast[3], scope, parent, {nval = 1})[1]
+    -- Compile arguments
+    local args = {}
+    for i = 4, ast.n do
+        local subexprs = compile1(ast[i], scope, parent, {
+            nval = i ~= ast.n and 1 or nil
+        })
+        for j = 1, #subexprs do
+            args[#args + 1] = tostring(subexprs[j])
+        end
+    end
+    -- Make object first argument
+    table.insert(args, 1, tostring(objectexpr))
+    -- Wrap literals in parens (strings)
+    local fstring = objectexpr.type == 'literal'
+        and '(%s)[%s](%s)'
+        or '%s[%s](%s)'
+    return expr(fstring:format(
+        tostring(objectexpr),
+        tostring(methodexpr),
+        table.concat(args, ', ')), 'statement')
 end
 
 local function defineArithmeticSpecial(name, unaryPrefix)
@@ -1129,6 +1260,7 @@ defineArithmeticSpecial('and')
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
+        assertCompile(ast.n == 3, 'expected two arguments', ast)
         local lhs = compile1(ast[2], scope, parent, {nval = 1})
         local rhs = compile1(ast[3], scope, parent, {nval = 1})
         return ('((%s) %s (%s))'):format(tostring(lhs[1]), op, tostring(rhs[1]))
@@ -1157,16 +1289,15 @@ local function compile(ast, options)
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
-    keepSideEffects(exprs, chunk)
-    return flattenChunk(chunk, options.indent)
+    keepSideEffects(exprs, chunk, nil, ast)
+    return flattenChunk(chunk, options.indent, options.accurate)
 end
 
 local function compileStream(strm, options)
     options = options or {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local vals = {}
-    while true do
-        local ok, val = parse(strm)
+    for ok, val in parser(strm, options.filename) do
         if not ok then break end
         vals[#vals + 1] = val
     end
@@ -1175,9 +1306,9 @@ local function compileStream(strm, options)
         local exprs = compile1(vals[i], scope, chunk, {
             tail = i == #vals
         })
-        keepSideEffects(exprs, chunk)
+        keepSideEffects(exprs, chunk, nil, vals[i])
     end
-    return flattenChunk(chunk, options.indent)
+    return flattenChunk(chunk, options.indent, options.accurate)
 end
 
 local function compileString(str, options)
@@ -1214,11 +1345,12 @@ local function repl(givenOptions)
         local input = options.read()
         return input and input .. '\n'
     end)
+    local read = parser(bytestream)
     while true do
-        local ok, parseok, x = pcall(parse, bytestream)
+        local ok, parseok, x = pcall(read)
         if ok then
             if not parseok then break end -- eof
-            local compileOk, luaSource = pcall(compile, x)
+            local compileOk, luaSource = pcall(compile, x, options)
             if not compileOk then
                 -- Compiler error
                 clearstream()
@@ -1253,7 +1385,7 @@ local function repl(givenOptions)
 end
 
 local module = {
-    parse = parse,
+    parser = parser,
     granulate = granulate,
     stringStream = stringStream,
     compile = compile,

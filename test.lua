@@ -38,6 +38,10 @@ local cases = {
          (f 9 5 (f3 f2)))"]=44,
         -- closures can set variables they close over
         ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
+        -- partial application
+        ["(let [add (fn [x y] (+ x y)) inc (partial add 1)] (inc 99))"]=100,
+        ["(let [add (fn [x y z] (+ x y z)) f2 (partial add 1 2)] (f2 6))"]=9,
+        ["(let [add (fn [x y] (+ x y)) add2 (partial add)] (add2 99 2))"]=101,
         -- functions with empty bodies return nil
         ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
         -- basic lambda
@@ -46,11 +50,14 @@ local cases = {
         ["((lambda [x ...] (+ x 2)) 4)"]=6,
         -- lambdas perform arity checks
         ["(let [(ok e) (pcall (lambda [x] (+ x 2)))]\
-            (string.match e \"Missing argument: x\"))"]="Missing argument: x",
-        ["(let [[ok val] [(pcall (λ [?x] (+ (or ?x 1) 8)))]] (and ok val))"]=9,
-        ["(let [s \"method\"] (: s :find \"hod\"))"]=4,
+            (string.match e \"Missing argument x\"))"]="Missing argument x",
         -- lambda arity checks skip argument names starting with ?
         ["(let [(ok val) (pcall (λ [?x] (+ (or ?x 1) 8)))] (and ok val))"]=9,
+        -- method calls work
+        ["(: :hello :find :e)"]=2,
+        -- method calls don't double side effects
+        ["(do (local a 0) (let [f (fn [] (set a (+ a 1)) :hello)]\
+            (: (f) :find :e)) a)"]=1,
     },
 
     conditionals = {
@@ -79,6 +86,10 @@ local cases = {
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
         -- local names with dashes in them
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
+        -- functions inside each
+        ["(do (each [_ ((fn [] (pairs [1])))] (set i 1)) i)"]=1,
+        -- nested let inside loop
+        ["(do (for [_ 1 3] (let [] (table.concat []) (set a 33))) a)"]=33,
     },
 
     destructuring = {
@@ -99,6 +110,8 @@ local cases = {
         ["(do (set [a b c d] [4 2 43 7]) (+ (* a b) (- c d)))"]=44,
         -- set multiple values
         ["(do (set (a b) ((fn [] (values 4 29)))) (+ a b))"]=33,
+        -- local keyword
+        ["(do (local (-a -b) ((fn [] (values 4 29)))) (+ -a -b))"]=33,
     },
 
     loops = {
@@ -141,11 +154,16 @@ local compile_failures = {
     ["(f"]="unexpected end of source",
     ["(+))"]="unexpected closing delimiter",
     ["(fn)"]="expected vector arg list",
+    ["(fn [12])"]="expected symbol for function parameter",
     ["(lambda [x])"]="missing body",
     ["(let [x 1])"]="missing body",
-    ["(. tbl)"]="table and key argument",
-    ["(each [x 34 (pairs {})] 21)"]="expected iterator symbol",
-    ["(for [32 34 32] 21)"]="expected iterator symbol",
+    -- line numbers
+    ["(set)"]="Compile error in `set' unknown:1: expected name and value",
+    ["(let [b 9\nq (. tbl)] q)"]="2: expected table and key argument",
+    ["(do\n\n\n(each \n[x 34 (pairs {})] 21))"]="4: expected iterator symbol",
+    ["(fn []\n(for [32 34 32] 21))"]="2: expected iterator symbol",
+    ["\n\n(let [f (lambda []\n(local))] (f))"]="4: expected name and value",
+    ["(do\n\n\n(each \n[x (pairs {})] (when)))"]="5: expected body",
 }
 
 print("Running tests for compile errors...")

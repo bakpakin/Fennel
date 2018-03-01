@@ -83,6 +83,8 @@ local cases = {
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         -- functions inside each
         ["(do (each [_ ((fn [] (pairs [1])))] (set i 1)) i)"]=1,
+        -- nested let inside loop
+        ["(for [_ 1 3] (let [] (table.concat []) 33))"]=33,
     },
 
     destructuring = {

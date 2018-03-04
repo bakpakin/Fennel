@@ -691,10 +691,10 @@ local function destructure1(left, rightexprs, scope, parent, nonlocal)
     local setter = nonlocal and "%s = %s" or "local %s = %s"
     if isSym(left) then
         emit(parent, (setter):
-                 format(stringMangle(left[1], scope), exprs1(rightexprs)))
+                 format(stringMangle(left[1], scope), exprs1(rightexprs)), left)
     elseif isTable(left) then -- table destructuring
         local s = gensym(scope)
-        emit(parent, (setter):format(s, exprs1(rightexprs)))
+        emit(parent, (setter):format(s, exprs1(rightexprs)), left)
         for i, v in ipairs(left) do
             local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
             destructure1(v, {subexpr}, scope, parent, nonlocal)
@@ -712,7 +712,7 @@ local function destructure1(left, rightexprs, scope, parent, nonlocal)
             table.insert(leftNames, symname)
         end
         emit(parent, (setter):
-                 format(table.concat(leftNames, ", "), exprs1(rightexprs)))
+                 format(table.concat(leftNames, ", "), exprs1(rightexprs)), left)
         for _, pair in pairs(tables) do -- recurse if left-side tables found
             destructure1(pair[1], {pair[2]}, scope, parent, nonlocal)
         end

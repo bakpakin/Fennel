@@ -1323,6 +1323,12 @@ local function eval(str, options)
     return loader()
 end
 
+local function dofile_fennel(filename)
+    local f = assert(io.open(filename, "rb"))
+    eval(f:read("*all"), { filename = filename, accurate = true })
+    f:close()
+end
+
 -- Implements a configurable repl
 local function repl(givenOptions)
     local options = {
@@ -1398,7 +1404,8 @@ local module = {
     scope = makeScope,
     gensym = gensym,
     eval = eval,
-    repl = repl
+    repl = repl,
+    dofile = dofile_fennel,
 }
 
 SPECIALS['eval-compiler'] = function(ast, scope, parent)

@@ -34,6 +34,11 @@ Evaulate a string of Fennel.
 local result = fennel.eval(str[, options])
 ```
 
+Evaluate a file of Fennel.
+```lua
+local result = fennel.dofile(filename)
+```
+
 Compile a string into Lua. Can throw errors.
 ```lua
 local lua = fennel.compileString(str[, options])

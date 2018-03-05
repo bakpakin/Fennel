@@ -34,18 +34,9 @@ elseif arg[1] == "--compile" then
         if(not ok) then os.exit(1) end
         f:close()
     end
-elseif #arg == 1 then
+elseif #arg == 1 and arg[1] ~= "--help" then
     local filename = table.remove(arg, 1) -- let the script have remaining args
-    local f = io.open(filename, "rb")
-    if f then
-        options.filename = filename
-        local ok, val = pcall(fennel.eval, f:read("*all"), options)
-        print(val)
-        if(not ok) then os.exit(1) end
-        f:close()
-    else
-        print(help)
-    end
+    fennel.dofile(filename)
 else
     print(help)
 end

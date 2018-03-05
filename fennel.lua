@@ -1336,7 +1336,6 @@ local function repl(givenOptions)
         read = io.read,
         write = io.write,
         flush = io.flush,
-        print = print,
     }
     for k,v in pairs(givenOptions or {}) do
         options[k] = v
@@ -1360,24 +1359,26 @@ local function repl(givenOptions)
             if not compileOk then
                 -- Compiler error
                 clearstream()
-                options.print('Compile error: ' .. luaSource)
+                options.write('Compile error: ' .. luaSource .. '\n')
             else
                 local luacompileok, loader = pcall(loadCode, luaSource, env)
                 if not luacompileok then
                     clearstream()
-                    options.print('Bad code generated - likely a bug with the compiler:')
-                    options.print('--- Generated Lua Start ---')
-                    options.print(luaSource)
-                    options.print('--- Generated Lua End ---')
-                    options.print('Compiler error: ' .. loader)
+                    options.write('Bad code generated - likely a bug with the compiler:\n')
+                    options.write('--- Generated Lua Start ---\n')
+                    options.write(luaSource .. '\n')
+                    options.write('--- Generated Lua End ---\n')
+                    options.write('Compiler error: ' .. tostring(loader) .. '\n')
                 else
                     local loadok, ret = xpcall(function () return tpack(loader()) end,
                         function (runtimeErr)
                             -- We can do more sophisticated display here
-                            options.print(runtimeErr)
+                            options.write(tostring(runtimeErr) .. '\n')
                         end)
                     if loadok then
-                        options.print(unpack(ret, 1, ret.n))
+                        for i = 1, ret.n do ret[i] = tostring(ret[i]) end
+                        options.write(unpack(ret, 1, ret.n))
+                        options.write('\n')
                         env._ = ret[1]
                         env.__ = ret
                     end

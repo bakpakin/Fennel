@@ -22,16 +22,33 @@ Eventually, I also hope to add optional source maps, either embedded in the comm
 
 ## Lua API
 
-The fennel module exports the following functions:
+The fennel module exports the following functions. Most functions take
+an `indent` function to override how to indent the compiled Lua output
+or an `accurate` function to ignore indentation and attempt to make
+the lines in the output code match up with the lines in the input code.
 
 Start a configurable repl.
 ```lua
 fennel.repl([options])
 ```
+Takes these additional options:
+
+* `read`, `write`, and `flush`: replacements for equivalents from `io` table.
+* `env`: an environment table in which to run the code; see the Lua manual.
 
 Evaulate a string of Fennel.
 ```lua
 local result = fennel.eval(str[, options])
+```
+
+Takes these additional options:
+
+* `env`: same as above.
+* `filename`: override the filename that Lua thinks the code came from.
+
+Evaluate a file of Fennel.
+```lua
+local result = fennel.dofile(filename)
 ```
 
 Compile a string into Lua. Can throw errors.

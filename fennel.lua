@@ -1409,7 +1409,24 @@ local module = {
     eval = eval,
     repl = repl,
     dofile = dofile_fennel,
+    path = "./?.fnl",
 }
+
+-- This will allow regular `require` to work with Fennel:
+-- table.insert(package.loaders, fennel.searcher)
+module.searcher = function(modulename)
+    modulename = modulename:gsub("%.", "/")
+    for path in string.gmatch(module.path..";", "([^;]*);") do
+        local filename = path:gsub("%?", modulename)
+        local file = io.open(filename, "rb")
+        if(file) then
+            file:close()
+            return function()
+                return dofile_fennel(filename)
+            end
+        end
+    end
+end
 
 SPECIALS['eval-compiler'] = function(ast, scope, parent)
     local oldFirst = ast[1]

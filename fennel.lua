@@ -965,15 +965,15 @@ end
 SPECIALS['macro'] = function(ast, scope, parent, opts)
     assertCompile(scopeInside(COMPILER_SCOPE, scope),
                   "can only declare macros in 'eval-compiler'", ast)
-    local mac = SPECIALS.fn(ast, scope, parent, opts)[1]
-    local macroName = tostring(mac) -- the fn special form always returns a value
+    local macroName = SPECIALS.fn(ast, scope, parent, opts)
+
     local s = gensym(scope)
     emit(parent, ('local function %s(ast, scope, chunk, opts)'):format(s), ast)
     emit(parent, {'local unpack = table.unpack or unpack',
                   ('return _FNL.compile1(%s(unpack(ast, 2, ast.n)), scope, chunk, opts)')
                       :format(macroName)}, ast)
     emit(parent, 'end', ast)
-    emit(parent, ('_SCOPE.specials[%s] = %s'):format(macroName, s), ast)
+    emit(parent, ('_SCOPE.specials[\'%s\'] = %s'):format(macroName, s), ast)
 end
 
 -- Wrapper for table access
@@ -1431,13 +1431,11 @@ end
 SPECIALS['eval-compiler'] = function(ast, scope, parent)
     local oldFirst = ast[1]
     ast[1] = sym('do')
-    local luaSource = compile(ast, {
-        scope = makeScope(COMPILER_SCOPE)
-    })
+    local luaSource = compile(ast, { scope = COMPILER_SCOPE })
     ast[1] = oldFirst
     local env = setmetatable({
         _FNL = module,
-        _SCOPE = scope,
+        _SCOPE = COMPILER_SCOPE,
         _CHUNK = parent,
         _AST = ast,
         _IS_COMPILER = true

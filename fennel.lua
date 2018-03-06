@@ -1325,10 +1325,9 @@ end
 
 local function dofile_fennel(filename)
     local f = assert(io.open(filename, "rb"))
-    local vals = tpack(eval(f:read("*all"), { filename = filename,
-                                              accurate = true }))
+    local source = f:read("*all")
     f:close()
-    return unpack(vals)
+    return eval(source, { filename = filename, accurate = true })
 end
 
 -- Implements a configurable repl

@@ -1254,6 +1254,7 @@ defineArithmeticSpecial('-', '')
 defineArithmeticSpecial('*')
 defineArithmeticSpecial('%')
 defineArithmeticSpecial('/', 1)
+defineArithmeticSpecial('//', 1)
 defineArithmeticSpecial('or')
 defineArithmeticSpecial('and')
 

@@ -8,8 +8,9 @@ Usage: fennel [FLAG] [FILE]
 
   --repl          :  Launch an interactive repl session
   --compile FILES :  Compile files and write their Lua to stdout
+  --help          :  Display this text
 
-  With a single file argument, runs that file.]]
+  When not given a flag, runs the file given as the first argument.]]
 
 local flags = {"--accurate"}
 local options = {}
@@ -34,9 +35,9 @@ elseif arg[1] == "--compile" then
         if(not ok) then os.exit(1) end
         f:close()
     end
-elseif #arg == 1 and arg[1] ~= "--help" then
+elseif #arg >= 1 and arg[1] ~= "--help" then
     local filename = table.remove(arg, 1) -- let the script have remaining args
-    local ok, val = pcall(fennel.dofile, filename)
+    local ok, val = pcall(fennel.dofile, filename, { accurate=true })
     if(not ok) then
         print(val)
         os.exit(1)

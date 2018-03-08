@@ -150,6 +150,53 @@ for name, tests in pairs(cases) do
     end
 end
 
+-- can't define and use a macro in the same eval
+fennel.eval([[(eval-compiler
+  (macro -> [val ...]
+    (each [_ elt (pairs [...])]
+      (table.insert elt 2 val)
+      (set elt.n (+ 1 elt.n))
+      (set val elt))
+    val)
+  (macro defn [name args ...]
+    (list (sym "set") name
+      (list (sym "fn") args ...)))
+  (special reverse-it [ast scope parent opts]
+    (tset ast 1 "do")
+    (for [i 2 (math.ceil (/ ast.n 2))]
+      (let [a (. ast i) b (. ast (- ast.n (- i 2)))]
+        (tset ast (- ast.n (- i 2)) a)
+        (tset ast i b)))
+    (_SPECIALS.do ast scope parent opts))
+)]])
+
+local macro_cases = {
+    -- just a boring old set+fn combo
+    ["(defn hui [x y] (set z (+ x y))) (hui 8 4) z"]=12,
+    -- macros with mangled names
+    ["(-> 9 (+ 2) (* 11))"]=121,
+    -- special form
+    ["(reverse-it 1 2 3 4 5 6)"]=1,
+}
+
+print("Running tests for macro system...")
+for code, expected in pairs(macro_cases) do
+    local ok, res = pcall(fennel.eval, code)
+    if not ok then
+        err = err + 1
+        print(" Error: " .. res .. " in: ".. fennel.compile(code))
+    else
+        local actual = fennel.eval(code)
+        if expected ~= actual then
+            fail = fail + 1
+            print(" Expected " .. tostring(actual) ..
+                      " to be " .. tostring(expected))
+        else
+            pass = pass + 1
+        end
+    end
+end
+
 local compile_failures = {
     ["(f"]="unexpected end of source",
     ["(+))"]="unexpected closing delimiter",

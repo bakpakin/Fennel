@@ -20,6 +20,9 @@ Current features include:
 
 Eventually, I also hope to add optional source maps, either embedded in the comments of the generated code, or in separate files. An optional standard library also needs to be made.
 
+There is a `#fennel` IRC channel on Freenode where some Fennel users
+and contributors discuss.
+
 ## Lua API
 
 The fennel module exports the following functions. Most functions take

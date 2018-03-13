@@ -71,6 +71,8 @@ local cases = {
         ["(if non-existent 1 (* 3 9))"]=27,
         -- when is for side-effects
         ["(do (when true (set a 192) (set z 12)) (+ z a))"]=204,
+        -- when treats nil as falsey
+        ["(do (set a 884) (when nil (set a 192)) a)"]=884,
         -- when body does not run on false
         ["(do (when (= 12 88) (os.exit 1)) false)"]=false,
     },
@@ -150,7 +152,6 @@ for name, tests in pairs(cases) do
     end
 end
 
--- can't define and use a macro in the same eval
 fennel.eval([[(eval-compiler
   (macro -> [val ...]
     (each [_ elt (pairs [...])]
@@ -202,8 +203,15 @@ local compile_failures = {
     ["(+))"]="unexpected closing delimiter",
     ["(fn)"]="expected vector arg list",
     ["(fn [12])"]="expected symbol for function parameter",
+    ["(fn [:huh] 4)"]="expected symbol for function parameter",
+    ["(fn [false] 4)"]="expected symbol for function parameter",
+    ["(fn [nil] 4)"]="expected symbol for function parameter",
     ["(lambda [x])"]="missing body",
     ["(let [x 1])"]="missing body",
+    ["(let [x 1 y] 8)"]="expected even number of name/value bindings",
+    ["(let [:x 1] 1)"]="unable to destructure",
+    ["(let [false 1] 9)"]="unable to destructure false",
+    ["(let [nil 1] 9)"]="unable to destructure nil",
     -- line numbers
     ["(set)"]="Compile error in `set' unknown:1: expected name and value",
     ["(let [b 9\nq (. tbl)] q)"]="2: expected table and key argument",

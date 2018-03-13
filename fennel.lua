@@ -997,7 +997,9 @@ end
 SPECIALS['let'] = function(ast, scope, parent, opts)
     local bindings = ast[2]
     assertCompile(isList(bindings) or isTable(bindings),
-        'expected table for destructuring', ast)
+                  'expected table for destructuring', ast)
+    assertCompile((bindings.n or #bindings) % 2 == 0,
+                  'expected even number of name/value bindings', ast)
     assertCompile(ast.n >= 3, 'missing body expression', ast)
     local subScope = makeScope(scope)
     local subChunk = {}

@@ -61,7 +61,7 @@ local result = fennel.dofile(filename)
 
 ```lua
 table.insert(package.loaders, fennel.searcher)
-local mylib = require("mylib") ; will compile and load code in mylib.fnl
+local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
 Normally Lua's `require` function only loads modules written in Lua,
@@ -77,7 +77,7 @@ If you install Fennel into `package.loaders` then you can use the
 3rd-party [lume.hotswap](https://github.com/rxi/lume#lumehotswapmodname) 
 function to reload modules that have been loaded with `require`.
 
-### Compile a string into Lua. Can throw errors.
+### Compile a string into Lua (can throw errors)
 
 ```lua
 local lua = fennel.compileString(str[, options])

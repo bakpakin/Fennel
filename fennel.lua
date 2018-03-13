@@ -915,7 +915,7 @@ SPECIALS['lambda'] = function(ast, scope, parent)
         if not arg[1]:match("^?") and arg[1] ~= "..." then
             table.insert(checks, 1,
                          list(sym("assert", ast.line, ast.filename),
-                              list(sym('~='), nil, arg),
+                              list(sym('~='), sym('nil'), arg),
                               string.format("Missing argument %s on %s:%s",
                                             arg[1], ast.filename or 'unknown', ast.line or '?')))
         end

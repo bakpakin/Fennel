@@ -90,6 +90,8 @@ local cases = {
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         -- functions inside each
         ["(do (each [_ ((fn [] (pairs [1])))] (set i 1)) i)"]=1,
+        -- let with nil value
+        ["(let [x 3 y nil z 293] z)"]=293,
         -- nested let inside loop
         ["(do (for [_ 1 3] (let [] (table.concat []) (set a 33))) a)"]=33,
     },
@@ -164,9 +166,9 @@ fennel.eval([[(eval-compiler
       (list (sym "fn") args ...)))
   (special reverse-it [ast scope parent opts]
     (tset ast 1 "do")
-    (for [i 2 (math.ceil (/ ast.n 2))]
-      (let [a (. ast i) b (. ast (- ast.n (- i 2)))]
-        (tset ast (- ast.n (- i 2)) a)
+    (for [i 2 (math.ceil (/ (# ast) 2))]
+      (let [a (. ast i) b (. ast (- (# ast) (- i 2)))]
+        (tset ast (- (# ast) (- i 2)) a)
         (tset ast i b)))
     (_SPECIALS.do ast scope parent opts))
 )]])

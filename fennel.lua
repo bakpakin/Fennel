@@ -298,7 +298,7 @@ local function parser(getbyte, filename)
                 until not b or not issymbolchar(b)
                 if b then ungetb(b) end
                 local rawstr = string.char(unpack(chars))
-                if rawstr == 'nil' then dispatch(nil)
+                if rawstr == 'nil' then dispatch(sym("nil"))
                 elseif rawstr == 'true' then dispatch(true)
                 elseif rawstr == 'false' then dispatch(false)
                 elseif rawstr == '...' then dispatch(VARARG)
@@ -689,7 +689,7 @@ end
 -- Implements destructuring for forms like let, bindings, etc.
 local function destructure1(left, rightexprs, scope, parent, nonlocal)
     local setter = nonlocal and "%s = %s" or "local %s = %s"
-    if isSym(left) then
+    if isSym(left) and left[1] ~= "nil" then
         emit(parent, (setter):
                  format(stringMangle(left[1], scope), exprs1(rightexprs)), left)
     elseif isTable(left) then -- table destructuring
@@ -859,9 +859,10 @@ SPECIALS['fn'] = function(ast, scope, parent)
         if isVarg(argList[i]) then
             argNameList[i] = '...'
             fScope.vararg = true
+        elseif isSym(argList[i]) and argList[i][1] ~= "nil" then
+            argNameList[i] = stringMangle(argList[i][1], fScope)
         else
-            argNameList[i] = stringMangle(assertCompile(isSym(argList[i]),
-            'expected symbol for function parameter', ast)[1], fScope)
+            assertCompile(false, 'expected symbol for function parameter', ast)
         end
     end
     for i = index + 1, ast.n do

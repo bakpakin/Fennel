@@ -90,6 +90,8 @@ local cases = {
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         -- functions inside each
         ["(do (each [_ ((fn [] (pairs [1])))] (set i 1)) i)"]=1,
+        -- let with nil value
+        ["(let [x 3 y nil z 293] z)"]=293,
         -- nested let inside loop
         ["(do (for [_ 1 3] (let [] (table.concat []) (set a 33))) a)"]=33,
     },

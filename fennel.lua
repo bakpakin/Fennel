@@ -1258,7 +1258,6 @@ defineArithmeticSpecial('and')
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
-        if (#ast ~= 3) then print(ast) end
         assertCompile(#ast == 3, 'expected two arguments', ast)
         local lhs = compile1(ast[2], scope, parent, {nval = 1})
         local rhs = compile1(ast[3], scope, parent, {nval = 1})

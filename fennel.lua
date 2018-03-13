@@ -288,8 +288,7 @@ local function parser(getbyte, filename)
                 until not b or not issymbolchar(b)
                 if b then ungetb(b) end
                 local rawstr = string.char(unpack(chars))
-                if rawstr == 'nil' then dispatch(sym("nil"))
-                elseif rawstr == 'true' then dispatch(true)
+                if rawstr == 'true' then dispatch(true)
                 elseif rawstr == 'false' then dispatch(false)
                 elseif rawstr == '...' then dispatch(VARARG)
                 elseif rawstr:match('^:[%w_-]+$') then -- keyword style strings
@@ -644,7 +643,15 @@ local function compile1(ast, scope, parent, opts)
     elseif isVarg(ast) then
         exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts, ast)
     elseif isSym(ast) then
-        exprs = handleCompileOpts({expr(stringMangle(ast[1], scope), 'sym')}, parent, opts, ast)
+        local e
+        -- Handle nil as special symbol - it resolves to the nil literal rather than
+        -- being unmangled. Alternatively, we could remove it from the lua keywords table.
+        if ast[1] == 'nil' then
+            e = expr('nil', 'literal')
+        else
+            e = expr(stringMangle(ast[1], scope), 'sym')
+        end
+        exprs = handleCompileOpts({e}, parent, opts, ast)
     elseif type(ast) == 'nil' or type(ast) == 'boolean' then
         exprs = handleCompileOpts({expr(tostring(ast), 'literal')}, parent, opts)
     elseif type(ast) == 'number' then
@@ -834,7 +841,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local index = 2
     local fnName = isSym(ast[index])
     local isLocalFn
-    if fnName then
+    if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not isMultiSym(fnName[1])
         fnName = stringMangle(fnName[1], scope)
         index = index + 1
@@ -915,7 +922,7 @@ SPECIALS['lambda'] = function(ast, scope, parent)
         if not arg[1]:match("^?") and arg[1] ~= "..." then
             table.insert(checks, 1,
                          list(sym("assert", ast.line, ast.filename),
-                              list(sym('~='), nil, arg),
+                              list(sym('~='), sym('nil'), arg),
                               string.format("Missing argument %s on %s:%s",
                                             arg[1], ast.filename or 'unknown', ast.line or '?')))
         end
@@ -1251,6 +1258,7 @@ defineArithmeticSpecial('and')
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
+        if (#ast ~= 3) then print(ast) end
         assertCompile(#ast == 3, 'expected two arguments', ast)
         local lhs = compile1(ast[2], scope, parent, {nval = 1})
         local rhs = compile1(ast[3], scope, parent, {nval = 1})

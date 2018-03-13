@@ -26,9 +26,7 @@ local pairs = pairs
 local ipairs = ipairs
 local tostring = tostring
 local unpack = unpack or table.unpack
-local tpack = table.pack or function(...)
-    return {n = select('#', ...), ...}
-end
+local tpack = table.pack or function(...) return {...} end
 
 --
 -- Main Types and support functions
@@ -40,16 +38,12 @@ local SYMBOL_MT = { 'SYMBOL',
     end
 }
 local LIST_MT = { 'LIST',
-    __len = function (self)
-        return self.n or rawlen(self)
-    end,
     __tostring = function (self)
         local strs = {}
-        local n = self.n or #self
-        for i = 1, n do
-            strs[i] = tostring(self[i])
+        for _, s in ipairs(self) do
+            table.insert(strs, tostring(s))
         end
-        return '(' .. table.concat(strs, ', ', 1, n) .. ')'
+        return '(' .. table.concat(strs, ', ', 1, #self) .. ')'
     end
 }
 local EXPR_MT = { 'EXPR',
@@ -73,9 +67,7 @@ end
 
 -- Create a new list
 local function list(...)
-    local t = {...}
-    t.n = select('#', ...)
-    return setmetatable(t, LIST_MT)
+    return setmetatable({...}, LIST_MT)
 end
 
 -- Create a new symbol
@@ -225,9 +217,7 @@ local function parser(getbyte, filename)
                 retval = v
                 done = true
             else
-                local last = stack[#stack]
-                last.n = last.n + 1
-                last[last.n] = v
+                table.insert(stack[#stack], v)
             end
         end
 
@@ -263,15 +253,15 @@ local function parser(getbyte, filename)
                     val = last
                 elseif b == 93 then -- ]
                     val = {}
-                    for i = 1, last.n do
+                    for i = 1, #last do
                         val[i] = last[i]
                     end
                 else -- }
-                    if last.n % 2 ~= 0 then
+                    if #last % 2 ~= 0 then
                         error 'expected even number of values in table literal'
                     end
                     val = {}
-                    for i = 1, last.n, 2 do
+                    for i = 1, #last, 2 do
                         val[last[i]] = last[i + 1]
                     end
                 end
@@ -601,7 +591,7 @@ local function compile1(ast, scope, parent, opts)
     -- Compile the form
     if isList(ast) then
         -- Function call or special form
-        local len = ast.n
+        local len = #ast
         assert(len > 0, "expected a function to call")
         -- Test for special form
         local first = ast[1]
@@ -732,7 +722,7 @@ end
 -- expression, can return multiple arguments as well, allowing for more than the number
 -- of expected arguments.
 local function values(ast, scope, parent)
-    local len = ast.n
+    local len = #ast
     local exprs = {}
     for i = 2, len do
         local subexprs = compile1(ast[i], scope, parent, {})
@@ -759,7 +749,7 @@ end
 -- Compile a list of forms for side effects
 local function compileDo(ast, scope, parent, start)
     start = start or 2
-    local len = ast.n or #ast
+    local len = #ast
     local subScope = makeScope(scope)
     for i = start, len do
         compile1(ast[i], subScope, parent, {
@@ -773,7 +763,7 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     start = start or 2
     subScope = subScope or makeScope(scope)
     chunk = chunk or {}
-    local len = ast.n
+    local len = #ast
     local outerTarget = opts.target
     local outerTail = opts.tail
     local retexprs = {returned = true}
@@ -865,10 +855,10 @@ SPECIALS['fn'] = function(ast, scope, parent)
             assertCompile(false, 'expected symbol for function parameter', ast)
         end
     end
-    for i = index + 1, ast.n do
+    for i = index + 1, #ast do
         compile1(ast[i], fScope, fChunk, {
-            tail = i == ast.n,
-            nval = i ~= ast.n and 0 or nil
+            tail = i == #ast,
+            nval = i ~= #ast and 0 or nil
         })
     end
     if isLocalFn then
@@ -905,7 +895,6 @@ SPECIALS['$'] = function(ast, scope, parent)
         table.insert(fargs, sym('$' .. i), nil, ast.line, ast.filename)
     end
     table.remove(ast, 1)
-    ast.n = ast.n - 1
     return SPECIALS.fn({'', sym('$$', nil, ast.line, ast.filename),
                         fargs, ast, n = 4}, scope, parent)
 end
@@ -919,7 +908,7 @@ SPECIALS['luastatement'] = function(ast)
 end
 
 SPECIALS['lambda'] = function(ast, scope, parent)
-    assertCompile(ast.n >= 3, "missing body expression", ast)
+    assertCompile(#ast >= 3, "missing body expression", ast)
     local arglist = ast[2]
     local checks = {}
     for _, arg in ipairs(arglist) do
@@ -934,9 +923,8 @@ SPECIALS['lambda'] = function(ast, scope, parent)
     local new = list(sym("lambda", ast[1].line, ast[1].filename),
                      arglist, unpack(checks))
     new.line, new.filename = ast.line, ast.filename
-    for i = 3, ast.n do
+    for i = 3, #ast do
         table.insert(new, ast[i])
-        new.n = new.n + 1
     end
     return SPECIALS.fn(new, scope, parent)
 end
@@ -945,7 +933,7 @@ SPECIALS['λ'] = SPECIALS['lambda']
 SPECIALS['partial'] = function(ast, scope, parent)
     local f = ast[2]
     local innerArgs = {}
-    for i = 3, ast.n do table.insert(innerArgs, ast[i]) end
+    for i = 3, #ast do table.insert(innerArgs, ast[i]) end
     table.insert(innerArgs, VARARG)
     local new = list(sym("fn", ast[1].line, ast[1].filename),
                      {VARARG}, list(f, unpack(innerArgs)))
@@ -971,7 +959,7 @@ SPECIALS['macro'] = function(ast, scope, parent, opts)
 
     emit(parent, ('local function %s(ast, scope, chunk, opts)'):format(s), ast)
     emit(parent, {'local unpack = table.unpack or unpack',
-                  ('return _FNL.compile1(%s(unpack(ast, 2, ast.n)), scope, chunk, opts)')
+                  ('return _FNL.compile1(%s(unpack(ast, 2, #ast)), scope, chunk, opts)')
                       :format(macroName)}, ast)
     emit(parent, 'end', ast)
     emit(parent, ('_SPECIALS[%q] = %s'):format(unmangled, s), ast)
@@ -979,19 +967,19 @@ end
 
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
-    assertCompile(ast.n == 3, "expected table and key argument", ast)
+    assertCompile(#ast == 3, "expected table and key argument", ast)
     local lhs = compile1(ast[2], scope, parent, {nval = 1})
     local rhs = compile1(ast[3], scope, parent, {nval = 1})
     return ('%s[%s]'):format(tostring(lhs[1]), tostring(rhs[1]))
 end
 
 SPECIALS['set'] = function(ast, scope, parent)
-    assertCompile(ast.n == 3, "expected name and value", ast)
+    assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], scope, parent, true)
 end
 
 SPECIALS['local'] = function(ast, scope, parent)
-    assertCompile(ast.n == 3, "expected name and value", ast)
+    assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], scope, parent, false)
 end
 
@@ -999,12 +987,12 @@ SPECIALS['let'] = function(ast, scope, parent, opts)
     local bindings = ast[2]
     assertCompile(isList(bindings) or isTable(bindings),
                   'expected table for destructuring', ast)
-    assertCompile((bindings.n or #bindings) % 2 == 0,
+    assertCompile(#bindings % 2 == 0,
                   'expected even number of name/value bindings', ast)
-    assertCompile(ast.n >= 3, 'missing body expression', ast)
+    assertCompile(#ast >= 3, 'missing body expression', ast)
     local subScope = makeScope(scope)
     local subChunk = {}
-    for i = 1, bindings.n or #bindings, 2 do
+    for i = 1, #bindings, 2 do
         destructure(bindings[i], bindings[i + 1], subScope, subChunk)
     end
     return doImpl(ast, scope, parent, opts, 3, subChunk, subScope)
@@ -1014,11 +1002,11 @@ end
 SPECIALS['tset'] = function(ast, scope, parent)
     local root = compile1(ast[2], scope, parent, {nval = 1})[1]
     local keys = {}
-    for i = 3, ast.n - 1 do
+    for i = 3, #ast - 1 do
         local key = compile1(ast[i], scope, parent, {nval = 1})[1]
         keys[#keys + 1] = tostring(key)
     end
-    local value = compile1(ast[ast.n], scope, parent, {nval = 1})[1]
+    local value = compile1(ast[#ast], scope, parent, {nval = 1})[1]
     emit(parent, ('%s[%s] = %s'):format(tostring(root),
                                         table.concat(keys, ']['),
                                         tostring(value)), ast)
@@ -1053,7 +1041,7 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
             scope = cscope
         }
     end
-    for i = 2, ast.n - 1, 2 do
+    for i = 2, #ast - 1, 2 do
         local condchunk = {}
         local cond =  compile1(ast[i], doScope, condchunk, {nval = 1})
         local branch = compileBody(i + 1)
@@ -1061,8 +1049,8 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         branch.condchunk = condchunk
         table.insert(branches, branch)
     end
-    local hasElse = ast.n > 3 and ast.n % 2 == 0
-    if hasElse then elseBranch = compileBody(ast.n) end
+    local hasElse = #ast > 3 and ast.n % 2 == 0
+    if hasElse then elseBranch = compileBody(#ast) end
 
     -- Emit code
     local s = gensym(scope)
@@ -1105,10 +1093,9 @@ end
 
 -- (when condition body...) => []
 SPECIALS['when'] = function(ast, scope, parent, opts)
-    assertCompile(ast.n > 2, 'expected body', ast)
+    assertCompile(#ast > 2, 'expected body', ast)
     table.remove(ast, 1)
     local condition = table.remove(ast, 1)
-    ast.n = ast.n - 2
     local body = list(sym("do", ast[1].line, ast[1].filename), unpack(ast))
     local new_ast = list(sym("if"), condition, body)
     new_ast.line, body.line = ast.line, ast.line
@@ -1184,7 +1171,6 @@ SPECIALS[':'] = function(ast, scope, parent, opts)
     local method = ast[3]
     ast[1] = list(sym("."), ast[2], method)
     table.remove(ast, 3)
-    ast.n = ast.n - 1
     return compile1(ast, scope, parent, opts)
 end
 
@@ -1194,7 +1180,7 @@ SPECIALS['*break'] = function(ast, _, parent)
 end
 
 SPECIALS[':'] = function(ast, scope, parent)
-    assertCompile(ast.n >= 3, 'expected at least 3 arguments', ast)
+    assertCompile(#ast >= 3, 'expected at least 3 arguments', ast)
     -- Compile object
     local objectexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
     if objectexpr.type == 'statement' or objectexpr.type == 'expression' then
@@ -1206,9 +1192,9 @@ SPECIALS[':'] = function(ast, scope, parent)
     local methodexpr = compile1(ast[3], scope, parent, {nval = 1})[1]
     -- Compile arguments
     local args = {}
-    for i = 4, ast.n do
+    for i = 4, #ast do
         local subexprs = compile1(ast[i], scope, parent, {
-            nval = i ~= ast.n and 1 or nil
+            nval = i ~= #ast and 1 or nil
         })
         for j = 1, #subexprs do
             args[#args + 1] = tostring(subexprs[j])
@@ -1229,7 +1215,7 @@ end
 local function defineArithmeticSpecial(name, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
     SPECIALS[name] = function(ast, scope, parent)
-        local len = ast.n or #ast
+        local len = #ast
         if len == 1 then
             return unaryPrefix or '0'
         else
@@ -1265,7 +1251,7 @@ defineArithmeticSpecial('and')
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
-        assertCompile(ast.n == 3, 'expected two arguments', ast)
+        assertCompile(#ast == 3, 'expected two arguments', ast)
         local lhs = compile1(ast[2], scope, parent, {nval = 1})
         local rhs = compile1(ast[3], scope, parent, {nval = 1})
         return ('((%s) %s (%s))'):format(tostring(lhs[1]), op, tostring(rhs[1]))
@@ -1382,8 +1368,8 @@ local function repl(givenOptions)
                             options.write(tostring(runtimeErr) .. '\n')
                         end)
                     if loadok then
-                        for i = 1, ret.n do ret[i] = tostring(ret[i]) end
-                        options.write(unpack(ret, 1, ret.n))
+                        for i = 1, #ret do ret[i] = tostring(ret[i]) end
+                        options.write(unpack(ret, 1, #ret))
                         options.write('\n')
                         env._ = ret[1]
                         env.__ = ret

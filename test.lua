@@ -155,15 +155,6 @@ for name, tests in pairs(cases) do
 end
 
 fennel.eval([[(eval-compiler
-  (macro -> [val ...]
-    (each [_ elt (pairs [...])]
-      (table.insert elt 2 val)
-      (set elt.n (+ 1 elt.n))
-      (set val elt))
-    val)
-  (macro defn [name args ...]
-    (list (sym "set") name
-      (list (sym "fn") args ...)))
   (special reverse-it [ast scope parent opts]
     (tset ast 1 "do")
     (for [i 2 (math.ceil (/ (# ast) 2))]
@@ -175,9 +166,17 @@ fennel.eval([[(eval-compiler
 
 local macro_cases = {
     -- just a boring old set+fn combo
-    ["(defn hui [x y] (set z (+ x y))) (hui 8 4) z"]=12,
+    ["(require-macros \"test-macros\")\
+      (defn hui [x y] (set z (+ x y))) (hui 8 4) z"]=12,
     -- macros with mangled names
-    ["(-> 9 (+ 2) (* 11))"]=121,
+    ["(require-macros \"test-macros\")\
+      (-> 9 (+ 2) (* 11))"]=121,
+    -- require-macros doesn't leak into new evaluation contexts
+    ["(let [(_ e) (pcall (fn [] (-> 8 (+ 2))))] (: e :match :global))"]="global",
+    -- macros loaded in function scope shouldn't leak to other functions
+    ["((fn [] (require-macros \"test-macros\") (set x1 (-> 99 (+ 31)))))\
+      (pcall (fn [] (set x1 (-> 23 (+ 1)))))\
+      x1"]=130,
     -- special form
     ["(reverse-it 1 2 3 4 5 6)"]=1,
 }

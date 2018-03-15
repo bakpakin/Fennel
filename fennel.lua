@@ -1321,11 +1321,13 @@ local function eval(str, options)
     return loader()
 end
 
-local function dofile_fennel(filename)
+local function dofile_fennel(filename, options)
+    options = options or { accurate = true }
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all")
     f:close()
-    return eval(source, { filename = filename, accurate = true })
+    options.filename = options.filename or filename
+    return eval(source, options)
 end
 
 -- Implements a configurable repl
@@ -1418,8 +1420,31 @@ module.searcher = function(modulename)
         local file = io.open(filename, "rb")
         if(file) then
             file:close()
-            return function()
-                return dofile_fennel(filename)
+            return function(options)
+                return dofile_fennel(filename, options)
+            end
+        end
+    end
+end
+
+local function makeEnv(ast, scope, parent)
+    return setmetatable({ _FNL = module,
+                          _SCOPE = scope,
+                          _CHUNK = parent,
+                          _AST = ast,
+                          _IS_COMPILER = true,
+                          _SPECIALS = SPECIALS,
+                          list = list,
+                          sym = sym}, { __index = _ENV or _G })
+end
+
+SPECIALS['require-macros'] = function(ast, scope, parent)
+    for i = 2, #ast do
+        local loader = assertCompile(module.searcher(ast[i]),
+                                     ast[i] .. " not found.", ast)
+        for k, v in pairs(loader({env=makeEnv(ast, scope, parent)})) do
+            scope.specials[k] = function(ast2, scope2, parent2, opts2)
+                return compile1(v(unpack(ast2, 2)), scope2, parent2, opts2)
             end
         end
     end
@@ -1430,17 +1455,7 @@ SPECIALS['eval-compiler'] = function(ast, scope, parent)
     ast[1] = sym('do')
     local luaSource = compile(ast, { scope = makeScope(COMPILER_SCOPE) })
     ast[1] = oldFirst
-    local env = setmetatable({
-        _FNL = module,
-        _SCOPE = scope,
-        _CHUNK = parent,
-        _AST = ast,
-        _IS_COMPILER = true,
-        _SPECIALS = SPECIALS,
-        list = list,
-        sym = sym,
-    }, { __index = _ENV or _G })
-    local loader = loadCode(luaSource, env)
+    local loader = loadCode(luaSource, makeEnv(ast, scope, parent))
     loader()
 end
 

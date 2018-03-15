@@ -54,8 +54,10 @@ Takes these additional options:
 ### Evaluate a file of Fennel
 
 ```lua
-local result = fennel.dofile(filename)
+local result = fennel.dofile(filename[, options])
 ```
+
+* `env`: same as above.
 
 ### Use Lua's built-in require function
 
@@ -151,7 +153,7 @@ local lua = fennel.compile(ast)
 
 ## Try it
 
-Clone the repository, and run `lua fennel --repl` to quickly start a repl.
+Clone the repository, and run `./fennel --repl` to quickly start a repl.
 
 ## Install with Luarocks
 
@@ -176,6 +178,7 @@ fennel --compile myscript.fnl > myscript.lua
 ## Resources
 
 * [Emacs support](https://gitlab.com/technomancy/fennel-mode)
+* [Wiki](https://github.com/bakpakin/Fennel/wiki)
 * Build: [![CircleCI](https://circleci.com/gh/bakpakin/Fennel.svg?style=svg)](https://circleci.com/gh/bakpakin/Fennel)
 
 ## License

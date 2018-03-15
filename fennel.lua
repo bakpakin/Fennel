@@ -299,7 +299,8 @@ local function parser(getbyte, filename)
                     if forceNumber then
                         x = tonumber(rawstr) or error('could not read token "' .. rawstr .. '"')
                     else
-                        x = tonumber(rawstr) or sym(rawstr, nil, line, filename)
+                        -- LuaJ bug, tonumber('-') returns 0
+                        x = rawstr ~= '-' and tonumber(rawstr) or sym(rawstr, nil, line, filename)
                     end
                     dispatch(x)
                 end

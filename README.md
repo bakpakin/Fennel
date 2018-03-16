@@ -73,7 +73,8 @@ it how to load Fennel code.
 The `require` function is different from `fennel.dofile` in that it
 searches the directories in `fennel.path` for `.fnl` files matching
 the module name, and also in that it caches the loaded value to return
-on subsequent calls, while `fennel.dofile` will reload each time.
+on subsequent calls, while `fennel.dofile` will reload each time. The
+behavior of `fennel.path` mirrors that of Lua's `package.path`.
 
 If you install Fennel into `package.loaders` then you can use the
 3rd-party [lume.hotswap](https://github.com/rxi/lume#lumehotswapmodname) 

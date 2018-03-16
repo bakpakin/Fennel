@@ -28,8 +28,9 @@ using square brackets for argument lists:
 ```
 
 Functions defined with `fn` are fast; they have no runtime overhead
-compared to Lua. However, they also have no arity checking. For safer
-code you can use `lambda`:
+compared to Lua. However, they also have no arity checking. (That is,
+calling a function with the wrong number of arguments does not cause
+an error.) For safer code you can use `lambda`:
 
 ```lisp
 (set print-calculation
@@ -48,12 +49,19 @@ wrapped in a single set of square brackets:
   (f x))
 ```
 
+You can also introduce locals with `local`, which is nice when they'll
+be used across the whole file, but in general `let` is preferred:
+
+```lisp
+(local lume (require "lume"))
+```
+
 ### Numbers and strings
 
 Of course, all our standard arithmetic operators like `+`, `-`, `*`,
 and `/` work here in prefix form. Note that numbers are
-double-precision floats in all but Lua 5.3, which optionally supports
-integers.
+double-precision floats in all versions prior to 5.3, which optionally
+introduced integers. On 5.3 and up, integer division uses `//`.
 
 ```lisp
 (let [x (+ 1 99)
@@ -115,6 +123,10 @@ The `#` function returns the length of sequential tables and strings:
   (+ (# tbl) 
      (# (. tbl 1)))) ; -> 6
 ```
+
+Note that the length of a table with gaps in it is undefined; it can
+return a number corresponding to any of the table's "boundary"
+positions between nil and non-nil values.
 
 ### Iteration
 
@@ -224,10 +236,10 @@ whatever entry was at that key before.
 ## Error handling
 
 Error handling in Lua has two forms. Functions in Lua can return any
-number of values, and most functions will indicate failure by using
-multiple return values: `nil` followed by a failure message
-string. You can interact with this style of function in Fennel by
-destructuring with parens instead of square brackets:
+number of values, and most functions which can fail will indicate
+failure by using multiple return values: `nil` followed by a failure
+message string. You can interact with this style of function in Fennel
+by destructuring with parens instead of square brackets:
 
 ```lisp
 (let [(f msg) (io.open "file" "rb")]
@@ -272,7 +284,8 @@ message if it didn't.
 
 The `assert` function takes a value and an error message; it calls
 `error` if the value is `nil` and returns it otherwise. This can be
-used to turn failures into errors:
+used to turn multiple-value failures into errors (kind of the inverse
+of `pcall` which turns `error`s into multiple-value failures):
 
 ```lisp
 (let [f (assert (io.open filename))
@@ -292,7 +305,8 @@ runtime overhead over Lua.
 
 * The arithmetic and comparison operators are not first-class functions.
 
-* There is no `apply` function; use `unpack` instead: `(f 1 3 (unpack [4 9])`.
+* There is no `apply` function; use `unpack` (or `table.unpack`
+  depending on your Lua version) instead: `(f 1 3 (unpack [4 9])`.
 
 * Tables are compared for identity, not based on the value of their
   contents, as per [Baker](http://home.pipeline.com/%7Ehbaker1/ObjectIdentity.html).
@@ -309,10 +323,6 @@ runtime overhead over Lua.
   `lume.serialize` function can be used as a pretty-printer in a
   pinch, but `serpent` and `inspect.lua` produce output that is more
   readable.
-
-* Line numbers represent the lines in the compiled Lua output, not in
-  the Fennel source. Luckily the compiled output is usually fairly
-  readable, but this is the biggest drawback of Fennel by far.
 
 ## Other stuff just works
 
@@ -335,6 +345,14 @@ You can use the `require` function to load code from Lua files.
 
 Modules in Lua are simply tables which contain functions and other values.
 
+Out of the box `require` doesn't work with Fennel files, but you can
+add an entry to Lua's `package.loaders` to support it:
+
+```lua
+table.insert(package.loaders, fennel.searcher)
+local mylib = require("mylib") -- will compile and load code in mylib.fnl
+```
+
 Tables in Lua may seem a bit limited, but
 [metatables](http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/)
 allow a great deal more flexibility. All the features of metatables
@@ -343,12 +361,12 @@ are accessible from Fennel code just the same as they would be from Lua.
 ## Embedding
 
 Lua is most commonly used to embed inside other applications, and
-Fennel is no different. The simplest thing to do is include Fennel
-compilation as part of your overall application's build process.
-However, the Fennel compiler is very small, and including it into your
-codebase means that you can embed a Fennel repl inside your
-application or support reloading from disk, allowing a much more
-pleasant interactive development cycle.
+Fennel is no different. The simplest thing to do is include Fennel the
+output from `fennel --compile` as part of your overall application's
+build process. However, the Fennel compiler is very small, and
+including it into your codebase means that you can embed a Fennel repl
+inside your application or support reloading from disk, allowing a
+much more pleasant interactive development cycle.
 
 Here is an example of embedding the Fennel compiler inside a
 [LÖVE](https://love2d.org) game written in Lua to allow live reloads:

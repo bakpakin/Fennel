@@ -1337,6 +1337,7 @@ local function repl(givenOptions)
         read = io.read,
         write = io.write,
         flush = io.flush,
+        pp = tostring,
     }
     for k,v in pairs(givenOptions or {}) do
         options[k] = v
@@ -1377,7 +1378,7 @@ local function repl(givenOptions)
                             options.write(tostring(runtimeErr) .. '\n')
                         end)
                     if loadok then
-                        for i = 1, #ret do ret[i] = tostring(ret[i]) end
+                        for i = 1, #ret do ret[i] = options.pp(ret[i]) end
                         options.write(unpack(ret, 1, #ret))
                         options.write('\n')
                         env._ = ret[1]

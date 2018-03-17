@@ -38,6 +38,7 @@ fennel.repl([options])
 Takes these additional options:
 
 * `read`, `write`, and `flush`: replacements for equivalents from `io` table.
+* `pp`: a pretty-printer function to apply on values; defaults to `tostring`.
 * `env`: an environment table in which to run the code; see the Lua manual.
 
 ### Evaulate a string of Fennel

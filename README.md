@@ -157,6 +157,17 @@ local lua = fennel.compile(ast)
 
 Clone the repository, and run `./fennel --repl` to quickly start a repl.
 
+The repl will load the file `~/.fennelrc` on startup if it exists. If
+you'd like to install a pretty-printer for the repl (recommended), put
+this in that file:
+
+```lisp
+(set options.pp (dofile "/path/to/inspect.lua"))
+```
+
+You can point it at a pretty-printing function of your choice; here we
+use [inspect.lua](https://github.com/kikito/inspect.lua).
+
 ## Install with Luarocks
 
 You can install the dev package from luarocks via

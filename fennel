@@ -24,8 +24,15 @@ for _, flag in pairs(flags) do
 end
 
 if arg[1] == "--repl" or #arg == 0 then
+    local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
+    local init = io.open(initFilename, "rb")
+    if init then
+        init:close()
+        fennel.dofile(initFilename, {env = setmetatable({options = options},
+                                                        {__index = _ENV or _G})})
+    end
     print("Welcome to fennel!")
-    fennel.repl()
+    fennel.repl(options)
 elseif arg[1] == "--compile" then
     for i = 2, #arg do
         local f = assert(io.open(arg[i], "rb"))

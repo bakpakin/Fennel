@@ -12,7 +12,7 @@ Usage: fennel [FLAG] [FILE]
 
   When not given a flag, runs the file given as the first argument.]]
 
-local flags = {"--accurate"}
+local flags = {"--accurate", "--debug"}
 local options = {}
 for _, flag in pairs(flags) do
     for i = #arg, 1, -1 do
@@ -37,17 +37,25 @@ elseif arg[1] == "--compile" then
     for i = 2, #arg do
         local f = assert(io.open(arg[i], "rb"))
         options.filename=arg[i]
-        local ok, val = pcall(fennel.compileString, f:read("*all"), options)
-        print(val)
-        if(not ok) then os.exit(1) end
+        if options.debug then
+            fennel.compileString(f:read("*all"), options)
+        else
+            local ok, val = pcall(fennel.compileString, f:read("*all"), options)
+            print(val)
+            if(not ok) then os.exit(1) end
+        end
         f:close()
     end
 elseif #arg >= 1 and arg[1] ~= "--help" then
     local filename = table.remove(arg, 1) -- let the script have remaining args
-    local ok, val = pcall(fennel.dofile, filename, { accurate=true })
-    if(not ok) then
-        print(val)
-        os.exit(1)
+    if options.debug then
+        fennel.dofile(filename, { accurate=true })
+    else
+        local ok, val = pcall(fennel.dofile, filename, { accurate=true })
+        if(not ok) then
+            print(val)
+            os.exit(1)
+        end
     end
 else
     print(help)

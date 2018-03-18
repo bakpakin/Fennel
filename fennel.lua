@@ -270,12 +270,18 @@ local function parser(getbyte, filename)
             elseif b == 34 or b == 39 then -- Quoted string
                 local start = b
                 local last
+                local expectBs = false
                 local chars = {start}
                 repeat
                     last = b
                     b = getb()
                     chars[#chars + 1] = b
-                until not b or (b == start and last ~= 92)
+                    if b == 92 then
+                       expectBs = not expectBs
+                   else
+                       expectBs = false
+                   end
+                until not b or (b == start and not expectBs)
                 if not b then error 'unexpected end of source' end
                 local raw = string.char(unpack(chars))
                 local loadFn = loadCode(('return %s'):format(raw), nil, filename)

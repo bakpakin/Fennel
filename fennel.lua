@@ -269,17 +269,22 @@ local function parser(getbyte, filename)
                 dispatch(val)
             elseif b == 34 or b == 39 then -- Quoted string
                 local start = b
-                local expectBs = false
+                local state = "base"
                 local chars = {start}
                 repeat
                     b = getb()
                     chars[#chars + 1] = b
-                    if b == 92 then
-                       expectBs = not expectBs
-                   else
-                       expectBs = false
-                   end
-                until not b or (b == start and not expectBs)
+                    if state == "base" then
+                        if b == 92 then
+                            state = "backslash"
+                        elseif b == start then
+                            state = "done"
+                        end
+                    else
+                        -- state == "backslash"
+                        state = "base"
+                    end
+                until not b or (state == "done")
                 if not b then error 'unexpected end of source' end
                 local raw = string.char(unpack(chars))
                 local loadFn = loadCode(('return %s'):format(raw), nil, filename)

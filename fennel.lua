@@ -291,7 +291,7 @@ local function parser(getbyte, filename)
                 if rawstr == 'true' then dispatch(true)
                 elseif rawstr == 'false' then dispatch(false)
                 elseif rawstr == '...' then dispatch(VARARG)
-                elseif rawstr:match('^:[%w_-]+$') then -- keyword style strings
+                elseif rawstr:match('^:.+$') then -- keyword style strings
                     dispatch(rawstr:sub(2))
                 else
                     local forceNumber = rawstr:match('^%d')

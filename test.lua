@@ -28,6 +28,10 @@ local cases = {
         ["(~= 33 1)"]=true,
     },
 
+    parsing = {
+        ["\"\\\\\""]="\\"
+    },
+
     functions = {
         -- regular function
         ["((fn [x] (* x 2)) 26)"]=52,

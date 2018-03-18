@@ -269,11 +269,9 @@ local function parser(getbyte, filename)
                 dispatch(val)
             elseif b == 34 or b == 39 then -- Quoted string
                 local start = b
-                local last
                 local expectBs = false
                 local chars = {start}
                 repeat
-                    last = b
                     b = getb()
                     chars[#chars + 1] = b
                     if b == 92 then

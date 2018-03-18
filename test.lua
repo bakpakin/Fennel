@@ -1,4 +1,11 @@
 local fennel = require("fennel")
+local generate = fennel.dofile("generate.fnl")
+local view = fennel.dofile("fennelview.fnl")
+
+-- Allow deterministic re-runs of generated things.
+local seed = os.getenv("SEED") or os.time()
+print("SEED=" .. seed)
+math.randomseed(seed)
 
 local cases = {
     calculations = {
@@ -155,6 +162,58 @@ for name, tests in pairs(cases) do
                 pass = pass + 1
             end
         end
+    end
+end
+
+local count = function(t)
+    local c = 0
+    for _ in pairs(t) do c = c + 1 end
+    return c
+end
+
+local function table_equal(a, b, deep_equal)
+    local miss_a, miss_b = {}, {}
+    for k in pairs(a) do
+        if deep_equal(a[k], b[k]) then a[k], b[k] = nil, nil end
+    end
+    for k, v in pairs(a) do
+        if type(k) ~= "table" then miss_a[view(k)] = v end
+    end
+    for k, v in pairs(b) do
+        if type(k) ~= "table" then miss_b[view(k)] = v end
+    end
+    return (count(a) == count(b)) or deep_equal(miss_a, miss_b)
+end
+
+local function deep_equal(a, b)
+    if (a ~= a) or (b ~= b) then return true end -- don't fail on nan
+    if type(a) == type(b) then
+        if type(a) == "table" then return table_equal(a, b, deep_equal) end
+        return tostring(a) == tostring(b)
+    end
+end
+
+print("Running tests for viewer...")
+for _ = 1, 16 do
+    local item = generate()
+    local ok, viewed = pcall(view, item)
+    if ok then
+        local ok2, round_tripped = pcall(fennel.eval, viewed)
+        if(ok2) then
+            if deep_equal(item, round_tripped) then
+                pass = pass + 1
+            else
+                print("Expected " .. viewed .. " to round-trip thru view/eval: "
+                          .. tostring(round_tripped))
+                fail = fail + 1
+            end
+        else
+            print(" Error loading viewed item: " .. viewed, round_tripped)
+            err = err + 1
+        end
+    else
+        print(" Error viewing " .. tostring(item))
+        err = err + 1
     end
 end
 

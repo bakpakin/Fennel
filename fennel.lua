@@ -702,8 +702,17 @@ local function destructure1(left, rightexprs, scope, parent, nonlocal)
         local s = gensym(scope)
         emit(parent, (setter):format(s, exprs1(rightexprs)), left)
         for i, v in ipairs(left) do
-            local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
-            destructure1(v, {subexpr}, scope, parent, nonlocal)
+            if isSym(left[i]) and left[i][1] == "&" then
+                assertCompile(not left[i+2],
+                              "expected rest argument in final position", left)
+                local subexpr = expr(('{(table.unpack or unpack)(%s, %s)}'):format(s, i),
+                    'expression')
+                destructure1(left[i+1], {subexpr}, scope, parent, nonlocal)
+                return
+            else
+                local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
+                destructure1(v, {subexpr}, scope, parent, nonlocal)
+            end
         end
     elseif isList(left)  then -- values destructuring
         local leftNames, tables = {}, {}

@@ -38,8 +38,14 @@ fennel.repl([options])
 Takes these additional options:
 
 * `read`, `write`, and `flush`: replacements for equivalents from `io` table.
-* `pp`: a pretty-printer function to apply on values; defaults to `tostring`.
+* `pp`: a pretty-printer function to apply on values.
 * `env`: an environment table in which to run the code; see the Lua manual.
+
+The pretty-printer defaults to loading `fennelview.fnl` if present and
+falls back to `tostring` otherwise. `fennelview.fnl` will produce
+output that can be fed back into Fennel (other than functions,
+coroutines, etc) but you can use a 3rd-party pretty-printer that
+produces output in Lua format if you prefer.
 
 ### Evaulate a string of Fennel
 
@@ -157,16 +163,7 @@ local lua = fennel.compile(ast)
 
 Clone the repository, and run `./fennel --repl` to quickly start a repl.
 
-The repl will load the file `~/.fennelrc` on startup if it exists. If
-you'd like to install a pretty-printer for the repl (recommended), put
-this in that file:
-
-```lisp
-(set options.pp (dofile "/path/to/inspect.lua"))
-```
-
-You can point it at a pretty-printing function of your choice; here we
-use [inspect.lua](https://github.com/kikito/inspect.lua).
+The repl will load the file `~/.fennelrc` on startup if it exists.
 
 ## Install with Luarocks
 

@@ -1341,12 +1341,15 @@ end
 
 -- Implements a configurable repl
 local function repl(givenOptions)
+    local ppok, pp = pcall(dofile_fennel, "fennelview.fnl", givenOptions)
+    if not ppok then print("err", pp) pp = tostring end
+
     local options = {
         prompt = '>> ',
         read = io.read,
         write = io.write,
         flush = io.flush,
-        pp = tostring,
+        pp = pp,
     }
     for k,v in pairs(givenOptions or {}) do
         options[k] = v

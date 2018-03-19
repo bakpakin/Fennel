@@ -17,7 +17,7 @@
 
 (local generators {:number (fn [] ; weighted towards mid-range integers
                              (if (> (math.random) 0.9)
-                                 (let [x (math.random math.huge)]
+                                 (let [x (math.random 2147483647)]
                                    (math.floor (- x (/ x 2))))
                                  (> (math.random) 0.2)
                                  (math.floor (math.random 2048))

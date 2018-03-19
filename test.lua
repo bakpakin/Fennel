@@ -130,6 +130,8 @@ local cases = {
         ["(do (set (a b) ((fn [] (values 4 29)))) (+ a b))"]=33,
         -- local keyword
         ["(do (local (-a -b) ((fn [] (values 4 29)))) (+ -a -b))"]=33,
+        -- rest args
+        ["(let [[a b & c] [1 2 3 4 5]] (+ a (. c 2) (. c 3)))"]=10,
     },
 
     loops = {
@@ -279,6 +281,7 @@ local compile_failures = {
     ["(let [:x 1] 1)"]="unable to destructure",
     ["(let [false 1] 9)"]="unable to destructure false",
     ["(let [nil 1] 9)"]="unable to destructure nil",
+    ["(let [[a & c d] [1 2]] c)"]="rest argument in final position",
     -- line numbers
     ["(set)"]="Compile error in `set' unknown:1: expected name and value",
     ["(let [b 9\nq (. tbl)] q)"]="2: expected table and key argument",

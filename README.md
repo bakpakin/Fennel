@@ -11,7 +11,7 @@ game engine, see [pong.fnl](https://p.hagelb.org/pong.fnl.html).
 
 Current features include:
 
-* Full Lua compatibility - You can use any function from Lua
+* Full Lua compatibility - You can use any function from Lua.
 * Zero overhead - Compiled code should be fast, standalone, and just as or more efficient than hand-written Lua.
 * Compile time only macros - Macros exist only at compile time and are not output in the final Lua compilation. In fact,
   macros are just a special case of special forms.

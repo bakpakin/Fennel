@@ -6,7 +6,7 @@ source = {
 description = {
    summary = "Lisp that compiles to Lua",
    detailed = [[
-A lisp-like language that compiles to efficient Lua. Combine 
+A lisp-like language that compiles to efficient Lua. Combine
 meta-programming with Lua.]],
    homepage = "https://github.com/bakpakin/Fennel",
    license = "MIT"
@@ -17,7 +17,8 @@ dependencies = {
 build = {
    type = "builtin",
    modules = {
-       fennel = "fennel.lua"
+       fennel = "fennel.lua",
+       fennelview = "fennelview.fnl",
    },
    install = {
        bin = {

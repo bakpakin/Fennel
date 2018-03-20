@@ -19,8 +19,10 @@ as well as
 
 ## OK, so how do you do things?
 
-Variables are set with `set`, and functions are created with `fn`,
-using square brackets for argument lists:
+Variables are set with `set`. If a local variable has already been
+introduced, this will change its value, but if not it will set the
+global value. Functions are created with `fn`, using square brackets
+for argument lists:
 
 ```lisp
 (set add (fn [x y] (+ x y)))
@@ -311,18 +313,19 @@ runtime overhead over Lua.
 * Tables are compared for identity, not based on the value of their
   contents, as per [Baker](http://home.pipeline.com/%7Ehbaker1/ObjectIdentity.html).
 
-* Printing a table will not show you the values inside the table. It's
-  recommended to use a 3rd-party library like
-  [serpent](https://github.com/pkulchenko/serpent) or
-  [inspect.lua](https://github.com/kikito/inspect.lua) to address
-  this, but it is technically optional.
+* Return values in the default repl will get pretty-printed, but
+  calling `(print tbl)` will emit output like `table: 0x55a3a8749ef0`.
+  If you don't already have one, it's recommended for debugging to
+  define a printer function which calls `fennelview` on its argument
+  before printing it: `(local view (fennel.dofile "fennelview.fnl"))
+  (set pp (fn [x] (print (view x))))`
 
 * Lua's standard library is quite small, and so common functions like
   `map`, `reduce`, and `filter` are absent. It's recommended to pull
-  in something like [Lume](https://github.com/rxi/lume) for those. The
-  `lume.serialize` function can be used as a pretty-printer in a
-  pinch, but `serpent` and `inspect.lua` produce output that is more
-  readable.
+  in something like [Lume](https://github.com/rxi/lume) or
+  [luafun](https://luafun.github.io/) for those.
+
+* Lua programmers should note Fennel functions cannot do early returns.
 
 ## Other stuff just works
 

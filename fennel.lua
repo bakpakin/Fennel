@@ -692,6 +692,18 @@ end
 
 -- SPECIALS --
 
+-- For statements and expressions, put the value in a local to avoid
+-- double-evaluating it.
+local function once(val, ast, scope, parent)
+    if val.type == 'statement' or val.type == 'expression' then
+        local s = gensym(scope)
+        emit(parent, ('local %s = %s'):format(s, tostring(val)), ast)
+        return expr(s, 'sym')
+    else
+        return val
+    end
+end
+
 -- Implements destructuring for forms like let, bindings, etc.
 local function destructure1(left, rightexprs, scope, parent, nonlocal)
     local setter = nonlocal and "%s = %s" or "local %s = %s"
@@ -1207,12 +1219,8 @@ end
 SPECIALS[':'] = function(ast, scope, parent)
     assertCompile(#ast >= 3, 'expected at least 3 arguments', ast)
     -- Compile object
-    local objectexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
-    if objectexpr.type == 'statement' or objectexpr.type == 'expression' then
-        local s = gensym(scope)
-        emit(parent, ('local %s = %s'):format(s, tostring(objectexpr)), ast)
-        objectexpr = expr(s, 'sym')
-    end
+    local objectexpr = once(compile1(ast[2], scope, parent, {nval = 1})[1],
+                            ast[2], scope, parent)
     -- Compile method selector
     local methodexpr = compile1(ast[3], scope, parent, {nval = 1})[1]
     -- Compile arguments
@@ -1276,10 +1284,21 @@ defineArithmeticSpecial('and')
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
-        assertCompile(#ast == 3, 'expected two arguments', ast)
-        local lhs = compile1(ast[2], scope, parent, {nval = 1})
-        local rhs = compile1(ast[3], scope, parent, {nval = 1})
-        return ('((%s) %s (%s))'):format(tostring(lhs[1]), op, tostring(rhs[1]))
+        assertCompile(#ast > 2, 'expected at least two arguments', ast)
+        local lhs = compile1(ast[2], scope, parent, {nval = 1})[1]
+        local lastval = compile1(ast[3], scope, parent, {nval = 1})[1]
+        -- avoid double-eval by introducing locals for possible side-effects
+        if #ast > 3 then lastval = once(lastval, ast[3], scope, parent) end
+        local out = ('((%s) %s (%s))'):
+            format(tostring(lhs), op, tostring(lastval))
+        for i = 4, #ast do -- variadic comparison
+            local nextval = once(compile1(ast[i], scope, parent, {nval = 1})[1],
+                                 ast[i], scope, parent)
+            out = ("(" .. out .. " and ((%s) %s (%s)))"):
+                format(tostring(lastval), op, tostring(nextval))
+            lastval = nextval
+        end
+        return out
     end
 end
 

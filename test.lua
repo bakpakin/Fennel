@@ -109,6 +109,8 @@ local cases = {
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
         -- set works with multisyms
         ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
+        -- set works on parent scopes
+        ["(local n 0 )(let [f (fn [] (set n 96))] (f) n)"]=96,
         -- local names with dashes in them
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         -- functions inside each
@@ -291,7 +293,7 @@ local compile_failures = {
     ["(let [false 1] 9)"]="unable to destructure false",
     ["(let [nil 1] 9)"]="unable to destructure nil",
     ["(let [[a & c d] [1 2]] c)"]="rest argument in final position",
-    ["(set a 19)"]="tried to set local",
+    ["(set a 19)"]="isn't in scope",
     -- line numbers
     ["(set)"]="Compile error in `set' unknown:1: expected name and value",
     ["(let [b 9\nq (. tbl)] q)"]="2: expected table and key argument",

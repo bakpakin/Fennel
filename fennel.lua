@@ -1015,12 +1015,16 @@ SPECIALS['set!'] = function(ast, scope, parent)
     destructure(ast[2], ast[3], scope, parent, true)
 end
 
+local function inScope(name, scope)
+    return scope.manglings[name] or scope.parent and inScope(name, scope.parent)
+end
+
 SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     local target = ast[2][1]
     local parts = isMultiSym(target)
     if parts then target = parts[1] end
-    assertCompile(scope.manglings[target],
+    assertCompile(inScope(target, scope),
                   ("tried to set %s which isn't in scope; use set! for globals")
                       :format(target), ast)
     destructure(ast[2], ast[3], scope, parent, true)

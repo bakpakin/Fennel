@@ -37,12 +37,12 @@
                               t))
                    :boolean (fn [] (> (math.random) 0.5))})
 
-(set generate
-     (fn [table-chance]
-       (set table-chance (or table-chance 0.5))
-       (if (> (math.random) 0.5) (generators.number)
-           (> (math.random) 0.5) (generators.string)
-           (> (math.random) table-chance) (generators.table table-chance)
-           :else (generators.boolean))))
+(set! generate
+      (fn [table-chance]
+        (set table-chance (or table-chance 0.5))
+        (if (> (math.random) 0.5) (generators.number)
+            (> (math.random) 0.5) (generators.string)
+            (> (math.random) table-chance) (generators.table table-chance)
+            :else (generators.boolean))))
 
 generate

@@ -7,5 +7,5 @@
           (set val elt))
         val)
  :defn (fn [name args ...]
-         (list (sym "set") name
+         (list (sym "set!") name
                (list (sym "fn") args ...)))}

@@ -1010,8 +1010,19 @@ SPECIALS['.'] = function(ast, scope, parent)
     return ('%s[%s]'):format(tostring(lhs[1]), tostring(rhs[1]))
 end
 
+SPECIALS['set!'] = function(ast, scope, parent)
+    assertCompile(#ast == 3, "expected name and value", ast)
+    destructure(ast[2], ast[3], scope, parent, true)
+end
+
 SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
+    local target = ast[2][1]
+    local parts = isMultiSym(target)
+    if parts then target = parts[1] end
+    assertCompile(scope.manglings[target],
+                  ("tried to set %s which isn't in scope; use set! for globals")
+                      :format(target), ast)
     destructure(ast[2], ast[3], scope, parent, true)
 end
 
@@ -1370,7 +1381,7 @@ end
 -- Implements a configurable repl
 local function repl(givenOptions)
     local ppok, pp = pcall(dofile_fennel, "fennelview.fnl", givenOptions)
-    if not ppok then print("err", pp) pp = tostring end
+    if not ppok then pp = tostring end
 
     local options = {
         prompt = '>> ',

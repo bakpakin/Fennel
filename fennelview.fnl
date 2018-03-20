@@ -131,16 +131,16 @@
                              :else
                              (put-kv-table self t))))))
 
-(set put-value (fn [self v]
-                 (let [tv (type v)]
-                   (if (= tv "string")
-                       (puts self (quote (escape v)))
-                       (or (= tv "number") (= tv "boolean") (= tv "nil"))
-                       (puts self (tostring v))
-                       (= tv "table")
-                       (put-table self v)
-                       :else
-                       (puts self "#<" tv " " (get-id self v) ">")))))
+(set! put-value (fn [self v]
+                  (let [tv (type v)]
+                    (if (= tv "string")
+                        (puts self (quote (escape v)))
+                        (or (= tv "number") (= tv "boolean") (= tv "nil"))
+                        (puts self (tostring v))
+                        (= tv "table")
+                        (put-table self v)
+                        :else
+                        (puts self "#<" tv " " (get-id self v) ">")))))
 
 
 

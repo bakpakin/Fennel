@@ -91,30 +91,32 @@ local cases = {
         -- else branch runs on nil
         ["(if non-existent 1 (* 3 9))"]=27,
         -- when is for side-effects
-        ["(do (when true (set a 192) (set z 12)) (+ z a))"]=204,
+        ["(when true (set! a 192) (set! z 12)) (+ z a)"]=204,
         -- when treats nil as falsey
-        ["(do (set a 884) (when nil (set a 192)) a)"]=884,
+        ["(set! a 884) (when nil (set! a 192)) a"]=884,
         -- when body does not run on false
-        ["(do (when (= 12 88) (os.exit 1)) false)"]=false,
+        ["(when (= 12 88) (os.exit 1)) false"]=false,
     },
 
     core = {
         -- comments
         ["74 ; (require \"hey.dude\")"]=74,
         -- comments go to the end of the line
-        ["(do (set x 12) ;; (set x 99)\n x)"]=12,
+        ["(set! x 12) ;; (set! x 99)\n x"]=12,
         -- calling built-in lua functions
         ["(table.concat [\"ab\" \"cde\"] \",\")"]="ab,cde",
         -- table lookup
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
+        -- set works with multisyms
+        ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
         -- local names with dashes in them
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         -- functions inside each
-        ["(do (each [_ ((fn [] (pairs [1])))] (set i 1)) i)"]=1,
+        ["(each [_ ((fn [] (pairs [1])))] (set! i 1)) i"]=1,
         -- let with nil value
         ["(let [x 3 y nil z 293] z)"]=293,
         -- nested let inside loop
-        ["(do (for [_ 1 3] (let [] (table.concat []) (set a 33))) a)"]=33,
+        ["(for [_ 1 3] (let [] (table.concat []) (set! a 33))) a"]=33,
     },
 
     destructuring = {
@@ -131,12 +133,12 @@ local cases = {
         ["(let [(a [b [c] d]) ((fn [] (values 4 [2 [1] 9])))] (+ a b c d))"]=16,
         -- multiple values without function wrapper
         ["(let [(a [b [c] d]) (values 4 [2 [1] 9])] (+ a b c d))"]=16,
-        -- set destructures tables
-        ["(do (set [a b c d] [4 2 43 7]) (+ (* a b) (- c d)))"]=44,
-        -- set multiple values
-        ["(do (set (a b) ((fn [] (values 4 29)))) (+ a b))"]=33,
+        -- set! destructures tables
+        ["(set! [a b c d] [4 2 43 7]) (+ (* a b) (- c d))"]=44,
+        -- set! multiple values
+        ["(set! (a b) ((fn [] (values 4 29)))) (+ a b)"]=33,
         -- local keyword
-        ["(do (local (-a -b) ((fn [] (values 4 29)))) (+ -a -b))"]=33,
+        ["(local (-a -b) ((fn [] (values 4 29)))) (+ -a -b)"]=33,
         -- rest args
         ["(let [[a b & c] [1 2 3 4 5]] (+ a (. c 2) (. c 3)))"]=10,
     },
@@ -242,15 +244,15 @@ fennel.eval([[(eval-compiler
 local macro_cases = {
     -- just a boring old set+fn combo
     ["(require-macros \"test-macros\")\
-      (defn hui [x y] (set z (+ x y))) (hui 8 4) z"]=12,
+      (defn hui [x y] (set! z (+ x y))) (hui 8 4) z"]=12,
     -- macros with mangled names
     ["(require-macros \"test-macros\")\
       (-> 9 (+ 2) (* 11))"]=121,
     -- require-macros doesn't leak into new evaluation contexts
     ["(let [(_ e) (pcall (fn [] (-> 8 (+ 2))))] (: e :match :global))"]="global",
     -- macros loaded in function scope shouldn't leak to other functions
-    ["((fn [] (require-macros \"test-macros\") (set x1 (-> 99 (+ 31)))))\
-      (pcall (fn [] (set x1 (-> 23 (+ 1)))))\
+    ["((fn [] (require-macros \"test-macros\") (set! x1 (-> 99 (+ 31)))))\
+      (pcall (fn [] (set! x1 (-> 23 (+ 1)))))\
       x1"]=130,
     -- special form
     ["(reverse-it 1 2 3 4 5 6)"]=1,
@@ -289,6 +291,7 @@ local compile_failures = {
     ["(let [false 1] 9)"]="unable to destructure false",
     ["(let [nil 1] 9)"]="unable to destructure nil",
     ["(let [[a & c d] [1 2]] c)"]="rest argument in final position",
+    ["(set a 19)"]="tried to set local",
     -- line numbers
     ["(set)"]="Compile error in `set' unknown:1: expected name and value",
     ["(let [b 9\nq (. tbl)] q)"]="2: expected table and key argument",

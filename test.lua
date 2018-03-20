@@ -7,6 +7,9 @@ local seed = os.getenv("SEED") or os.time()
 print("SEED=" .. seed)
 math.randomseed(seed)
 
+-- to store values in during tests
+tbl = {}
+
 local cases = {
     calculations = {
         ["(+ 1 2 (- 1 2))"]=2,
@@ -28,11 +31,15 @@ local cases = {
 
     comparisons = {
         ["(> 2 0)"]=true,
+        ["(> 2 0 -1)"]=true,
+        ["(<= 5 1 91)"]=false,
         ["(> -4 89)"]=false,
         ["(< -4 89)"]=true,
         ["(>= 22 (+ 21 1))"]=true,
         ["(<= 88 32)"]=false,
         ["(~= 33 1)"]=true,
+        ["(let [f (fn [] (tset tbl :dbl (+ 1 (or (. tbl :dbl) 0))) 1)]\
+            (< 0 (f) 2) (. tbl :dbl))"]=1,
     },
 
     parsing = {
@@ -47,9 +54,9 @@ local cases = {
         ["((fn [x] (* x 2)) 26)"]=52,
         -- nested functions
         ["(let [f (fn [x y f2] (+ x (f2 y)))\
-            f2 (fn [x y] (* x (+ 2 y)))\
-            f3 (fn [f] (fn [x] (f 5 x)))]\
-         (f 9 5 (f3 f2)))"]=44,
+                  f2 (fn [x y] (* x (+ 2 y)))\
+                  f3 (fn [f] (fn [x] (f 5 x)))]\
+                  (f 9 5 (f3 f2)))"]=44,
         -- closures can set variables they close over
         ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
         -- partial application
@@ -159,10 +166,10 @@ for name, tests in pairs(cases) do
             err = err + 1
             print(" Error: " .. res .. " in: ".. fennel.compile(code))
         else
-            local actual = fennel.eval(code)
-            if expected ~= actual then
+            if expected ~= res then
                 fail = fail + 1
-                print(" Expected " .. tostring(actual) .. " to be " .. tostring(expected))
+                print(" Expected " .. tostring(res) ..
+                          " to be " .. tostring(expected))
             else
                 pass = pass + 1
             end

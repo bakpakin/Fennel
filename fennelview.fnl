@@ -44,9 +44,9 @@
 
 (local get-sequence-length
        (fn [t]
-         (let [len 1]
-           (each [i (ipairs t)] (set len i))
-           len)))
+         (var len 1)
+         (each [i (ipairs t)] (set len i))
+         len))
 
 (local get-nonsequential-keys
        (fn [t]
@@ -72,7 +72,7 @@
 
 
 
-(local put-value nil) ; mutual recursion going on; defined below
+(var put-value nil) ; mutual recursion going on; defined below
 
 (local puts (fn [self ...]
               (each [_ v (ipairs [...])]
@@ -83,13 +83,13 @@
 (local already-visited? (fn [self v] (~= (. self.ids v) nil)))
 
 (local get-id (fn [self v]
-                (let [id (. self.ids v)]
-                  (when (not id)
-                    (let [tv (type v)]
-                      (set id (+ (or (. self.max-ids tv) 0) 1))
-                      (tset self.max-ids tv id)
-                      (tset self.ids v id)))
-                  (tostring id))))
+                (var id (. self.ids v))
+                (when (not id)
+                  (let [tv (type v)]
+                    (set id (+ (or (. self.max-ids tv) 0) 1))
+                    (tset self.max-ids tv id)
+                    (tset self.ids v id)))
+                (tostring id)))
 
 (local put-sequential-table (fn [self t length]
                               (puts self "[")
@@ -131,16 +131,16 @@
                              :else
                              (put-kv-table self t))))))
 
-(set! put-value (fn [self v]
-                  (let [tv (type v)]
-                    (if (= tv "string")
-                        (puts self (quote (escape v)))
-                        (or (= tv "number") (= tv "boolean") (= tv "nil"))
-                        (puts self (tostring v))
-                        (= tv "table")
-                        (put-table self v)
-                        :else
-                        (puts self "#<" tv " " (get-id self v) ">")))))
+(set put-value (fn [self v]
+                 (let [tv (type v)]
+                   (if (= tv "string")
+                       (puts self (quote (escape v)))
+                       (or (= tv "number") (= tv "boolean") (= tv "nil"))
+                       (puts self (tostring v))
+                       (= tv "table")
+                       (put-table self v)
+                       :else
+                       (puts self "#<" tv " " (get-id self v) ">")))))
 
 
 

@@ -123,9 +123,10 @@
                        (>= self.level self.depth)
                        (puts self "{...}")
                        :else
-                       (let [(non-seq-keys length) (get-nonsequential-keys t)]
+                       (let [(non-seq-keys length) (get-nonsequential-keys t)
+                             id (get-id self t)]
                          (if (> (. self.appearances t) 1)
-                             (puts self "#<" (get-id self t) ">")
+                             (puts self "#<" id ">")
                              (= (# non-seq-keys) 0)
                              (put-sequential-table self t length)
                              :else

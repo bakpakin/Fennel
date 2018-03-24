@@ -28,8 +28,7 @@ if arg[1] == "--repl" or #arg == 0 then
     local init = io.open(initFilename, "rb")
     if init then
         init:close()
-        fennel.dofile(initFilename, {env = setmetatable({options = options},
-                                                        {__index = _ENV or _G})})
+        fennel.dofile(initFilename, nil, options)
     end
     print("Welcome to fennel!")
     fennel.repl(options)

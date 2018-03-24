@@ -1035,7 +1035,7 @@ SPECIALS['set'] = function(ast, scope, parent)
     local parts = isMultiSym(target)
     if parts then target = parts[1] end
     assertCompile(isVar(target, scope) or parts,
-                  ("expected local var %s"):format(target), ast)
+                  ("expected local var %s"):format(tostring(target)), ast)
     destructure(ast[2], ast[3], scope, parent, true)
 end
 
@@ -1389,20 +1389,20 @@ local function compileString(str, options)
     return compileStream(strm, options)
 end
 
-local function eval(str, options)
+local function eval(str, options, ...)
     options = options or {}
     local luaSource = compileString(str, options)
     local loader = loadCode(luaSource, options.env, options.filename)
-    return loader()
+    return loader(...)
 end
 
-local function dofile_fennel(filename, options)
+local function dofile_fennel(filename, options, ...)
     options = options or { accurate = true }
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all")
     f:close()
     options.filename = options.filename or filename
-    return eval(source, options)
+    return eval(source, options, ...)
 end
 
 -- Implements a configurable repl
@@ -1499,8 +1499,8 @@ module.searcher = function(modulename)
         local file = io.open(filename, "rb")
         if(file) then
             file:close()
-            return function(options)
-                return dofile_fennel(filename, options)
+            return function(mod, options)
+                return dofile_fennel(filename, options, mod)
             end
         end
     end
@@ -1521,7 +1521,7 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
     for i = 2, #ast do
         local loader = assertCompile(module.searcher(ast[i]),
                                      ast[i] .. " not found.", ast)
-        for k, v in pairs(loader({env=makeEnv(ast, scope, parent)})) do
+        for k, v in pairs(loader(ast[i], {env=makeEnv(ast, scope, parent)})) do
             scope.specials[k] = function(ast2, scope2, parent2, opts2)
                 return compile1(v(unpack(ast2, 2)), scope2, parent2, opts2)
             end

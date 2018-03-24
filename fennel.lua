@@ -1490,18 +1490,25 @@ local module = {
     path = "./?.fnl",
 }
 
--- This will allow regular `require` to work with Fennel:
--- table.insert(package.loaders, fennel.searcher)
-module.searcher = function(modulename)
+local function searchModule(modulename)
     modulename = modulename:gsub("%.", "/")
     for path in string.gmatch(module.path..";", "([^;]*);") do
         local filename = path:gsub("%?", modulename)
         local file = io.open(filename, "rb")
         if(file) then
             file:close()
-            return function(mod, options)
-                return dofile_fennel(filename, options, mod)
-            end
+            return filename
+        end
+    end
+end
+
+-- This will allow regular `require` to work with Fennel:
+-- table.insert(package.loaders, fennel.searcher)
+module.searcher = function(modulename)
+    local filename = searchModule(modulename)
+    if filename then
+        return function(modname)
+            return dofile_fennel(filename, nil, modname)
         end
     end
 end
@@ -1519,9 +1526,11 @@ end
 
 SPECIALS['require-macros'] = function(ast, scope, parent)
     for i = 2, #ast do
-        local loader = assertCompile(module.searcher(ast[i]),
-                                     ast[i] .. " not found.", ast)
-        for k, v in pairs(loader(ast[i], {env=makeEnv(ast, scope, parent)})) do
+        local filename = assertCompile(searchModule(ast[i]),
+                                       ast[i] .. " not found.", ast)
+        local mod = dofile_fennel(filename, {env=makeEnv(ast, scope, parent)})
+        for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. ast[i] ..
+                                        'module to be table', ast)) do
             scope.specials[k] = function(ast2, scope2, parent2, opts2)
                 return compile1(v(unpack(ast2, 2)), scope2, parent2, opts2)
             end

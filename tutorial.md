@@ -392,10 +392,10 @@ module. This is typically a table containing functions, though it
 can be any value, like a function.
 
 Out of the box `require` doesn't work with Fennel files, but you can
-add an entry to Lua's `package.loaders` to support it:
+add an entry to Lua's package searchers to support it:
 
 ```lua
-table.insert(package.loaders, fennel.searcher)
+table.insert(package.loaders or package.searchers, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 

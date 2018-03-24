@@ -50,32 +50,36 @@ produces output in Lua format if you prefer.
 ### Evaulate a string of Fennel
 
 ```lua
-local result = fennel.eval(str[, options])
+local result = fennel.eval(str[, options[, ...]])
 ```
 
-Takes these additional options:
+The `options` table may contain:
 
 * `env`: same as above.
 * `filename`: override the filename that Lua thinks the code came from.
 
+Additional arguments beyond `options` are passed to the code and
+available as `...`.
+
 ### Evaluate a file of Fennel
 
 ```lua
-local result = fennel.dofile(filename[, options])
+local result = fennel.dofile(filename[, options[, ...]])
 ```
 
-* `env`: same as above.
+The `env` key in `options` and the additional arguments after it work
+the same as with `eval` above.
 
 ### Use Lua's built-in require function
 
 ```lua
-table.insert(package.loaders, fennel.searcher)
+table.insert(package.loaders or package.searchers, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
 Normally Lua's `require` function only loads modules written in Lua,
-but you can install `fennel.searcher` into `package.loaders` to teach
-it how to load Fennel code.
+but you can install `fennel.searcher` into `package.loaders` (or in
+Lua 5.3+ `package.searchers`) to teach it how to load Fennel code.
 
 The `require` function is different from `fennel.dofile` in that it
 searches the directories in `fennel.path` for `.fnl` files matching

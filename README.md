@@ -151,10 +151,10 @@ local lua = fennel.compile(ast)
 
 #### Fibonacci sequence
 ```
-(set fib (fn [n] (or (and (> n 1)
-                          (+ (fib (- n 1))
-                             (fib (- n 2))))
-                     1)))
+(local fib (fn [n] (or (and (> n 1)
+                            (+ (fib (- n 1))
+                               (fib (- n 2))))
+                       1)))
 
 (print (fib 10))
 ```
@@ -184,6 +184,8 @@ To compile a file:
 ```sh
 fennel --compile myscript.fnl > myscript.lua
 ```
+
+When given a file without a flag, it will simply load and run the file.
 
 ## Resources
 

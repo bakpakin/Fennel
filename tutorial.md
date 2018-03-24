@@ -19,13 +19,15 @@ as well as
 
 ## OK, so how do you do things?
 
-Variables are set with `set`. If a local variable has already been
-introduced, this will change its value, but if not it will set the
-global value. Functions are created with `fn`, using square brackets
-for argument lists:
+Globals are set with `global`. Good code doesn't use too many of
+these, but they can be nice for debugging and experimentation, so
+we'll start there. Note that with `global` there is no distinction
+between creating a new global and giving an existing global a new
+value. Functions are created with `fn`, using square brackets for
+arguments.
 
 ```lisp
-(set add (fn [x y] (+ x y)))
+(global add (fn [x y] (+ x y)))
 (add 32 12) ; -> 44
 ```
 
@@ -35,15 +37,15 @@ calling a function with the wrong number of arguments does not cause
 an error.) For safer code you can use `lambda`:
 
 ```lisp
-(set print-calculation
-     (lambda [x ?y z] (print (- x (* (or ?y 1) z)))))
+(global print-calculation
+        (lambda [x ?y z] (print (- x (* (or ?y 1) z)))))
 (print-calculation 5) ; -> error: Missing argument z
 ```
 
 Note that the second argument `?y` is allowed to be omitted, but `z` is not.
 
-Local variables are introduced using `let` with the names and values
-wrapped in a single set of square brackets:
+Locals are introduced using `let` with the names and values wrapped in
+a single set of square brackets:
 
 ```lisp
 (let [x (+ 89 5.2)
@@ -51,11 +53,36 @@ wrapped in a single set of square brackets:
   (f x))
 ```
 
+Here `x` is bound to the result of adding 89 and 5.2, while `f` is
+bound to a function that prints twice its argument. These bindings are
+only valid for the body of the `let` call.
+
 You can also introduce locals with `local`, which is nice when they'll
 be used across the whole file, but in general `let` is preferred:
 
 ```lisp
 (local lume (require "lume"))
+```
+
+Locals set this way cannot be given new values, but you *can*
+introduce new locals that shadow the outer names:
+
+```lisp
+(let [x 19]
+  ;; (set x 88) <- not allowed!
+  (let [x 88]
+    (print (+ x 2))) ; -> 90
+  (print x)) ; -> 19
+```
+
+If you need to change the value of a local, you can use `var` which
+works like `local` except it allows `set` to work on it. There is no
+nested equivalent of `var`.
+
+```lisp
+(var x 19)
+(set x (+ x 8))
+(print x) ; -> 27
 ```
 
 ### Numbers and strings
@@ -256,11 +283,11 @@ by destructuring with parens instead of square brackets:
 You can write your own function which returns multiple values with `values`:
 
 ```lisp
-(set use-file
-     (fn [filename]
-       (if (valid-file-name? filename)
-           (open-file filename)
-           (values nil (.. "Invalid filename: " filename))))
+(global use-file
+        (fn [filename]
+          (if (valid-file-name? filename)
+              (open-file filename)
+              (values nil (.. "Invalid filename: " filename))))
 ```
 
 If you detect a serious error that needs to be signaled beyond just
@@ -318,12 +345,18 @@ runtime overhead over Lua.
   If you don't already have one, it's recommended for debugging to
   define a printer function which calls `fennelview` on its argument
   before printing it: `(local view (fennel.dofile "fennelview.fnl"))
-  (set pp (fn [x] (print (view x))))`
+  (global pp (fn [x] (print (view x))))`
 
 * Lua's standard library is quite small, and so common functions like
   `map`, `reduce`, and `filter` are absent. It's recommended to pull
   in something like [Lume](https://github.com/rxi/lume) or
   [luafun](https://luafun.github.io/) for those.
+
+* Locals are per-chunk. Normally this means per-file, but you can also
+  create chunks with `fennel.eval` or Lua's `loadstring`, etc. One
+  common source of confusion is that in repl sessions, each input is
+  its own chunk, which makes `local` basically useless. For values to
+  persist in a repl session beyond one entry they need to be global.
 
 * Lua programmers should note Fennel functions cannot do early returns.
 
@@ -337,6 +370,13 @@ This includes features like coroutines, which are usually implemented
 using special syntax in other languages. Coroutines
 [let you express non-blocking operations without callbacks](http://leafo.net/posts/itchio-and-coroutines.html).
 
+Tables in Lua may seem a bit limited, but
+[metatables](http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/)
+allow a great deal more flexibility. All the features of metatables
+are accessible from Fennel code just the same as they would be from Lua.
+
+## Modules and multiple files
+
 You can use the `require` function to load code from Lua files.
 
 ```lisp
@@ -347,6 +387,9 @@ You can use the `require` function to load code from Lua files.
 ```
 
 Modules in Lua are simply tables which contain functions and other values.
+The last value in a Fennel file will be used as the value of the
+module. This is typically a table containing functions, though it
+can be any value, like a function.
 
 Out of the box `require` doesn't work with Fennel files, but you can
 add an entry to Lua's `package.loaders` to support it:
@@ -355,11 +398,6 @@ add an entry to Lua's `package.loaders` to support it:
 table.insert(package.loaders, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
-
-Tables in Lua may seem a bit limited, but
-[metatables](http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/)
-allow a great deal more flexibility. All the features of metatables
-are accessible from Fennel code just the same as they would be from Lua.
 
 ## Embedding
 
@@ -406,3 +444,9 @@ love.keypressed = function(key)
 end
 
 ```
+
+You can add `fennel.lua` as a single file to your project, but if you
+also add `fennelview.fnl` then when you use a Fennel repl you'll get
+results rendered much more nicely. You can use the function returned
+by `fennel.dofile("fennelview.fnl")` directly to turn any table into a
+fennel-syntax string rendering of that table for debugging.

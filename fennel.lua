@@ -337,6 +337,7 @@ local function makeScope(parent)
         specials = setmetatable({}, {
             __index = parent and parent.specials
         }),
+        vars = {}, -- whitelist for whether set works on a local
         parent = parent,
         vararg = parent and parent.vararg,
         depth = parent and ((parent.depth or 0) + 1) or 0
@@ -1010,13 +1011,50 @@ SPECIALS['.'] = function(ast, scope, parent)
     return ('%s[%s]'):format(tostring(lhs[1]), tostring(rhs[1]))
 end
 
+local function inScope(name, scope)
+    return scope.manglings[name] or scope.parent and inScope(name, scope.parent)
+end
+
+SPECIALS['global'] = function(ast, scope, parent)
+    assertCompile(#ast == 3, "expected name and value", ast)
+    local target = ast[2][1]
+    local parts = isMultiSym(target)
+    if parts then target = parts[1] end
+    assertCompile(not inScope(target, scope),
+                  ("tried to set local %s"):format(tostring(target)), ast)
+    destructure(ast[2], ast[3], scope, parent, true)
+end
+
+local function isVar(name, scope)
+    return scope.vars[name] or scope.parent and isVar(name, scope.parent)
+end
+
 SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
+    local target = ast[2][1]
+    local parts = isMultiSym(target)
+    if parts then target = parts[1] end
+    assertCompile(isVar(target, scope) or parts,
+                  ("expected local var %s"):format(target), ast)
     destructure(ast[2], ast[3], scope, parent, true)
 end
 
 SPECIALS['local'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
+    destructure(ast[2], ast[3], scope, parent, false)
+end
+
+local function scopeVars(v, scope)
+    if isSym(v) then
+        scope.vars[v[1]] = true
+    else
+        for _, v2 in ipairs(v) do scopeVars(v2, scope) end
+    end
+end
+
+SPECIALS['var'] = function(ast, scope, parent)
+    assertCompile(#ast == 3, "expected name and value", ast)
+    scopeVars(ast[2], scope)
     destructure(ast[2], ast[3], scope, parent, false)
 end
 
@@ -1370,7 +1408,7 @@ end
 -- Implements a configurable repl
 local function repl(givenOptions)
     local ppok, pp = pcall(dofile_fennel, "fennelview.fnl", givenOptions)
-    if not ppok then print("err", pp) pp = tostring end
+    if not ppok then pp = tostring end
 
     local options = {
         prompt = '>> ',

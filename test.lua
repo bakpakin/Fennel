@@ -57,8 +57,8 @@ local cases = {
                   f2 (fn [x y] (* x (+ 2 y)))\
                   f3 (fn [f] (fn [x] (f 5 x)))]\
                   (f 9 5 (f3 f2)))"]=44,
-        -- closures can set variables they close over
-        ["(let [a 11 f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
+        -- closures can set vars they close over
+        ["(var a 11) (let [f (fn [] (set a (+ a 2)))] (f) (f) a)"]=15,
         -- partial application
         ["(let [add (fn [x y] (+ x y)) inc (partial add 1)] (inc 99))"]=100,
         ["(let [add (fn [x y z] (+ x y z)) f2 (partial add 1 2)] (f2 6))"]=9,
@@ -77,44 +77,47 @@ local cases = {
         -- method calls work
         ["(: :hello :find :e)"]=2,
         -- method calls don't double side effects
-        ["(do (local a 0) (let [f (fn [] (set a (+ a 1)) :hello)]\
-            (: (f) :find :e)) a)"]=1,
+        ["(var a 0) (let [f (fn [] (set a (+ a 1)) :hi)] (: (f) :find :h)) a"]=1,
     },
 
     conditionals = {
         -- basic if
         ["(let [x 1 y 2] (if (= (* 2 x) y) \"yep\"))"]="yep",
         -- if can contain side-effects
-        ["(let [x 12] (if true (set x 22) 0) x)"]=22,
+        ["(var x 12) (if true (set x 22) 0) x"]=22,
         -- else branch works
         ["(if false \"yep\" \"nope\")"]="nope",
         -- else branch runs on nil
         ["(if non-existent 1 (* 3 9))"]=27,
         -- when is for side-effects
-        ["(do (when true (set a 192) (set z 12)) (+ z a))"]=204,
+        ["(var [a z] [0 0]) (when true (set a 192) (set z 12)) (+ z a)"]=204,
         -- when treats nil as falsey
-        ["(do (set a 884) (when nil (set a 192)) a)"]=884,
+        ["(var a 884) (when nil (set a 192)) a"]=884,
         -- when body does not run on false
-        ["(do (when (= 12 88) (os.exit 1)) false)"]=false,
+        ["(when (= 12 88) (os.exit 1)) false"]=false,
     },
 
     core = {
         -- comments
         ["74 ; (require \"hey.dude\")"]=74,
         -- comments go to the end of the line
-        ["(do (set x 12) ;; (set x 99)\n x)"]=12,
+        ["(var x 12) ;; (set x 99)\n x"]=12,
         -- calling built-in lua functions
         ["(table.concat [\"ab\" \"cde\"] \",\")"]="ab,cde",
         -- table lookup
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
+        -- set works with multisyms
+        ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
+        -- set works on parent scopes
+        ["(var n 0) (let [f (fn [] (set n 96))] (f) n)"]=96,
         -- local names with dashes in them
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         -- functions inside each
-        ["(do (each [_ ((fn [] (pairs [1])))] (set i 1)) i)"]=1,
+        ["(var i 0) (each [_ ((fn [] (pairs [1])))] (set i 1)) i"]=1,
         -- let with nil value
         ["(let [x 3 y nil z 293] z)"]=293,
         -- nested let inside loop
-        ["(do (for [_ 1 3] (let [] (table.concat []) (set a 33))) a)"]=33,
+        ["(var a 0) (for [_ 1 3] (let [] (table.concat []) (set a 33))) a"]=33,
     },
 
     destructuring = {
@@ -131,23 +134,25 @@ local cases = {
         ["(let [(a [b [c] d]) ((fn [] (values 4 [2 [1] 9])))] (+ a b c d))"]=16,
         -- multiple values without function wrapper
         ["(let [(a [b [c] d]) (values 4 [2 [1] 9])] (+ a b c d))"]=16,
-        -- set destructures tables
-        ["(do (set [a b c d] [4 2 43 7]) (+ (* a b) (- c d)))"]=44,
-        -- set multiple values
-        ["(do (set (a b) ((fn [] (values 4 29)))) (+ a b))"]=33,
+        -- global destructures tables
+        ["(global [a b c d] [4 2 43 7]) (+ (* a b) (- c d))"]=44,
+        -- global works with multiple values
+        ["(global (a b) ((fn [] (values 4 29)))) (+ a b)"]=33,
         -- local keyword
-        ["(do (local (-a -b) ((fn [] (values 4 29)))) (+ -a -b))"]=33,
+        ["(local (-a -b) ((fn [] (values 4 29)))) (+ -a -b)"]=33,
         -- rest args
         ["(let [[a b & c] [1 2 3 4 5]] (+ a (. c 2) (. c 3)))"]=10,
+        -- all vars get flagged as var
+        ["(var [a [b c]] [1 [2 3]]) (set a 2) (set c 8) (+ a b c)"]=12,
     },
 
     loops = {
         -- numeric loop
-        ["(let [x 0] (for [y 1 5] (set x (+ x 1))) x)"]=5,
+        ["(var x 0) (for [y 1 5] (set x (+ x 1))) x"]=5,
         -- numeric loop with step
-        ["(let [x 0] (for [y 1 20 2] (set x (+ x 1))) x)"]=10,
+        ["(var x 0) (for [y 1 20 2] (set x (+ x 1))) x"]=10,
         -- while loop
-        ["(let [x 0] (*while (< x 7) (set x (+ x 1))) x)"]=7,
+        ["(var x 0) (*while (< x 7) (set x (+ x 1))) x"]=7,
         -- each loop iterates over tables
         ["(let [t {:a 1 :b 2} t2 {}]\
                (each [k v (pairs t)]\
@@ -242,15 +247,15 @@ fennel.eval([[(eval-compiler
 local macro_cases = {
     -- just a boring old set+fn combo
     ["(require-macros \"test-macros\")\
-      (defn hui [x y] (set z (+ x y))) (hui 8 4) z"]=12,
+      (defn hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,
     -- macros with mangled names
     ["(require-macros \"test-macros\")\
       (-> 9 (+ 2) (* 11))"]=121,
     -- require-macros doesn't leak into new evaluation contexts
     ["(let [(_ e) (pcall (fn [] (-> 8 (+ 2))))] (: e :match :global))"]="global",
     -- macros loaded in function scope shouldn't leak to other functions
-    ["((fn [] (require-macros \"test-macros\") (set x1 (-> 99 (+ 31)))))\
-      (pcall (fn [] (set x1 (-> 23 (+ 1)))))\
+    ["((fn [] (require-macros \"test-macros\") (global x1 (-> 99 (+ 31)))))\
+      (pcall (fn [] (global x1 (-> 23 (+ 1)))))\
       x1"]=130,
     -- special form
     ["(reverse-it 1 2 3 4 5 6)"]=1,
@@ -289,6 +294,8 @@ local compile_failures = {
     ["(let [false 1] 9)"]="unable to destructure false",
     ["(let [nil 1] 9)"]="unable to destructure nil",
     ["(let [[a & c d] [1 2]] c)"]="rest argument in final position",
+    ["(set a 19)"]="expected local var a",
+    ["(set [a b c] [1 2 3]) (+ a b c)"]="expected local var",
     -- line numbers
     ["(set)"]="Compile error in `set' unknown:1: expected name and value",
     ["(let [b 9\nq (. tbl)] q)"]="2: expected table and key argument",

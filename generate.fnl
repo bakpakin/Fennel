@@ -1,6 +1,6 @@
 ;; A general-purpose function for generating random values.
 
-(local generate nil)
+(var generate nil)
 
 (local random-char
        (fn []
@@ -23,12 +23,13 @@
                                  (math.floor (math.random 2048))
                                  :else (math.random)))
                    :string (fn []
-                             (let [s ""]
-                               (for [_ 1 (math.random 16)]
-                                 (set s (.. s (random-char))))
-                               s))
+                             (var s "")
+                             (for [_ 1 (math.random 16)]
+                               (set s (.. s (random-char))))
+                             s)
                    :table (fn [table-chance]
-                            (let [t {} k nil]
+                            (let [t {}]
+                              (var k nil)
                               (for [_ 1 (math.random 16)]
                                 ;; no nans plz
                                 (set k (generate 0.9))
@@ -39,7 +40,7 @@
 
 (set generate
      (fn [table-chance]
-       (set table-chance (or table-chance 0.5))
+       (local table-chance (or table-chance 0.5))
        (if (> (math.random) 0.5) (generators.number)
            (> (math.random) 0.5) (generators.string)
            (> (math.random) table-chance) (generators.table table-chance)

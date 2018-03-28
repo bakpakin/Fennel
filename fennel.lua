@@ -479,7 +479,7 @@ end
 
 -- Place strings from chunk inside out table in a place that corresponds
 -- as best possible with its line number data from parser/emit.
-local function flattenChunkTables(chunk, out, lastLine)
+local function flattenChunkTables(chunk, out, lastLine, file)
     if type(chunk) == 'string' then
         if out[lastLine] then
             out[lastLine] = out[lastLine] .. " " .. chunk
@@ -487,9 +487,11 @@ local function flattenChunkTables(chunk, out, lastLine)
             out[lastLine] = chunk
         end
     else
-        lastLine = math.max(chunk.line or 0, lastLine)
+        if file == chunk.file then -- don't bump line unless file matches
+            lastLine = math.max(lastLine, chunk.line or 0)
+        end
         for _, line in ipairs(chunk) do
-            lastLine = flattenChunkTables(line, out, lastLine)
+            lastLine = flattenChunkTables(line, out, lastLine, file)
         end
     end
     return lastLine
@@ -500,7 +502,7 @@ end
 local function flattenChunk(chunk, tab, accurate)
     if accurate then
         local out = {}
-        local lineCount = flattenChunkTables(chunk, out, 1)
+        local lineCount = flattenChunkTables(chunk, out, 1, chunk.file)
         -- fill in the gaps
         for i = 1, lineCount do
             if not out[i] then out[i] = "" end
@@ -1389,20 +1391,20 @@ local function compileString(str, options)
     return compileStream(strm, options)
 end
 
-local function eval(str, options)
+local function eval(str, options, ...)
     options = options or {}
     local luaSource = compileString(str, options)
     local loader = loadCode(luaSource, options.env, options.filename)
-    return loader()
+    return loader(...)
 end
 
-local function dofile_fennel(filename, options)
+local function dofile_fennel(filename, options, ...)
     options = options or { accurate = true }
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all")
     f:close()
     options.filename = options.filename or filename
-    return eval(source, options)
+    return eval(source, options, ...)
 end
 
 -- Implements a configurable repl
@@ -1502,18 +1504,25 @@ local module = {
     path = "./?.fnl",
 }
 
--- This will allow regular `require` to work with Fennel:
--- table.insert(package.loaders, fennel.searcher)
-module.searcher = function(modulename)
+local function searchModule(modulename)
     modulename = modulename:gsub("%.", "/")
     for path in string.gmatch(module.path..";", "([^;]*);") do
         local filename = path:gsub("%?", modulename)
         local file = io.open(filename, "rb")
         if(file) then
             file:close()
-            return function(options)
-                return dofile_fennel(filename, options)
-            end
+            return filename
+        end
+    end
+end
+
+-- This will allow regular `require` to work with Fennel:
+-- table.insert(package.loaders, fennel.searcher)
+module.searcher = function(modulename)
+    local filename = searchModule(modulename)
+    if filename then
+        return function(modname)
+            return dofile_fennel(filename, nil, modname)
         end
     end
 end
@@ -1531,9 +1540,11 @@ end
 
 SPECIALS['require-macros'] = function(ast, scope, parent)
     for i = 2, #ast do
-        local loader = assertCompile(module.searcher(ast[i]),
-                                     ast[i] .. " not found.", ast)
-        for k, v in pairs(loader({env=makeEnv(ast, scope, parent)})) do
+        local filename = assertCompile(searchModule(ast[i]),
+                                       ast[i] .. " not found.", ast)
+        local mod = dofile_fennel(filename, {env=makeEnv(ast, scope, parent)})
+        for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. ast[i] ..
+                                        'module to be table', ast)) do
             scope.specials[k] = function(ast2, scope2, parent2, opts2)
                 return compile1(v(unpack(ast2, 2)), scope2, parent2, opts2)
             end

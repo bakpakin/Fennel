@@ -66,7 +66,7 @@
                (each [k v (pairs t)]
                  (recur k appearances)
                  (recur v appearances)))
-             (when (= t t) ; no nans please
+             (when (and t (= t t)) ; no nans please
                (tset appearances t (+ (or (. appearances t) 0) 1))))
          appearances))
 

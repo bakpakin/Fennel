@@ -1,6 +1,7 @@
 local fennel = require("fennel")
-local generate = fennel.dofile("generate.fnl")
-local view = fennel.dofile("fennelview.fnl")
+table.insert(package.loaders or package.searchers, fennel.searcher)
+local generate = require("generate")
+local view = require("fennelview")
 
 -- Allow deterministic re-runs of generated things.
 local seed = os.getenv("SEED") or os.time()

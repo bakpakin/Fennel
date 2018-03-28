@@ -1,0 +1,296 @@
+# Fennel Reference
+
+These are all the special forms recognized by the Fennel compiler. It
+does not include built-in Lua functions; see the
+[Lua reference manual](https://www.lua.org/manual/5.1/) for that.
+
+## Functions
+
+### `fn` function
+
+Creates a function which binds the arguments given inside the square
+brackets. Will accept any number of arguments; ones in excess of the
+declared ones are ignored, and if not enough arguments are given to
+match the declared ones, the remaining ones are `nil`.
+
+Example: `(fn [x y] (print (+ x y)))`
+
+### `lambda`/`λ` arity-checked function
+
+Creates a function like `fn` does, but throws an error at runtime if
+any of the listed arguments are nil, unless its identifier begins with `?`.
+
+Example: `(lambda [x ?y z] (print (- x (* (or ?y 1) z))))`
+
+The `λ` form is an alias for `lambda` and behaves identically.
+
+### `partial` partial application
+
+Returns a new function which works like its first argument, but fills
+the first few arguments in place with the given ones. This is related
+to currying but different because calling it will call the underlying
+function instead of waiting till it has the "correct" number of args.
+
+Example: `(partial (fn [x y] (print (+ x y))) 2)`
+
+This example returns a function which will print a number that is 2
+greater than the argument it is passed.
+
+## Binding
+
+### `let` scoped locals
+
+Introduces a new scope in which a given set of local bindings are used.
+
+Example: `(let [x 89] (print (+ x 12))` -> 101
+
+These locals cannot be changed with `set` but they can be shadowed by
+an inner `let` or `local`. Outside the body of the `let`, the bindings
+it introduces are no longer visible.
+
+Any time you bind a local, you can destructure it if the value is a
+sequential table or a function call which returns multiple values:
+
+Example: `(let [[a b c] [1 2 3]] (+ a b c))` -> `6`
+
+Example: `(let [(x y z) (unpack [10 9 8])] (+ x y z))` -> `27`
+
+### `local` declare local
+
+Introduces a new local inside an existing scope. Similar to `let` but
+without a body argument. Recommended for use at the top-level of a
+file for locals which will be used throughout the file.
+
+Example: `(local lume (require "lume"))`
+
+Supports destructuring and multiple-value binding.
+
+### `global` set global variable
+
+Sets a global variable to a new value. Note that there is no
+distinction between introducing a new global and changing the value of
+an existing one.
+
+Example: `(global prettyprint (fn [x] (print (view x))))`
+
+Supports destructuring and multiple-value binding.
+
+### `var` declare local variable
+
+Introduces a new local inside an existing scope which may have its
+value changed. Identical to `local` apart from allowing `set` to work
+on it.
+
+Example: `(var x 83)`
+
+Supports destructuring and multiple-value binding.
+
+### `set` set local variable or table field
+
+Changes the value of a variable introduced with `var`. Will not work
+on globals or `let`/`local`-bound locals. Can also be used to change a
+field of a table, even if the table is bound with `let` or `local`,
+provided the field is given at compile-time.
+
+Example: `(set x (+ x 91))`
+
+Example: `(let [t {:a 4 :b 8}] (set t.a 2) t)` -> `{:a 2 :b 8}`
+
+Supports destructuring and multiple-value binding.
+
+### `tset` set table field
+
+Set the field of a given table to a new value. The field name does not
+need to be known at compile-time. Works on any table, even those bound
+with `local` and `let`.
+
+Example: `(let [tbl {:d 32} field :d] (tset tbl field 19) tbl)` -> `{:d 19}`
+
+## Flow Control
+
+### `if` conditional
+
+Checks a condition and evaluates a corresponding body. Accepts any
+number of condition/body pairs; if an odd number of arguments is
+given, the last value is treated as a catch-all "else". Similar to
+`cond` in other lisps.
+
+Example:
+
+```
+(let [x (math.random 64)]
+  (if (= 0 (% x 2))
+      "even"
+      (= 0 (% x 10))
+      "multiple of ten"
+      "I dunno, something else"))
+```
+
+All values other than nil or false are treated as true.
+
+### `when` single side-effecting conditional
+
+Takes a single condition and evaluates the rest as a body if it's not
+nil or false. As it always returns nil; this is intended for side-effects.
+
+Example:
+
+```
+(when launch-missiles?
+  (power-on)
+  (open-doors)
+  (fire))
+```
+
+### `each` general iteration
+
+Run the body once for each value provided by the iterator. Nearly
+always used with `ipairs` (for sequential tables) or `pairs` (for any
+table in undefined order) but can be used with any iterator.
+
+Example:
+
+```
+(each [key value (pairs mytbl)]
+  (print key (f value)))
+```
+
+Most iterators return two values, but `each` will bind any number.
+
+### `for` numeric loop
+
+Counts a number from a start to stop point, evaluating the body once
+for each value. Accepts an optional step.
+
+Example:
+
+```
+(for [i 1 10 2]
+  (print i))
+```
+
+This example will print all odd numbers under ten.
+
+### `do` evaluate multiple forms returning last value
+
+Accepts any number of forms and evaluates all of them in order,
+returning the last value. This is used for inserting side-effects into
+a form which accepts only a single value, such as in a body of an `if`
+when multiple clauses make it so you can't use `when`.
+
+```
+(if launch-missiles?
+    (do
+      (power-on)
+      (open-doors)
+      (fire))
+    false-alarm?
+    (promote lt-petrov))
+```
+
+## Data
+
+### operators
+
+* `and`, `or`, `not` boolean
+* `+`, `-`, `*`, `/`, `//`, `%`, `^` arithmetic
+* `>`, `<`, `>=`, `<=`, `=`, `~=` comparison
+
+These all work as you would expect, with a few caveats. The `~=`
+operator is used for "not equal", and `//` for integer division is
+only available in Lua 5.3 and onward.
+
+They all take any number of arguments, as long as that number is fixed
+at compile-time. For instance, `(= 2 2 (unpack [2 5]))` will evaluate
+to `true` because the compile-time number of values being compared is 3.
+
+Note that these are all special forms which cannot be used as
+higher-order functions.
+
+### `..` string concatenation
+
+Concatenates its arguments into one string. Will coerce numbers into
+strings, but not other types.
+
+Example: `(.. "Hello" " " "world" 7 "!!!")` -> `"Hello world7!!!"`
+
+### `#` string or table length
+
+Returns the length of a string or table. Note that the length of a
+table with gaps in it is undefined; it can return a number
+corresponding to any of the table's "boundary" positions between nil
+and non-nil values. If a table has nils and you want to know the last
+consecutive numeric index starting at 1, you must calculate it
+yourself with `ipairs`; if you want to know the maximum numeric key in
+a table with nils, you can use `table.maxn`.
+
+Example: `(+ (# [1 2 3 nil 8]) (# "abc"))` -> `6` or `8`
+
+### `.` table lookup
+
+Looks up a given key in a table.
+
+Example: `(. mytbl myfield)`
+
+Note that if the field name is known at compile time, you don't need
+this and can just use `mytbl.field`.
+
+### `:` method call
+
+Looks up a function in a table and calls it with the table as its
+first argument. This is a common idiom in many Lua APIs, including
+some built-in ones.
+
+Example:
+
+```
+(let [f (assert (io.open "hello" "w"))]
+  (: f :write "world")
+  (: f :close))
+```
+
+Equivalent to:
+
+```
+(let [f (assert (io.open "hello" "w"))]
+  (f.write f "world")
+  (f.close f))
+```
+
+### `values` multi-valued return
+
+Returns multiple values from a function. Usually used to signal
+failure by returning nil followed by a message.
+
+Example:
+
+```
+(fn [filename]
+  (if (valid-file-name? filename)
+      (open-file filename)
+      (values nil (.. "Invalid filename: " filename))))
+```
+
+## Meta
+
+### `require-macros`
+
+Requires a module and binds its fields locally as macros.
+
+TODO: document; see Fennel's own test cases for now.
+
+## Undocumented
+
+The following are undocumented for various reasons; mostly because
+they are subject to change or rely on compiler internals that
+shouldn't be relied upon.
+
+* `eval-compiler`
+* `$`
+* `*while`
+* `macro`
+* `special`
+* `luaexpr`
+* `luastatement`
+* `pack`
+* `block`

@@ -287,7 +287,7 @@ You can write your own function which returns multiple values with `values`:
         (fn [filename]
           (if (valid-file-name? filename)
               (open-file filename)
-              (values nil (.. "Invalid filename: " filename))))
+              (values nil (.. "Invalid filename: " filename)))))
 ```
 
 If you detect a serious error that needs to be signaled beyond just

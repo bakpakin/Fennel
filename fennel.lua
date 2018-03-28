@@ -1408,9 +1408,9 @@ local function dofile_fennel(filename, options, ...)
 end
 
 -- Implements a configurable repl
-local function repl(givenOptions)
+local function repl(options)
 
-    local opts = givenOptions or {}
+    local opts = options or {}
 
     local ppok, pp = pcall(dofile_fennel, "fennelview.fnl", opts)
     if not ppok then pp = tostring end
@@ -1461,7 +1461,7 @@ local function repl(givenOptions)
             clearstream()
         else
             if not parseok then break end -- eof
-            local compileOk, luaSource = pcall(compile, x, options)
+            local compileOk, luaSource = pcall(compile, x, opts)
             if not compileOk then
                 clearstream()
                 onError('Compile', luaSource) -- luaSource is error message in this case

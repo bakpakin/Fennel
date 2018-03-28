@@ -1035,7 +1035,7 @@ SPECIALS['set'] = function(ast, scope, parent)
     local parts = isMultiSym(target)
     if parts then target = parts[1] end
     assertCompile(isVar(target, scope) or parts,
-                  ("expected local var %s"):format(target), ast)
+                  ("expected local var %s"):format(tostring(target)), ast)
     destructure(ast[2], ast[3], scope, parent, true)
 end
 
@@ -1407,66 +1407,78 @@ end
 
 -- Implements a configurable repl
 local function repl(givenOptions)
-    local ppok, pp = pcall(dofile_fennel, "fennelview.fnl", givenOptions)
+
+    local opts = givenOptions or {}
+
+    local ppok, pp = pcall(dofile_fennel, "fennelview.fnl", opts)
     if not ppok then pp = tostring end
 
-    local options = {
-        prompt = '>> ',
-        read = io.read,
-        write = io.write,
-        flush = io.flush,
-        pp = pp,
-    }
-    for k,v in pairs(givenOptions or {}) do
-        options[k] = v
-    end
-
-    local env = options.env or setmetatable({}, {
+    local env = opts.env or setmetatable({}, {
         __index = _ENV or _G
     })
-    local bytestream, clearstream = granulate(function()
-        options.write(options.prompt)
-        options.flush()
-        local input = options.read()
+
+    local function defaultReadChunk()
+        io.write('>> ')
+        io.flush()
+        local input = io.read()
         return input and input .. '\n'
-    end)
+    end
+
+    local function defaultOnValues(xs)
+        io.write(unpack(xs, 1, #xs))
+        io.write('\n')
+        env._ = xs[1]
+        env.__ = xs
+    end
+
+    local function defaultOnError(errtype, err, luaSource)
+        if (errtype == 'Lua Compile') then
+            io.write('Bad code generated - likely a bug with the compiler:\n')
+            io.write('--- Generated Lua Start ---\n')
+            io.write(luaSource .. '\n')
+            io.write('--- Generated Lua End ---\n')
+        end
+        io.write(('%s error: %s\n'):format(errtype, tostring(err)))
+    end
+
+    -- Read options
+    local readChunk = opts.readChunk or defaultReadChunk
+    local onValues = opts.onValues or defaultOnValues
+    local onError = opts.onError or defaultOnError
+    pp = opts.pp or pp
+
+    -- Make parser
+    local bytestream, clearstream = granulate(readChunk)
     local read = parser(bytestream)
+
+    -- REPL loop
     while true do
         local ok, parseok, x = pcall(read)
-        if ok then
+        if not ok then
+            onError('Parse', parseok)
+            clearstream()
+        else
             if not parseok then break end -- eof
             local compileOk, luaSource = pcall(compile, x, options)
             if not compileOk then
-                -- Compiler error
                 clearstream()
-                options.write('Compile error: ' .. luaSource .. '\n')
+                onError('Compile', luaSource) -- luaSource is error message in this case
             else
                 local luacompileok, loader = pcall(loadCode, luaSource, env)
                 if not luacompileok then
                     clearstream()
-                    options.write('Bad code generated - likely a bug with the compiler:\n')
-                    options.write('--- Generated Lua Start ---\n')
-                    options.write(luaSource .. '\n')
-                    options.write('--- Generated Lua End ---\n')
-                    options.write('Compiler error: ' .. tostring(loader) .. '\n')
+                    onError('Lua Compile', loader, luaSource)
                 else
                     local loadok, ret = xpcall(function () return tpack(loader()) end,
                         function (runtimeErr)
-                            -- We can do more sophisticated display here
-                            options.write(tostring(runtimeErr) .. '\n')
+                            onError('Runtime', runtimeErr)
                         end)
                     if loadok then
-                        for i = 1, #ret do ret[i] = options.pp(ret[i]) end
-                        options.write(unpack(ret, 1, #ret))
-                        options.write('\n')
-                        env._ = ret[1]
-                        env.__ = ret
+                        for i = 1, #ret do ret[i] = pp(ret[i]) end
+                        onValues(ret)
                     end
                 end
             end
-        else
-            options.write('Parse error: ' .. tostring(parseok) .. '\n')
-            clearstream()
         end
     end
 end

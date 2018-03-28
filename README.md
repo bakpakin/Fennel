@@ -37,9 +37,14 @@ fennel.repl([options])
 ```
 Takes these additional options:
 
-* `read`, `write`, and `flush`: replacements for equivalents from `io` table.
+* `readChunk()`: a function that when called, returns a string of source code.
+  The empty is string is used as the end of source marker.
 * `pp`: a pretty-printer function to apply on values.
 * `env`: an environment table in which to run the code; see the Lua manual.
+* `onValues(values)`: a function that will be called on all returned top level values.
+* `onError(errType, err, luaSource)`: a function that will be called on each error.
+  `errType` is a string with the type of error, can be either, 'parse', 'compile', 'runtime',  or 'lua'.
+  `err` is the error message, and `luaSource` is the source of the generated lua code.
 
 The pretty-printer defaults to loading `fennelview.fnl` if present and
 falls back to `tostring` otherwise. `fennelview.fnl` will produce

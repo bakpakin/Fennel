@@ -479,7 +479,7 @@ end
 
 -- Place strings from chunk inside out table in a place that corresponds
 -- as best possible with its line number data from parser/emit.
-local function flattenChunkTables(chunk, out, lastLine)
+local function flattenChunkTables(chunk, out, lastLine, file)
     if type(chunk) == 'string' then
         if out[lastLine] then
             out[lastLine] = out[lastLine] .. " " .. chunk
@@ -487,9 +487,11 @@ local function flattenChunkTables(chunk, out, lastLine)
             out[lastLine] = chunk
         end
     else
-        lastLine = math.max(chunk.line or 0, lastLine)
+        if file == chunk.file then -- don't bump line unless file matches
+            lastLine = math.max(lastLine, chunk.line or 0)
+        end
         for _, line in ipairs(chunk) do
-            lastLine = flattenChunkTables(line, out, lastLine)
+            lastLine = flattenChunkTables(line, out, lastLine, file)
         end
     end
     return lastLine
@@ -500,7 +502,7 @@ end
 local function flattenChunk(chunk, tab, accurate)
     if accurate then
         local out = {}
-        local lineCount = flattenChunkTables(chunk, out, 1)
+        local lineCount = flattenChunkTables(chunk, out, 1, chunk.file)
         -- fill in the gaps
         for i = 1, lineCount do
             if not out[i] then out[i] = "" end

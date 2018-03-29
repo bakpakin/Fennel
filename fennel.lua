@@ -1449,7 +1449,7 @@ local function repl(options)
     end
 
     local function defaultOnValues(xs)
-        io.write(unpack(xs, 1, #xs))
+        io.write(table.concat(xs, '\t'))
         io.write('\n')
         env._ = xs[1]
         env.__ = xs

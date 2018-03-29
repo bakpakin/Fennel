@@ -306,6 +306,9 @@ local compile_failures = {
     ["(set a 19)"]="expected local var a",
     ["(set [a b c] [1 2 3]) (+ a b c)"]="expected local var",
     ["(not true false)"]="expected one argument",
+    -- compiler environment
+    ["(require-macros \"test-macros\")\n(defn [:foo] [] nil)"]=
+        "defn: function names must be symbols",
     -- line numbers
     ["(set)"]="Compile error in `set' unknown:1: expected name and value",
     ["(let [b 9\nq (.)] q)"]="2: expected table argument",

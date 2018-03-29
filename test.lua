@@ -107,6 +107,10 @@ local cases = {
         ["(table.concat [\"ab\" \"cde\"] \",\")"]="ab,cde",
         -- table lookup
         ["(let [t []] (table.insert t \"lo\") (. t 1))"]="lo",
+        -- nested table lookup
+        ["(let [t [[21]]] (+ (. (. t 1) 1) (. t 1 1)))"]=42,
+        -- table lookup base case
+        ["(let [x 17] (. 17))"]=17,
         -- set works with multisyms
         ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
         -- set works on parent scopes
@@ -304,7 +308,7 @@ local compile_failures = {
     ["(not true false)"]="expected one argument",
     -- line numbers
     ["(set)"]="Compile error in `set' unknown:1: expected name and value",
-    ["(let [b 9\nq (. tbl)] q)"]="2: expected table and key argument",
+    ["(let [b 9\nq (.)] q)"]="2: expected table argument",
     ["(do\n\n\n(each \n[x 34 (pairs {})] 21))"]="4: expected iterator symbol",
     ["(fn []\n(for [32 34 32] 21))"]="2: expected iterator symbol",
     ["\n\n(let [f (lambda []\n(local))] (f))"]="4: expected name and value",

@@ -1007,10 +1007,18 @@ end
 
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
-    assertCompile(#ast == 3, "expected table and key argument", ast)
+    local len = #ast
+    assertCompile(len > 1, "expected table argument", ast)
     local lhs = compile1(ast[2], scope, parent, {nval = 1})
-    local rhs = compile1(ast[3], scope, parent, {nval = 1})
-    return ('%s[%s]'):format(tostring(lhs[1]), tostring(rhs[1]))
+    if len == 2 then
+        return tostring(lhs[1])
+    else
+        local indices = {}
+        for i = 3, len do
+            table.insert(indices, tostring(compile1(ast[i], scope, parent, {nval = 1})[1]))
+        end
+        return tostring(lhs[1]) .. '[' .. table.concat(indices, '][') .. ']'
+    end
 end
 
 local function inScope(name, scope)

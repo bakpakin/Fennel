@@ -1025,6 +1025,7 @@ SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(not inScope(target, scope),
                   ("tried to set local %s"):format(tostring(target)), ast)
     destructure(ast[2], ast[3], scope, parent, true)
+    return 'nil'
 end
 
 local function isVar(name, scope)
@@ -1039,11 +1040,13 @@ SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(isVar(target, scope) or parts,
                   ("expected local var %s"):format(tostring(target)), ast)
     destructure(ast[2], ast[3], scope, parent, true)
+    return 'nil'
 end
 
 SPECIALS['local'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], scope, parent, false)
+    return 'nil'
 end
 
 local function scopeVars(v, scope)
@@ -1058,6 +1061,7 @@ SPECIALS['var'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     scopeVars(ast[2], scope)
     destructure(ast[2], ast[3], scope, parent, false)
+    return 'nil'
 end
 
 SPECIALS['let'] = function(ast, scope, parent, opts)
@@ -1087,6 +1091,7 @@ SPECIALS['tset'] = function(ast, scope, parent)
     emit(parent, ('%s[%s] = %s'):format(tostring(root),
                                         table.concat(keys, ']['),
                                         tostring(value)), ast)
+    return 'nil'
 end
 
 -- The if special form behaves like the cond form in
@@ -1201,6 +1206,7 @@ SPECIALS['each'] = function(ast, scope, parent)
     compileDo(ast, scope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
+    return 'nil'
 end
 
 -- (while condition body...) => []
@@ -1225,6 +1231,7 @@ SPECIALS['*while'] = function(ast, scope, parent)
     compileDo(ast, makeScope(scope), subChunk, 3)
     emit(parent, subChunk, ast)
     emit(parent, 'end', ast)
+    return 'nil'
 end
 
 SPECIALS['for'] = function(ast, scope, parent)
@@ -1242,6 +1249,7 @@ SPECIALS['for'] = function(ast, scope, parent)
     compileDo(ast, scope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
+    return 'nil'
 end
 
 SPECIALS[':'] = function(ast, scope, parent, opts)

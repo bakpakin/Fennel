@@ -119,6 +119,10 @@ local cases = {
         ["(let [x 3 y nil z 293] z)"]=293,
         -- nested let inside loop
         ["(var a 0) (for [_ 1 3] (let [] (table.concat []) (set a 33))) a"]=33,
+        -- set can be used as expression
+        ["(var x 1) (let [_ (set x 92)] x)"]=92,
+        -- tset can be used as expression
+        ["(let [t {} _ (tset t :a 84)] (. t :a))"]=84,
     },
 
     destructuring = {

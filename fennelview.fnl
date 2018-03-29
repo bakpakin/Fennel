@@ -7,13 +7,14 @@
        {"\a" "\\a" "\b" "\\b" "\f" "\\f" "\n" "\\n"
         "\r" "\\r" "\t" "\\t" "\v" "\\v"})
 
-(local long-control-char-esapes {})
-
-(for [i 0 31]
-  (let [ch (string.char i)]
-    (when (not (. short-control-char-escapes ch))
-      (tset short-control-char-escapes ch (.. "\\" i))
-      (tset long-control-char-esapes ch (: "\\%03d" :format i)))))
+(local long-control-char-esapes
+       (let [long {}]
+         (for [i 0 31]
+           (let [ch (string.char i)]
+             (when (not (. short-control-char-escapes ch))
+               (tset short-control-char-escapes ch (.. "\\" i))
+               (tset long ch (: "\\%03d" :format i)))))
+         long))
 
 (local escape (fn [str]
                 (let [str (: str :gsub "\\" "\\\\")

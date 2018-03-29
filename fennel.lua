@@ -1351,6 +1351,7 @@ defineComparatorSpecial('~=')
 
 local function defineUnarySpecial(op, realop)
     SPECIALS[op] = function(ast, scope, parent)
+        assertCompile(#ast == 2, 'expected one argument', ast)
         local tail = compile1(ast[2], scope, parent, {nval = 1})
         return (realop or op) .. tostring(tail[1])
     end

@@ -297,6 +297,7 @@ local compile_failures = {
     ["(let [[a & c d] [1 2]] c)"]="rest argument in final position",
     ["(set a 19)"]="expected local var a",
     ["(set [a b c] [1 2 3]) (+ a b c)"]="expected local var",
+    ["(not true false)"]="expected one argument",
     -- line numbers
     ["(set)"]="Compile error in `set' unknown:1: expected name and value",
     ["(let [b 9\nq (. tbl)] q)"]="2: expected table and key argument",

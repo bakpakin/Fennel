@@ -228,9 +228,11 @@ Example: `(+ (# [1 2 3 nil 8]) (# "abc"))` -> `6` or `8`
 
 ### `.` table lookup
 
-Looks up a given key in a table.
+Looks up a given key in a table. Multiple arguments will index repeatedly.
 
 Example: `(. mytbl myfield)`
+
+Example: `(let [t {:a [2 3 4]}] (. t :a 2))` -> `3`
 
 Note that if the field name is known at compile time, you don't need
 this and can just use `mytbl.field`.

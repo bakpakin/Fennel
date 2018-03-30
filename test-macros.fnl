@@ -8,5 +8,6 @@
           (set x elt))
         x)
  :defn (fn [name args ...]
+         (assert (sym? name) "defn: function names must be symbols")
          (list (sym "global") name
                (list (sym "fn") args ...)))}

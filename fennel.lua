@@ -26,7 +26,6 @@ local pairs = pairs
 local ipairs = ipairs
 local tostring = tostring
 local unpack = unpack or table.unpack
-local tpack = table.pack or function(...) return {...} end
 
 --
 -- Main Types and support functions
@@ -781,13 +780,6 @@ local function values(ast, scope, parent)
     return exprs
 end
 
--- Implements packing an ast into a single value.
-local function pack(ast, scope, parent)
-    local subexprs = SPECIALS.values(ast, scope, parent, {})
-    local exprs = {expr('{' .. table.concat(subexprs, ', ') .. '}', 'expression')}
-    return exprs
-end
-
 -- Compile a list of forms for side effects
 local function compileDo(ast, scope, parent, start)
     start = start or 2
@@ -864,9 +856,6 @@ end
 SPECIALS['do'] = doImpl
 SPECIALS['values'] = values
 
--- Wrap a variadic number of arguments into a table. Does NOT do length capture
-SPECIALS['pack'] = pack
-
 -- The fn special declares a function. Syntax is similar to other lisps;
 -- (fn optional-name [arg ...] (body))
 -- Further decoration such as docstrings, meta info, and multibody functions a possibility.
@@ -913,32 +902,6 @@ SPECIALS['fn'] = function(ast, scope, parent)
     emit(parent, fChunk, ast)
     emit(parent, 'end', ast)
     return fnName
-end
-
-SPECIALS['$'] = function(ast, scope, parent)
-    local maxArg = 0
-    local function walk(node)
-        if type(node) ~= 'table' then return end
-        if isSym(node) then
-            local num = node[1]:match('^%$(%d+)$')
-            if num then
-                maxArg = math.max(maxArg, tonumber(num))
-            end
-            return
-        end
-        for k, v in pairs(node) do
-            walk(k)
-            walk(v)
-        end
-    end
-    walk(ast)
-    local fargs = {}
-    for i = 1, maxArg do
-        table.insert(fargs, sym('$' .. i), nil, ast.line, ast.filename)
-    end
-    table.remove(ast, 1)
-    return SPECIALS.fn({'', sym('$$', nil, ast.line, ast.filename),
-                        fargs, ast, n = 4}, scope, parent)
 end
 
 SPECIALS['luaexpr'] = function(ast)
@@ -1196,11 +1159,6 @@ SPECIALS['when'] = function(ast, scope, parent, opts)
     return SPECIALS["if"](new_ast, scope, parent, opts)
 end
 
--- (block body...) => []
-SPECIALS['block'] = function(ast, scope, parent)
-    compileDo(ast, scope, parent, 2)
-end
-
 -- (each [k v (pairs t)] body...) => []
 SPECIALS['each'] = function(ast, scope, parent)
     local binding = assertCompile(isTable(ast[2]), 'expected binding table', ast)
@@ -1221,7 +1179,7 @@ SPECIALS['each'] = function(ast, scope, parent)
 end
 
 -- (while condition body...) => []
-SPECIALS['*while'] = function(ast, scope, parent)
+SPECIALS['while'] = function(ast, scope, parent)
     local len1 = #parent
     local condition = compile1(ast[2], scope, parent, {nval = 1})[1]
     local len2 = #parent
@@ -1261,18 +1219,6 @@ SPECIALS['for'] = function(ast, scope, parent)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
     return 'nil'
-end
-
-SPECIALS[':'] = function(ast, scope, parent, opts)
-    local method = ast[3]
-    ast[1] = list(sym("."), ast[2], method)
-    table.remove(ast, 3)
-    return compile1(ast, scope, parent, opts)
-end
-
--- Do we need this? Is there a more elegnant way to compile with break?
-SPECIALS['*break'] = function(ast, _, parent)
-    emit(parent, 'break', ast)
 end
 
 SPECIALS[':'] = function(ast, scope, parent)
@@ -1491,7 +1437,7 @@ local function repl(options)
                     clearstream()
                     onError('Lua Compile', loader, luaSource)
                 else
-                    local loadok, ret = xpcall(function () return tpack(loader()) end,
+                    local loadok, ret = xpcall(function () return {loader()} end,
                         function (runtimeErr)
                             onError('Runtime', runtimeErr)
                         end)
@@ -1549,12 +1495,16 @@ end
 
 local function makeCompilerEnv(ast, scope, parent)
     return setmetatable({
-        _FNL = module,
+        -- State of compiler if needed
         _SCOPE = scope,
         _CHUNK = parent,
         _AST = ast,
         _IS_COMPILER = true,
         _SPECIALS = SPECIALS,
+        -- Expose the module in the compiler
+        fennel = module,
+        -- Useful for macros and meta programming. All of Fennel can be accessed
+        -- via fennel.myfun, for example (fennel.eval "(print 1)").
         list = list,
         sym = sym,
         [symMangle("list?")] = isList,

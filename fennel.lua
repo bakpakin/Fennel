@@ -1327,6 +1327,7 @@ defineUnarySpecial('#')
 
 local function compile(ast, options)
     options = options or {}
+    if options.indent == nil then options.indent = '  ' end
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
@@ -1336,6 +1337,7 @@ end
 
 local function compileStream(strm, options)
     options = options or {}
+    if options.indent == nil then options.indent = '  ' end
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local vals = {}
     for ok, val in parser(strm, options.filename) do
@@ -1359,6 +1361,7 @@ end
 
 local function eval(str, options, ...)
     options = options or {}
+    options.indent = options.indent or false
     local luaSource = compileString(str, options)
     local loader = loadCode(luaSource, options.env, options.filename)
     return loader(...)

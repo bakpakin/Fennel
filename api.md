@@ -76,9 +76,9 @@ local lua = fennel.compileString(str[, options])
 ```
 
 Accepts `indent` as a string in `options` causing output to be
-indented using that string instead of attempting to correlate output
-line numbers with source; results in output that is more readable but
-will not give helpful stack traces.
+indented using that string, which should contain only whitespace if
+provided. Use `false` to get compilation output which attempts to
+correlate source lines with output lines.
 
 ### Compile an iterator of bytes into a string of Lua (can throw errors)
 

@@ -27,6 +27,7 @@ if arg[1] == "--repl" or #arg == 0 then
 elseif arg[1] == "--compile" then
     if arg[2] == "--indent" then
         options.indent = table.remove(arg, 3)
+        if options.indent == "false" then options.indent = false end
         table.remove(arg, 2)
     end
     for i = 2, #arg do

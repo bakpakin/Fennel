@@ -273,6 +273,22 @@ Example:
       (values nil (.. "Invalid filename: " filename))))
 ```
 
+### `while` good old while loop
+
+Loops over a body until a condition is met. Uses a native
+Lua while loop, so is preferable to a lambda function and tail recursion.
+
+Example:
+
+```
+(do
+  (var done? false)
+  (while (not done?)
+    (print :not-done)
+    (when (> (math.random) 0.95)
+      (set done? true))))
+```
+
 ## Meta
 
 ### `require-macros`
@@ -288,11 +304,7 @@ they are subject to change or rely on compiler internals that
 shouldn't be relied upon.
 
 * `eval-compiler`
-* `$`
-* `*while`
 * `macro`
 * `special`
 * `luaexpr`
 * `luastatement`
-* `pack`
-* `block`

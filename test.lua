@@ -161,7 +161,7 @@ local cases = {
         -- numeric loop with step
         ["(var x 0) (for [y 1 20 2] (set x (+ x 1))) x"]=10,
         -- while loop
-        ["(var x 0) (*while (< x 7) (set x (+ x 1))) x"]=7,
+        ["(var x 0) (while (< x 7) (set x (+ x 1))) x"]=7,
         -- each loop iterates over tables
         ["(let [t {:a 1 :b 2} t2 {}]\
                (each [k v (pairs t)]\

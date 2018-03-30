@@ -1,9 +1,6 @@
 ## Fennel's Lua API
 
-The fennel module provides the following functions. Most functions take
-an `indent` function to override how to indent the compiled Lua output
-or an `accurate` function to ignore indentation and attempt to make
-the lines in the output code match up with the lines in the input code.
+The fennel module provides the following functions.
 
 ### Start a configurable repl
 
@@ -78,11 +75,28 @@ function to reload modules that have been loaded with `require`.
 local lua = fennel.compileString(str[, options])
 ```
 
+Accepts `indent` as a string in `options` causing output to be
+indented using that string instead of attempting to correlate output
+line numbers with source; results in output that is more readable but
+will not give helpful stack traces.
+
 ### Compile an iterator of bytes into a string of Lua (can throw errors)
 
 ```lua
-local lua = fennel.compileStream(strm, options)
+local lua = fennel.compileStream(strm[, options])
 ```
+
+Accepts `indent` in `options` as per above.
+
+### Compile a data structure (AST) into Lua source code (can throw errors)
+
+The code can be loaded via dostring or other methods. Will error on bad input.
+
+```lua
+local lua = fennel.compile(ast[, options])
+```
+
+Accepts `indent` in `options` as per above.
 
 ### Get an iterator over the bytes in a string
 
@@ -117,12 +131,4 @@ local ok, value = valuestream()
 for ok, value in valuestream do
     print(ok, value)
 end
-```
-
-### Compile a data structure (AST) into Lua source code
-
-The code can be loaded via dostring or other methods. Will error on bad input.
-
-```lua
-local lua = fennel.compile(ast)
 ```

@@ -468,12 +468,9 @@ local function gensym(...)
 end
 
 -- Flatten a tree of indented Lua source code lines.
--- Tab is what is used to indent a block. By default it is two spaces.
+-- Tab is what is used to indent a block.
 local function flattenChunkPretty(chunk, tab, depth)
-    if type(chunk) == 'string' then
-        return chunk
-    end
-    tab = tab or '  ' -- 2 spaces
+    if type(chunk) == 'string' then return chunk end
     for i = 1, #chunk do
         local sub = flattenChunkPretty(chunk[i], tab, depth + 1)
         if depth > 2 then sub = tab .. sub:gsub('\n', '\n' .. tab) end
@@ -502,10 +499,12 @@ local function flattenChunkTables(chunk, out, lastLine, file)
     return lastLine
 end
 
--- Turn a chunk into a single code string, either with indentation (default)
--- or by attempting to preserve line numbering if accurate is true.
-local function flattenChunk(chunk, tab, accurate)
-    if accurate then
+-- Turn a chunk into a single code string, either with indentation if given
+-- or by attempting to preserve line numbering.
+local function flattenChunk(chunk, tab)
+    if tab then
+        return flattenChunkPretty(chunk, tab, 0)
+    else
         local out = {}
         local lineCount = flattenChunkTables(chunk, out, 1, chunk.file)
         -- fill in the gaps
@@ -513,8 +512,6 @@ local function flattenChunk(chunk, tab, accurate)
             if not out[i] then out[i] = "" end
         end
         return table.concat(out, "\n")
-    else
-        return flattenChunkPretty(chunk, tab, 0)
     end
 end
 
@@ -1026,6 +1023,7 @@ SPECIALS['.'] = function(ast, scope, parent)
     end
 end
 
+-- TODO: referring to a global can put an entry in the manglings table
 local function inScope(name, scope)
     return scope.manglings[name] or scope.parent and inScope(name, scope.parent)
 end
@@ -1387,7 +1385,7 @@ local function compile(ast, options)
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
-    return flattenChunk(chunk, options.indent, options.accurate)
+    return flattenChunk(chunk, options.indent)
 end
 
 local function compileStream(strm, options)
@@ -1405,7 +1403,7 @@ local function compileStream(strm, options)
         })
         keepSideEffects(exprs, chunk, nil, vals[i])
     end
-    return flattenChunk(chunk, options.indent, options.accurate)
+    return flattenChunk(chunk, options.indent)
 end
 
 local function compileString(str, options)
@@ -1421,7 +1419,7 @@ local function eval(str, options, ...)
 end
 
 local function dofile_fennel(filename, options, ...)
-    options = options or { accurate = true }
+    options = options or {}
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all")
     f:close()

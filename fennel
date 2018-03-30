@@ -12,16 +12,7 @@ Usage: fennel [FLAG] [FILE]
 
   When not given a flag, runs the file given as the first argument.]]
 
-local flags = {"--accurate", "--debug"}
 local options = {}
-for _, flag in pairs(flags) do
-    for i = #arg, 1, -1 do
-        if arg[i] == flag then
-            table.remove(arg, i)
-            options[flag:gsub("[-][-]", "")] = true
-        end
-    end
-end
 
 if arg[1] == "--repl" or #arg == 0 then
     local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
@@ -34,10 +25,14 @@ if arg[1] == "--repl" or #arg == 0 then
     print("Welcome to fennel!")
     fennel.repl(options)
 elseif arg[1] == "--compile" then
+    if arg[2] == "--indent" then
+        options.indent = table.remove(arg, 3)
+        table.remove(arg, 2)
+    end
     for i = 2, #arg do
         local f = assert(io.open(arg[i], "rb"))
         options.filename=arg[i]
-        if options.debug then
+        if os.getenv("DEBUG") then
             fennel.compileString(f:read("*all"), options)
         else
             local ok, val = pcall(fennel.compileString, f:read("*all"), options)
@@ -48,7 +43,7 @@ elseif arg[1] == "--compile" then
     end
 elseif #arg >= 1 and arg[1] ~= "--help" then
     local filename = table.remove(arg, 1) -- let the script have remaining args
-    if options.debug then
+    if os.getenv("DEBUG") then
         fennel.dofile(filename, { accurate=true })
     else
         local ok, val = pcall(fennel.dofile, filename, { accurate=true })

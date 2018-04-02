@@ -678,12 +678,17 @@ local function compile1(ast, scope, parent, opts)
         for i = 1, #ast do -- Write numeric keyed values.
             buffer[#buffer + 1] = tostring(compile1(ast[i], scope, parent, {nval = 1})[1])
         end
-        for k, v in pairs(ast) do -- Write other keys.
+        local keys = {}
+        for k, _ in pairs(ast) do -- Write other keys.
             if type(k) ~= 'number' or math.floor(k) ~= k or k < 1 or k > #ast then
-                buffer[#buffer + 1] = ('[%s] = %s'):format(
-                    tostring(compile1(k, scope, parent, {nval = 1})[1]),
-                    tostring(compile1(v, scope, parent, {nval = 1})[1]))
+                table.insert(keys, { tostring(compile1(k, scope, parent, {nval = 1})[1]), k })
             end
+        end
+        table.sort(keys, function (a, b) return a[1] < b[1] end)
+        for _, k in ipairs(keys) do
+            local v = ast[k[2]]
+            buffer[#buffer + 1] = ('[%s] = %s'):format(
+                k[1], tostring(compile1(v, scope, parent, {nval = 1})[1]))
         end
         local tbl = '({' .. table.concat(buffer, ', ') ..'})'
         exprs = handleCompileOpts({expr(tbl, 'expression')}, parent, opts, ast)

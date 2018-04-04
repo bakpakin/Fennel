@@ -1,6 +1,6 @@
 # Fennel
 
-Fennel (formerly fnl) is a lisp that compiles to Lua. It aims to be easy to use, expressive, and has almost
+[Fennel](https://fennel-lang.org) (formerly fnl) is a lisp that compiles to Lua. It aims to be easy to use, expressive, and has almost
 zero overhead compared to handwritten Lua. It's currently a single file Lua library that can
 be dragged into any Lua project.
 
@@ -44,7 +44,10 @@ For a small complete example that uses the LÖVE game engine, see
 
 ## Try it
 
-Clone the repository, and run `./fennel --repl` to quickly start a repl.
+At [https://fennel-lang.org](https://fennel-lang.org) there's a live
+in-browser repl you can use without installing anything.
+
+Otherwise clone this repository, and run `./fennel --repl` to quickly start a repl.
 
 The repl will load the file `~/.fennelrc` on startup if it exists.
 

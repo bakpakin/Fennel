@@ -128,6 +128,8 @@
                              id (get-id self t)]
                          (if (> (. self.appearances t) 1)
                              (puts self "#<" id ">")
+                             (and (= (# non-seq-keys) 0) (= (# t) 0))
+                             (puts self "{}")
                              (= (# non-seq-keys) 0)
                              (put-sequential-table self t length)
                              :else

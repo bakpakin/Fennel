@@ -2,7 +2,7 @@
 ;; have around so feel free to steal them for your own projects.
 {"->" (fn [val ...]
         (var x val)
-        (each [_ elt (pairs [...])]
+        (each [_ elt (ipairs [...])]
           (table.insert elt 2 x)
           (set elt.n (+ 1 elt.n))
           (set x elt))

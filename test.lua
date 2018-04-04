@@ -281,7 +281,8 @@ for code, expected in pairs(macro_cases) do
         if expected ~= actual then
             fail = fail + 1
             print(" Expected " .. tostring(actual) ..
-                      " to be " .. tostring(expected))
+                     " to be " .. tostring(expected))
+            print("   Compiled to: " .. fennel.compileString(code))
         else
             pass = pass + 1
         end

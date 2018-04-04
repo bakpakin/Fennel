@@ -1331,6 +1331,13 @@ end
 defineUnarySpecial('not', 'not ')
 defineUnarySpecial('#')
 
+-- Covert a macro function to a special form
+local function macroToSpecial(mac)
+    return function(ast2, scope2, parent2, opts2)
+        return compile1(mac(unpack(ast2, 2)), scope2, parent2, opts2)
+    end
+end
+
 local function compile(ast, options)
     options = options or {}
     if options.indent == nil then options.indent = '  ' end
@@ -1531,9 +1538,7 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
         local mod = dofile_fennel(filename, {env=makeCompilerEnv(ast, scope, parent)})
         for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. ast[i] ..
                                         'module to be table', ast)) do
-            scope.specials[k] = function(ast2, scope2, parent2, opts2)
-                return compile1(v(unpack(ast2, 2)), scope2, parent2, opts2)
-            end
+            scope.specials[k] = macroToSpecial(v)
         end
     end
 end
@@ -1545,6 +1550,28 @@ SPECIALS['eval-compiler'] = function(ast, scope, parent)
     ast[1] = oldFirst
     local loader = loadCode(luaSource, makeCompilerEnv(ast, scope, parent))
     loader()
+end
+
+-- Load standard macros
+local stdmacros = [===[
+;; this module is loaded by the test suite, but these are handy macros to
+;; have around so feel free to steal them for your own projects.
+{"->" (fn [val ...]
+        (var x val)
+        (each [_ elt (ipairs [...])]
+          (table.insert elt 2 x)
+          (set elt.n (+ 1 elt.n))
+          (set x elt))
+        x)
+ :defn (fn [name args ...]
+         (assert (sym? name) "defn: function names must be symbols")
+         (list (sym "global") name
+               (list (sym "fn") args ...)))}
+]===]
+for name, fn in pairs(eval(stdmacros, {
+    env = makeCompilerEnv(nil, GLOBAL_SCOPE, {})
+})) do
+    SPECIALS[name] = macroToSpecial(fn)
 end
 
 return module

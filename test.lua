@@ -259,12 +259,12 @@ local macro_cases = {
       (defn hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,
     -- macros with mangled names
     ["(require-macros \"test-macros\")\
-      (-> 9 (+ 2) (* 11))"]=121,
+      (->1 9 (+ 2) (* 11))"]=121,
     -- require-macros doesn't leak into new evaluation contexts
-    ["(let [(_ e) (pcall (fn [] (-> 8 (+ 2))))] (: e :match :global))"]="global",
+    ["(let [(_ e) (pcall (fn [] (->1 8 (+ 2))))] (: e :match :global))"]="global",
     -- macros loaded in function scope shouldn't leak to other functions
-    ["((fn [] (require-macros \"test-macros\") (global x1 (-> 99 (+ 31)))))\
-      (pcall (fn [] (global x1 (-> 23 (+ 1)))))\
+    ["((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))\
+      (pcall (fn [] (global x1 (->1 23 (+ 1)))))\
       x1"]=130,
     -- special form
     ["(reverse-it 1 2 3 4 5 6)"]=1,

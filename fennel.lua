@@ -1404,8 +1404,6 @@ local function repl(options)
     local function defaultOnValues(xs)
         io.write(table.concat(xs, '\t'))
         io.write('\n')
-        env._ = xs[1]
-        env.__ = xs
     end
 
     local function defaultOnError(errtype, err, luaSource)
@@ -1451,6 +1449,8 @@ local function repl(options)
                             onError('Runtime', runtimeErr)
                         end)
                     if loadok then
+                        env._ = ret[1]
+                        env.__ = ret
                         for i = 1, #ret do ret[i] = pp(ret[i]) end
                         onValues(ret)
                     end

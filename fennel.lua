@@ -1563,6 +1563,13 @@ local stdmacros = [===[
           (set elt.n (+ 1 elt.n))
           (set x elt))
         x)
+ "->>" (fn [val ...]
+         (var x val)
+         (each [_ elt (pairs [...])]
+           (table.insert elt x)
+           (set elt.n (+ 1 elt.n))
+           (set x elt))
+         x)
  :defn (fn [name args ...]
          (assert (sym? name) "defn: function names must be symbols")
          (list (sym "global") name

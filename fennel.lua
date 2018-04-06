@@ -83,7 +83,7 @@ end
 -- Create a new expr
 -- etype should be one of
 --   "literal", -- literals like numbers, strings, nil, true, false
---   "expression", -- Complex strigns of Lua code, may have side effects, etc, but is an expression
+--   "expression", -- Complex strings of Lua code, may have side effects, etc, but is an expression
 --   "statement", -- Same as expression, but is also a valid statement (function calls).
 --   "vargs", -- varargs symbol
 --   "sym", -- symbol reference
@@ -232,7 +232,7 @@ local function parser(getbyte, filename)
         repeat
             local b
 
-            -- Skip whitespace
+            -- Skip white-space
             repeat
                 b = getb()
             until not b or not iswhitespace(b)
@@ -340,10 +340,10 @@ end
 -- Compilation
 --
 
--- Creat a new Scope, optionally under a parent scope. Scopes are compile time constructs
+-- Create a new Scope, optionally under a parent scope. Scopes are compile time constructs
 -- that are responsible for keeping track of local variables, name mangling, and macros.
 -- They are accessible to user code via the '*compiler' special form (may change). They
--- use metatables to implmenent nesting via inheritance.
+-- use meta-tables to implement nesting via inheritance.
 local function makeScope(parent)
     return {
         unmanglings = setmetatable({}, {
@@ -355,7 +355,7 @@ local function makeScope(parent)
         specials = setmetatable({}, {
             __index = parent and parent.specials
         }),
-        vars = {}, -- whitelist for whether set works on a local
+        vars = {}, -- white-list for whether set works on a local
         parent = parent,
         vararg = parent and parent.vararg,
         depth = parent and ((parent.depth or 0) + 1) or 0
@@ -407,7 +407,7 @@ end
 -- A multi symbol is a symbol that is actually composed of
 -- two or more symbols using the dot syntax. The main differences
 -- from normal symbols is that they cannot be declared local, and
--- they may have side effects on invocation (metatables)
+-- they may have side effects on invocation (meta-tables)
 local function isMultiSym(str)
     if type(str) ~= 'string' then return end
     local parts = {}
@@ -422,16 +422,17 @@ local function isMultiSym(str)
     parts
 end
 
--- Creates Lua-friendly symbol from a single symbol by mangling it.
-local function symMangle(symb)
+-- Map all fennel symbols to Lua identifiers.
+-- Takes any fennel symbol name and should output a valid
+-- Lua identifier.
+local function mangleMapping(symb)
     if luaKeywords[symb] or symb:match('^%d') then
         symb = '_' .. symb
     end
-    local function escaper(c)
-        return ('_%02x'):format(c:byte())
-    end
     symb = symb:gsub('-', '_')
-    return symb:gsub('[^%w_]', escaper)
+    return symb:gsub('[^%w_]', function (c)
+        return ('_%02x'):format(c:byte())
+    end)
 end
 
 -- Creates a symbol from a string by mangling it.
@@ -462,7 +463,7 @@ local function stringMangle(str, scope, noMulti)
             return ret
         end
     end
-    mangling = symMangle(mangling)
+    mangling = mangleMapping(mangling)
     local raw = mangling
     while scope.unmanglings[mangling] do
         mangling = raw .. append
@@ -545,12 +546,12 @@ local function exprs1(exprs)
     return table.concat(t, ', ')
 end
 
--- Compile sideffects for a chunk
+-- Compile side effects for a chunk
 local function keepSideEffects(exprs, chunk, start, ast)
     start = start or 1
     for j = start, #exprs do
         local se = exprs[j]
-        -- Avoid the rouge 'nil' expression (nil is usually a literal,
+        -- Avoid the rogue 'nil' expression (nil is usually a literal,
         -- but becomes an expression if a special form
         -- returns 'nil'.)
         if se.type == 'expression' and se[1] ~= 'nil' then
@@ -563,7 +564,7 @@ end
 
 -- Does some common handling of returns and register
 -- targets for special forms. Also ensures a list expression
--- has an accetable number of expressions if opts contains the
+-- has an acceptable number of expressions if opts contains the
 -- "nval" option.
 local function handleCompileOpts(exprs, parent, opts, ast)
     if opts.nval then
@@ -639,7 +640,7 @@ local function compile1(ast, scope, parent, opts)
             -- as well as lists or expressions
             if type(exprs) == 'string' then exprs = expr(exprs, 'expression') end
             if getmetatable(exprs) == EXPR_MT then exprs = {exprs} end
-            -- Unless the special form explicitely handles the target, tail, and nval properties,
+            -- Unless the special form explicitly handles the target, tail, and nval properties,
             -- (indicated via the 'returned' flag, handle these options.
             if not exprs.returned then
                 exprs = handleCompileOpts(exprs, parent, opts, ast)
@@ -818,7 +819,7 @@ local function compileDo(ast, scope, parent, start)
     end
 end
 
--- Implements a do statment, starting at the 'start' element. By default, start is 2.
+-- Implements a do statement, starting at the 'start' element. By default, start is 2.
 local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     start = start or 2
     subScope = subScope or makeScope(scope)
@@ -1517,11 +1518,11 @@ local function makeCompilerEnv(ast, scope, parent)
         -- via fennel.myfun, for example (fennel.eval "(print 1)").
         list = list,
         sym = sym,
-        [symMangle("list?")] = isList,
-        [symMangle("multi-sym?")] = isMultiSym,
-        [symMangle("sym?")] = isSym,
-        [symMangle("table?")] = isTable,
-        [symMangle("varg?")] = isVarg,
+        [mangleMapping("list?")] = isList,
+        [mangleMapping("multi-sym?")] = isMultiSym,
+        [mangleMapping("sym?")] = isSym,
+        [mangleMapping("table?")] = isTable,
+        [mangleMapping("varg?")] = isVarg,
     }, { __index = _ENV or _G })
 end
 

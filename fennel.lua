@@ -232,7 +232,7 @@ local function parser(getbyte, filename)
         repeat
             local b
 
-            -- Skip white-space
+            -- Skip whitespace
             repeat
                 b = getb()
             until not b or not iswhitespace(b)
@@ -343,7 +343,7 @@ end
 -- Create a new Scope, optionally under a parent scope. Scopes are compile time constructs
 -- that are responsible for keeping track of local variables, name mangling, and macros.
 -- They are accessible to user code via the '*compiler' special form (may change). They
--- use meta-tables to implement nesting via inheritance.
+-- use metatables to implement nesting via inheritance.
 local function makeScope(parent)
     return {
         unmanglings = setmetatable({}, {
@@ -355,7 +355,7 @@ local function makeScope(parent)
         specials = setmetatable({}, {
             __index = parent and parent.specials
         }),
-        vars = {}, -- white-list for whether set works on a local
+        vars = {}, -- whitelist for whether set works on a local
         parent = parent,
         vararg = parent and parent.vararg,
         depth = parent and ((parent.depth or 0) + 1) or 0
@@ -407,7 +407,7 @@ end
 -- A multi symbol is a symbol that is actually composed of
 -- two or more symbols using the dot syntax. The main differences
 -- from normal symbols is that they cannot be declared local, and
--- they may have side effects on invocation (meta-tables)
+-- they may have side effects on invocation (metatables)
 local function isMultiSym(str)
     if type(str) ~= 'string' then return end
     local parts = {}

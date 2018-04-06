@@ -4,7 +4,6 @@
         (var x val)
         (each [_ elt (ipairs [...])]
           (table.insert elt 2 x)
-          (set elt.n (+ 1 elt.n))
           (set x elt))
         x)
  :defn1 (fn [name args ...]

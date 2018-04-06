@@ -188,11 +188,13 @@ local function parser(getbyte, filename)
     local stack = {}
 
     -- Provide one character buffer and keep
-    -- track of current line
+    -- track of current line and byte index
     local line = 1
+    local byteindex = 0
     local lastb
     local function ungetb(ub)
         if ub == 10 then line = line - 1 end
+        byteindex = byteindex - 1
         lastb = ub
     end
     local function getb()
@@ -202,6 +204,7 @@ local function parser(getbyte, filename)
         else
             r = getbyte()
         end
+        byteindex = byteindex + 1
         if r == 10 then line = line + 1 end
         return r
     end
@@ -238,9 +241,12 @@ local function parser(getbyte, filename)
                     b = getb()
                 until not b or b == 10 -- newline
             elseif type(delims[b]) == 'number' then -- Opening delimiter
-                local l = setmetatable({closer = delims[b], n = 0}, LIST_MT)
-                l.line, l.filename = line, filename
-                table.insert(stack, l)
+                table.insert(stack, setmetatable({
+                    closer = delims[b],
+                    line = line,
+                    filename = filename,
+                    bytestart = byteindex
+                }, LIST_MT))
             elseif delims[b] then -- Closing delimiter
                 if #stack == 0 then error 'unexpected closing delimiter' end
                 local last = stack[#stack]
@@ -248,6 +254,7 @@ local function parser(getbyte, filename)
                 if last.closer ~= b then
                     error('unexpected delimiter ' .. string.char(b) .. ', expected ' .. string.char(last.closer))
                 end
+                last.byteend = byteindex -- Set closing byte index
                 if b == 41 then -- )
                     val = last
                 elseif b == 93 then -- ]
@@ -344,6 +351,7 @@ local function makeScope(parent)
     }
 end
 
+-- Check if a scope inner is a child of scope outer.
 local function scopeInside(outer, inner)
     repeat
         if inner == outer then return true end
@@ -467,51 +475,43 @@ local function gensym(...)
     return mangling
 end
 
+local function emit(chunk, out, ast)
+    if type(out) == 'table' then
+        table.insert(chunk, out)
+    else
+        table.insert(chunk, {leaf = out, ast = ast})
+    end
+end
+
 -- Flatten a tree of indented Lua source code lines.
 -- Tab is what is used to indent a block.
-local function flattenChunkPretty(chunk, tab, depth)
-    if type(chunk) == 'string' then return chunk end
-    for i = 1, #chunk do
-        local sub = flattenChunkPretty(chunk[i], tab, depth + 1)
-        if depth > 2 then sub = tab .. sub:gsub('\n', '\n' .. tab) end
-        chunk[i] = sub
-    end
-    return table.concat(chunk, '\n')
-end
-
--- Place strings from chunk inside out table in a place that corresponds
--- as best possible with its line number data from parser/emit.
-local function flattenChunkTables(chunk, out, lastLine, file)
-    if type(chunk) == 'string' then
-        if out[lastLine] then
-            out[lastLine] = out[lastLine] .. " " .. chunk
-        else
-            out[lastLine] = chunk
+local function flattenChunk(sm, chunk, tab, depth)
+    if type(tab) == 'boolean' then tab = tab and '  ' or '' end
+    if chunk.leaf then
+        local code = chunk.leaf
+        local ast = chunk.ast
+        if sm and ast then
+            code = code
+            .. ' --{line='
+            .. (ast.line or 'nil')
+            .. ';start='
+            .. (ast.bytestart or 'nil')
+            .. ';end='
+            .. (ast.byteend or 'nil')
+            .. '}'
         end
+        return code
     else
-        if file == chunk.file then -- don't bump line unless file matches
-            lastLine = math.max(lastLine, chunk.line or 0)
+        local parts = {}
+        for i = 1, #chunk do
+            -- Ignore empty chunks
+            if chunk[i].leaf or #(chunk[i]) > 0 then
+                local sub = flattenChunk(sm, chunk[i], tab, depth + 1)
+                if depth > 0 then sub = tab .. sub:gsub('\n', '\n' .. tab) end
+                table.insert(parts, sub)
+            end
         end
-        for _, line in ipairs(chunk) do
-            lastLine = flattenChunkTables(line, out, lastLine, file)
-        end
-    end
-    return lastLine
-end
-
--- Turn a chunk into a single code string, either with indentation if given
--- or by attempting to preserve line numbering.
-local function flattenChunk(chunk, tab)
-    if tab then
-        return flattenChunkPretty(chunk, tab, 0)
-    else
-        local out = {}
-        local lineCount = flattenChunkTables(chunk, out, 1, chunk.file)
-        -- fill in the gaps
-        for i = 1, lineCount do
-            if not out[i] then out[i] = "" end
-        end
-        return table.concat(out, "\n")
+        return table.concat(parts, '\n')
     end
 end
 
@@ -522,10 +522,6 @@ local function exprs1(exprs)
         t[#t + 1] = e[1]
     end
     return table.concat(t, ', ')
-end
-
-local function emit(chunk, out, ast)
-    table.insert(chunk, {out, line = ast and ast.line})
 end
 
 -- Compile sideffects for a chunk
@@ -614,7 +610,7 @@ local function compile1(ast, scope, parent, opts)
         local special = scope.specials[first]
         if special and isSym(ast[1]) then
             -- Special form
-            exprs = special(ast, scope, parent, opts) or {}
+            exprs = special(ast, scope, parent, opts) or expr('nil', 'literal')
             -- Be very accepting of strings or expression
             -- as well as lists or expressions
             if type(exprs) == 'string' then exprs = expr(exprs, 'expression') end
@@ -961,21 +957,6 @@ SPECIALS['special'] = function(ast, scope, parent)
     emit(parent, ('_SPECIALS[%q] = %s'):format(specname, tostring(spec)), ast)
 end
 
-SPECIALS['macro'] = function(ast, scope, parent, opts)
-    assertCompile(scopeInside(COMPILER_SCOPE, scope),
-                  "can only declare macros in 'eval-compiler'", ast)
-    local macroName = SPECIALS.fn(ast, scope, parent, opts)
-    local unmangled = ast[2][1]
-    local s = gensym(scope)
-
-    emit(parent, ('local function %s(ast, scope, chunk, opts)'):format(s), ast)
-    emit(parent, {'local unpack = table.unpack or unpack',
-                  ('return _FNL.compile1(%s(unpack(ast, 2, #ast)), scope, chunk, opts)')
-                      :format(macroName)}, ast)
-    emit(parent, 'end', ast)
-    emit(parent, ('_SPECIALS[%q] = %s'):format(unmangled, s), ast)
-end
-
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
     local len = #ast
@@ -1005,7 +986,6 @@ SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(not inScope(target, scope),
                   ("tried to set local %s"):format(tostring(target)), ast)
     destructure(ast[2], ast[3], scope, parent, true)
-    return 'nil'
 end
 
 local function isVar(name, scope)
@@ -1020,13 +1000,11 @@ SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(isVar(target, scope) or parts,
                   ("expected local var %s"):format(tostring(target)), ast)
     destructure(ast[2], ast[3], scope, parent, true)
-    return 'nil'
 end
 
 SPECIALS['local'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], scope, parent, false)
-    return 'nil'
 end
 
 local function scopeVars(v, scope)
@@ -1041,7 +1019,6 @@ SPECIALS['var'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     scopeVars(ast[2], scope)
     destructure(ast[2], ast[3], scope, parent, false)
-    return 'nil'
 end
 
 SPECIALS['let'] = function(ast, scope, parent, opts)
@@ -1071,7 +1048,6 @@ SPECIALS['tset'] = function(ast, scope, parent)
     emit(parent, ('%s[%s] = %s'):format(tostring(root),
                                         table.concat(keys, ']['),
                                         tostring(value)), ast)
-    return 'nil'
 end
 
 -- The if special form behaves like the cond form in
@@ -1111,7 +1087,7 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         branch.condchunk = condchunk
         table.insert(branches, branch)
     end
-    local hasElse = #ast > 3 and ast.n % 2 == 0
+    local hasElse = #ast > 3 and #ast % 2 == 0
     if hasElse then elseBranch = compileBody(#ast) end
 
     -- Emit code
@@ -1121,20 +1097,20 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     for i = 1, #branches do
         local branch = branches[i]
         local condLine = ('if %s then'):format(tostring(branch.cond[1]))
-        table.insert(lastBuffer, branch.condchunk)
-        table.insert(lastBuffer, condLine)
-        table.insert(lastBuffer, branch.chunk)
+        emit(lastBuffer, branch.condchunk, ast)
+        emit(lastBuffer, condLine, ast)
+        emit(lastBuffer, branch.chunk, ast)
         if i == #branches then
             if hasElse then
-                table.insert(lastBuffer, 'else')
-                table.insert(lastBuffer, elseBranch.chunk)
+                emit(lastBuffer, 'else', ast)
+                emit(lastBuffer, elseBranch.chunk, ast)
             end
-            table.insert(lastBuffer, 'end')
+            emit(lastBuffer, 'end', ast)
         else
-            table.insert(lastBuffer, 'else')
+            emit(lastBuffer, 'else', ast)
             local nextBuffer = {}
-            table.insert(lastBuffer, nextBuffer)
-            table.insert(lastBuffer, 'end')
+            emit(lastBuffer, nextBuffer, ast)
+            emit(lastBuffer, 'end', ast)
             lastBuffer = nextBuffer
         end
     end
@@ -1181,7 +1157,6 @@ SPECIALS['each'] = function(ast, scope, parent)
     compileDo(ast, scope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
-    return 'nil'
 end
 
 -- (while condition body...) => []
@@ -1206,7 +1181,6 @@ SPECIALS['while'] = function(ast, scope, parent)
     compileDo(ast, makeScope(scope), subChunk, 3)
     emit(parent, subChunk, ast)
     emit(parent, 'end', ast)
-    return 'nil'
 end
 
 SPECIALS['for'] = function(ast, scope, parent)
@@ -1224,7 +1198,6 @@ SPECIALS['for'] = function(ast, scope, parent)
     compileDo(ast, scope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
-    return 'nil'
 end
 
 SPECIALS[':'] = function(ast, scope, parent)
@@ -1345,7 +1318,7 @@ local function compile(ast, options)
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
-    return flattenChunk(chunk, options.indent)
+    return flattenChunk(options.sourcemap, chunk, options.indent, 0)
 end
 
 local function compileStream(strm, options)
@@ -1364,7 +1337,7 @@ local function compileStream(strm, options)
         })
         keepSideEffects(exprs, chunk, nil, vals[i])
     end
-    return flattenChunk(chunk, options.indent)
+    return flattenChunk(options.sourcemap, chunk, options.indent, 0)
 end
 
 local function compileString(str, options)
@@ -1560,14 +1533,12 @@ local stdmacros = [===[
         (var x val)
         (each [_ elt (ipairs [...])]
           (table.insert elt 2 x)
-          (set elt.n (+ 1 elt.n))
           (set x elt))
         x)
  "->>" (fn [val ...]
          (var x val)
          (each [_ elt (pairs [...])]
            (table.insert elt x)
-           (set elt.n (+ 1 elt.n))
            (set x elt))
          x)
  :defn (fn [name args ...]

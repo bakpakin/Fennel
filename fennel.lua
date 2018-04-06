@@ -381,6 +381,10 @@ for i, v in ipairs(luaKeywords) do
     luaKeywords[v] = i
 end
 
+local function isValidLuaIdentifier(str)
+    return not not (str:match('^[%a_][%w_]*$') and not luaKeywords[str])
+end
+
 -- Allow printing a string to Lua
 local function serializeString(str)
     local s = ("(%q)"):format(str):gsub('\n', 'n'):gsub("[\128-\255]", function(c)
@@ -409,7 +413,7 @@ end
 
 -- Creates Lua-friendly symbol from a single symbol by mangling it.
 local function symMangle(symb)
-    if luaKeywords[symb] then
+    if luaKeywords[symb] or symb:match('^%d') then
         symb = '_' .. symb
     end
     local function escaper(c)
@@ -432,15 +436,14 @@ local function stringMangle(str, scope, noMulti)
     if parts then
         local ret
         for i = 1, #parts do
-            local subpart = stringMangle(parts[i], scope)
             if ret then
-                if subpart:match('^[%a_][%w_]*$') then
-                    ret = ret .. '.' .. subpart
+                if isValidLuaIdentifier(parts[i]) then
+                    ret = ret .. '.' .. parts[i]
                 else
                     ret = ret .. '[' .. serializeString(parts[i]) .. ']'
                 end
             else
-                ret = subpart
+                ret = stringMangle(parts[i], scope)
             end
         end
         if ret then
@@ -1351,7 +1354,6 @@ end
 
 local function eval(str, options, ...)
     options = options or {}
-    options.indent = options.indent or false
     local luaSource = compileString(str, options)
     local loader = loadCode(luaSource, options.env, options.filename)
     return loader(...)

@@ -70,9 +70,14 @@ local function list(...)
 end
 
 -- Create a new symbol
-local function sym(str, scope, line, filename)
-    return setmetatable({ str, scope = scope, line = line, filename = filename},
-        SYMBOL_MT)
+local function sym(str, scope, meta)
+    local s = {str, scope = scope}
+    if meta then
+        for k, v in pairs(meta) do
+            if type(k) == 'string' then s[k] = v end
+        end
+    end
+    return setmetatable(s, SYMBOL_MT)
 end
 
 -- Create a new expr
@@ -298,6 +303,7 @@ local function parser(getbyte, filename)
                 dispatch(loadFn())
             else -- Try symbol
                 local chars = {}
+                local bytestart = byteindex
                 repeat
                     chars[#chars + 1] = b
                     b = getb()
@@ -315,7 +321,12 @@ local function parser(getbyte, filename)
                     if forceNumber then
                         x = tonumber(rawstr) or error('could not read token "' .. rawstr .. '"')
                     else
-                        x = tonumber(rawstr) or sym(rawstr, nil, line, filename)
+                        x = tonumber(rawstr) or sym(rawstr, nil, {
+                            line = line,
+                            filename = filename,
+                            bytestart = bytestart,
+                            byteend = byteindex
+                        })
                     end
                     dispatch(x)
                 end
@@ -504,9 +515,9 @@ local function flattenChunk(sm, chunk, tab, depth)
             code = code
             .. ' --{line='
             .. (ast.line or 'nil')
-            .. ';start='
+            .. ';bstart='
             .. (ast.bytestart or 'nil')
-            .. ';end='
+            .. ';bend='
             .. (ast.byteend or 'nil')
             .. '}'
         end
@@ -934,15 +945,16 @@ SPECIALS['lambda'] = function(ast, scope, parent)
     for _, arg in ipairs(arglist) do
         if not arg[1]:match("^?") and arg[1] ~= "..." then
             table.insert(checks, 1,
-                         list(sym("assert", ast.line, ast.filename),
+                         list(sym("assert", scope, ast),
                               list(sym('~='), sym('nil'), arg),
                               string.format("Missing argument %s on %s:%s",
                                             arg[1], ast.filename or 'unknown', ast.line or '?')))
         end
     end
-    local new = list(sym("lambda", ast[1].line, ast[1].filename),
+    local new = list(sym("lambda", scope, ast[1]),
                      arglist, unpack(checks))
-    new.line, new.filename = ast.line, ast.filename
+    new.line, new.filename, new.bytestart, new.byteend =
+        ast.line, ast.filename, ast.bytestart, ast.byteend
     for i = 3, #ast do
         table.insert(new, ast[i])
     end
@@ -955,9 +967,10 @@ SPECIALS['partial'] = function(ast, scope, parent)
     local innerArgs = {}
     for i = 3, #ast do table.insert(innerArgs, ast[i]) end
     table.insert(innerArgs, VARARG)
-    local new = list(sym("fn", ast[1].line, ast[1].filename),
+    local new = list(sym("fn", scope, ast[1]),
                      {VARARG}, list(f, unpack(innerArgs)))
-    new.line, new.filename = ast.line, ast.filename
+    new.line, new.filename, new.bytestart, new.byteend =
+        ast.line, ast.filename, ast.bytestart, ast.byteend
     return SPECIALS.fn(new, scope, parent)
 end
 
@@ -1141,10 +1154,12 @@ SPECIALS['when'] = function(ast, scope, parent, opts)
     assertCompile(#ast > 2, 'expected body', ast)
     table.remove(ast, 1)
     local condition = table.remove(ast, 1)
-    local body = list(sym("do", ast[1].line, ast[1].filename), unpack(ast))
-    local new_ast = list(sym("if"), condition, body)
-    new_ast.line, body.line = ast.line, ast.line
-    new_ast.filename, body.filename = ast.filename, ast.filename
+    local body = list(sym("do", scope, ast[1]), unpack(ast))
+    local new_ast = list(sym("if", scope, ast), condition, body)
+    new_ast.line, new_ast.filename, new_ast.bytestart, new_ast.byteend =
+        ast.line, ast.filename, ast.bytestart, ast.byteend
+    body.line, body.filename, body.bytestart, body.byteend =
+        ast.line, ast.filename, ast.bytestart, ast.byteend
     return SPECIALS["if"](new_ast, scope, parent, opts)
 end
 
@@ -1533,8 +1548,6 @@ end
 
 -- Load standard macros
 local stdmacros = [===[
-;; this module is loaded by the test suite, but these are handy macros to
-;; have around so feel free to steal them for your own projects.
 {"->" (fn [val ...]
         (var x val)
         (each [_ elt (ipairs [...])]

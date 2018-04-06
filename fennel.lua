@@ -1572,8 +1572,9 @@ local stdmacros = [===[
          x)
  :defn (fn [name args ...]
          (assert (sym? name) "defn: function names must be symbols")
-         (list (sym "local") name
-               (list (sym "fn") args ...)))}
+         (let [op (if (multi-sym? (. name 1)) :set :local)]
+           (list (sym op) name
+                 (list (sym :fn) args ...))))}
 ]===]
 for name, fn in pairs(eval(stdmacros, {
     env = makeCompilerEnv(nil, GLOBAL_SCOPE, {})

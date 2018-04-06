@@ -12,7 +12,22 @@ Usage: fennel [FLAG] [FILE]
 
   When not given a flag, runs the file given as the first argument.]]
 
-local options = {}
+local options = {
+    sourcemap = true
+}
+
+local compileOptHandlers = {
+    ['--indent'] = function ()
+        options.indent = table.remove(arg, 3)
+        if options.indent == "false" then options.indent = false end
+        table.remove(arg, 2)
+    end,
+    ['--sourcemap'] = function ()
+        options.sourcemap = table.remove(arg, 3)
+        if options.sourcemap == "false" then options.sourcemap = false end
+        table.remove(arg, 2)
+    end,
+}
 
 if arg[1] == "--repl" or #arg == 0 then
     local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
@@ -25,10 +40,9 @@ if arg[1] == "--repl" or #arg == 0 then
     print("Welcome to fennel!")
     fennel.repl(options)
 elseif arg[1] == "--compile" then
-    if arg[2] == "--indent" then
-        options.indent = table.remove(arg, 3)
-        if options.indent == "false" then options.indent = false end
-        table.remove(arg, 2)
+    -- Handle options
+    while compileOptHandlers[arg[2]] do
+        compileOptHandlers[arg[2]]()
     end
     for i = 2, #arg do
         local f = assert(io.open(arg[i], "rb"))

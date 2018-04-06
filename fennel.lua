@@ -412,9 +412,11 @@ local function symMangle(symb)
     if luaKeywords[symb] then
         symb = '_' .. symb
     end
-    return symb:gsub('[^%w_]', function(c)
+    local function escaper(c)
         return ('_%02x'):format(c:byte())
-    end)
+    end
+    symb = symb:gsub('-', '_')
+    return symb:gsub('[^%w_]', escaper)
 end
 
 -- Creates a symbol from a string by mangling it.
@@ -1276,12 +1278,12 @@ local function defineComparatorSpecial(name, realop)
         local lastval = compile1(ast[3], scope, parent, {nval = 1})[1]
         -- avoid double-eval by introducing locals for possible side-effects
         if #ast > 3 then lastval = once(lastval, ast[3], scope, parent) end
-        local out = ('((%s) %s (%s))'):
+        local out = ('(%s) %s (%s)'):
             format(tostring(lhs), op, tostring(lastval))
         for i = 4, #ast do -- variadic comparison
             local nextval = once(compile1(ast[i], scope, parent, {nval = 1})[1],
                                  ast[i], scope, parent)
-            out = ("(" .. out .. " and ((%s) %s (%s)))"):
+            out = (out .. " and ((%s) %s (%s))"):
                 format(tostring(lastval), op, tostring(nextval))
             lastval = nextval
         end

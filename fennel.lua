@@ -434,7 +434,7 @@ local function stringMangle(str, scope, noMulti)
         for i = 1, #parts do
             local subpart = stringMangle(parts[i], scope)
             if ret then
-                if subpart:match('^%w+$') then
+                if subpart:match('^[%a_][%w_]*$') then
                     ret = ret .. '.' .. subpart
                 else
                     ret = ret .. '[' .. serializeString(parts[i]) .. ']'

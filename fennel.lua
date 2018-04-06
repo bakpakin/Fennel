@@ -529,7 +529,10 @@ local function keepSideEffects(exprs, chunk, start, ast)
     start = start or 1
     for j = start, #exprs do
         local se = exprs[j]
-        if se.type == 'expression' then
+        -- Avoid the rouge 'nil' expression (nil is usually a literal,
+        -- but becomes an expression if a special form
+        -- returns 'nil'.)
+        if se.type == 'expression' and se[1] ~= 'nil' then
             emit(chunk, ('do local _ = %s end'):format(tostring(se)), ast)
         elseif se.type == 'statement' then
             emit(chunk, tostring(se), ast)

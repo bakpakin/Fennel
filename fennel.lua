@@ -1387,8 +1387,7 @@ local function repl(options)
 
     local opts = options or {}
 
-    local ppok, pp = pcall(dofile_fennel, "fennelview.fnl", opts)
-    if not ppok then pp = tostring end
+    if not opts.pp then opts.pp = tostring end
 
     local env = opts.env or setmetatable({}, {
         __index = _ENV or _G

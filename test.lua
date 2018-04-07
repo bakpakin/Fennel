@@ -244,13 +244,13 @@ for _ = 1, 16 do
 end
 
 fennel.eval([[(eval-compiler
-  (special reverse-it [ast scope parent opts]
+  (tset _SPECIALS "reverse-it" (fn [ast scope parent opts]
     (tset ast 1 "do")
     (for [i 2 (math.ceil (/ (# ast) 2))]
       (let [a (. ast i) b (. ast (- (# ast) (- i 2)))]
         (tset ast (- (# ast) (- i 2)) a)
         (tset ast i b)))
-    (_SPECIALS.do ast scope parent opts))
+    (_SPECIALS.do ast scope parent opts)))
 )]])
 
 local macro_cases = {

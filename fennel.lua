@@ -978,15 +978,6 @@ SPECIALS['partial'] = function(ast, scope, parent)
     return SPECIALS.fn(new, scope, parent)
 end
 
-SPECIALS['special'] = function(ast, scope, parent)
-    assertCompile(scopeInside(COMPILER_SCOPE, scope),
-                  "can only declare special forms in 'eval-compiler'", ast)
-    assertCompile(isSym(ast[2]), "expected symbol for name of special form", ast)
-    local specname = tostring(ast[2])
-    local spec = SPECIALS.fn(ast, scope, parent, {nval = 1})
-    emit(parent, ('_SPECIALS[%q] = %s'):format(specname, tostring(spec)), ast)
-end
-
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
     local len = #ast

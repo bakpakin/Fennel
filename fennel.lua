@@ -468,25 +468,13 @@ local function stringMangle(str, scope, noMulti)
     return mangling
 end
 
--- Generates a unique symbol in the scope, ensuring it is unique in child scopes as well
--- if they are passed in.
-local function gensym(...)
-    local scope = ... -- the root scope
-    assert(scope, 'expected at least 1 scope')
-    local len = select('#', ...)
+-- Generates a unique symbol in the scope.
+local function gensym(scope)
     local mangling, append = nil, 0
-    local function done(...)
-        for i = 1, len do
-            if select(i, ...).unmanglings[mangling] then
-                return false
-            end
-        end
-        return true
-    end
     repeat
         mangling = '_' .. append .. '_'
         append = append + 1
-    until done(...)
+    until not scope.unmanglings[mangling]
     scope.unmanglings[mangling] = true
     return mangling
 end

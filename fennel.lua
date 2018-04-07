@@ -362,15 +362,6 @@ local function makeScope(parent)
     }
 end
 
--- Check if a scope inner is a child of scope outer.
-local function scopeInside(outer, inner)
-    repeat
-        if inner == outer then return true end
-        inner = inner.parent
-    until not inner
-    return false
-end
-
 -- Assert a condition and raise a compile error with line numbers. The ast arg
 -- should be unmodified so that its first element is the form being called.
 local function assertCompile(condition, msg, ast)

@@ -355,9 +355,12 @@ end
 -- Assert a condition and raise a compile error with line numbers. The ast arg
 -- should be unmodified so that its first element is the form being called.
 local function assertCompile(condition, msg, ast)
-    return assert(condition, string.format("Compile error in `%s' %s:%s: %s",
-    ast[1][1], ast.filename or "unknown",
-    ast.line or '?', msg))
+    -- if we use regular `assert' we can't provide the `level' argument of zero
+    if not condition then
+        error(string.format("Compile error in `%s' %s:%s: %s", ast[1][1],
+                            ast.filename or "unknown", ast.line or '?', msg), 0)
+    end
+    return condition
 end
 
 local GLOBAL_SCOPE = makeScope()
@@ -1323,7 +1326,7 @@ defineUnarySpecial('#')
 local function macroToSpecial(mac)
     return function(ast, scope, parent, opts)
         local ok, transformed = pcall(mac, unpack(ast, 2))
-        if not ok then assertCompile(ok, transformed:gsub("^.*: ", ""), ast) end
+        assertCompile(ok, transformed, ast)
         return compile1(transformed, scope, parent, opts)
     end
 end

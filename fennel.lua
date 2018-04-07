@@ -374,9 +374,12 @@ end
 -- Assert a condition and raise a compile error with line numbers. The ast arg
 -- should be unmodified so that its first element is the form being called.
 local function assertCompile(condition, msg, ast)
-    return assert(condition, string.format("Compile error in `%s' %s:%s: %s",
-    ast[1][1], ast.filename or "unknown",
-    ast.line or '?', msg))
+    -- if we use regular `assert' we can't provide the `level' argument of zero
+    if not condition then
+        error(string.format("Compile error in `%s' %s:%s: %s", ast[1][1],
+                            ast.filename or "unknown", ast.line or '?', msg), 0)
+    end
+    return condition
 end
 
 local GLOBAL_SCOPE = makeScope()
@@ -1150,20 +1153,6 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     end
 end
 
--- (when condition body...) => []
-SPECIALS['when'] = function(ast, scope, parent, opts)
-    assertCompile(#ast > 2, 'expected body', ast)
-    table.remove(ast, 1)
-    local condition = table.remove(ast, 1)
-    local body = list(sym("do", scope, ast[1]), unpack(ast))
-    local new_ast = list(sym("if", scope, ast), condition, body)
-    new_ast.line, new_ast.filename, new_ast.bytestart, new_ast.byteend =
-        ast.line, ast.filename, ast.bytestart, ast.byteend
-    body.line, body.filename, body.bytestart, body.byteend =
-        ast.line, ast.filename, ast.bytestart, ast.byteend
-    return SPECIALS["if"](new_ast, scope, parent, opts)
-end
-
 -- (each [k v (pairs t)] body...) => []
 SPECIALS['each'] = function(ast, scope, parent)
     local binding = assertCompile(isTable(ast[2]), 'expected binding table', ast)
@@ -1329,8 +1318,10 @@ defineUnarySpecial('#')
 
 -- Covert a macro function to a special form
 local function macroToSpecial(mac)
-    return function(ast2, scope2, parent2, opts2)
-        return compile1(mac(unpack(ast2, 2)), scope2, parent2, opts2)
+    return function(ast, scope, parent, opts)
+        local ok, transformed = pcall(mac, unpack(ast, 2))
+        assertCompile(ok, transformed, ast)
+        return compile1(transformed, scope, parent, opts)
     end
 end
 
@@ -1563,8 +1554,14 @@ local stdmacros = [===[
          x)
  :defn (fn [name args ...]
          (assert (sym? name) "defn: function names must be symbols")
-         (list (sym "global") name
-               (list (sym "fn") args ...)))}
+         (let [op (if (multi-sym? (. name 1)) :set :local)]
+           (list (sym op) name
+                 (list (sym :fn) args ...))))
+ :when (fn [condition body1 ...]
+         (assert body1 "expected body")
+         (list (sym 'if') condition
+               (list (sym 'do') body1 ...)))
+}
 ]===]
 for name, fn in pairs(eval(stdmacros, {
     env = makeCompilerEnv(nil, GLOBAL_SCOPE, {})

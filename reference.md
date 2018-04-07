@@ -36,6 +36,19 @@ Example: `(partial (fn [x y] (print (+ x y))) 2)`
 This example returns a function which will print a number that is 2
 greater than the argument it is passed.
 
+### `defn` named function
+
+Creates a function and binds it to a given name. Can either be used to
+create a local function or put a function in a table, depending on
+whether the argument has a `.` in it or not.
+
+Example: `(defn plus [x y] (+ x y))`
+
+Example: `(defn love.update [dt] (set total-time (+ total-time dt)))`
+
+Cannot be used to create a global function, but can be used to add a
+function to a table that is global.
+
 ## Binding
 
 ### `let` scoped locals
@@ -289,7 +302,29 @@ Example:
       (set done? true))))
 ```
 
-## Meta
+## Other
+
+### `->` and `->>` threading macros
+
+The `->` macro takes its first value and splices it into the second
+form as the first argument. The result of evaluating the second form
+gets spliced into the first argument of the third form, and so on.
+
+Example:
+
+```
+(-> 52
+    (+ 91 2) ; (+ 52 91 2)
+    (- 8)    ; (- (+ 52 91 2) 8)
+    (print "is the answer")) ; (print (- (+ 52 91 2) 8) "is the answer")
+```
+
+The `->>` macro works the same, except it splices it into the last
+position of each form instead of the first.
+
+Note that these have nothing to do with "threads" used for
+concurrency; they are named after the thread which is used in
+sewing. This is similar to the way that `|>` works in OCaml and Elixir.
 
 ### `require-macros`
 
@@ -297,14 +332,34 @@ Requires a module and binds its fields locally as macros.
 
 TODO: document; see Fennel's own test cases for now.
 
-## Undocumented
+See "Compiler API" below for details about extra functions and tables
+visible inside compiler scope which macros run in.
 
-The following are undocumented for various reasons; mostly because
-they are subject to change or rely on compiler internals that
-shouldn't be relied upon.
+### `eval-compiler`
 
-* `eval-compiler`
-* `macro`
-* `special`
-* `luaexpr`
-* `luastatement`
+Evaluate a block of code during compile-time with access to compiler
+scope. This gives you a superset of the features you can get with
+macros, but you should use macros if you can.
+
+Example:
+
+```
+(eval-compiler
+  (tset _SPECIALS "local" (. _SPECIALS "global")))
+```
+
+### Compiler API
+
+Inside `eval-compiler` blocks or `require-macros` modules, this extra
+functionality is visible to your Fennel code:
+
+* `list`
+* `sym`
+* `list?`
+* `sym?`
+* `multi-sym?`
+* `table?`
+* `varg?`
+
+Note that other internals of the compiler exposed in compiler scope are
+subject to change.

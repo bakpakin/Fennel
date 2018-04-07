@@ -1,6 +1,6 @@
 ## Fennel's Lua API
 
-The fennel module provides the following functions.
+The `fennel` module provides the following functions.
 
 ### Start a configurable repl
 

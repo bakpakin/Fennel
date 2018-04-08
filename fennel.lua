@@ -756,12 +756,14 @@ end
 -- declaration: begin each assignment with 'local' in output
 -- nomulti: disallow multisyms in the destructuring. Used for (local) and (global).
 -- noundef: Don't set undefined bindings. (set)
+-- forceglobal: Don't allow local bindings
 local function destructure(to, from, ast, scope, parent, opts)
     opts = opts or {}
     local isvar = opts.isvar
     local declaration = opts.declaration
     local nomulti = opts.nomulti
     local noundef = opts.noundef
+    local forceglobal = opts.forceglobal
     local setter = declaration and "local %s = %s" or "%s = %s"
 
     -- Get Lua source for symbol, and check for errors
@@ -775,6 +777,8 @@ local function destructure(to, from, ast, scope, parent, opts)
             local parts = isMultiSym(raw) or {raw}
             local meta = scope.symmeta[parts[1]]
             if #parts == 1 then
+                assertCompile(not(forceglobal and meta),
+                    'expected global, found var', up1)
                 assertCompile(meta or not noundef,
                     'expected local var ' .. parts[1], up1)
                 assertCompile(not (meta and not meta.var),
@@ -1022,7 +1026,8 @@ end
 SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
-        nomulti = true
+        nomulti = true,
+        forceglobal = true
     })
 end
 

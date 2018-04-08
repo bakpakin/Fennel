@@ -944,17 +944,6 @@ SPECIALS['lambda'] = function(ast, scope, parent)
 end
 SPECIALS['λ'] = SPECIALS['lambda']
 
-SPECIALS['partial'] = function(ast, scope, parent)
-    local f = ast[2]
-    local innerArgs = {}
-    for i = 3, #ast do table.insert(innerArgs, ast[i]) end
-    table.insert(innerArgs, VARARG)
-    local new = list(sym("fn", ast[1].line, ast[1].filename),
-                     {VARARG}, list(f, unpack(innerArgs)))
-    new.line, new.filename = ast.line, ast.filename
-    return SPECIALS.fn(new, scope, parent)
-end
-
 SPECIALS['special'] = function(ast, scope, parent)
     assertCompile(scopeInside(COMPILER_SCOPE, scope),
                   "can only declare special forms in 'eval-compiler'", ast)
@@ -1507,6 +1496,7 @@ local function makeCompilerEnv(ast, scope, parent)
         _AST = ast,
         _IS_COMPILER = true,
         _SPECIALS = SPECIALS,
+        _VARARG = VARARG,
         -- Expose the module in the compiler
         fennel = module,
         -- Useful for macros and meta programming. All of Fennel can be accessed
@@ -1569,6 +1559,10 @@ local stdmacros = [===[
          (assert body1 "expected body")
          (list (sym 'if') condition
                (list (sym 'do') body1 ...)))
+ :partial (fn [f ...]
+            (let [body (list f ...)]
+              (table.insert body _VARARG)
+              (list (sym "fn") [_VARARG] body)))
 }
 ]===]
 for name, fn in pairs(eval(stdmacros, {

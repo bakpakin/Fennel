@@ -30,11 +30,11 @@ local unpack = unpack or table.unpack
 -- Main Types and support functions
 --
 
-local SYMBOL_MT = { 'SYMBOL',
-    __tostring = function (self)
-        return self[1]
-    end
-}
+local function deref(self) return self[1] end
+
+local SYMBOL_MT = { 'SYMBOL', __tostring = deref }
+local EXPR_MT = { 'EXPR', __tostring = deref }
+local VARARG = setmetatable({ '...' }, { 'VARARG', __tostring = deref })
 local LIST_MT = { 'LIST',
     __tostring = function (self)
         local strs = {}
@@ -44,12 +44,6 @@ local LIST_MT = { 'LIST',
         return '(' .. table.concat(strs, ', ', 1, #self) .. ')'
     end
 }
-local EXPR_MT = { 'EXPR',
-    __tostring = function (self)
-        return self[1]
-    end
-}
-local VARARG = setmetatable({ '...' }, { 'VARARG' })
 
 -- Load code with an environment in all recent Lua versions
 local function loadCode(code, environment, filename)
@@ -997,30 +991,6 @@ SPECIALS['luastatement'] = function(ast)
     return expr(tostring(ast[2]), 'statement')
 end
 
-SPECIALS['lambda'] = function(ast, scope, parent)
-    assertCompile(#ast >= 3, "missing body expression", ast)
-    local arglist = ast[2]
-    local checks = {}
-    for _, arg in ipairs(arglist) do
-        if not arg[1]:match("^?") and arg[1] ~= "..." then
-            table.insert(checks, 1,
-                         list(sym("assert", scope, ast),
-                              list(sym('~='), sym('nil'), arg),
-                              string.format("Missing argument %s on %s:%s",
-                                            arg[1], ast.filename or 'unknown', ast.line or '?')))
-        end
-    end
-    local new = list(sym("lambda", scope, ast[1]),
-                     arglist, unpack(checks))
-    new.line, new.filename, new.bytestart, new.byteend =
-        ast.line, ast.filename, ast.bytestart, ast.byteend
-    for i = 3, #ast do
-        table.insert(new, ast[i])
-    end
-    return SPECIALS.fn(new, scope, parent)
-end
-SPECIALS['λ'] = SPECIALS['lambda']
-
 SPECIALS['partial'] = function(ast, scope, parent)
     local f = ast[2]
     local innerArgs = {}
@@ -1534,6 +1504,7 @@ local function makeCompilerEnv(ast, scope, parent)
         _AST = ast,
         _IS_COMPILER = true,
         _SPECIALS = SPECIALS,
+        _VARARG = VARARG,
         -- Expose the module in the compiler
         fennel = module,
         -- Useful for macros and meta programming. All of Fennel can be accessed
@@ -1592,6 +1563,27 @@ local stdmacros = [===[
          (assert body1 "expected body")
          (list (sym 'if') condition
                (list (sym 'do') body1 ...)))
+ :partial (fn [f ...]
+            (let [body (list f ...)]
+              (table.insert body _VARARG)
+              (list (sym "fn") [_VARARG] body)))
+ :lambda (fn [...]
+           (let [args [...]
+                 has-internal-name? (sym? (. args 1))
+                 arglist (if has-internal-name? (. args 2) (. args 1))
+                 arity-check-position (if has-internal-name? 3 2)]
+             (assert (> (# args) 1) "missing body expression")
+             (each [i arg (ipairs arglist)]
+               (if (and (not (: (tostring arg) :match "^?"))
+                        (~= (tostring arg) "..."))
+                   (table.insert args arity-check-position
+                                 (list (sym "assert")
+                                       (list (sym "~=") (sym "nil") arg)
+                                       (: "Missing argument %s on %s:%s"
+                                          :format (tostring arg)
+                                          (or arg.filename "unknown")
+                                          (or arg.line "?"))))))
+             (list (sym "fn") ((or unpack table.unpack) args))))
 }
 ]===]
 for name, fn in pairs(eval(stdmacros, {
@@ -1599,5 +1591,6 @@ for name, fn in pairs(eval(stdmacros, {
 })) do
     SPECIALS[name] = macroToSpecial(fn)
 end
+SPECIALS['λ'] = SPECIALS['lambda']
 
 return module

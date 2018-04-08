@@ -182,8 +182,7 @@ for name, tests in pairs(cases) do
         else
             if expected ~= res then
                 fail = fail + 1
-                print(" Expected " .. tostring(res) ..
-                          " to be " .. tostring(expected))
+                print(" Expected " .. view(res) .. " to be " .. view(expected))
             else
                 pass = pass + 1
             end
@@ -280,8 +279,7 @@ for code, expected in pairs(macro_cases) do
         local actual = fennel.eval(code)
         if expected ~= actual then
             fail = fail + 1
-            print(" Expected " .. tostring(actual) ..
-                     " to be " .. tostring(expected))
+            print(" Expected " .. view(actual) .. " to be " .. view(expected))
             print("   Compiled to: " .. fennel.compileString(code))
         else
             pass = pass + 1
@@ -315,7 +313,7 @@ local compile_failures = {
     ["(do\n\n\n(each \n[x 34 (pairs {})] 21))"]="4: expected iterator symbol",
     ["(fn []\n(for [32 34 32] 21))"]="2: expected iterator symbol",
     ["\n\n(let [f (lambda []\n(local))] (f))"]="4: expected name and value",
-    ["(do\n\n\n(each \n[x (pairs {})] (when)))"]="5: expected body",
+    ["(do\n\n\n(each \n[x (pairs {})] (when)))"]="when' unknown:5:",
     -- macro errors have macro names in them
     ["\n(when)"]="Compile error in .when. unknown:2",
 }

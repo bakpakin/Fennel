@@ -33,7 +33,7 @@ local compileOptHandlers = {
 if arg[1] == "--repl" or #arg == 0 then
     local ppok, pp = pcall(fennel.dofile, fennel_dir .. "fennelview.fnl", options)
     if ppok then
-       options.pp = pp
+        options.pp = pp
     end
     local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
     local init = io.open(initFilename, "rb")

@@ -21,7 +21,6 @@ local setmetatable = setmetatable
 local getmetatable = getmetatable
 local type = type
 local assert = assert
-local select = select
 local pairs = pairs
 local ipairs = ipairs
 local tostring = tostring
@@ -355,7 +354,9 @@ local function makeScope(parent)
         specials = setmetatable({}, {
             __index = parent and parent.specials
         }),
-        vars = {}, -- whitelist for whether set works on a local
+        symmeta = setmetatable({}, {
+            __index = parent and parent.symmeta
+        }),
         parent = parent,
         vararg = parent and parent.vararg,
         depth = parent and ((parent.depth or 0) + 1) or 0
@@ -367,7 +368,7 @@ end
 local function assertCompile(condition, msg, ast)
     -- if we use regular `assert' we can't provide the `level' argument of zero
     if not condition then
-        error(string.format("Compile error in `%s' %s:%s: %s", ast[1][1],
+        error(string.format("Compile error in '%s' %s:%s: %s", ast[1][1],
                             ast.filename or "unknown", ast.line or '?', msg), 0)
     end
     return condition
@@ -387,7 +388,7 @@ for i, v in ipairs(luaKeywords) do
 end
 
 local function isValidLuaIdentifier(str)
-    return not not (str:match('^[%a_][%w_]*$') and not luaKeywords[str])
+    return (str:match('^[%a_][%w_]*$') and not luaKeywords[str])
 end
 
 -- Allow printing a string to Lua
@@ -416,48 +417,52 @@ local function isMultiSym(str)
     parts
 end
 
--- Map all fennel symbols to Lua identifiers.
--- Takes any fennel symbol name and should output a valid
--- Lua identifier.
-local function mangleMapping(symb)
-    if luaKeywords[symb] or symb:match('^%d') then
-        symb = '_' .. symb
+-- Mangler for global symbols. Does not protect against collisions,
+-- but makes them unlikely. This is the mangling that is exposed to
+-- to the world.
+local function globalMangling(str)
+    if isValidLuaIdentifier(str) then
+        return str
     end
-    symb = symb:gsub('-', '_')
-    return symb:gsub('[^%w_]', function (c)
+    -- Use underscore as escape character
+    return '__fnl_global__' .. str:gsub('[^%w]', function (c)
         return ('_%02x'):format(c:byte())
     end)
+end
+
+-- Reverse a global mangling. Takes a Lua identifier and
+-- returns the fennel symbol string that created it.
+local function globalUnmangling(identifier)
+    local rest = identifier:match('^__fnl_global__(.*)$')
+    if rest then
+        return rest:gsub('_[%da-f][%da-f]', function (code)
+            return string.char(tonumber(code:sub(2), 16))
+        end)
+    else
+        return identifier
+    end
 end
 
 -- Creates a symbol from a string by mangling it.
 -- ensures that the generated symbol is unique
 -- if the input string is unique in the scope.
-local function stringMangle(str, scope, noMulti)
+local function localMangling(str, scope)
     if scope.manglings[str] then
         return scope.manglings[str]
     end
     local append = 0
     local mangling = str
-    local parts = isMultiSym(str)
-    if parts then
-        local ret
-        for i = 1, #parts do
-            if ret then
-                if isValidLuaIdentifier(parts[i]) then
-                    ret = ret .. '.' .. parts[i]
-                else
-                    ret = ret .. '[' .. serializeString(parts[i]) .. ']'
-                end
-            else
-                ret = stringMangle(parts[i], scope)
-            end
-        end
-        if ret then
-            if noMulti then error 'did not expect a multi symbol' end
-            return ret
-        end
+    if isMultiSym(str) then error 'did not expect a multi symbol' end
+
+    -- Mapping mangling to a valid Lua identifier
+    if luaKeywords[mangling] or mangling:match('^%d') then
+        mangling = '_' .. mangling
     end
-    mangling = mangleMapping(mangling)
+    mangling = mangling:gsub('-', '_')
+    mangling = mangling:gsub('[^%w_]', function (c)
+        return ('_%02x'):format(c:byte())
+    end)
+
     local raw = mangling
     while scope.unmanglings[mangling] do
         mangling = raw .. append
@@ -468,9 +473,23 @@ local function stringMangle(str, scope, noMulti)
     return mangling
 end
 
+-- Combine parts of a symbol
+local function combineParts(parts, scope)
+    local ret = scope.manglings[parts[1]] or globalMangling(parts[1])
+    for i = 2, #parts do
+        if isValidLuaIdentifier(parts[i]) then
+            ret = ret .. '.' .. parts[i]
+        else
+            ret = ret .. '[' .. serializeString(parts[i]) .. ']'
+        end
+    end
+    return ret
+end
+
 -- Generates a unique symbol in the scope.
 local function gensym(scope)
-    local mangling, append = nil, 0
+    local mangling
+    local append = 0
     repeat
         mangling = '_' .. append .. '_'
         append = append + 1
@@ -479,6 +498,26 @@ local function gensym(scope)
     return mangling
 end
 
+-- Declare a local symbol
+local function declareLocal(symbol, meta, scope, ast)
+    local name = symbol[1]
+    assertCompile(not isMultiSym(name), "did not expect mutltisym", ast)
+    local mangling = localMangling(name, scope)
+    scope.symmeta[name] = meta
+    return mangling
+end
+
+-- Convert symbol to Lua code. Will only work for local symbols
+-- if they have already been declared via declareLocal
+local function symbolToExpression(symbol, scope)
+    local name = symbol[1]
+    local parts = isMultiSym(name) or {name}
+    local etype = (#parts > 1) and "expression" or "sym"
+    return expr(combineParts(parts, scope), etype)
+end
+
+
+-- Emit Lua code
 local function emit(chunk, out, ast)
     if type(out) == 'table' then
         table.insert(chunk, out)
@@ -666,7 +705,7 @@ local function compile1(ast, scope, parent, opts)
         if ast[1] == 'nil' then
             e = expr('nil', 'literal')
         else
-            e = expr(stringMangle(ast[1], scope), 'sym')
+            e = symbolToExpression(ast, scope)
         end
         exprs = handleCompileOpts({e}, parent, opts, ast)
     elseif type(ast) == 'nil' or type(ast) == 'boolean' then
@@ -718,52 +757,83 @@ local function once(val, ast, scope, parent)
 end
 
 -- Implements destructuring for forms like let, bindings, etc.
-local function destructure1(left, rightexprs, scope, parent, nonlocal)
-    local setter = nonlocal and "%s = %s" or "local %s = %s"
-    if isSym(left) and left[1] ~= "nil" then
-        emit(parent, (setter):
-                 format(stringMangle(left[1], scope), exprs1(rightexprs)), left)
-    elseif isTable(left) then -- table destructuring
-        local s = gensym(scope)
-        emit(parent, (setter):format(s, exprs1(rightexprs)), left)
-        for i, v in ipairs(left) do
-            if isSym(left[i]) and left[i][1] == "&" then
-                assertCompile(not left[i+2],
-                              "expected rest argument in final position", left)
-                local subexpr = expr(('{(table.unpack or unpack)(%s, %s)}'):format(s, i),
-                    'expression')
-                destructure1(left[i+1], {subexpr}, scope, parent, nonlocal)
-                return
-            else
-                local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
-                destructure1(v, {subexpr}, scope, parent, nonlocal)
-            end
-        end
-    elseif isList(left)  then -- values destructuring
-        local leftNames, tables = {}, {}
-        for i, name in ipairs(left) do
-            local symname
-            if isSym(name)  then -- binding directly to a name
-                symname = stringMangle(name[1], scope)
-            else -- further destructuring of tables inside values
-                symname = gensym(scope)
-                tables[i] = {name, expr(symname, 'sym')}
-            end
-            table.insert(leftNames, symname)
-        end
-        emit(parent, (setter):
-                 format(table.concat(leftNames, ", "), exprs1(rightexprs)), left)
-        for _, pair in pairs(tables) do -- recurse if left-side tables found
-            destructure1(pair[1], {pair[2]}, scope, parent, nonlocal)
-        end
-    else
-        error('unable to destructure ' .. tostring(left))
-    end
-end
+-- Takes a number of options to control behavior.
+-- var: Whether or not to mark symbols as mutable
+-- declaration: begin each assignment with 'local' in output
+-- nomulti: disallow multisyms in the destructuring. Used for (local) and (global).
+-- noundef: Don't set undefined bindings. (set)
+local function destructure(to, from, ast, scope, parent, opts)
+    opts = opts or {}
+    local isvar = opts.isvar
+    local declaration = opts.declaration
+    local nomulti = opts.nomulti
+    local noundef = opts.noundef
+    local setter = declaration and "local %s = %s" or "%s = %s"
 
-local function destructure(left, right, scope, parent, nonlocal)
-    local rexps = compile1(right, scope, parent)
-    local ret = destructure1(left, rexps, scope, parent, nonlocal)
+    -- Get Lua source for symbol, and check for errors
+    local function getname(symbol, up1)
+        local raw = symbol[1]
+        assertCompile(not (nomulti and isMultiSym(raw)),
+            'did not expect multisym', up1)
+        if declaration then
+            return declareLocal(symbol, {var = isvar}, scope, symbol)
+        else
+            local parts = isMultiSym(raw) or {raw}
+            local meta = scope.symmeta[parts[1]]
+            if #parts == 1 then
+                assertCompile(meta or not noundef,
+                    'expected local var ' .. parts[1], up1)
+                assertCompile(not (meta and not meta.var),
+                    'expected local var', up1)
+            end
+            return symbolToExpression(symbol, scope)[1]
+        end
+    end
+
+    -- Recursive auxiliary function
+    local function destructure1(left, rightexprs, up1)
+        if isSym(left) and left[1] ~= "nil" then
+            emit(parent, setter:format(getname(left, up1), exprs1(rightexprs)), left)
+        elseif isTable(left) then -- table destructuring
+            local s = gensym(scope)
+            emit(parent, ("local %s = %s"):format(s, exprs1(rightexprs)), left)
+            for i, v in ipairs(left) do
+                if isSym(left[i]) and left[i][1] == "&" then
+                    assertCompile(not left[i+2],
+                        "expected rest argument in final position", left)
+                    local subexpr = expr(('{(table.unpack or unpack)(%s, %s)}'):format(s, i),
+                        'expression')
+                    destructure1(left[i+1], {subexpr}, left)
+                    return
+                else
+                    local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
+                    destructure1(v, {subexpr}, left)
+                end
+            end
+        elseif isList(left) then -- values destructuring
+            local leftNames, tables = {}, {}
+            for i, name in ipairs(left) do
+                local symname
+                if isSym(name) then -- binding directly to a name
+                    symname = getname(name, up1)
+                else -- further destructuring of tables inside values
+                    symname = gensym(scope)
+                    tables[i] = {name, expr(symname, 'sym')}
+                end
+                table.insert(leftNames, symname)
+            end
+            emit(parent, ("local %s = %s"):
+            format(table.concat(leftNames, ", "), exprs1(rightexprs)), left)
+            for _, pair in pairs(tables) do -- recurse if left-side tables found
+                destructure1(pair[1], {pair[2]}, left)
+            end
+        else
+            assertCompile(false, 'unable to destructure ' .. tostring(left), up1)
+        end
+    end
+
+    local rexps = compile1(from, scope, parent)
+    local ret = destructure1(to, rexps, ast)
     return ret
 end
 
@@ -876,7 +946,11 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local isLocalFn
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not isMultiSym(fnName[1])
-        fnName = stringMangle(fnName[1], scope)
+        if isLocalFn then
+            fnName = declareLocal(fnName, {}, scope, ast)
+        else
+            fnName = symbolToExpression(fnName, scope)[1]
+        end
         index = index + 1
     else
         isLocalFn = true
@@ -889,8 +963,10 @@ SPECIALS['fn'] = function(ast, scope, parent)
         if isVarg(argList[i]) then
             argNameList[i] = '...'
             fScope.vararg = true
-        elseif isSym(argList[i]) and argList[i][1] ~= "nil" then
-            argNameList[i] = stringMangle(argList[i][1], fScope)
+        elseif isSym(argList[i])
+            and argList[i][1] ~= "nil"
+            and not isMultiSym(argList[i][1]) then
+            argNameList[i] = declareLocal(argList[i], {}, fScope, ast)
         else
             assertCompile(false, 'expected symbol for function parameter', ast)
         end
@@ -973,52 +1049,35 @@ SPECIALS['.'] = function(ast, scope, parent)
     end
 end
 
--- TODO: referring to a global can put an entry in the manglings table
-local function inScope(name, scope)
-    return scope.manglings[name] or scope.parent and inScope(name, scope.parent)
-end
-
 SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
-    local target = ast[2][1]
-    local parts = isMultiSym(target)
-    if parts then target = parts[1] end
-    assertCompile(not inScope(target, scope),
-                  ("tried to set local %s"):format(tostring(target)), ast)
-    destructure(ast[2], ast[3], scope, parent, true)
-end
-
-local function isVar(name, scope)
-    return scope.vars[name] or scope.parent and isVar(name, scope.parent)
+    destructure(ast[2], ast[3], ast, scope, parent, {
+        nomulti = true
+    })
 end
 
 SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
-    local target = ast[2][1]
-    local parts = isMultiSym(target)
-    if parts then target = parts[1] end
-    assertCompile(isVar(target, scope) or parts,
-                  ("expected local var %s"):format(tostring(target)), ast)
-    destructure(ast[2], ast[3], scope, parent, true)
+    destructure(ast[2], ast[3], ast, scope, parent, {
+        noundef = true
+    })
 end
 
 SPECIALS['local'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
-    destructure(ast[2], ast[3], scope, parent, false)
-end
-
-local function scopeVars(v, scope)
-    if isSym(v) then
-        scope.vars[v[1]] = true
-    else
-        for _, v2 in ipairs(v) do scopeVars(v2, scope) end
-    end
+    destructure(ast[2], ast[3], ast, scope, parent, {
+        declaration = true,
+        nomulti = true
+    })
 end
 
 SPECIALS['var'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
-    scopeVars(ast[2], scope)
-    destructure(ast[2], ast[3], scope, parent, false)
+    destructure(ast[2], ast[3], ast, scope, parent, {
+        declaration = true,
+        nomulti = true,
+        isvar = true
+    })
 end
 
 SPECIALS['let'] = function(ast, scope, parent, opts)
@@ -1031,7 +1090,10 @@ SPECIALS['let'] = function(ast, scope, parent, opts)
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, #bindings, 2 do
-        destructure(bindings[i], bindings[i + 1], subScope, subChunk)
+        destructure(bindings[i], bindings[i + 1], ast, subScope, subChunk, {
+            declaration = true,
+            nomulti = true
+        })
     end
     return doImpl(ast, scope, parent, opts, 3, subChunk, subScope)
 end
@@ -1130,7 +1192,7 @@ SPECIALS['each'] = function(ast, scope, parent)
     local bindVars = {}
     for _, v in ipairs(binding) do
         assertCompile(isSym(v), 'expected iterator symbol', ast)
-        table.insert(bindVars, stringMangle(v[1], scope))
+        table.insert(bindVars, declareLocal(v, {}, scope, ast))
     end
     emit(parent, ('for %s in %s do'):format(
              table.concat(bindVars, ', '),
@@ -1174,7 +1236,7 @@ SPECIALS['for'] = function(ast, scope, parent)
         rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
     end
     emit(parent, ('for %s = %s do'):format(
-             stringMangle(bindingSym[1], scope),
+             declareLocal(bindingSym, {}, scope, ast),
              table.concat(rangeArgs, ', ')), ast)
     local chunk = {}
     compileDo(ast, scope, chunk, 3)
@@ -1428,6 +1490,8 @@ local module = {
     compileString = compileString,
     compileStream = compileStream,
     compile1 = compile1,
+    mangle = globalMangling,
+    unmangle = globalUnmangling,
     list = list,
     sym = sym,
     varg = varg,
@@ -1476,11 +1540,11 @@ local function makeCompilerEnv(ast, scope, parent)
         -- via fennel.myfun, for example (fennel.eval "(print 1)").
         list = list,
         sym = sym,
-        [mangleMapping("list?")] = isList,
-        [mangleMapping("multi-sym?")] = isMultiSym,
-        [mangleMapping("sym?")] = isSym,
-        [mangleMapping("table?")] = isTable,
-        [mangleMapping("varg?")] = isVarg,
+        [globalMangling("list?")] = isList,
+        [globalMangling("multi-sym?")] = isMultiSym,
+        [globalMangling("sym?")] = isSym,
+        [globalMangling("table?")] = isTable,
+        [globalMangling("varg?")] = isVarg,
     }, { __index = _ENV or _G })
 end
 

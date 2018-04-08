@@ -310,7 +310,7 @@ local compile_failures = {
     -- compiler environment
     ["(defn [:foo] [] nil)"]="defn.*function names must be symbols",
     -- line numbers
-    ["(set)"]="Compile error in `set' unknown:1: expected name and value",
+    ["(set)"]="Compile error in 'set' unknown:1: expected name and value",
     ["(let [b 9\nq (.)] q)"]="2: expected table argument",
     ["(do\n\n\n(each \n[x 34 (pairs {})] 21))"]="4: expected iterator symbol",
     ["(fn []\n(for [32 34 32] 21))"]="2: expected iterator symbol",
@@ -328,6 +328,33 @@ for code, expected_msg in pairs(compile_failures) do
     elseif(not msg:match(expected_msg)) then
         print(" Expected " .. expected_msg .. " when compiling " .. code ..
                   " but got " .. msg)
+    end
+end
+
+-- Mapping from any string to Lua identifiers. (in practice, will only be from fennel identifiers to lua, 
+-- should be general for programatically created symbols)
+local mangling_tests = {
+    ['a'] = 'a',
+    ['a_3'] = 'a_3',
+    ['3'] = '__fnl_global__3', -- a fennel symbol would usually not be a number
+    ['a-b-c'] = '__fnl_global__a_2db_2dc',
+    ['a_b-c'] = '__fnl_global__a_5fb_2dc',
+}
+
+for k, v in pairs(mangling_tests) do
+    local manglek = fennel.mangle(k)
+    local unmanglev = fennel.unmangle(v)
+    if v ~= manglek then
+        print(" Expected fennel.mangle(" .. k .. ") to be " .. v .. ", got " .. manglek)
+        fail = fail + 1
+    else
+        pass = pass + 1
+    end
+    if k ~= unmanglev then
+        print(" Expected fennel.unmangle(" .. v .. ") to be " .. k .. ", got " .. unmanglev)
+        fail = fail + 1
+    else
+        pass = pass + 1
     end
 end
 

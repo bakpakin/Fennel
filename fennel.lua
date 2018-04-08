@@ -1350,9 +1350,6 @@ local function repl(options)
 
     local opts = options or {}
 
-    local ppok, pp = pcall(dofile_fennel, "fennelview.fnl", opts)
-    if not ppok then pp = tostring end
-
     local env = opts.env or setmetatable({}, {
         __index = _ENV or _G
     })
@@ -1383,7 +1380,7 @@ local function repl(options)
     local readChunk = opts.readChunk or defaultReadChunk
     local onValues = opts.onValues or defaultOnValues
     local onError = opts.onError or defaultOnError
-    pp = opts.pp or pp
+    local pp = opts.pp or tostring
 
     -- Make parser
     local bytestream, clearstream = granulate(readChunk)

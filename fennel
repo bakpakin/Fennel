@@ -1,6 +1,7 @@
 #!/usr/bin/env lua
 
-package.path = arg[0]:match("(.-)[^\\/]+$") .. "?.lua;" .. package.path
+local fennel_dir = arg[0]:match("(.-)[^\\/]+$")
+package.path = fennel_dir .. "?.lua;" .. package.path
 local fennel = require('fennel')
 
 local help = [[
@@ -30,6 +31,10 @@ local compileOptHandlers = {
 }
 
 if arg[1] == "--repl" or #arg == 0 then
+    local ppok, pp = pcall(fennel.dofile, fennel_dir .. "fennelview.fnl", options)
+    if ppok then
+       options.pp = pp
+    end
     local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
     local init = io.open(initFilename, "rb")
     if init then

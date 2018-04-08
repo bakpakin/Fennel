@@ -308,8 +308,7 @@ local compile_failures = {
     ["(set [a b c] [1 2 3]) (+ a b c)"]="expected local var",
     ["(not true false)"]="expected one argument",
     -- compiler environment
-    ["(require-macros \"test-macros\")\n(defn [:foo] [] nil)"]=
-        "defn: function names must be symbols",
+    ["(defn [:foo] [] nil)"]="defn.*function names must be symbols",
     -- line numbers
     ["(set)"]="Compile error in `set' unknown:1: expected name and value",
     ["(let [b 9\nq (.)] q)"]="2: expected table argument",
@@ -317,6 +316,8 @@ local compile_failures = {
     ["(fn []\n(for [32 34 32] 21))"]="2: expected iterator symbol",
     ["\n\n(let [f (lambda []\n(local))] (f))"]="4: expected name and value",
     ["(do\n\n\n(each \n[x (pairs {})] (when)))"]="5: expected body",
+    -- macro errors have macro names in them
+    ["\n(when)"]="Compile error in .when. unknown:2",
 }
 
 print("Running tests for compile errors...")

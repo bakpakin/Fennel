@@ -399,6 +399,9 @@ table.insert(package.loaders or package.searchers, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
+Fennel has its own search path; `fennel.path` acts the same as
+`package.path` but only for requiring Fennel modules.
+
 ## Embedding
 
 Lua is most commonly used to embed inside other applications, and

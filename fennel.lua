@@ -995,18 +995,6 @@ SPECIALS['luastatement'] = function(ast)
     return expr(tostring(ast[2]), 'statement')
 end
 
-SPECIALS['partial'] = function(ast, scope, parent)
-    local f = ast[2]
-    local innerArgs = {}
-    for i = 3, #ast do table.insert(innerArgs, ast[i]) end
-    table.insert(innerArgs, VARARG)
-    local new = list(sym("fn", scope, ast[1]),
-                     {VARARG}, list(f, unpack(innerArgs)))
-    new.line, new.filename, new.bytestart, new.byteend =
-        ast.line, ast.filename, ast.bytestart, ast.byteend
-    return SPECIALS.fn(new, scope, parent)
-end
-
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
     local len = #ast

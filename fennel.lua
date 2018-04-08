@@ -31,11 +31,11 @@ local unpack = unpack or table.unpack
 -- Main Types and support functions
 --
 
-local SYMBOL_MT = { 'SYMBOL',
-    __tostring = function (self)
-        return self[1]
-    end
-}
+local function deref(self) return self[1] end
+
+local SYMBOL_MT = { 'SYMBOL', __tostring = deref }
+local EXPR_MT = { 'EXPR', __tostring = deref }
+local VARARG = setmetatable({ '...' }, { 'VARARG', __tostring = deref })
 local LIST_MT = { 'LIST',
     __tostring = function (self)
         local strs = {}
@@ -45,12 +45,6 @@ local LIST_MT = { 'LIST',
         return '(' .. table.concat(strs, ', ', 1, #self) .. ')'
     end
 }
-local EXPR_MT = { 'EXPR',
-    __tostring = function (self)
-        return self[1]
-    end
-}
-local VARARG = setmetatable({ '...' }, { 'VARARG' })
 
 -- Load code with an environment in all recent Lua versions
 local function loadCode(code, environment, filename)
@@ -1480,7 +1474,6 @@ local function makeCompilerEnv(ast, scope, parent)
         -- via fennel.myfun, for example (fennel.eval "(print 1)").
         list = list,
         sym = sym,
-        [symMangle("sym-name")] = function(s) return s[1] end,
         [symMangle("list?")] = isList,
         [symMangle("multi-sym?")] = isMultiSym,
         [symMangle("sym?")] = isSym,
@@ -1548,13 +1541,13 @@ local stdmacros = [===[
                  arity-check-position (if has-internal-name? 3 2)]
              (assert (> (# args) 1) "missing body expression")
              (each [i arg (ipairs arglist)]
-               (if (and (not (: (sym-name arg) :match "^?"))
-                        (~= (sym-name arg) "..."))
+               (if (and (not (: (tostring arg) :match "^?"))
+                        (~= (tostring arg) "..."))
                    (table.insert args arity-check-position
                                  (list (sym "assert")
                                        (list (sym "~=") (sym "nil") arg)
                                        (: "Missing argument %s on %s:%s"
-                                          :format (sym-name arg)
+                                          :format (tostring arg)
                                           (or arg.filename "unknown")
                                           (or arg.line "?"))))))
              (list (sym "fn") ((or unpack table.unpack) args))))

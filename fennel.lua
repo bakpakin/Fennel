@@ -921,29 +921,6 @@ SPECIALS['luastatement'] = function(ast)
     return expr(tostring(ast[2]), 'statement')
 end
 
-SPECIALS['lambda'] = function(ast, scope, parent)
-    assertCompile(#ast >= 3, "missing body expression", ast)
-    local arglist = ast[2]
-    local checks = {}
-    for _, arg in ipairs(arglist) do
-        if not arg[1]:match("^?") and arg[1] ~= "..." then
-            table.insert(checks, 1,
-                         list(sym("assert", ast.line, ast.filename),
-                              list(sym('~='), sym('nil'), arg),
-                              string.format("Missing argument %s on %s:%s",
-                                            arg[1], ast.filename or 'unknown', ast.line or '?')))
-        end
-    end
-    local new = list(sym("lambda", ast[1].line, ast[1].filename),
-                     arglist, unpack(checks))
-    new.line, new.filename = ast.line, ast.filename
-    for i = 3, #ast do
-        table.insert(new, ast[i])
-    end
-    return SPECIALS.fn(new, scope, parent)
-end
-SPECIALS['λ'] = SPECIALS['lambda']
-
 SPECIALS['special'] = function(ast, scope, parent)
     assertCompile(scopeInside(COMPILER_SCOPE, scope),
                   "can only declare special forms in 'eval-compiler'", ast)
@@ -1503,6 +1480,7 @@ local function makeCompilerEnv(ast, scope, parent)
         -- via fennel.myfun, for example (fennel.eval "(print 1)").
         list = list,
         sym = sym,
+        [symMangle("sym-name")] = function(s) return s[1] end,
         [symMangle("list?")] = isList,
         [symMangle("multi-sym?")] = isMultiSym,
         [symMangle("sym?")] = isSym,
@@ -1563,6 +1541,23 @@ local stdmacros = [===[
             (let [body (list f ...)]
               (table.insert body _VARARG)
               (list (sym "fn") [_VARARG] body)))
+ :lambda (fn [...]
+           (let [args [...]
+                 has-internal-name? (sym? (. args 1))
+                 arglist (if has-internal-name? (. args 2) (. args 1))
+                 arity-check-position (if has-internal-name? 3 2)]
+             (assert (> (# args) 1) "missing body expression")
+             (each [i arg (ipairs arglist)]
+               (if (and (not (: (sym-name arg) :match "^?"))
+                        (~= (sym-name arg) "..."))
+                   (table.insert args arity-check-position
+                                 (list (sym "assert")
+                                       (list (sym "~=") (sym "nil") arg)
+                                       (: "Missing argument %s on %s:%s"
+                                          :format (sym-name arg)
+                                          (or arg.filename "unknown")
+                                          (or arg.line "?"))))))
+             (list (sym "fn") ((or unpack table.unpack) args))))
 }
 ]===]
 for name, fn in pairs(eval(stdmacros, {
@@ -1570,5 +1565,6 @@ for name, fn in pairs(eval(stdmacros, {
 })) do
     SPECIALS[name] = macroToSpecial(fn)
 end
+SPECIALS['λ'] = SPECIALS['lambda']
 
 return module

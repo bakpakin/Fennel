@@ -526,17 +526,9 @@ local function flattenChunk(sm, chunk, tab, depth)
     if type(tab) == 'boolean' then tab = tab and '  ' or '' end
     if chunk.leaf then
         local code = chunk.leaf
-        local ast = chunk.ast
-        if sm and ast then
-            code = code
-            .. ' --{line='
-            .. (ast.line or 'nil')
-            .. ';bstart='
-            .. (ast.bytestart or 'nil')
-            .. ';bend='
-            .. (ast.byteend or 'nil')
-            .. '}'
-        end
+        local info = chunk.ast
+        -- Just do line info for now to save memory
+        if sm then sm[#sm + 1] = info and info.line or -1 end
         return code
     else
         local parts = {}
@@ -550,6 +542,43 @@ local function flattenChunk(sm, chunk, tab, depth)
         end
         return table.concat(parts, '\n')
     end
+end
+
+-- Some global state for all fennel sourcemaps. For the time being,
+-- this seems the easiest way to store the source maps.
+-- Sourcemaps are stored with source being mapped as the key, prepended
+-- with '@' if it is a filename (like debug.getinfo returns for source).
+-- The value is an array of mappings for each line.
+local fennelSourcemap = {}
+-- TODO: loading, unloading, and saving sourcemaps?
+
+local function makeShortSrc(source)
+    source = source:gsub('\n', ' ')
+    if #source <= 49 then
+        return '[fennel "' .. source .. '"]'
+    else
+        return '[fennel "' .. source:sub(1, 46) .. '..."]'
+    end
+end
+
+-- Return Lua source and source map table
+local function flatten(chunk, options)
+    local sm = options.sourcemap and {}
+    local ret = flattenChunk(sm, chunk, options.indent, 0)
+    if sm then
+        local key, short_src
+        if options.filename then
+            short_src = options.filename
+            key = '@' .. short_src
+        else
+            key = ret
+            short_src = makeShortSrc(options.source or ret)
+        end
+        sm.short_src = short_src
+        sm.key = key
+        fennelSourcemap[key] = sm
+    end
+    return ret, sm
 end
 
 -- Convert expressions to Lua string
@@ -1327,7 +1356,7 @@ local function compile(ast, options)
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
-    return flattenChunk(options.sourcemap, chunk, options.indent, 0)
+    return flatten(chunk, options)
 end
 
 local function compileStream(strm, options)
@@ -1346,7 +1375,7 @@ local function compileStream(strm, options)
         })
         keepSideEffects(exprs, chunk, nil, vals[i])
     end
-    return flattenChunk(options.sourcemap, chunk, options.indent, 0)
+    return flatten(chunk, options)
 end
 
 local function compileString(str, options)
@@ -1354,15 +1383,66 @@ local function compileString(str, options)
     return compileStream(strm, options)
 end
 
+---
+--- Evaluation
+---
+
+-- A custom traceback function for Fennel that looks similar to
+-- the Lua's debug.traceback.
+-- Use with xpcall to produce fennel specific stacktraces.
+local function traceback(msg, start)
+    local level = start or 2 -- Can be used to skip some frames
+    local lines = {}
+    if msg then
+        local _, _, errstr = msg:match("^([^:]+):([^:]+): (.*)$")
+        table.insert(lines, errstr and ('fennel error: ' .. errstr) or msg)
+    end
+    table.insert(lines, 'stack traceback:')
+    while true do
+        local info = debug.getinfo(level, "Sln")
+        if not info then break end
+        local line
+        if info.what == "C" then
+            if info.name then
+                line = ('  [C]: in function \'%s\''):format(info.name)
+            else
+                line = '  [C]: in ?'
+            end
+        else
+            local remap = fennelSourcemap[info.source]
+            if remap and remap[info.currentline] then
+                -- And some global info
+                info.short_src = remap.short_src
+                local mapping = remap[info.currentline]
+                -- Overwrite info with values from the mapping (mapping is now just integer,
+                -- but may eventually be a table
+                info.currentline = mapping
+            end
+            if info.what == 'Lua' then
+                local n = info.name and ("'" .. info.name .. "'") or '?'
+                line = ('  %s:%d: in function %s'):format(info.short_src, info.currentline, n)
+            elseif info.short_src == '(tail call)' then
+                line = '  (tail call)'
+            else
+                line = ('  %s:%d: in main chunk'):format(info.short_src, info.currentline)
+            end
+        end
+        table.insert(lines, line)
+        level = level + 1
+    end
+    return table.concat(lines, '\n')
+end
+
 local function eval(str, options, ...)
     options = options or {}
     local luaSource = compileString(str, options)
-    local loader = loadCode(luaSource, options.env, options.filename)
+    local loader = loadCode(luaSource, options.env,
+        options.filename and ('@' .. options.filename) or str)
     return loader(...)
 end
 
 local function dofile_fennel(filename, options, ...)
-    options = options or {}
+    options = options or {sourcemap = true}
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all")
     f:close()
@@ -1398,7 +1478,12 @@ local function repl(options)
             io.write(luaSource .. '\n')
             io.write('--- Generated Lua End ---\n')
         end
-        io.write(('%s error: %s\n'):format(errtype, tostring(err)))
+        if (errtype == 'Runtime') then
+            io.write(traceback(err, 4))
+            io.write('\n')
+        else
+            io.write(('%s error: %s\n'):format(errtype, tostring(err)))
+        end
     end
 
     -- Read options
@@ -1409,17 +1494,27 @@ local function repl(options)
 
     -- Make parser
     local bytestream, clearstream = granulate(readChunk)
-    local read = parser(bytestream)
+    local chars = {}
+    local read = parser(function()
+        local c = bytestream()
+        chars[#chars + 1] = c
+        return c
+    end)
 
     -- REPL loop
     while true do
+        chars = {}
         local ok, parseok, x = pcall(read)
+        local srcstring = string.char(unpack(chars))
         if not ok then
             onError('Parse', parseok)
             clearstream()
         else
             if not parseok then break end -- eof
-            local compileOk, luaSource = pcall(compile, x, opts)
+            local compileOk, luaSource = pcall(compile, x, {
+                sourcemap = opts.sourcemap,
+                source = srcstring
+            })
             if not compileOk then
                 clearstream()
                 onError('Compile', luaSource) -- luaSource is error message in this case
@@ -1464,6 +1559,7 @@ local module = {
     repl = repl,
     dofile = dofile_fennel,
     path = "./?.fnl",
+    traceback = traceback
 }
 
 local function searchModule(modulename)

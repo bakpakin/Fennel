@@ -13,51 +13,66 @@ Usage: fennel [FLAG] [FILE]
 
   When not given a flag, runs the file given as the first argument.]]
 
-local options = {}
+local options = {
+    sourcemap = true
+}
+
+local function dosafe(filename, opts, arg1)
+    local ok, val = xpcall(function()
+        return fennel.dofile(filename, opts, arg1)
+    end, fennel.traceback)
+    if not ok then
+        print(val)
+        os.exit(1)
+    end
+    return val
+end
+
+local compileOptHandlers = {
+    ['--indent'] = function ()
+        options.indent = table.remove(arg, 3)
+        if options.indent == "false" then options.indent = false end
+        table.remove(arg, 2)
+    end,
+    ['--sourcemap'] = function ()
+        options.sourcemap = table.remove(arg, 3)
+        if options.sourcemap == "false" then options.sourcemap = false end
+        table.remove(arg, 2)
+    end,
+}
 
 if arg[1] == "--repl" or #arg == 0 then
     local ppok, pp = pcall(fennel.dofile, fennel_dir .. "fennelview.fnl", options)
     if ppok then
-       options.pp = pp
+        options.pp = pp
     end
     local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
     local init = io.open(initFilename, "rb")
     if init then
         init:close()
         -- pass in options so fennerlrc can make changes to it
-        fennel.dofile(initFilename, options, options)
+        dosafe(initFilename, options, options)
     end
     print("Welcome to fennel!")
     fennel.repl(options)
 elseif arg[1] == "--compile" then
-    if arg[2] == "--indent" then
-        options.indent = table.remove(arg, 3)
-        if options.indent == "false" then options.indent = false end
-        table.remove(arg, 2)
+    -- Handle options
+    while compileOptHandlers[arg[2]] do
+        compileOptHandlers[arg[2]]()
     end
     for i = 2, #arg do
         local f = assert(io.open(arg[i], "rb"))
         options.filename=arg[i]
-        if os.getenv("DEBUG") then
-            fennel.compileString(f:read("*all"), options)
-        else
-            local ok, val = pcall(fennel.compileString, f:read("*all"), options)
-            print(val)
-            if(not ok) then os.exit(1) end
-        end
+        local ok, val = xpcall(function()
+            return fennel.compileString(f:read("*all"), options)
+        end, fennel.traceback)
+        print(val)
+        if not ok then os.exit(1) end
         f:close()
     end
 elseif #arg >= 1 and arg[1] ~= "--help" then
     local filename = table.remove(arg, 1) -- let the script have remaining args
-    if os.getenv("DEBUG") then
-        fennel.dofile(filename, { accurate=true })
-    else
-        local ok, val = pcall(fennel.dofile, filename, { accurate=true })
-        if(not ok) then
-            print(val)
-            os.exit(1)
-        end
-    end
+    dosafe(filename)
 else
     print(help)
 end

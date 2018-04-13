@@ -1558,7 +1558,7 @@ local module = {
     eval = eval,
     repl = repl,
     dofile = dofile_fennel,
-    path = "./?.fnl",
+    path = "./?.fnl;./?/init.fnl",
     traceback = traceback
 }
 

@@ -129,6 +129,8 @@ local cases = {
         ["(var x 1) (let [_ (set x 92)] x)"]=92,
         -- tset can be used as expression
         ["(let [t {} _ (tset t :a 84)] (. t :a))"]=84,
+        -- Setting multivalue vars
+        ["(do (var a nil) (var b nil) (local ret (fn [] a)) (set (a b) (values 4 5)) (ret))"]=4,
     },
 
     destructuring = {

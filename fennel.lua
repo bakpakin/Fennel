@@ -858,7 +858,7 @@ local function destructure(to, from, ast, scope, parent, opts)
                 end
                 table.insert(leftNames, symname)
             end
-            emit(parent, ("local %s = %s"):
+            emit(parent, setter: 
             format(table.concat(leftNames, ", "), exprs1(rightexprs)), left)
             for _, pair in pairs(tables) do -- recurse if left-side tables found
                 destructure1(pair[1], {pair[2]}, left)

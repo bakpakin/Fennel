@@ -1139,6 +1139,7 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         local branch = compileBody(i + 1)
         branch.cond = cond
         branch.condchunk = condchunk
+        branch.nested = i ~= 2 and next(condchunk, nil) == nil
         table.insert(branches, branch)
     end
     local hasElse = #ast > 3 and #ast % 2 == 0
@@ -1147,19 +1148,26 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     -- Emit code
     local s = gensym(scope)
     local buffer = {}
+    local lastBuffer = buffer
     for i = 1, #branches do
         local branch = branches[i]
-        local fstr = i == 1 and 'if %s then' or 'elseif %s then'
+        local fstr = not branch.nested and 'if %s then' or 'elseif %s then'
         local condLine = fstr:format(tostring(branch.cond[1]))
-        emit(buffer, branch.condchunk, ast)
-        emit(buffer, condLine, ast)
-        emit(buffer, branch.chunk, ast)
+        emit(lastBuffer, branch.condchunk, ast)
+        emit(lastBuffer, condLine, ast)
+        emit(lastBuffer, branch.chunk, ast)
         if i == #branches then
             if hasElse then
-                emit(buffer, 'else', ast)
-                emit(buffer, elseBranch.chunk, ast)
+                emit(lastBuffer, 'else', ast)
+                emit(lastBuffer, elseBranch.chunk, ast)
             end
-            emit(buffer, 'end', ast)
+            emit(lastBuffer, 'end', ast)
+        elseif not branches[i + 1].nested then
+            emit(lastBuffer, 'else', ast)
+            local nextBuffer = {}
+            emit(lastBuffer, nextBuffer, ast)
+            emit(lastBuffer, 'end', ast)
+            lastBuffer = nextBuffer
         end
     end
 

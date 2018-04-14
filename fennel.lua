@@ -1458,7 +1458,7 @@ local function traceback(msg, start)
     local level = start or 2 -- Can be used to skip some frames
     local lines = {}
     if msg then
-        table.insert(lines, errstr and ('fennel error: ' .. errstr) or msg)
+        table.insert(lines, msg)
     end
     table.insert(lines, 'stack traceback:')
     while true do

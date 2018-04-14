@@ -385,9 +385,18 @@ local function isValidLuaIdentifier(str)
     return (str:match('^[%a_][%w_]*$') and not luaKeywords[str])
 end
 
--- Allow printing a string to Lua
+-- Allow printing a string to Lua, also keep as 1 line.
+local serializeSubst = {
+    ['\a'] = '\\a',
+    ['\b'] = '\\b',
+    ['\f'] = '\\f',
+    ['\n'] = 'n',
+    ['\t'] = '\\t',
+    ['\v'] = '\\v'
+}
 local function serializeString(str)
-    local s = ("(%q)"):format(str):gsub('\n', 'n'):gsub("[\128-\255]", function(c)
+    local s = ("(%q)"):format(str)
+    s = s:gsub('.', serializeSubst):gsub("[\128-\255]", function(c)
         return "\\" .. c:byte()
     end)
     return s

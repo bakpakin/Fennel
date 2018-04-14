@@ -262,8 +262,7 @@ local function parser(getbyte, filename)
                     end
                 else -- }
                     if #last % 2 ~= 0 then
-                        error('expected even number of values in table literal'
-                                  .. ' on line ' .. line .. ' of ' .. filename)
+                        error 'expected even number of values in table literal'
                     end
                     val = {}
                     for i = 1, #last, 2 do

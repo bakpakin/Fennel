@@ -91,7 +91,7 @@ local cases = {
         -- else branch runs on nil
         ["(if non-existent 1 (* 3 9))"]=27,
         -- else works with temporaries
-        ["(let [a {:b \"foo\"}] (if false \"yep\" (: a.b :len) \"uh-huh\" \"nope\"))"]="uh-huh",
+        ["(let [x {:y 2}] (if false \"yep\" (< 1 x.y 3) \"uh-huh\" \"nope\"))"]="uh-huh",
         -- when is for side-effects
         ["(var [a z] [0 0]) (when true (set a 192) (set z 12)) (+ z a)"]=204,
         -- when treats nil as falsey

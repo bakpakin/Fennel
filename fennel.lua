@@ -756,13 +756,19 @@ local function compile1(ast, scope, parent, opts)
         local keys = {}
         for k, _ in pairs(ast) do -- Write other keys.
             if type(k) ~= 'number' or math.floor(k) ~= k or k < 1 or k > #ast then
-                table.insert(keys, { tostring(compile1(k, scope, parent, {nval = 1})[1]), k })
+                local kstr
+                if type(k) == 'string' and isValidLuaIdentifier(k) then
+                    kstr = k
+                else
+                    kstr = '[' .. tostring(compile1(k, scope, parent, {nval = 1})[1]) .. ']'
+                end
+                table.insert(keys, { kstr, k })
             end
         end
         table.sort(keys, function (a, b) return a[1] < b[1] end)
         for _, k in ipairs(keys) do
             local v = ast[k[2]]
-            buffer[#buffer + 1] = ('[%s] = %s'):format(
+            buffer[#buffer + 1] = ('%s = %s'):format(
                 k[1], tostring(compile1(v, scope, parent, {nval = 1})[1]))
         end
         local tbl = '({' .. table.concat(buffer, ', ') ..'})'
@@ -1043,9 +1049,15 @@ SPECIALS['.'] = function(ast, scope, parent)
     else
         local indices = {}
         for i = 3, len do
-            table.insert(indices, tostring(compile1(ast[i], scope, parent, {nval = 1})[1]))
+            local index = ast[i]
+            if type(index) == 'string' and isValidLuaIdentifier(index) then
+                table.insert(indices, '.' .. index)
+            else
+                index = compile1(index, scope, parent, {nval = 1})[1]
+                table.insert(indices, '[' .. tostring(index) .. ']')
+            end
         end
-        return tostring(lhs[1]) .. '[' .. table.concat(indices, '][') .. ']'
+        return tostring(lhs[1]) .. table.concat(indices)
     end
 end
 
@@ -1260,10 +1272,17 @@ end
 SPECIALS[':'] = function(ast, scope, parent)
     assertCompile(#ast >= 3, 'expected at least 3 arguments', ast)
     -- Compile object
-    local objectexpr = once(compile1(ast[2], scope, parent, {nval = 1})[1],
-                            ast[2], scope, parent)
+    local objectexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
     -- Compile method selector
-    local methodexpr = compile1(ast[3], scope, parent, {nval = 1})[1]
+    local methodstring
+    local methodident = false
+    if type(ast[3]) == 'string' and isValidLuaIdentifier(ast[3]) then
+        methodident = true
+        methodstring = ast[3]
+    else
+        methodstring = tostring(compile1(ast[3], scope, parent, {nval = 1})[1])
+        objectexpr = once(objectexpr, ast[2], scope, parent)
+    end
     -- Compile arguments
     local args = {}
     for i = 4, #ast do
@@ -1274,15 +1293,21 @@ SPECIALS[':'] = function(ast, scope, parent)
             args[#args + 1] = tostring(subexprs[j])
         end
     end
-    -- Make object first argument
-    table.insert(args, 1, tostring(objectexpr))
-    -- Wrap literals in parens (strings)
-    local fstring = (objectexpr.type == 'sym')
-        and '%s[%s](%s)'
-        or '(%s)[%s](%s)'
+    local fstring
+    if methodident then
+        fstring = objectexpr.type == 'literal'
+            and '(%s):%s(%s)'
+            or '%s:%s(%s)'
+    else
+        -- Make object first argument
+        table.insert(args, 1, tostring(objectexpr))
+        fstring = objectexpr.type == 'sym'
+            and '%s[%s](%s)'
+            or '(%s)[%s](%s)'
+    end
     return expr(fstring:format(
         tostring(objectexpr),
-        tostring(methodexpr),
+        methodstring,
         table.concat(args, ', ')), 'statement')
 end
 

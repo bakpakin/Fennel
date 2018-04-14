@@ -529,6 +529,23 @@ local function emit(chunk, out, ast)
     end
 end
 
+-- Do some peephole optimization.
+local function peephole(chunk)
+    if chunk.leaf then return chunk end
+    -- Optimize do ... end in some cases.
+    if #chunk == 3 and
+        chunk[1].leaf == 'do' and
+        not chunk[2].leaf and
+        chunk[3].leaf == 'end' then
+        return peephole(chunk[2])
+    end
+    -- Recurse
+    for i, v in ipairs(chunk) do
+        chunk[i] = peephole(v)
+    end
+    return chunk
+end
+
 -- Flatten a tree of indented Lua source code lines.
 -- Tab is what is used to indent a block.
 local function flattenChunk(sm, chunk, tab, depth)
@@ -573,6 +590,7 @@ end
 -- Return Lua source and source map table
 local function flatten(chunk, options)
     local sm = options.sourcemap and {}
+    chunk = peephole(chunk)
     local ret = flattenChunk(sm, chunk, options.indent, 0)
     if sm then
         local key, short_src

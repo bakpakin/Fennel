@@ -395,7 +395,7 @@ local serializeSubst = {
     ['\v'] = '\\v'
 }
 local function serializeString(str)
-    local s = ("(%q)"):format(str)
+    local s = ("%q"):format(str)
     s = s:gsub('.', serializeSubst):gsub("[\128-\255]", function(c)
         return "\\" .. c:byte()
     end)
@@ -1277,9 +1277,9 @@ SPECIALS[':'] = function(ast, scope, parent)
     -- Make object first argument
     table.insert(args, 1, tostring(objectexpr))
     -- Wrap literals in parens (strings)
-    local fstring = objectexpr.type == 'literal'
-        and '(%s)[%s](%s)'
-        or '%s[%s](%s)'
+    local fstring = (objectexpr.type == 'sym')
+        and '%s[%s](%s)'
+        or '(%s)[%s](%s)'
     return expr(fstring:format(
         tostring(objectexpr),
         tostring(methodexpr),

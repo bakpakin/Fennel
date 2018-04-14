@@ -1156,7 +1156,7 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         if branch.nested then
             emit(lastBuffer, branch.condchunk, ast)
         else
-            for i, v in ipairs(branch.condchunk) do emit(lastBuffer, v, ast) end
+            for _, v in ipairs(branch.condchunk) do emit(lastBuffer, v, ast) end
         end
         emit(lastBuffer, condLine, ast)
         emit(lastBuffer, branch.chunk, ast)

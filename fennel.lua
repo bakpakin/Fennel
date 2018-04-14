@@ -1153,7 +1153,11 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         local branch = branches[i]
         local fstr = not branch.nested and 'if %s then' or 'elseif %s then'
         local condLine = fstr:format(tostring(branch.cond[1]))
-        emit(lastBuffer, branch.condchunk, ast)
+        if branch.nested then
+            emit(lastBuffer, branch.condchunk, ast)
+        else
+            for i, v in ipairs(branch.condchunk) do emit(lastBuffer, v, ast) end
+        end
         emit(lastBuffer, condLine, ast)
         emit(lastBuffer, branch.chunk, ast)
         if i == #branches then

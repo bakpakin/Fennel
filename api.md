@@ -77,8 +77,7 @@ local lua = fennel.compileString(str[, options])
 
 Accepts `indent` as a string in `options` causing output to be
 indented using that string, which should contain only whitespace if
-provided. Use `false` to get compilation output which attempts to
-correlate source lines with output lines.
+provided.
 
 ### Compile an iterator of bytes into a string of Lua (can throw errors)
 

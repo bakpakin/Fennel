@@ -420,7 +420,7 @@ local fennel = require("fennel")
 local f = io.open("mycode.fnl", "rb")
 ;; mycode.fnl ends in a line like this:
 ;; {:draw (fn [] ...) :update (fn [dt] ...)}
-local mycode = fennel.eval(f:read("*all"), {filename = "mycode.fnl"})
+local mycode = fennel.dofile("mycode.fnl")
 f:close()
 
 love.update = function(dt)
@@ -435,10 +435,7 @@ end
 
 love.keypressed = function(key)
   if(key == "f5") then -- support reloading
-    local f = io.open("mycode.fnl", "rb")
-    local mycode_new = fennel.eval(f:read("*all"), {filename = "mycode.fnl"})
-    f:close()
-    for k,v in pairs(mycode_new) do
+    for k,v in pairs(fennel.dofile("mycode.fnl")) do
       mycode[k] = v
     end
   else

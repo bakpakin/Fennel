@@ -11,7 +11,9 @@
              (> (math.random) 0.5)
              (string.char (+ 65 (math.random 26)))
              (> (math.random) 0.5)
-             (string.char (+ 32 (math.random 15)))
+             (string.char (+ 32 (math.random 11)))
+             (> (math.random) 0.5)
+             (string.char (+ 45 (math.random 2)))
              :else
              (string.char (+ 58 (math.random 5))))))
 

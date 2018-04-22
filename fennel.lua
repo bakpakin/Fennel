@@ -746,6 +746,7 @@ local function compile1(ast, scope, parent, opts)
             exprs = handleCompileOpts({expr(call, 'statement')}, parent, opts, ast)
         end
     elseif isVarg(ast) then
+        assertCompile(scope.vararg, "unexpected vararg", ast)
         exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts, ast)
     elseif isSym(ast) then
         local e
@@ -1020,6 +1021,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local argNameList = {}
     for i = 1, #argList do
         if isVarg(argList[i]) then
+            assertCompile(i == #argList, "expected vararg in last parameter position", ast)
             argNameList[i] = '...'
             fScope.vararg = true
         elseif isSym(argList[i])
@@ -1214,10 +1216,11 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     end
 
     if wrapper == 'iife' then
-        emit(parent, ('local function %s()'):format(tostring(s)), ast)
+        local iifeargs = scope.vararg and '...' or ''
+        emit(parent, ('local function %s(%s)'):format(tostring(s), iifeargs), ast)
         emit(parent, buffer, ast)
         emit(parent, 'end', ast)
-        return expr(('%s()'):format(tostring(s)), 'statement')
+        return expr(('%s(%s)'):format(tostring(s), iifeargs), 'statement')
     elseif wrapper == 'none' then
         -- Splice result right into code
         for i = 1, #buffer do
@@ -1707,9 +1710,7 @@ local stdmacros = [===[
          x)
  :defn (fn [name args ...]
          (assert (sym? name) "defn: function names must be symbols")
-         (let [op (if (multi-sym? (. name 1)) :set :local)]
-           (list (sym op) name
-                 (list (sym :fn) args ...))))
+         (list (sym :fn) name args ...))
  :when (fn [condition body1 ...]
          (assert body1 "expected body")
          (list (sym 'if') condition
@@ -1724,16 +1725,16 @@ local stdmacros = [===[
                  arglist (if has-internal-name? (. args 2) (. args 1))
                  arity-check-position (if has-internal-name? 3 2)]
              (assert (> (# args) 1) "missing body expression")
-             (each [i arg (ipairs arglist)]
-               (if (and (not (: (tostring arg) :match "^?"))
-                        (~= (tostring arg) "..."))
+             (each [i a (ipairs arglist)]
+               (if (and (not (: (tostring a) :match "^?"))
+                        (~= (tostring a) "..."))
                    (table.insert args arity-check-position
                                  (list (sym "assert")
-                                       (list (sym "~=") (sym "nil") arg)
+                                       (list (sym "~=") (sym "nil") a)
                                        (: "Missing argument %s on %s:%s"
-                                          :format (tostring arg)
-                                          (or arg.filename "unknown")
-                                          (or arg.line "?"))))))
+                                          :format (tostring a)
+                                          (or a.filename "unknown")
+                                          (or a.line "?"))))))
              (list (sym "fn") ((or unpack table.unpack) args))))
 }
 ]===]

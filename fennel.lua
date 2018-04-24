@@ -746,7 +746,7 @@ local function compile1(ast, scope, parent, opts)
             exprs = handleCompileOpts({expr(call, 'statement')}, parent, opts, ast)
         end
     elseif isVarg(ast) then
-        assertCompile(scope.vararg, "unexpected vararg", ast)
+        assert(scope.vararg, "unexpected vararg")
         exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts, ast)
     elseif isSym(ast) then
         local e
@@ -1019,6 +1019,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local argList = assertCompile(isTable(ast[index]),
                                   'expected vector arg list [a b ...]', ast)
     local argNameList = {}
+    fScope.vararg = false
     for i = 1, #argList do
         if isVarg(argList[i]) then
             assertCompile(i == #argList, "expected vararg in last parameter position", ast)

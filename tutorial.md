@@ -113,7 +113,7 @@ In Lua (and thus in Fennel), tables are the only data structure. The
 main syntax for tables uses curly braces with key/value pairs in them:
 
 ```lisp
-{"key" value 
+{"key" value
  "number" 531
  "f" (fn [x] (+ x 2))}
 ```
@@ -149,7 +149,7 @@ The `#` function returns the length of sequential tables and strings:
 
 ```lisp
 (let [tbl ["abc" "def" "xyz"]]
-  (+ (# tbl) 
+  (+ (# tbl)
      (# (. tbl 1)))) ; -> 6
 ```
 
@@ -325,6 +325,46 @@ of `pcall` which turns `error`s into multiple-value failures):
 
 In this example because `io.open` returns `nil` and an error message
 upon failure, a failure will trigger an `error` and halt execution.
+
+## Variadic Functions
+
+Fennel supports variadic functions like most modern languages. The syntax for
+taking a variable number of arguments to a function is the `...` symbol, which
+must be the last parameter to a function. This syntax is inherited from Lua rather
+than Lisp.
+
+The `...` form is not a list or first class value, it expands to multiple values inline.
+To access individual elements of the vararg, first wrap it in a table literal (`{...}`)
+and index like a normal table, or use the `select` function from Lua's core library. Often,
+the vararg can be passed directly to another function such as print without needing to
+look at individual elements in the vararg structure.
+
+```lisp
+(fn print-each [...]
+ (each [i v (ipairs [...])]
+  (print (.. "Argument " i " is " v))))
+
+(print-each :a :b :c)
+```
+
+```lisp
+(fn myprint [prefix ...]
+ (io.write prefix)
+ (io.write (.. (select "#" ...) " arguments given: "))
+ (print ...))
+
+(myprint ":D " :d :e :f)
+```
+
+Varargs are scoped differently than other variables as well - they are only accessible to
+the function in which they are created. This means that the following code wil NOT work,
+as the varargs in the inner function are out of scope.
+
+```lisp
+(fn badcode [...]
+ (fn []
+  (print ...)))
+```
 
 ## Gotchas
 

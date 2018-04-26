@@ -205,7 +205,6 @@ for multiple conditions compiling into `elseif` branches:
       "even"
       (= 0 (% x 10))
       "multiple of ten"
-      :else
       "I dunno, something else"))
 ```
 

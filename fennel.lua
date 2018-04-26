@@ -368,6 +368,7 @@ local function assertCompile(condition, msg, ast)
 end
 
 local GLOBAL_SCOPE = makeScope()
+GLOBAL_SCOPE.vararg = true
 local SPECIALS = GLOBAL_SCOPE.specials
 local COMPILER_SCOPE = makeScope(GLOBAL_SCOPE)
 
@@ -958,8 +959,9 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
         else
             -- We will use an IIFE for the do
             local fname = gensym(scope)
-            emit(parent, ('local function %s()'):format(fname), ast)
-            retexprs = expr(fname .. '()', 'statement')
+            local fargs = scope.vararg and '...' or ''
+            emit(parent, ('local function %s(%s)'):format(fname, fargs), ast)
+            retexprs = expr(fname .. '(' .. fargs .. ')', 'statement')
             outerTail = true
             outerTarget = nil
         end
@@ -1004,6 +1006,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local index = 2
     local fnName = isSym(ast[index])
     local isLocalFn
+    fScope.vararg = false
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not isMultiSym(fnName[1])
         if isLocalFn then
@@ -1019,7 +1022,6 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local argList = assertCompile(isTable(ast[index]),
                                   'expected vector arg list [a b ...]', ast)
     local argNameList = {}
-    fScope.vararg = false
     for i = 1, #argList do
         if isVarg(argList[i]) then
             assertCompile(i == #argList, "expected vararg in last parameter position", ast)

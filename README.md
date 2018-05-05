@@ -34,10 +34,10 @@ For a small complete example that uses the LÖVE game engine, see
 
 #### Fibonacci sequence
 ```
-(local fib (fn [n] (or (and (> n 1)
-                            (+ (fib (- n 1))
-                               (fib (- n 2))))
-                       1)))
+(fn fib [n]
+ (if (< n 2)
+  n
+  (+ (fib (- n 1)) (fib (- n 2)))))
 
 (print (fib 10))
 ```

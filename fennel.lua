@@ -1616,6 +1616,8 @@ local function repl(options)
     end
 end
 
+local macroLoaded = {}
+
 local module = {
     parser = parser,
     granulate = granulate,
@@ -1634,6 +1636,7 @@ local module = {
     eval = eval,
     repl = repl,
     dofile = dofile_fennel,
+    macroLoaded = macroLoaded,
     path = "./?.fnl;./?/init.fnl",
     traceback = traceback
 }
@@ -1686,11 +1689,18 @@ end
 
 SPECIALS['require-macros'] = function(ast, scope, parent)
     for i = 2, #ast do
-        local filename = assertCompile(searchModule(ast[i]),
-                                       ast[i] .. " not found.", ast)
-        local mod = dofile_fennel(filename, {env=makeCompilerEnv(ast, scope, parent)})
-        for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. ast[i] ..
-                                        'module to be table', ast)) do
+        local modname = ast[i];
+        local mod;
+        if macroLoaded[modname] then
+            mod = macroLoaded[modname]
+        else
+            local filename = assertCompile(searchModule(modname),
+                                           modname .. " not found.", ast)
+            mod = dofile_fennel(filename, {env=makeCompilerEnv(ast, scope, parent)})
+            macroLoaded[modname] = mod
+        end
+        for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. modname ..
+                                        ' module to be table', ast)) do
             scope.specials[k] = macroToSpecial(v)
         end
     end

@@ -827,6 +827,7 @@ local function destructure(to, from, ast, scope, parent, opts)
     local nomulti = opts.nomulti
     local noundef = opts.noundef
     local forceglobal = opts.forceglobal
+    local forceset = opts.forceset
     local setter = declaration and "local %s = %s" or "%s = %s"
 
     -- Get Lua source for symbol, and check for errors
@@ -839,7 +840,7 @@ local function destructure(to, from, ast, scope, parent, opts)
         else
             local parts = isMultiSym(raw) or {raw}
             local meta = scope.symmeta[parts[1]]
-            if #parts == 1 then
+            if #parts == 1 and not forceset then
                 assertCompile(not(forceglobal and meta),
                     'expected global, found var', up1)
                 assertCompile(meta or not noundef,
@@ -1095,6 +1096,13 @@ SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
         noundef = true
+    })
+end
+
+SPECIALS['set-forcably!'] = function(ast, scope, parent)
+    assertCompile(#ast == 3, "expected name and value", ast)
+    destructure(ast[2], ast[3], ast, scope, parent, {
+        forceset = true
     })
 end
 
@@ -1608,6 +1616,8 @@ local function repl(options)
     end
 end
 
+local macroLoaded = {}
+
 local module = {
     parser = parser,
     granulate = granulate,
@@ -1626,6 +1636,7 @@ local module = {
     eval = eval,
     repl = repl,
     dofile = dofile_fennel,
+    macroLoaded = macroLoaded,
     path = "./?.fnl;./?/init.fnl",
     traceback = traceback
 }
@@ -1678,11 +1689,18 @@ end
 
 SPECIALS['require-macros'] = function(ast, scope, parent)
     for i = 2, #ast do
-        local filename = assertCompile(searchModule(ast[i]),
-                                       ast[i] .. " not found.", ast)
-        local mod = dofile_fennel(filename, {env=makeCompilerEnv(ast, scope, parent)})
-        for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. ast[i] ..
-                                        'module to be table', ast)) do
+        local modname = ast[i];
+        local mod;
+        if macroLoaded[modname] then
+            mod = macroLoaded[modname]
+        else
+            local filename = assertCompile(searchModule(modname),
+                                           modname .. " not found.", ast)
+            mod = dofile_fennel(filename, {env=makeCompilerEnv(ast, scope, parent)})
+            macroLoaded[modname] = mod
+        end
+        for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. modname ..
+                                        ' module to be table', ast)) do
             scope.specials[k] = macroToSpecial(v)
         end
     end

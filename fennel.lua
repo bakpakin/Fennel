@@ -827,6 +827,7 @@ local function destructure(to, from, ast, scope, parent, opts)
     local nomulti = opts.nomulti
     local noundef = opts.noundef
     local forceglobal = opts.forceglobal
+    local forceset = opts.forceset
     local setter = declaration and "local %s = %s" or "%s = %s"
 
     -- Get Lua source for symbol, and check for errors
@@ -839,7 +840,7 @@ local function destructure(to, from, ast, scope, parent, opts)
         else
             local parts = isMultiSym(raw) or {raw}
             local meta = scope.symmeta[parts[1]]
-            if #parts == 1 then
+            if #parts == 1 and not forceset then
                 assertCompile(not(forceglobal and meta),
                     'expected global, found var', up1)
                 assertCompile(meta or not noundef,
@@ -1095,6 +1096,13 @@ SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
         noundef = true
+    })
+end
+
+SPECIALS['set-forcably!'] = function(ast, scope, parent)
+    assertCompile(#ast == 3, "expected name and value", ast)
+    destructure(ast[2], ast[3], ast, scope, parent, {
+        forceset = true
     })
 end
 

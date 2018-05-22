@@ -546,6 +546,33 @@ local function peephole(chunk)
     return chunk
 end
 
+-- correlate line numbers in input with line numbers in output
+local function flattenChunkCorrelated(mainChunk)
+    local function flatten(chunk, out, lastLine, file)
+        if chunk.leaf then
+            out[lastLine] = (out[lastLine] or "") .. " " .. chunk.leaf
+        else
+            for _, subchunk in ipairs(chunk) do
+                -- Ignore empty chunks
+                if subchunk.leaf or #subchunk > 0 then
+                    -- don't increase line unless it's from the same file
+                    if subchunk.ast and file == subchunk.ast.file then
+                        lastLine = math.max(lastLine, subchunk.ast.line or 0)
+                    end
+                    lastLine = flatten(subchunk, out, lastLine, file)
+                end
+            end
+        end
+        return lastLine
+    end
+    local out = {}
+    local last = flatten(mainChunk, out, 1, mainChunk.file)
+    for i = 1, last do
+        if out[i] == nil then out[i] = "" end
+    end
+    return table.concat(out, "\n")
+end
+
 -- Flatten a tree of indented Lua source code lines.
 -- Tab is what is used to indent a block.
 local function flattenChunk(sm, chunk, tab, depth)
@@ -591,21 +618,25 @@ end
 local function flatten(chunk, options)
     local sm = options.sourcemap and {}
     chunk = peephole(chunk)
-    local ret = flattenChunk(sm, chunk, options.indent, 0)
-    if sm then
-        local key, short_src
-        if options.filename then
-            short_src = options.filename
-            key = '@' .. short_src
-        else
-            key = ret
-            short_src = makeShortSrc(options.source or ret)
+    if(options.correlate) then
+        return flattenChunkCorrelated(chunk), {}
+    else
+        local ret = flattenChunk(sm, chunk, options.indent, 0)
+        if sm then
+            local key, short_src
+            if options.filename then
+                short_src = options.filename
+                key = '@' .. short_src
+            else
+                key = ret
+                short_src = makeShortSrc(options.source or ret)
+            end
+            sm.short_src = short_src
+            sm.key = key
+            fennelSourcemap[key] = sm
         end
-        sm.short_src = short_src
-        sm.key = key
-        fennelSourcemap[key] = sm
+        return ret, sm
     end
-    return ret, sm
 end
 
 -- Convert expressions to Lua string
@@ -1653,16 +1684,22 @@ local function searchModule(modulename)
     end
 end
 
+module.make_searcher = function(options)
+   return function(modulename)
+      local opts = {}
+      for k,v in pairs(options or {}) do opts[k] = v end
+      local filename = searchModule(modulename)
+      if filename then
+         return function(modname)
+            return dofile_fennel(filename, opts, modname)
+         end
+      end
+   end
+end
+
 -- This will allow regular `require` to work with Fennel:
 -- table.insert(package.loaders, fennel.searcher)
-module.searcher = function(modulename)
-    local filename = searchModule(modulename)
-    if filename then
-        return function(modname)
-            return dofile_fennel(filename, nil, modname)
-        end
-    end
-end
+module.searcher = module.make_searcher()
 
 local function makeCompilerEnv(ast, scope, parent)
     return setmetatable({

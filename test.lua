@@ -292,8 +292,8 @@ for code, expected in pairs(macro_cases) do
 end
 
 local compile_failures = {
-    ["(f"]="unexpected end of source",
-    ["(+))"]="unexpected closing delimiter",
+    ["(f"]="unexpected end of source in unknown:1",
+    ["\n\n(+))"]="unexpected closing delimiter in unknown:3",
     ["(fn)"]="expected vector arg list",
     ["(fn [12])"]="expected symbol for function parameter",
     ["(fn [:huh] 4)"]="expected symbol for function parameter",
@@ -306,9 +306,13 @@ local compile_failures = {
     ["(let [false 1] 9)"]="unable to destructure false",
     ["(let [nil 1] 9)"]="unable to destructure nil",
     ["(let [[a & c d] [1 2]] c)"]="rest argument in final position",
-    ["(set a 19)"]="expected local var a",
+    ["(set a 19)"]="error in 'set' unknown:1: expected local var a",
     ["(set [a b c] [1 2 3]) (+ a b c)"]="expected local var",
     ["(not true false)"]="expected one argument",
+    ["\n\n(let [x.y 9] nil)"]="unknown:3: did not expect multi",
+    ["()"]="expected a function to call",
+    ["(789)"]="789.*cannot call literal value",
+    ["(fn [] [...])"]="unexpected vararg",
     -- compiler environment
     ["(defn [:foo] [] nil)"]="defn.*function names must be symbols",
     -- line numbers

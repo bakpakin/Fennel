@@ -102,6 +102,7 @@
                               (puts self " ]")))
 
 (local put-key (fn [self k]
+                 ;; TODO: :,bTrVyiC=z is not valid; comma cuts all off
                  (if (and (= (type k) "string")
                           (: k :find "^[%w?\\^_`!#$%&*+-./@~:|<=>]+$"))
                      (puts self ":" k)

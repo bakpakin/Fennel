@@ -206,6 +206,9 @@ local function parser(getbyte, filename)
         if r == 10 then line = line + 1 end
         return r
     end
+    local function parseError(msg)
+        return error(msg .. ' in ' .. (filename or 'unknown') .. ':' .. line, 0)
+    end
 
     -- Parse stream
     return function ()
@@ -230,7 +233,7 @@ local function parser(getbyte, filename)
                 b = getb()
             until not b or not iswhitespace(b)
             if not b then
-                if #stack > 0 then error 'unexpected end of source' end
+                if #stack > 0 then parseError 'unexpected end of source' end
                 return nil
             end
 
@@ -246,11 +249,12 @@ local function parser(getbyte, filename)
                     bytestart = byteindex
                 }, LIST_MT))
             elseif delims[b] then -- Closing delimiter
-                if #stack == 0 then error 'unexpected closing delimiter' end
+                if #stack == 0 then parseError 'unexpected closing delimiter' end
                 local last = stack[#stack]
                 local val
                 if last.closer ~= b then
-                    error('unexpected delimiter ' .. string.char(b) .. ', expected ' .. string.char(last.closer))
+                    parseError('unexpected delimiter ' .. string.char(b) ..
+                               ', expected ' .. string.char(last.closer))
                 end
                 last.byteend = byteindex -- Set closing byte index
                 if b == 41 then -- )
@@ -262,7 +266,7 @@ local function parser(getbyte, filename)
                     end
                 else -- }
                     if #last % 2 ~= 0 then
-                        error 'expected even number of values in table literal'
+                        parseError('expected even number of values in table literal')
                     end
                     val = {}
                     for i = 1, #last, 2 do
@@ -289,7 +293,7 @@ local function parser(getbyte, filename)
                         state = "base"
                     end
                 until not b or (state == "done")
-                if not b then error 'unexpected end of source' end
+                if not b then parseError('unexpected end of source') end
                 local raw = string.char(unpack(chars))
                 local loadFn = loadCode(('return %s'):format(raw), nil, filename)
                 dispatch(loadFn())
@@ -311,7 +315,7 @@ local function parser(getbyte, filename)
                     local forceNumber = rawstr:match('^%d')
                     local x
                     if forceNumber then
-                        x = tonumber(rawstr) or error('could not read token "' .. rawstr .. '"')
+                        x = tonumber(rawstr) or parseError('could not read token "' .. rawstr .. '"')
                     else
                         x = tonumber(rawstr) or sym(rawstr, nil, {
                             line = line,
@@ -361,7 +365,8 @@ end
 local function assertCompile(condition, msg, ast)
     -- if we use regular `assert' we can't provide the `level' argument of zero
     if not condition then
-        error(string.format("Compile error in '%s' %s:%s: %s", ast[1][1],
+        error(string.format("Compile error in '%s' %s:%s: %s",
+                            isSym(ast[1]) and ast[1][1] or ast[1],
                             ast.filename or "unknown", ast.line or '?', msg), 0)
     end
     return condition
@@ -449,13 +454,13 @@ end
 -- Creates a symbol from a string by mangling it.
 -- ensures that the generated symbol is unique
 -- if the input string is unique in the scope.
-local function localMangling(str, scope)
+local function localMangling(str, scope, ast)
     if scope.manglings[str] then
         return scope.manglings[str]
     end
     local append = 0
     local mangling = str
-    if isMultiSym(str) then error 'did not expect a multi symbol' end
+    assertCompile(not isMultiSym(str), 'did not expect multi symbol ' .. str, ast)
 
     -- Mapping mangling to a valid Lua identifier
     if luaKeywords[mangling] or mangling:match('^%d') then
@@ -505,7 +510,7 @@ end
 local function declareLocal(symbol, meta, scope, ast)
     local name = symbol[1]
     assertCompile(not isMultiSym(name), "did not expect mutltisym", ast)
-    local mangling = localMangling(name, scope)
+    local mangling = localMangling(name, scope, ast)
     scope.symmeta[name] = meta
     return mangling
 end
@@ -728,7 +733,7 @@ local function compile1(ast, scope, parent, opts)
     if isList(ast) then
         -- Function call or special form
         local len = #ast
-        assert(len > 0, "expected a function to call")
+        assertCompile(len > 0, "expected a function to call", ast)
         -- Test for special form
         local first = ast[1]
         if isSym(first) then -- Resolve symbol
@@ -757,7 +762,8 @@ local function compile1(ast, scope, parent, opts)
             local fcallee = compile1(ast[1], scope, parent, {
                 nval = 1
             })[1]
-            assert(fcallee.type ~= 'literal', 'cannot call literal value')
+            assertCompile(fcallee.type ~= 'literal',
+                          'cannot call literal value', ast)
             fcallee = tostring(fcallee)
             for i = 2, len do
                 local subexprs = compile1(ast[i], scope, parent, {
@@ -778,7 +784,7 @@ local function compile1(ast, scope, parent, opts)
             exprs = handleCompileOpts({expr(call, 'statement')}, parent, opts, ast)
         end
     elseif isVarg(ast) then
-        assert(scope.vararg, "unexpected vararg")
+        assertCompile(scope.vararg, "unexpected vararg", ast)
         exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts, ast)
     elseif isSym(ast) then
         local e
@@ -824,7 +830,7 @@ local function compile1(ast, scope, parent, opts)
         local tbl = '({' .. table.concat(buffer, ', ') ..'})'
         exprs = handleCompileOpts({expr(tbl, 'expression')}, parent, opts, ast)
     else
-        error('could not compile value of type ' .. type(ast))
+        assertCompile(false, 'could not compile value of type ' .. type(ast), ast)
     end
     exprs.returned = true
     return exprs

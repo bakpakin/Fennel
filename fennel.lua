@@ -1411,7 +1411,7 @@ local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
 end
 
 defineArithmeticSpecial('+', '0', 0)
-defineArithmeticSpecial('..', "''", '')
+defineArithmeticSpecial('..', "''", "''")
 defineArithmeticSpecial('^')
 defineArithmeticSpecial('-', '0', 0)
 defineArithmeticSpecial('*', '1', 1)

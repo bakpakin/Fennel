@@ -366,7 +366,7 @@ local function assertCompile(condition, msg, ast)
     -- if we use regular `assert' we can't provide the `level' argument of zero
     if not condition then
         error(string.format("Compile error in '%s' %s:%s: %s",
-                            isSym(ast[1]) and ast[1][1] or ast[1],
+                            isSym(ast[1]) and ast[1][1] or ast[1] or '()',
                             ast.filename or "unknown", ast.line or '?', msg), 0)
     end
     return condition
@@ -1379,12 +1379,15 @@ SPECIALS[':'] = function(ast, scope, parent)
         table.concat(args, ', ')), 'statement')
 end
 
-local function defineArithmeticSpecial(name, unaryPrefix)
+local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
     local paddedOp = ' ' .. name .. ' '
     SPECIALS[name] = function(ast, scope, parent)
         local len = #ast
         if len == 1 then
-            return unaryPrefix or '0'
+            if zeroArity == nil then
+                error 'Expected more than 0 arguments'
+            end
+            return expr(zeroArity, 'literal')
         else
             local operands = {}
             for i = 2, len do
@@ -1395,7 +1398,10 @@ local function defineArithmeticSpecial(name, unaryPrefix)
                     operands[#operands + 1] = tostring(subexprs[j])
                 end
             end
-            if #operands == 1 and unaryPrefix then
+            if #operands == 1 then
+                if not unaryPrefix then
+                    error "Expected more than 1 argument"
+                end
                 return '(' .. unaryPrefix .. paddedOp .. operands[1] .. ')'
             else
                 return '(' .. table.concat(operands, paddedOp) .. ')'
@@ -1404,14 +1410,14 @@ local function defineArithmeticSpecial(name, unaryPrefix)
     end
 end
 
-defineArithmeticSpecial('+')
-defineArithmeticSpecial('..')
+defineArithmeticSpecial('+', '0', 0)
+defineArithmeticSpecial('..', "''", '')
 defineArithmeticSpecial('^')
-defineArithmeticSpecial('-', '')
-defineArithmeticSpecial('*')
+defineArithmeticSpecial('-', '0', 0)
+defineArithmeticSpecial('*', '1', 1)
 defineArithmeticSpecial('%')
-defineArithmeticSpecial('/', 1)
-defineArithmeticSpecial('//', 1)
+defineArithmeticSpecial('/', '1', 1)
+defineArithmeticSpecial('//', '1', 1)
 defineArithmeticSpecial('or')
 defineArithmeticSpecial('and')
 

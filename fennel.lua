@@ -653,6 +653,18 @@ local function exprs1(exprs)
     return table.concat(t, ', ')
 end
 
+-- If there's a whitelist of allowed globals, don't let references
+-- thru that aren't on the list. This list is set at the compiler
+-- entry points of compile and compileStream.
+local allowedGlobals
+
+local function globalAllowed(name)
+    if not allowedGlobals then return true end
+    for _, g in ipairs(allowedGlobals) do
+        if g == name then return true end
+    end
+end
+
 -- Compile side effects for a chunk
 local function keepSideEffects(exprs, chunk, start, ast)
     start = start or 1
@@ -793,6 +805,10 @@ local function compile1(ast, scope, parent, opts)
         if ast[1] == 'nil' then
             e = expr('nil', 'literal')
         else
+            if not scope.manglings[ast[1]] then
+                assertCompile(globalAllowed(ast[1]),
+                              'unknown global in strict mode: ' .. ast[1], ast)
+            end
             e = symbolToExpression(ast, scope)
         end
         exprs = handleCompileOpts({e}, parent, opts, ast)
@@ -1123,6 +1139,7 @@ end
 
 SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
+    if allowedGlobals then table.insert(allowedGlobals, ast[2][1]) end
     destructure(ast[2], ast[3], ast, scope, parent, {
         nomulti = true,
         forceglobal = true
@@ -1471,6 +1488,7 @@ end
 
 local function compile(ast, options)
     options = options or {}
+    allowedGlobals = options.allowedGlobals
     if options.indent == nil then options.indent = '  ' end
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
@@ -1481,6 +1499,7 @@ end
 
 local function compileStream(strm, options)
     options = options or {}
+    allowedGlobals = options.allowedGlobals
     if options.indent == nil then options.indent = '  ' end
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local vals = {}

@@ -122,6 +122,8 @@ local cases = {
         ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
         -- set works on parent scopes
         ["(var n 0) (let [f (fn [] (set n 96))] (f) n)"]=96,
+        -- set-forcibly! works on local & let vars
+        ["(local a 3) (let [b 2] (set-forcibly! a 7) (set-forcibly! b 6) (+ a b))"]=13,
         -- local names with dashes in them
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         -- functions inside each
@@ -313,6 +315,7 @@ local compile_failures = {
     ["(let [[a & c d] [1 2]] c)"]="rest argument in final position",
     ["(set a 19)"]="error in 'set' unknown:1: expected local var a",
     ["(set [a b c] [1 2 3]) (+ a b c)"]="expected local var",
+    ["(let [x 1] (set-forcibly! x 2) (set x 3) x)"]="expected local var",
     ["(not true false)"]="expected one argument",
     ["\n\n(let [x.y 9] nil)"]="unknown:3: did not expect multi",
     ["()"]="expected a function to call",

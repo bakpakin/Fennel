@@ -1136,7 +1136,7 @@ SPECIALS['set'] = function(ast, scope, parent)
     })
 end
 
-SPECIALS['set-forcably!'] = function(ast, scope, parent)
+SPECIALS['set-forcibly!'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
         forceset = true

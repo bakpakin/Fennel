@@ -843,7 +843,7 @@ local function compile1(ast, scope, parent, opts)
             buffer[#buffer + 1] = ('%s = %s'):format(
                 k[1], tostring(compile1(v, scope, parent, {nval = 1})[1]))
         end
-        local tbl = '({' .. table.concat(buffer, ', ') ..'})'
+        local tbl = '{' .. table.concat(buffer, ', ') ..'}'
         exprs = handleCompileOpts({expr(tbl, 'expression')}, parent, opts, ast)
     else
         assertCompile(false, 'could not compile value of type ' .. type(ast), ast)
@@ -1396,14 +1396,12 @@ SPECIALS[':'] = function(ast, scope, parent)
         table.concat(args, ', ')), 'statement')
 end
 
-local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
+local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
     SPECIALS[name] = function(ast, scope, parent)
         local len = #ast
         if len == 1 then
-            if zeroArity == nil then
-                error 'Expected more than 0 arguments'
-            end
+            assertCompile(zeroArity ~= nil, 'Expected more than 0 arguments', ast)
             return expr(zeroArity, 'literal')
         else
             local operands = {}
@@ -1416,10 +1414,11 @@ local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
                 end
             end
             if #operands == 1 then
-                if not unaryPrefix then
-                    error "Expected more than 1 argument"
+                if unaryPrefix then
+                    return '(' .. unaryPrefix .. paddedOp .. operands[1] .. ')'
+                else
+                    return operands[1]
                 end
-                return '(' .. unaryPrefix .. paddedOp .. operands[1] .. ')'
             else
                 return '(' .. table.concat(operands, paddedOp) .. ')'
             end
@@ -1427,33 +1426,37 @@ local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
     end
 end
 
-defineArithmeticSpecial('+', '0', 0)
-defineArithmeticSpecial('..', "''", "''")
+defineArithmeticSpecial('+', '0')
+defineArithmeticSpecial('..', "''")
 defineArithmeticSpecial('^')
-defineArithmeticSpecial('-', '0', 0)
-defineArithmeticSpecial('*', '1', 1)
+defineArithmeticSpecial('-', nil, '')
+defineArithmeticSpecial('*', '1')
 defineArithmeticSpecial('%')
-defineArithmeticSpecial('/', '1', 1)
-defineArithmeticSpecial('//', '1', 1)
-defineArithmeticSpecial('or')
-defineArithmeticSpecial('and')
+defineArithmeticSpecial('/', nil, '1')
+defineArithmeticSpecial('//', nil, '1')
+defineArithmeticSpecial('or', 'false')
+defineArithmeticSpecial('and', 'true')
 
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
-        assertCompile(#ast > 2, 'expected at least two arguments', ast)
+        local len = #ast
+        assertCompile(len > 2, 'expected at least two arguments', ast)
         local lhs = compile1(ast[2], scope, parent, {nval = 1})[1]
         local lastval = compile1(ast[3], scope, parent, {nval = 1})[1]
         -- avoid double-eval by introducing locals for possible side-effects
-        if #ast > 3 then lastval = once(lastval, ast[3], scope, parent) end
-        local out = ('(%s) %s (%s)'):
+        if len > 3 then lastval = once(lastval, ast[3], scope, parent) end
+        local out = ('(%s %s %s)'):
             format(tostring(lhs), op, tostring(lastval))
-        for i = 4, #ast do -- variadic comparison
-            local nextval = once(compile1(ast[i], scope, parent, {nval = 1})[1],
-                                 ast[i], scope, parent)
-            out = (out .. " and ((%s) %s (%s))"):
-                format(tostring(lastval), op, tostring(nextval))
-            lastval = nextval
+        if len > 3 then
+            for i = 4, len do -- variadic comparison
+                local nextval = once(compile1(ast[i], scope, parent, {nval = 1})[1],
+                                     ast[i], scope, parent)
+                out = (out .. " and (%s %s %s)"):
+                    format(tostring(lastval), op, tostring(nextval))
+                lastval = nextval
+            end
+            out = '(' .. out .. ')'
         end
         return out
     end

@@ -332,14 +332,21 @@ local compile_failures = {
     ["(do\n\n\n(each \n[x (pairs {})] (when)))"]="when' unknown:5:",
     -- macro errors have macro names in them
     ["\n(when)"]="Compile error in .when. unknown:2",
+    -- strict about unknown global reference
+    ["(hey)"]="unknown global",
+    ["(fn global-caller [] (hey))"]="unknown global",
+    ["(let [bl 8 a bcd] nil)"]="unknown global",
+    ["(each [k v (pairs {})] (BAD k v))"]="BAD",
+    ["(global good (fn [] nil)) (good) (BAD)"]="BAD",
 }
-
+v = view
 print("Running tests for compile errors...")
 for code, expected_msg in pairs(compile_failures) do
-    local ok, msg = pcall(fennel.compileString, code)
+    local ok, msg = pcall(fennel.compileString, code, {allowedGlobals = {"pairs"}})
     if(ok) then
         print(" Expected failure when compiling " .. code .. ": " .. msg)
     elseif(not msg:match(expected_msg)) then
+        fail = fail + 1
         print(" Expected " .. expected_msg .. " when compiling " .. code ..
                   " but got " .. msg)
     end

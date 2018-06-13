@@ -1396,14 +1396,12 @@ SPECIALS[':'] = function(ast, scope, parent)
         table.concat(args, ', ')), 'statement')
 end
 
-local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
+local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
     SPECIALS[name] = function(ast, scope, parent)
         local len = #ast
         if len == 1 then
-            if zeroArity == nil then
-                error 'Expected more than 0 arguments'
-            end
+            assertCompile(zeroArity ~= nil, 'Expected more than 0 arguments', ast)
             return expr(zeroArity, 'literal')
         else
             local operands = {}
@@ -1416,10 +1414,11 @@ local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
                 end
             end
             if #operands == 1 then
-                if not unaryPrefix then
-                    error "Expected more than 1 argument"
+                if unaryPrefix then
+                    return '(' .. unaryPrefix .. paddedOp .. operands[1] .. ')'
+                else
+                    return operands[1]
                 end
-                return '(' .. unaryPrefix .. paddedOp .. operands[1] .. ')'
             else
                 return '(' .. table.concat(operands, paddedOp) .. ')'
             end
@@ -1427,16 +1426,16 @@ local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
     end
 end
 
-defineArithmeticSpecial('+', '0', 0)
-defineArithmeticSpecial('..', "''", "''")
+defineArithmeticSpecial('+', '0')
+defineArithmeticSpecial('..', "''")
 defineArithmeticSpecial('^')
-defineArithmeticSpecial('-', '0', 0)
-defineArithmeticSpecial('*', '1', 1)
+defineArithmeticSpecial('-', nil, '')
+defineArithmeticSpecial('*', '1')
 defineArithmeticSpecial('%')
-defineArithmeticSpecial('/', '1', 1)
-defineArithmeticSpecial('//', '1', 1)
-defineArithmeticSpecial('or')
-defineArithmeticSpecial('and')
+defineArithmeticSpecial('/', nil, '1')
+defineArithmeticSpecial('//', nil, '1')
+defineArithmeticSpecial('or', 'false')
+defineArithmeticSpecial('and', 'true')
 
 local function defineComparatorSpecial(name, realop)
     local op = realop or name

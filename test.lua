@@ -18,11 +18,13 @@ local cases = {
         ["(+ 1 2 (^ 1 2))"]=4,
         ["(+ 1 2 (- 1 2))"]=2,
         ["(% 1 2 (- 1 2))"]=0,
+        -- 1 arity results
+        ["(- 1)"]=-1,
+        ["(/ 2)"]=1/2,
+        -- ["(// 2)"]=1//2,
         -- 0 arity results
         ["(+)"]=0,
-        ["(-)"]=0,
         ["(*)"]=1,
-        ["(/)"]=1
     },
 
     booleans = {
@@ -33,6 +35,12 @@ local cases = {
         ["(not true)"]=false,
         ["(not 39)"]=false,
         ["(not nil)"]=true,
+        -- 1 arity results
+        ["(or 5)"]=5,
+        ["(and 5)"]=5,
+        -- 0 arity results
+        ["(or)"]=false,
+        ["(and)"]=true,
     },
 
     comparisons = {

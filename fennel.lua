@@ -515,12 +515,29 @@ local function declareLocal(symbol, meta, scope, ast)
     return mangling
 end
 
+-- If there's a provided list of allowed globals, don't let references
+-- thru that aren't on the list. This list is set at the compiler
+-- entry points of compile and compileStream.
+local allowedGlobals
+
+local function globalAllowed(name)
+    if not allowedGlobals then return true end
+    for _, g in ipairs(allowedGlobals) do
+        if g == name then return true end
+    end
+end
+
 -- Convert symbol to Lua code. Will only work for local symbols
 -- if they have already been declared via declareLocal
-local function symbolToExpression(symbol, scope)
+local function symbolToExpression(symbol, scope, isReference)
     local name = symbol[1]
     local parts = isMultiSym(name) or {name}
     local etype = (#parts > 1) and "expression" or "sym"
+    local isLocal = scope.manglings[parts[1]]
+    -- if it's a reference and not a symbol which introduces a new binding
+    -- then we need to check for allowed globals
+    assertCompile(not isReference or isLocal or globalAllowed(parts[1]),
+                  'unknown global in strict mode: ' .. parts[1], symbol)
     return expr(combineParts(parts, scope), etype)
 end
 
@@ -651,18 +668,6 @@ local function exprs1(exprs)
         t[#t + 1] = e[1]
     end
     return table.concat(t, ', ')
-end
-
--- If there's a whitelist of allowed globals, don't let references
--- thru that aren't on the list. This list is set at the compiler
--- entry points of compile and compileStream.
-local allowedGlobals
-
-local function globalAllowed(name)
-    if not allowedGlobals then return true end
-    for _, g in ipairs(allowedGlobals) do
-        if g == name then return true end
-    end
 end
 
 -- Compile side effects for a chunk
@@ -805,11 +810,7 @@ local function compile1(ast, scope, parent, opts)
         if ast[1] == 'nil' then
             e = expr('nil', 'literal')
         else
-            if not scope.manglings[ast[1]] then
-                assertCompile(globalAllowed(ast[1]),
-                              'unknown global in strict mode: ' .. ast[1], ast)
-            end
-            e = symbolToExpression(ast, scope)
+            e = symbolToExpression(ast, scope, true)
         end
         exprs = handleCompileOpts({e}, parent, opts, ast)
     elseif type(ast) == 'nil' or type(ast) == 'boolean' then

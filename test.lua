@@ -344,14 +344,16 @@ local compile_failures = {
     ["(hey)"]="unknown global",
     ["(fn global-caller [] (hey))"]="unknown global",
     ["(let [bl 8 a bcd] nil)"]="unknown global",
+    ["(let [t {:a 1}] (+ t.a BAD))"]="BAD",
     ["(each [k v (pairs {})] (BAD k v))"]="BAD",
     ["(global good (fn [] nil)) (good) (BAD)"]="BAD",
 }
-v = view
+
 print("Running tests for compile errors...")
 for code, expected_msg in pairs(compile_failures) do
     local ok, msg = pcall(fennel.compileString, code, {allowedGlobals = {"pairs"}})
     if(ok) then
+        fail = fail + 1
         print(" Expected failure when compiling " .. code .. ": " .. msg)
     elseif(not msg:match(expected_msg)) then
         fail = fail + 1

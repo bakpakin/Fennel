@@ -515,12 +515,29 @@ local function declareLocal(symbol, meta, scope, ast)
     return mangling
 end
 
+-- If there's a provided list of allowed globals, don't let references
+-- thru that aren't on the list. This list is set at the compiler
+-- entry points of compile and compileStream.
+local allowedGlobals
+
+local function globalAllowed(name)
+    if not allowedGlobals then return true end
+    for _, g in ipairs(allowedGlobals) do
+        if g == name then return true end
+    end
+end
+
 -- Convert symbol to Lua code. Will only work for local symbols
 -- if they have already been declared via declareLocal
-local function symbolToExpression(symbol, scope)
+local function symbolToExpression(symbol, scope, isReference)
     local name = symbol[1]
     local parts = isMultiSym(name) or {name}
     local etype = (#parts > 1) and "expression" or "sym"
+    local isLocal = scope.manglings[parts[1]]
+    -- if it's a reference and not a symbol which introduces a new binding
+    -- then we need to check for allowed globals
+    assertCompile(not isReference or isLocal or globalAllowed(parts[1]),
+                  'unknown global in strict mode: ' .. parts[1], symbol)
     return expr(combineParts(parts, scope), etype)
 end
 
@@ -793,7 +810,7 @@ local function compile1(ast, scope, parent, opts)
         if ast[1] == 'nil' then
             e = expr('nil', 'literal')
         else
-            e = symbolToExpression(ast, scope)
+            e = symbolToExpression(ast, scope, true)
         end
         exprs = handleCompileOpts({e}, parent, opts, ast)
     elseif type(ast) == 'nil' or type(ast) == 'boolean' then
@@ -827,7 +844,7 @@ local function compile1(ast, scope, parent, opts)
             buffer[#buffer + 1] = ('%s = %s'):format(
                 k[1], tostring(compile1(v, scope, parent, {nval = 1})[1]))
         end
-        local tbl = '({' .. table.concat(buffer, ', ') ..'})'
+        local tbl = '{' .. table.concat(buffer, ', ') ..'}'
         exprs = handleCompileOpts({expr(tbl, 'expression')}, parent, opts, ast)
     else
         assertCompile(false, 'could not compile value of type ' .. type(ast), ast)
@@ -1123,6 +1140,7 @@ end
 
 SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
+    if allowedGlobals then table.insert(allowedGlobals, ast[2][1]) end
     destructure(ast[2], ast[3], ast, scope, parent, {
         nomulti = true,
         forceglobal = true
@@ -1136,7 +1154,7 @@ SPECIALS['set'] = function(ast, scope, parent)
     })
 end
 
-SPECIALS['set-forcably!'] = function(ast, scope, parent)
+SPECIALS['set-forcibly!'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
         forceset = true
@@ -1379,14 +1397,12 @@ SPECIALS[':'] = function(ast, scope, parent)
         table.concat(args, ', ')), 'statement')
 end
 
-local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
+local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
     SPECIALS[name] = function(ast, scope, parent)
         local len = #ast
         if len == 1 then
-            if zeroArity == nil then
-                error 'Expected more than 0 arguments'
-            end
+            assertCompile(zeroArity ~= nil, 'Expected more than 0 arguments', ast)
             return expr(zeroArity, 'literal')
         else
             local operands = {}
@@ -1399,10 +1415,11 @@ local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
                 end
             end
             if #operands == 1 then
-                if not unaryPrefix then
-                    error "Expected more than 1 argument"
+                if unaryPrefix then
+                    return '(' .. unaryPrefix .. paddedOp .. operands[1] .. ')'
+                else
+                    return operands[1]
                 end
-                return '(' .. unaryPrefix .. paddedOp .. operands[1] .. ')'
             else
                 return '(' .. table.concat(operands, paddedOp) .. ')'
             end
@@ -1410,33 +1427,37 @@ local function defineArithmeticSpecial(name, unaryPrefix, zeroArity)
     end
 end
 
-defineArithmeticSpecial('+', '0', 0)
-defineArithmeticSpecial('..', "''", "''")
+defineArithmeticSpecial('+', '0')
+defineArithmeticSpecial('..', "''")
 defineArithmeticSpecial('^')
-defineArithmeticSpecial('-', '0', 0)
-defineArithmeticSpecial('*', '1', 1)
+defineArithmeticSpecial('-', nil, '')
+defineArithmeticSpecial('*', '1')
 defineArithmeticSpecial('%')
-defineArithmeticSpecial('/', '1', 1)
-defineArithmeticSpecial('//', '1', 1)
-defineArithmeticSpecial('or')
-defineArithmeticSpecial('and')
+defineArithmeticSpecial('/', nil, '1')
+defineArithmeticSpecial('//', nil, '1')
+defineArithmeticSpecial('or', 'false')
+defineArithmeticSpecial('and', 'true')
 
 local function defineComparatorSpecial(name, realop)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
-        assertCompile(#ast > 2, 'expected at least two arguments', ast)
+        local len = #ast
+        assertCompile(len > 2, 'expected at least two arguments', ast)
         local lhs = compile1(ast[2], scope, parent, {nval = 1})[1]
         local lastval = compile1(ast[3], scope, parent, {nval = 1})[1]
         -- avoid double-eval by introducing locals for possible side-effects
-        if #ast > 3 then lastval = once(lastval, ast[3], scope, parent) end
-        local out = ('(%s) %s (%s)'):
+        if len > 3 then lastval = once(lastval, ast[3], scope, parent) end
+        local out = ('(%s %s %s)'):
             format(tostring(lhs), op, tostring(lastval))
-        for i = 4, #ast do -- variadic comparison
-            local nextval = once(compile1(ast[i], scope, parent, {nval = 1})[1],
-                                 ast[i], scope, parent)
-            out = (out .. " and ((%s) %s (%s))"):
-                format(tostring(lastval), op, tostring(nextval))
-            lastval = nextval
+        if len > 3 then
+            for i = 4, len do -- variadic comparison
+                local nextval = once(compile1(ast[i], scope, parent, {nval = 1})[1],
+                                     ast[i], scope, parent)
+                out = (out .. " and (%s %s %s)"):
+                    format(tostring(lastval), op, tostring(nextval))
+                lastval = nextval
+            end
+            out = '(' .. out .. ')'
         end
         return out
     end
@@ -1471,6 +1492,7 @@ end
 
 local function compile(ast, options)
     options = options or {}
+    allowedGlobals = options.allowedGlobals
     if options.indent == nil then options.indent = '  ' end
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
@@ -1481,6 +1503,7 @@ end
 
 local function compileStream(strm, options)
     options = options or {}
+    allowedGlobals = options.allowedGlobals
     if options.indent == nil then options.indent = '  ' end
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local vals = {}

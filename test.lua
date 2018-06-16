@@ -18,11 +18,13 @@ local cases = {
         ["(+ 1 2 (^ 1 2))"]=4,
         ["(+ 1 2 (- 1 2))"]=2,
         ["(% 1 2 (- 1 2))"]=0,
+        -- 1 arity results
+        ["(- 1)"]=-1,
+        ["(/ 2)"]=1/2,
+        -- ["(// 2)"]=1//2,
         -- 0 arity results
         ["(+)"]=0,
-        ["(-)"]=0,
         ["(*)"]=1,
-        ["(/)"]=1
     },
 
     booleans = {
@@ -33,6 +35,12 @@ local cases = {
         ["(not true)"]=false,
         ["(not 39)"]=false,
         ["(not nil)"]=true,
+        -- 1 arity results
+        ["(or 5)"]=5,
+        ["(and 5)"]=5,
+        -- 0 arity results
+        ["(or)"]=false,
+        ["(and)"]=true,
     },
 
     comparisons = {
@@ -122,6 +130,8 @@ local cases = {
         ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
         -- set works on parent scopes
         ["(var n 0) (let [f (fn [] (set n 96))] (f) n)"]=96,
+        -- set-forcibly! works on local & let vars
+        ["(local a 3) (let [b 2] (set-forcibly! a 7) (set-forcibly! b 6) (+ a b))"]=13,
         -- local names with dashes in them
         ["(let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key)"]="val",
         -- functions inside each
@@ -320,6 +330,7 @@ local compile_failures = {
     ["(let [[a & c d] [1 2]] c)"]="rest argument in final position",
     ["(set a 19)"]="error in 'set' unknown:1: expected local var a",
     ["(set [a b c] [1 2 3]) (+ a b c)"]="expected local var",
+    ["(let [x 1] (set-forcibly! x 2) (set x 3) x)"]="expected local var",
     ["(not true false)"]="expected one argument",
     ["\n\n(let [x.y 9] nil)"]="unknown:3: did not expect multi",
     ["()"]="expected a function to call",
@@ -336,14 +347,23 @@ local compile_failures = {
     ["(do\n\n\n(each \n[x (pairs {})] (when)))"]="when' unknown:5:",
     -- macro errors have macro names in them
     ["\n(when)"]="Compile error in .when. unknown:2",
+    -- strict about unknown global reference
+    ["(hey)"]="unknown global",
+    ["(fn global-caller [] (hey))"]="unknown global",
+    ["(let [bl 8 a bcd] nil)"]="unknown global",
+    ["(let [t {:a 1}] (+ t.a BAD))"]="BAD",
+    ["(each [k v (pairs {})] (BAD k v))"]="BAD",
+    ["(global good (fn [] nil)) (good) (BAD)"]="BAD",
 }
 
 print("Running tests for compile errors...")
 for code, expected_msg in pairs(compile_failures) do
-    local ok, msg = pcall(fennel.compileString, code)
+    local ok, msg = pcall(fennel.compileString, code, {allowedGlobals = {"pairs"}})
     if(ok) then
+        fail = fail + 1
         print(" Expected failure when compiling " .. code .. ": " .. msg)
     elseif(not msg:match(expected_msg)) then
+        fail = fail + 1
         print(" Expected " .. expected_msg .. " when compiling " .. code ..
                   " but got " .. msg)
     end

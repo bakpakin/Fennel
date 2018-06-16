@@ -177,6 +177,13 @@ local cases = {
                (tset t2 k v))\
             (+ t2.a t2.b))"]=3,
     },
+
+    edge = {
+        -- IIFE in if statement required
+        ["(let [(a b c d e f g) (if (= (+ 1 1) 2) (values 1 2 3 4 5 6 7))] (+ a b c d e f g))"]=28,
+        -- IIFE in if statement required v2
+        ["(let [(a b c d e f g) (if (= (+ 1 1) 3) nil ((or unpack table.unpack) [1 2 3 4 5 6 7]))] (+ a b c d e f g))"]=28,
+    },
 }
 
 local pass, fail, err = 0, 0, 0

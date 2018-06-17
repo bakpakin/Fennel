@@ -195,6 +195,8 @@ local cases = {
         ["(let [(a b c d e f g) (if (= (+ 1 1) 3) nil ((or unpack table.unpack) [1 2 3 4 5 6 7]))] (+ a b c d e f g))"]=28,
         -- IIFE if test v3
         ["(# [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))])"]=5,
+        -- IIFE if test v4
+        ["(select \"#\" (if (= 1 (- 3 2)) (values 1 2 3 4 5) :onevalue))"]=5,
         -- Values special in array literal
         ["(# [(values 1 2 3 4 5)])"]=5
     },

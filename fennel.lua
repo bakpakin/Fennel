@@ -1576,8 +1576,19 @@ local function traceback(msg, start)
     return table.concat(lines, '\n')
 end
 
+local function currentGlobalNames()
+    local names = {}
+    for k in pairs(_G) do table.insert(names, k) end
+    return names
+end
+
 local function eval(str, options, ...)
     options = options or {}
+    -- eval and dofile are considered "live" entry points, so we can assume
+    -- that the globals available at compile time are a reasonable allowed list
+    if options.allowedGlobals == nil then
+        options.allowedGlobals = currentGlobalNames()
+    end
     local luaSource = compileString(str, options)
     local loader = loadCode(luaSource, options.env,
         options.filename and ('@' .. options.filename) or str)
@@ -1586,6 +1597,9 @@ end
 
 local function dofile_fennel(filename, options, ...)
     options = options or {sourcemap = true}
+    if options.allowedGlobals == nil then
+        options.allowedGlobals = currentGlobalNames()
+    end
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all")
     f:close()
@@ -1597,6 +1611,11 @@ end
 local function repl(options)
 
     local opts = options or {}
+    -- This would get set for us when calling eval, but we want to seed it
+    -- with a value that is persistent so it doesn't get reset on each eval.
+    if opts.allowedGlobals == nil then
+        options.allowedGlobals = currentGlobalNames()
+    end
 
     local env = opts.env or setmetatable({}, {
         __index = _ENV or _G
@@ -1760,20 +1779,37 @@ local function makeCompilerEnv(ast, scope, parent)
     }, { __index = _ENV or _G })
 end
 
+local function macroGlobals(env)
+    if allowedGlobals then
+        local allowed = {}
+        for k in pairs(env) do
+            local g = globalUnmangling(k)
+            table.insert(allowed, g)
+        end
+        for _,k in pairs(allowedGlobals) do
+            table.insert(allowed, k)
+        end
+        return allowed
+    end
+end
+
 SPECIALS['require-macros'] = function(ast, scope, parent)
     for i = 2, #ast do
-        local modname = ast[i];
-        local mod;
+        local modname = ast[i]
+        local mod
         if macroLoaded[modname] then
             mod = macroLoaded[modname]
         else
             local filename = assertCompile(searchModule(modname),
                                            modname .. " not found.", ast)
-            mod = dofile_fennel(filename, {env=makeCompilerEnv(ast, scope, parent)})
+            local env = makeCompilerEnv(ast, scope, parent)
+            mod = dofile_fennel(filename, {env=env,
+                                           allowedGlobals=macroGlobals(env)})
             macroLoaded[modname] = mod
         end
         for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. modname ..
                                         ' module to be table', ast)) do
+            if allowedGlobals then table.insert(allowedGlobals, k) end
             scope.specials[k] = macroToSpecial(v)
         end
     end
@@ -1833,7 +1869,8 @@ local stdmacros = [===[
 }
 ]===]
 for name, fn in pairs(eval(stdmacros, {
-    env = makeCompilerEnv(nil, GLOBAL_SCOPE, {})
+    env = makeCompilerEnv(nil, GLOBAL_SCOPE, {}),
+    allowedGlobals = false,
 })) do
     SPECIALS[name] = macroToSpecial(fn)
 end

@@ -205,7 +205,7 @@ local pass, fail, err = 0, 0, 0
 for name, tests in pairs(cases) do
     print("Running tests for " .. name .. "...")
     for code, expected in pairs(tests) do
-        local ok, res = pcall(fennel.eval, code)
+        local ok, res = pcall(fennel.eval, code, {allowedGlobals = false})
         if not ok then
             err = err + 1
             print(" Error: " .. res .. " in: ".. fennel.compile(code))
@@ -289,8 +289,6 @@ local macro_cases = {
     -- macros with mangled names
     ["(require-macros \"test-macros\")\
       (->1 9 (+ 2) (* 11))"]=121,
-    -- require-macros doesn't leak into new evaluation contexts
-    ["(let [(_ e) (pcall (fn [] (->1 8 (+ 2))))] (: e :match :global))"]="global",
     -- macros loaded in function scope shouldn't leak to other functions
     ["((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))\
       (pcall (fn [] (global x1 (->1 23 (+ 1)))))\
@@ -315,6 +313,10 @@ for code, expected in pairs(macro_cases) do
             pass = pass + 1
         end
     end
+end
+if pcall(fennel.eval, "(->1 1 (+ 4))", {allowedGlobals = false}) then
+    fail = fail + 1
+    print(" Expected require-macros not leak into next evaluation.")
 end
 
 local compile_failures = {

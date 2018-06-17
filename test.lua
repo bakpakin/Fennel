@@ -193,6 +193,10 @@ local cases = {
         ["(let [(a b c d e f g) (if (= (+ 1 1) 2) (values 1 2 3 4 5 6 7))] (+ a b c d e f g))"]=28,
         -- IIFE in if statement required v2
         ["(let [(a b c d e f g) (if (= (+ 1 1) 3) nil ((or unpack table.unpack) [1 2 3 4 5 6 7]))] (+ a b c d e f g))"]=28,
+        -- IIFE if test v3
+        ["(# [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))])"]=5,
+        -- Values special in array literal
+        ["(# [(values 1 2 3 4 5)])"]=5
     },
 }
 
@@ -216,7 +220,7 @@ for name, tests in pairs(cases) do
     end
 end
 
-local count = function(t)
+local function count(t)
     local c = 0
     for _ in pairs(t) do c = c + 1 end
     return c

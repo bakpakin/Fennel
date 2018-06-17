@@ -824,7 +824,8 @@ local function compile1(ast, scope, parent, opts)
     elseif type(ast) == 'table' then
         local buffer = {}
         for i = 1, #ast do -- Write numeric keyed values.
-            buffer[#buffer + 1] = tostring(compile1(ast[i], scope, parent, {nval = 1})[1])
+            local nval = i ~= #ast and 1
+            buffer[#buffer + 1] = exprs1(compile1(ast[i], scope, parent, {nval = nval}))
         end
         local keys = {}
         for k, _ in pairs(ast) do -- Write other keys.

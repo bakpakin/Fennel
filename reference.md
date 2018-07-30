@@ -132,10 +132,10 @@ Example:
 
 ```
 (let [x (math.random 64)]
-  (if (= 0 (% x 2))
-      "even"
-      (= 0 (% x 10))
+  (if (= 0 (% x 10))
       "multiple of ten"
+      (= 0 (% x 2))
+      "even"
       "I dunno, something else"))
 ```
 

@@ -20,11 +20,11 @@ as well as
 ## OK, so how do you do things?
 
 Globals are set with `global`. Good code doesn't use too many of
-these, but they can be nice for debugging and experimentation, so
-we'll start there. Note that with `global` there is no distinction
-between creating a new global and giving an existing global a new
-value. Functions are created with `fn`, using square brackets for
-arguments.
+these, but they can be nice for debugging and are needed in the repl, so
+we'll start there. Note that unlike most forms, with `global` there is
+no distinction between creating a new global and giving an existing
+global a new value. Functions are created with `fn`, using square
+brackets for arguments.
 
 ```lisp
 (global add (fn [x y] (+ x y)))
@@ -58,7 +58,8 @@ bound to a function that prints twice its argument. These bindings are
 only valid for the body of the `let` call.
 
 You can also introduce locals with `local`, which is nice when they'll
-be used across the whole file, but in general `let` is preferred:
+be used across the whole file, but in general `let` is preferred because
+it's clearer at a glance where the value is used:
 
 ```lisp
 (local lume (require "lume"))
@@ -89,7 +90,7 @@ nested equivalent of `var`.
 
 Of course, all our standard arithmetic operators like `+`, `-`, `*`,
 and `/` work here in prefix form. Note that numbers are
-double-precision floats in all versions prior to 5.3, which optionally
+double-precision floats in all Lua versions prior to 5.3, which optionally
 introduced integers. On 5.3 and up, integer division uses `//`.
 
 ```lisp
@@ -144,6 +145,9 @@ And `tset` to put them in:
   (tset tbl key2 "the second one")
   tbl) ; -> {"a long string" "the first value" 12 "the second one"}
 ```
+
+Immutable tables are not native to Lua, though it's possible to
+construct immutable tables using metatables with some performance overhead.
 
 The `#` function returns the length of sequential tables and strings:
 
@@ -230,7 +234,8 @@ instead, which is often used for table keys:
 {:key value :number 531}
 ```
 
-If a table has string keys like this, you can pull values out of it easily:
+If a table has string keys like this, you can pull values out of it
+easily if the keys are known up front:
 
 ```lisp
 (let [tbl {:x 52 :y 91}]
@@ -265,7 +270,7 @@ whatever entry was at that key before.
 
 Error handling in Lua has two forms. Functions in Lua can return any
 number of values, and most functions which can fail will indicate
-failure by using multiple return values: `nil` followed by a failure
+failure by using two return values: `nil` followed by a failure
 message string. You can interact with this style of function in Fennel
 by destructuring with parens instead of square brackets:
 
@@ -333,10 +338,10 @@ must be the last parameter to a function. This syntax is inherited from Lua rath
 than Lisp.
 
 The `...` form is not a list or first class value, it expands to multiple values inline.
-To access individual elements of the vararg, first wrap it in a table literal (`{...}`)
+To access individual elements of the vararg, first wrap it in a table literal (`[...]`)
 and index like a normal table, or use the `select` function from Lua's core library. Often,
-the vararg can be passed directly to another function such as print without needing to
-look at individual elements in the vararg structure.
+the vararg can be passed directly to another function such as `print` without needing to
+bind it to a single table.
 
 ```lisp
 (fn print-each [...]
@@ -395,7 +400,7 @@ runtime overhead over Lua.
   create chunks with `fennel.eval` or Lua's `loadstring`, etc. One
   common source of confusion is that in repl sessions, each input is
   its own chunk, which makes `local` basically useless. For values to
-  persist in a repl session beyond one entry they need to be global.
+  persist in a repl session beyond one entry they need to be `global`.
 
 * Lua programmers should note Fennel functions cannot do early returns.
 
@@ -430,8 +435,15 @@ The last value in a Fennel file will be used as the value of the
 module. This is typically a table containing functions, though it
 can be any value, like a function.
 
+Modules are looked up by looking thru all the directories on `package.path`
+which usually contains the current directory. To require a module that's
+in a subdirectory, take the file name, replace the slashes with dots, and
+remove the extension, then pass that to `require`. For instance, a file
+called `lib/ui/menu.lua` would be read when loading the module `lib.ui.menu`.
+
 Out of the box `require` doesn't work with Fennel files, but you can
-add an entry to Lua's package searchers to support it:
+add an entry to Lua's `package.searchers` (`package.loaders` in Lua 5.1)
+to support it:
 
 ```lua
 table.insert(package.loaders or package.searchers, fennel.searcher)

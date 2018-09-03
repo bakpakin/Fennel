@@ -13,7 +13,13 @@ brackets. Will accept any number of arguments; ones in excess of the
 declared ones are ignored, and if not enough arguments are given to
 match the declared ones, the remaining ones are `nil`.
 
-Example: `(fn [x y] (print (+ x y)))`
+Example: `(fn pxy [x y] (print (+ x y)))`
+
+Giving it a name is optional; if one is provided it will be bound to
+it as a local. Even if you don't use it as an anonymous function,
+providing a name will cause your stack traces to be more readable, so
+it's recommended. Providing a name that's a table field will cause it
+to be inserted in a table instead of bound as a local.
 
 ### `lambda`/`λ` arity-checked function
 
@@ -35,19 +41,6 @@ Example: `(partial (fn [x y] (print (+ x y))) 2)`
 
 This example returns a function which will print a number that is 2
 greater than the argument it is passed.
-
-### `defn` named function
-
-Creates a function and binds it to a given name. Can either be used to
-create a local function or put a function in a table, depending on
-whether the argument has a `.` in it or not.
-
-Example: `(defn plus [x y] (+ x y))`
-
-Example: `(defn love.update [dt] (set total-time (+ total-time dt)))`
-
-Cannot be used to create a global function, but can be used to add a
-function to a table that is global.
 
 ## Binding
 
@@ -157,9 +150,9 @@ Example:
 
 ### `each` general iteration
 
-Run the body once for each value provided by the iterator. Nearly
-always used with `ipairs` (for sequential tables) or `pairs` (for any
-table in undefined order) but can be used with any iterator.
+Run the body once for each value provided by the iterator. Commonly
+used with `ipairs` (for sequential tables) or `pairs` (for any table
+in undefined order) but can be used with any iterator.
 
 Example:
 
@@ -172,8 +165,8 @@ Most iterators return two values, but `each` will bind any number.
 
 ### `for` numeric loop
 
-Counts a number from a start to stop point, evaluating the body once
-for each value. Accepts an optional step.
+Counts a number from a start to stop point (inclusive), evaluating the
+body once for each value. Accepts an optional step.
 
 Example:
 
@@ -189,7 +182,8 @@ This example will print all odd numbers under ten.
 Accepts any number of forms and evaluates all of them in order,
 returning the last value. This is used for inserting side-effects into
 a form which accepts only a single value, such as in a body of an `if`
-when multiple clauses make it so you can't use `when`.
+when multiple clauses make it so you can't use `when`. Some lisps call
+this `begin` or `progn`.
 
 ```
 (if launch-missiles?
@@ -241,7 +235,8 @@ Example: `(+ (# [1 2 3 nil 8]) (# "abc"))` -> `6` or `8`
 
 ### `.` table lookup
 
-Looks up a given key in a table. Multiple arguments will index repeatedly.
+Looks up a given key in a table. Multiple arguments will perform
+nested lookup.
 
 Example: `(. mytbl myfield)`
 

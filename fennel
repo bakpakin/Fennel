@@ -10,6 +10,7 @@ Usage: fennel [FLAG] [FILE]
   --repl          :  Launch an interactive repl session
   --compile FILES :  Compile files and write their Lua to stdout
   --help          :  Display this text
+  --no-searcher   :  Skip installing package.searchers entry
 
   When not given a flag, runs the file given as the first argument.]]
 
@@ -28,18 +29,25 @@ local function dosafe(filename, opts, arg1)
     return val
 end
 
-local compileOptHandlers = {
-    ['--indent'] = function ()
-        options.indent = table.remove(arg, 3)
+for i=#arg, 1, -1 do
+    if arg[i] == "--no-searcher" then
+        options.no_searcher = true
+        table.remove(arg, i)
+    elseif arg[i] == "--indent" then
+        options.indent = table.remove(arg, i+1)
         if options.indent == "false" then options.indent = false end
-        table.remove(arg, 2)
-    end,
-    ['--sourcemap'] = function ()
-        options.sourcemap = table.remove(arg, 3)
+        table.remove(arg, i)
+    elseif arg[i] == "--sourcemap" then
+        options.sourcemap = table.remove(arg, i+1)
         if options.sourcemap == "false" then options.sourcemap = false end
-        table.remove(arg, 2)
-    end,
-}
+        table.remove(arg, i)
+    end
+end
+
+if not options.no_searcher then
+    table.insert((package.loaders or package.searchers),
+        fennel.make_searcher({correlate = true}))
+end
 
 if arg[1] == "--repl" or #arg == 0 then
     local ppok, pp = pcall(fennel.dofile, fennel_dir .. "fennelview.fnl", options)
@@ -56,10 +64,6 @@ if arg[1] == "--repl" or #arg == 0 then
     print("Welcome to fennel!")
     fennel.repl(options)
 elseif arg[1] == "--compile" then
-    -- Handle options
-    while compileOptHandlers[arg[2]] do
-        compileOptHandlers[arg[2]]()
-    end
     for i = 2, #arg do
         local f = assert(io.open(arg[i], "rb"))
         options.filename=arg[i]

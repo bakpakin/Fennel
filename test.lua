@@ -172,6 +172,10 @@ local cases = {
         ["(let [[a b & c] [1 2 3 4 5]] (+ a (. c 2) (. c 3)))"]=10,
         -- all vars get flagged as var
         ["(var [a [b c]] [1 [2 3]]) (set a 2) (set c 8) (+ a b c)"]=12,
+        -- fn args
+        ["((fn dest [a [b c] [d]] (+ a b c d)) 5 [9 7] [2])"]=23,
+        -- each
+        ["(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x"]=14,
     },
 
     loops = {

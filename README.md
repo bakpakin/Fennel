@@ -1,17 +1,12 @@
 # Fennel
 
 [Fennel](https://fennel-lang.org) (formerly fnl) is a lisp that compiles to Lua. It aims to be easy to use, expressive, and has almost
-zero overhead compared to handwritten Lua. It's currently a single file Lua library that can
-be dragged into any Lua project.
+zero overhead compared to handwritten Lua.
 
-Current features include:
-
-* Full Lua compatibility - You can use any function from Lua.
-* Zero overhead - Compiled code should be fast, standalone, and just as or more efficient than hand-written Lua.
-* Compile time only macros - Macros exist only at compile time and are not output in the final Lua compilation. In fact,
-  macros are just a special case of special forms.
-* Ability to write custom special forms - Special forms are s-expressions that, when evaulated, directly output Lua code.
-* Fennel is a library as well as a compiler. Embed it in other projects.
+* *Full Lua compatibility* - You can use any function or library from Lua.
+* *Zero overhead* - Compiled code should be just as or more efficient than hand-written Lua.
+* *Compile-time macros* - Ship compiled code with no runtime dependency on Fennel.
+* *Embeddable* - Fennel is a one-file library as well as an executable. Embed it in other programs to support runtime extensibility and interactive development.
 
 ## Documentation
 
@@ -50,6 +45,29 @@ in-browser repl you can use without installing anything.
 Otherwise clone this repository, and run `./fennel --repl` to quickly start a repl.
 
 The repl will load the file `~/.fennelrc` on startup if it exists.
+
+## Differences from Lua
+
+* Syntax is much more regular and predictable (no statements; no operator precedence)
+* It's impossible to set *or read* a global by accident
+* Pervasive destructuring anywhere locals are introduced
+* Clearer syntactic distinction between sequential tables and key/value tables
+* Separate looping constructs for numeric loops vs iterators instead of overloading `for`
+* Opt-in mutability for local variables
+* Opt-in arity checks for `lambda` functions
+* Ability to extend the syntax with your own macros and special forms
+
+## Differences from other lisp languages
+
+* Lua VM can be embedded in other programs with only 180kb
+* Access to [excellent FFI](http://luajit.org/ext_ffi_tutorial.html)
+* LuaJIT consistently ranks at the top of performance shootouts
+* Inherits aggressively simple semantics from Lua; easy to learn
+* Lua VM is already embedded in databases, window managers, games, etc
+* Low memory usage
+* Readable compiler output resembles input
+
+(Obviously not all these apply to every lisp you could compare Fennel to.)
 
 ## Install with Luarocks
 

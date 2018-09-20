@@ -12,7 +12,9 @@ Usage: fennel [FLAG] [FILE]
   --help          :  Display this text
   --no-searcher   :  Skip installing package.searchers entry
 
-  When not given a flag, runs the file given as the first argument.]]
+  When not given a flag, runs the file given as the first argument.
+
+  Loads ~/.fennelrc before launching a repl if it exists.]]
 
 local options = {
     sourcemap = true

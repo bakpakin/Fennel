@@ -288,7 +288,7 @@ fennel.eval([[(eval-compiler
 local macro_cases = {
     -- just a boring old set+fn combo
     ["(require-macros \"test-macros\")\
-      (defn hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,
+      (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,
     -- macros with mangled names
     ["(require-macros \"test-macros\")\
       (->1 9 (+ 2) (* 11))"]=121,

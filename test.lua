@@ -61,6 +61,7 @@ local cases = {
         ["\"abc\\\"def\""]="abc\"def",
         ["\'abc\\\"\'"]="abc\"",
         ["\"abc\\240\""]="abc\240",
+        ["\"abc\n\\240\""]="abc\n\240",
     },
 
     functions = {

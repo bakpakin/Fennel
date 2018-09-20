@@ -295,7 +295,8 @@ local function parser(getbyte, filename)
                 until not b or (state == "done")
                 if not b then parseError('unexpected end of source') end
                 local raw = string.char(unpack(chars))
-                local loadFn = loadCode(('return %s'):format(raw), nil, filename)
+                local formatted = raw:gsub("[\1-\31]", function (c) return '\\' .. c:byte() end)
+                local loadFn = loadCode(('return %s'):format(formatted), nil, filename)
                 dispatch(loadFn())
             else -- Try symbol
                 local chars = {}

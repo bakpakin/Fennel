@@ -42,9 +42,9 @@ For a small complete example that uses the LÖVE game engine, see
 At [https://fennel-lang.org](https://fennel-lang.org) there's a live
 in-browser repl you can use without installing anything.
 
-Otherwise clone this repository, and run `./fennel --repl` to quickly start a repl.
-
-The repl will load the file `~/.fennelrc` on startup if it exists.
+Otherwise clone this repository, and run `./fennel --repl` to quickly
+start a repl. Use `./fennel my-file.fnl` to run code or `./fennel
+--compile my-file.fnl > my-file.lua` to perform ahead-of-time compilation.
 
 ## Differences from Lua
 

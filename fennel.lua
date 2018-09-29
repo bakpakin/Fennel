@@ -1578,9 +1578,8 @@ local function traceback(msg, start)
 end
 
 local function currentGlobalNames(env)
-    env = env or _G
     local names = {}
-    for k in pairs(env) do table.insert(names, k) end
+    for k in pairs(env or _G) do table.insert(names, k) end
     return names
 end
 

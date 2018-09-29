@@ -31,6 +31,10 @@ brackets for arguments.
 (add 32 12) ; -> 44
 ```
 
+Unless you are doing ahead-of-time compilation, Fennel will track all
+known globals and prevent you from refering to unknown globals, which
+prevents a common source of bugs in Lua where typos go undetected.
+
 Functions defined with `fn` are fast; they have no runtime overhead
 compared to Lua. However, they also have no arity checking. (That is,
 calling a function with the wrong number of arguments does not cause

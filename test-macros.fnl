@@ -1,5 +1,4 @@
-;; this module is loaded by the test suite, but these are handy macros to
-;; have around so feel free to steal them for your own projects.
+;; this module is loaded by the test suite.
 {"->1" (fn [val ...]
         (var x val)
         (each [_ elt (ipairs [...])]

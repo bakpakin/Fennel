@@ -325,10 +325,44 @@ sewing. This is similar to the way that `|>` works in OCaml and Elixir.
 
 Requires a module and binds its fields locally as macros.
 
-TODO: document; see Fennel's own test cases for now.
+Macros currently must be defined in separate modules. A macro module
+exports any number of functions which take forms as arguments at
+compile time and emit lists which are fed back into the compiler. For
+instance, here is a macro function which implements `when` in terms of
+`if` and `do`:
+
+```
+(fn [condition body1 ...]
+  (assert body1 "expected body")
+  (list (sym 'if') condition
+        (list (sym 'do') body1 ...)))
+```
+
+It constructs a `list` where the first element is the symbol "if", the
+second element is the condition passed in, and the third element is a
+list with a "do" symbol as its first element and the rest of the body
+inside that list. In effect it turns this input:
+
+```
+(when (= 3 (+ 2 a)) (print "yes"))
+```
+
+into this output:
+
+```
+(if (= 3 (+ 2 a)) (do (print "yes")))
+```
 
 See "Compiler API" below for details about extra functions and tables
-visible inside compiler scope which macros run in.
+visible inside compiler scope which macros run in. Note that lists are
+compile-time concepts that don't typically exist at runtime; they are
+implemented as regular tables which have a special metatable to
+distinguish them from regular tables defined with square or curly
+brackets. Similarly symbols are tables with a string entry for their
+name and a metatable that the compiler uses to distinguish them.
+
+Note that the macro interface is still preliminary and is subject to
+change over time.
 
 ### `eval-compiler`
 

@@ -1107,7 +1107,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
     end
     emit(parent, fChunk, ast)
     emit(parent, 'end', ast)
-    return fnName
+    return expr(fnName, 'sym')
 end
 
 SPECIALS['luaexpr'] = function(ast)

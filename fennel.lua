@@ -1577,9 +1577,9 @@ local function traceback(msg, start)
     return table.concat(lines, '\n')
 end
 
-local function currentGlobalNames()
+local function currentGlobalNames(env)
     local names = {}
-    for k in pairs(_G) do table.insert(names, k) end
+    for k in pairs(env or _G) do table.insert(names, k) end
     return names
 end
 
@@ -1588,7 +1588,7 @@ local function eval(str, options, ...)
     -- eval and dofile are considered "live" entry points, so we can assume
     -- that the globals available at compile time are a reasonable allowed list
     if options.allowedGlobals == nil then
-        options.allowedGlobals = currentGlobalNames()
+        options.allowedGlobals = currentGlobalNames(options.env)
     end
     local luaSource = compileString(str, options)
     local loader = loadCode(luaSource, options.env,
@@ -1599,7 +1599,7 @@ end
 local function dofile_fennel(filename, options, ...)
     options = options or {sourcemap = true}
     if options.allowedGlobals == nil then
-        options.allowedGlobals = currentGlobalNames()
+        options.allowedGlobals = currentGlobalNames(options.env)
     end
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all")
@@ -1615,7 +1615,7 @@ local function repl(options)
     -- This would get set for us when calling eval, but we want to seed it
     -- with a value that is persistent so it doesn't get reset on each eval.
     if opts.allowedGlobals == nil then
-        options.allowedGlobals = currentGlobalNames()
+        options.allowedGlobals = currentGlobalNames(opts.env)
     end
 
     local env = opts.env or setmetatable({}, {

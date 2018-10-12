@@ -1602,7 +1602,7 @@ local function dofile_fennel(filename, options, ...)
         options.allowedGlobals = currentGlobalNames(options.env)
     end
     local f = assert(io.open(filename, "rb"))
-    local source = f:read("*all")
+    local source = f:read("*all"):gsub("^#![^\n]*\n", "")
     f:close()
     options.filename = options.filename or filename
     return eval(source, options, ...)

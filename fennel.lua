@@ -1805,7 +1805,7 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
                                            modname .. " not found.", ast)
             local env = makeCompilerEnv(ast, scope, parent)
             mod = dofile_fennel(filename, {env=env,
-                                           allowedGlobals=macroGlobals(env)})
+                                           allowedGlobals=false})
             macroLoaded[modname] = mod
         end
         for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. modname ..

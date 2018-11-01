@@ -1772,6 +1772,7 @@ local function makeCompilerEnv(ast, scope, parent)
         -- via fennel.myfun, for example (fennel.eval "(print 1)").
         list = list,
         sym = sym,
+        unpack = unpack,
         [globalMangling("list?")] = isList,
         [globalMangling("multi-sym?")] = isMultiSym,
         [globalMangling("sym?")] = isSym,
@@ -1780,18 +1781,18 @@ local function makeCompilerEnv(ast, scope, parent)
     }, { __index = _ENV or _G })
 end
 
-local function macroGlobals(env)
-    if allowedGlobals then
-        local allowed = {}
-        for k in pairs(env) do
-            local g = globalUnmangling(k)
-            table.insert(allowed, g)
-        end
-        for _,k in pairs(allowedGlobals) do
+local function macroGlobals(env, globals)
+    local allowed = {}
+    for k in pairs(env) do
+        local g = globalUnmangling(k)
+        table.insert(allowed, g)
+    end
+    if globals then
+        for _, k in pairs(globals) do
             table.insert(allowed, k)
         end
-        return allowed
     end
+    return allowed
 end
 
 SPECIALS['require-macros'] = function(ast, scope, parent)
@@ -1804,8 +1805,10 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
             local filename = assertCompile(searchModule(modname),
                                            modname .. " not found.", ast)
             local env = makeCompilerEnv(ast, scope, parent)
-            mod = dofile_fennel(filename, {env=env,
-                                           allowedGlobals=macroGlobals(env)})
+            mod = dofile_fennel(filename, {
+                env = env,
+                allowedGlobals = macroGlobals(env, currentGlobalNames())
+            })
             macroLoaded[modname] = mod
         end
         for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. modname ..
@@ -1866,14 +1869,17 @@ local stdmacros = [===[
                                           :format (tostring a)
                                           (or a.filename "unknown")
                                           (or a.line "?"))))))
-             (list (sym "fn") ((or unpack table.unpack) args))))
+             (list (sym "fn") (unpack args))))
 }
 ]===]
-for name, fn in pairs(eval(stdmacros, {
-    env = makeCompilerEnv(nil, GLOBAL_SCOPE, {}),
-    allowedGlobals = false,
-})) do
-    SPECIALS[name] = macroToSpecial(fn)
+do
+    local env = makeCompilerEnv(nil, GLOBAL_SCOPE, {})
+    for name, fn in pairs(eval(stdmacros, {
+        env = env,
+        allowedGlobals = macroGlobals(env, currentGlobalNames()),
+    })) do
+        SPECIALS[name] = macroToSpecial(fn)
+    end
 end
 SPECIALS['λ'] = SPECIALS['lambda']
 

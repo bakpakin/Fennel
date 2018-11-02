@@ -97,10 +97,14 @@ and `/` work here in prefix form. Note that numbers are
 double-precision floats in all Lua versions prior to 5.3, which optionally
 introduced integers. On 5.3 and up, integer division uses `//`.
 
+You may also use underscores to separate sections of long numbers. The
+underscores have no effect on the output.
+
 ```lisp
 (let [x (+ 1 99)
-      y (- x 12)]
-  (/ y 10))
+      y (- x 12)
+      z 100_000]
+  (+ z (/ y 10)))
 ```
 
 Strings are essentially immutable byte arrays. UTF-8 support is

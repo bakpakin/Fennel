@@ -1495,17 +1495,20 @@ end
 
 local function compile(ast, options)
     options = options or {}
+    local oldGlobals = allowedGlobals
     allowedGlobals = options.allowedGlobals
     if options.indent == nil then options.indent = '  ' end
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
+    allowedGlobals = oldGlobals
     return flatten(chunk, options)
 end
 
 local function compileStream(strm, options)
     options = options or {}
+    local oldGlobals = allowedGlobals
     allowedGlobals = options.allowedGlobals
     if options.indent == nil then options.indent = '  ' end
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
@@ -1521,6 +1524,7 @@ local function compileStream(strm, options)
         })
         keepSideEffects(exprs, chunk, nil, vals[i])
     end
+    allowedGlobals = oldGlobals
     return flatten(chunk, options)
 end
 

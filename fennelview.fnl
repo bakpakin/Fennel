@@ -146,7 +146,7 @@
                        (= tv "table")
                        (put-table self v)
                        :else
-                       (puts self "#<" tv " " (get-id self v) ">")))))
+                       (puts self "#<" (tostring v) ">")))))
 
 
 

@@ -317,14 +317,14 @@ local function parser(getbyte, filename)
 		    local numberWithStrippedUnderscores = rawstr:gsub("_", "")
                     local x
                     if forceNumber then
-                        x = tonumber(numberWithStrippedUnderscores) or parseError('could not read token "' .. rawstr .. '"')
+                        x = tonumber(numberWithStrippedUnderscores) or
+                            parseError('could not read token "' .. rawstr .. '"')
                     else
-                        x = tonumber(numberWithStrippedUnderscores) or sym(rawstr, nil, {
-                            line = line,
-                            filename = filename,
-                            bytestart = bytestart,
-                            byteend = byteindex
-                        })
+                        x = tonumber(numberWithStrippedUnderscores) or
+                            sym(rawstr, nil, { line = line,
+                                               filename = filename,
+                                               bytestart = bytestart,
+                                               byteend = byteindex, })
                     end
                     dispatch(x)
                 end

@@ -62,7 +62,7 @@ local cases = {
         ["\'abc\\\"\'"]="abc\"",
         ["\"abc\\240\""]="abc\240",
         ["\"abc\n\\240\""]="abc\n\240",
-	["150_000"]=150000,
+        ["150_000"]=150000,
     },
 
     functions = {
@@ -128,6 +128,8 @@ local cases = {
         ["(let [t [[21]]] (+ (. (. t 1) 1) (. t 1 1)))"]=42,
         -- table lookup base case
         ["(let [x 17] (. 17))"]=17,
+        -- table lookup with literal
+        ["(+ (. {:a 93 :b 4} :a) (. [1 2 3] 2))"]=95,
         -- set works with multisyms
         ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
         -- set works on parent scopes

@@ -1137,7 +1137,12 @@ SPECIALS['.'] = function(ast, scope, parent)
                 table.insert(indices, '[' .. tostring(index) .. ']')
             end
         end
-        return tostring(lhs[1]) .. table.concat(indices)
+        -- extra parens are needed for table literals
+        if isTable(ast[2]) then
+            return '(' .. tostring(lhs[1]) .. ')' .. table.concat(indices)
+        else
+            return tostring(lhs[1]) .. table.concat(indices)
+        end
     end
 end
 

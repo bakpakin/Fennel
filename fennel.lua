@@ -1783,6 +1783,7 @@ local function makeCompilerEnv(ast, scope, parent)
         list = list,
         sym = sym,
         unpack = unpack,
+        gensym = function() return sym(gensym(scope)) end,
         [globalMangling("list?")] = isList,
         [globalMangling("multi-sym?")] = isMultiSym,
         [globalMangling("sym?")] = isSym,
@@ -1852,6 +1853,14 @@ local stdmacros = [===[
            (table.insert elt x)
            (set x elt))
          x)
+ :doto (fn [val ...]
+         (let [name (gensym)
+               form (list (sym :let) [name val])]
+           (each [_ elt (pairs [...])]
+             (table.insert elt 2 name)
+             (table.insert form elt))
+           (table.insert form name)
+           form))
  :defn (fn [name args ...]
          (assert (sym? name) "defn: function names must be symbols")
          (list (sym :fn) name args ...))

@@ -289,6 +289,8 @@ fennel.eval([[(eval-compiler
 )]])
 
 local macro_cases = {
+    -- built-in macros
+    ["(let [x [1]] (doto x (table.insert 2) (table.insert 3)) (table.concat x))"]="123",
     -- just a boring old set+fn combo
     ["(require-macros \"test-macros\")\
       (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,

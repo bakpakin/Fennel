@@ -321,6 +321,28 @@ Note that these have nothing to do with "threads" used for
 concurrency; they are named after the thread which is used in
 sewing. This is similar to the way that `|>` works in OCaml and Elixir.
 
+### `doto`
+
+Similarly, the `doto` macro splices the first value into subsequent
+forms. However, it keeps the same value and continually splices the
+same thing in rather than using the value from the previous form for
+the next form.
+
+```
+(doto (io.open "/tmp/err.log)
+  (: :write contents)
+  (: :close))
+
+;; equivalent to:
+(let [x (io.open "/tmp/err.log")]
+  (: x :write contents)
+  (: x :close)
+  x)
+```
+
+The first form becomes the return value for the whole expression, and
+subsequent forms are evaluated solely for side-effects.
+
 ### `require-macros`
 
 Requires a module and binds its fields locally as macros.

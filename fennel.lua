@@ -1085,10 +1085,14 @@ SPECIALS['fn'] = function(ast, scope, parent)
             assertCompile(i == #argList, "expected vararg in last parameter position", ast)
             argNameList[i] = '...'
             fScope.vararg = true
-        elseif isSym(argList[i])
-            and argList[i][1] ~= "nil"
-            and not isMultiSym(argList[i][1]) then
+        elseif(isSym(argList[i]) and argList[i][1] ~= "nil"
+               and not isMultiSym(argList[i][1])) then
             argNameList[i] = declareLocal(argList[i], {}, fScope, ast)
+        elseif isTable(argList[i]) then
+            local raw = sym(gensym(scope))
+            argNameList[i] = declareLocal(raw, {}, fScope, ast)
+            destructure(argList[i], raw, ast, fScope, fChunk,
+                        { declaration = true, nomulti = true })
         else
             assertCompile(false, 'expected symbol for function parameter', ast)
         end
@@ -1309,14 +1313,26 @@ SPECIALS['each'] = function(ast, scope, parent)
     local binding = assertCompile(isTable(ast[2]), 'expected binding table', ast)
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local bindVars = {}
+    local destructures = {}
     for _, v in ipairs(binding) do
-        assertCompile(isSym(v), 'expected iterator symbol', ast)
-        table.insert(bindVars, declareLocal(v, {}, scope, ast))
+        assertCompile(isSym(v) or isTable(v),
+                      'expected iterator symbol or table', ast)
+        if(isSym(v)) then
+            table.insert(bindVars, declareLocal(v, {}, scope, ast))
+        else
+            local raw = sym(gensym(scope))
+            destructures[raw] = v
+            table.insert(bindVars, declareLocal(raw, {}, scope, ast))
+        end
     end
     emit(parent, ('for %s in %s do'):format(
              table.concat(bindVars, ', '),
              tostring(compile1(iter, scope, parent, {nval = 1})[1])), ast)
     local chunk = {}
+    for raw, args in pairs(destructures) do
+        destructure(args, raw, ast, scope, chunk,
+                    { declaration = true, nomulti = true })
+    end
     compileDo(ast, scope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)

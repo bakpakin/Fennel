@@ -69,7 +69,7 @@ if arg[1] == "--repl" or #arg == 0 then
     fennel.repl(options)
 elseif arg[1] == "--compile" then
     for i = 2, #arg do
-        local f = assert(io.open(arg[i], "rb"))
+        local f = arg[i] == "-" and io.stdin or assert(io.open(arg[i], "rb"))
         options.filename=arg[i]
         local ok, val = xpcall(function()
             return fennel.compileString(f:read("*all"), options)

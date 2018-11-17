@@ -2,6 +2,7 @@
 
 ## 0.1.0 / ??
 
+* Remove `defn` macro as it is redundant.
 * Add `doto` macro
 * Support newlines in strings
 * Prevent typos from accidentally referring to unknown globals

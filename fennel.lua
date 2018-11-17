@@ -1877,9 +1877,6 @@ local stdmacros = [===[
              (table.insert form elt))
            (table.insert form name)
            form))
- :defn (fn [name args ...]
-         (assert (sym? name) "defn: function names must be symbols")
-         (list (sym :fn) name args ...))
  :when (fn [condition body1 ...]
          (assert body1 "expected body")
          (list (sym 'if') condition

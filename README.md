@@ -20,6 +20,9 @@ zero overhead compared to handwritten Lua.
 For a small complete example that uses the LÖVE game engine, see
 [pong.fnl](https://p.hagelb.org/pong.fnl.html).
 
+The [changelog](changelog.md) has a list of user-visible changes for
+each release.
+
 ## Example
 
 #### Hello World

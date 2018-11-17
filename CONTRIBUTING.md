@@ -31,7 +31,10 @@ on the IRC channel first before sinkning timing into something we may not merge.
 * Be consistent with the style of the project. If you are making changes to fennel.lua, run `make ci` or
   luacheck on the source code to check for style. Please try to code moderately tersely;
   code is a liability, so the less of it there is, the better.
-  
+* For user-visible changes, include a description of the change in `changelog.md`.
+
+If all goes well, we should merge your changes fairly quickly.
+
 ## Suggesting Changes
 
 To suggest changes, open an issue on github. You can also go to the IRC channel and ask questions
@@ -41,5 +44,4 @@ for your changes before opening an issue.
 * Include a good description of the problem that is being solved
 * Include descriptions of potential solutions if you have some in mind.
 * Add the appropriate tags to the issue. For new features, add the `enhancement` tag.
-  
-If all goes well, we should merge your changes fairly quickly.
+

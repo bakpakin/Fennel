@@ -1613,7 +1613,11 @@ local function eval(str, options, ...)
     options = options or {}
     -- eval and dofile are considered "live" entry points, so we can assume
     -- that the globals available at compile time are a reasonable allowed list
-    if options.allowedGlobals == nil then
+    -- UNLESS there's a metatable on env, in which case we can't assume that
+    -- pairs will return all the effective globals; for instance openresty
+    -- sets up _G in such a way that all the globals are available thru
+    -- the __index meta method, but as far as pairs is concerned it's empty.
+    if options.allowedGlobals == nil and not getmetatable(options.env) then
         options.allowedGlobals = currentGlobalNames(options.env)
     end
     local luaSource = compileString(str, options)

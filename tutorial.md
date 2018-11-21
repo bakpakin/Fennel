@@ -46,7 +46,11 @@ an error.) For safer code you can use `lambda`:
 (print-calculation 5) ; -> error: Missing argument z
 ```
 
-Note that the second argument `?y` is allowed to be omitted, but `z` is not.
+Note that the second argument `?y` is allowed to be `nil`, but `z` is not:
+
+```lisp
+(print-calculation 5 nil 3) ; -> 2
+```
 
 Locals are introduced using `let` with the names and values wrapped in
 a single set of square brackets:

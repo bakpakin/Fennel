@@ -1694,6 +1694,17 @@ local function repl(options)
         return c
     end)
 
+    local saveLocals = opts.saveLocals ~= false
+    local replLocals = {}
+    local saveSource = table.
+       concat({"local ___i___ = 1",
+               "while true do",
+               " local name, value = debug.getlocal(1, ___i___)",
+               " if(name and name ~= \"___i___\") then",
+               " ___replLocals___[name] = value",
+               " ___i___ = ___i___ + 1",
+               " else break end end"}, "\n")
+
     -- REPL loop
     while true do
         chars = {}
@@ -1712,6 +1723,17 @@ local function repl(options)
                 clearstream()
                 onError('Compile', luaSource) -- luaSource is error message in this case
             else
+                if saveLocals then
+                    local splicedSource = {}
+                    for line in luaSource:gmatch("([^\n]+)\n?") do
+                        table.insert(splicedSource, line)
+                    end
+                    if(#splicedSource > 1) then
+                        table.insert(splicedSource, #splicedSource, saveSource)
+                    end
+                    luaSource = table.concat(splicedSource, "\n")
+                    env.___replLocals___ = replLocals
+                end
                 local luacompileok, loader = pcall(loadCode, luaSource, env)
                 if not luacompileok then
                     clearstream()
@@ -1726,6 +1748,11 @@ local function repl(options)
                         env.__ = ret
                         for i = 1, #ret do ret[i] = pp(ret[i]) end
                         onValues(ret)
+                        if saveLocals then
+                            for name, value in pairs(replLocals) do
+                                env[name] = value
+                            end
+                        end
                     end
                 end
             end

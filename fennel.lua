@@ -1695,7 +1695,6 @@ local function repl(options)
     end)
 
     local saveLocals = opts.saveLocals ~= false
-    local replLocals = {}
     local saveSource = table.
        concat({"local ___i___ = 1",
                "while true do",
@@ -1704,6 +1703,27 @@ local function repl(options)
                " ___replLocals___[name] = value",
                " ___i___ = ___i___ + 1",
                " else break end end"}, "\n")
+
+    local spliceSaveLocals = function(luaSource)
+        -- we do some source munging in order to save off locals from each chunk
+        -- and reintroduce them to the beginning of the next chunk, allowing
+        -- locals to work in the repl the way you'd expect them to.
+        env.___replLocals___ = env.___replLocals___ or {}
+        local splicedSource = {}
+        for line in luaSource:gmatch("([^\n]+)\n?") do
+            table.insert(splicedSource, line)
+        end
+        -- reintroduce locals from the previous time around
+        local bind = "local %s = ___replLocals___['%s']"
+        for name in pairs(env.___replLocals___) do
+            table.insert(splicedSource, 1, bind:format(name, name))
+        end
+        -- save off new locals at the end
+        if(#splicedSource > 1) then
+            table.insert(splicedSource, #splicedSource, saveSource)
+        end
+        return table.concat(splicedSource, "\n")
+    end
 
     -- REPL loop
     while true do
@@ -1724,19 +1744,7 @@ local function repl(options)
                 onError('Compile', luaSource) -- luaSource is error message in this case
             else
                 if saveLocals then
-                    local splicedSource = {}
-                    for line in luaSource:gmatch("([^\n]+)\n?") do
-                        table.insert(splicedSource, line)
-                    end
-                    if(#splicedSource > 1) then
-                        table.insert(splicedSource, #splicedSource, saveSource)
-                    end
-                    local bind = "local %s = ___replLocals___['%s']"
-                    for name in pairs(replLocals) do
-                        table.insert(splicedSource, 1, bind:format(name, name))
-                    end
-                    luaSource = table.concat(splicedSource, "\n")
-                    env.___replLocals___ = replLocals
+                    luaSource = spliceSaveLocals(luaSource)
                 end
                 local luacompileok, loader = pcall(loadCode, luaSource, env)
                 if not luacompileok then

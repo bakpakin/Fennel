@@ -1731,6 +1731,10 @@ local function repl(options)
                     if(#splicedSource > 1) then
                         table.insert(splicedSource, #splicedSource, saveSource)
                     end
+                    local bind = "local %s = ___replLocals___['%s']"
+                    for name in pairs(replLocals) do
+                        table.insert(splicedSource, 1, bind:format(name, name))
+                    end
                     luaSource = table.concat(splicedSource, "\n")
                     env.___replLocals___ = replLocals
                 end
@@ -1748,11 +1752,6 @@ local function repl(options)
                         env.__ = ret
                         for i = 1, #ret do ret[i] = pp(ret[i]) end
                         onValues(ret)
-                        if saveLocals then
-                            for name, value in pairs(replLocals) do
-                                env[name] = value
-                            end
-                        end
                     end
                 end
             end

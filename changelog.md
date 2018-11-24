@@ -2,7 +2,9 @@
 
 ## 0.1.0 / ??
 
-* Remove `defn` macro as it is redundant.
+* Save locals in between chunks in the repl
+* Allow destructuring in more places
+* Remove redundant `defn` macro
 * Add `doto` macro
 * Support newlines in strings
 * Prevent typos from accidentally referring to unknown globals

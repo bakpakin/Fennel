@@ -354,8 +354,6 @@ local compile_failures = {
     ["()"]="expected a function to call",
     ["(789)"]="789.*cannot call literal value",
     ["(fn [] [...])"]="unexpected vararg",
-    -- compiler environment
-    ["(defn [:foo] [] nil)"]="defn.*function names must be symbols",
     -- line numbers
     ["(set)"]="Compile error in 'set' unknown:1: expected name and value",
     ["(let [b 9\nq (.)] q)"]="2: expected table argument",

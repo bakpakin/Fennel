@@ -44,6 +44,19 @@ greater than the argument it is passed.
 
 ## Binding
 
+### multiple value binding
+In any of the following contexts where you can make a new binding, you
+can use multiple value binding. Otherwise you will only capture the first
+value.
+
+Example: `(let [x (values 1 2 3)] x)` => 1
+
+Example: `(let [(x y z) (values 1 2 3)] z)` => 3
+
+Example: `(global (x y z) (values 1 2 3)), z` => 3
+
+Example: `(do (local (_ _ z) (unpack [:a :b :c :d :e])), z)` => c
+
 ### `let` scoped locals
 
 Introduces a new scope in which a given set of local bindings are used.

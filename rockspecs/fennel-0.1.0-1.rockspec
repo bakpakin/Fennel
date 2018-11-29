@@ -1,8 +1,8 @@
 package = "fennel"
-version = "0.1.0"
+version = "0.1.0-1"
 source = {
     url = "git://github.com/bakpakin/Fennel",
-    tag = version
+    tag = "0.1.0"
 }
 description = {
    summary = "Lisp that compiles to Lua",

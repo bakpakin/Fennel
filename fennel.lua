@@ -1725,6 +1725,8 @@ local function repl(options)
         return table.concat(splicedSource, "\n")
     end
 
+    local scope = makeScope(GLOBAL_SCOPE)
+
     -- REPL loop
     while true do
         chars = {}
@@ -1737,7 +1739,8 @@ local function repl(options)
             if not parseok then break end -- eof
             local compileOk, luaSource = pcall(compile, x, {
                 sourcemap = opts.sourcemap,
-                source = srcstring
+                source = srcstring,
+                scope = scope,
             })
             if not compileOk then
                 clearstream()

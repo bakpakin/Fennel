@@ -1694,7 +1694,9 @@ local function repl(options)
         return c
     end)
 
-    local saveLocals = opts.saveLocals ~= false
+    local envdbg = (opts.env or _G)["debug"]
+    -- if the environment doesn't support debug.getlocal you can't save locals
+    local saveLocals = opts.saveLocals ~= false and envdbg and envdbg.getlocal
     local saveSource = table.
        concat({"local ___i___ = 1",
                "while true do",

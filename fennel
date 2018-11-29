@@ -27,7 +27,7 @@ local function dosafe(filename, opts, args)
         return fennel.dofile(filename, opts, unpack(args))
     end, fennel.traceback)
     if not ok then
-        print(val)
+        io.stderr.write(val .. "\n")
         os.exit(1)
     end
     return val
@@ -74,8 +74,12 @@ elseif arg[1] == "--compile" then
         local ok, val = xpcall(function()
             return fennel.compileString(f:read("*all"), options)
         end, fennel.traceback)
-        print(val)
-        if not ok then os.exit(1) end
+        if ok then
+            print(val)
+        else
+            io.stderr:write(val .. "\n")
+            os.exit(1)
+        end
         f:close()
     end
 elseif #arg >= 1 and arg[1] ~= "--help" then

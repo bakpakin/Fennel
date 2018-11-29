@@ -96,6 +96,7 @@ When given a file without a flag, it will simply load and run the file.
 
 ## Resources
 
+* [Mailing list](https://lists.sr.ht/%7Etechnomancy/fennel)
 * [Emacs support](https://gitlab.com/technomancy/fennel-mode)
 * [Wiki](https://github.com/bakpakin/Fennel/wiki)
 * Build: [![CircleCI](https://circleci.com/gh/bakpakin/Fennel.svg?style=svg)](https://circleci.com/gh/bakpakin/Fennel)

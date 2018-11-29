@@ -1,5 +1,5 @@
 package = "fennel"
-version = "0.1.0-1"
+version = "0.1.0-2"
 source = {
     url = "git://github.com/bakpakin/Fennel",
     tag = "0.1.0"
@@ -18,8 +18,7 @@ dependencies = {
 build = {
    type = "builtin",
    modules = {
-       fennel = "fennel.lua",
-       fennelview = "fennelview.fnl",
+       fennel = "fennel.lua"
    },
    install = {
        bin = {

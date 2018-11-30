@@ -458,12 +458,24 @@ add an entry to Lua's `package.searchers` (`package.loaders` in Lua 5.1)
 to support it:
 
 ```lua
+local fennel = require "fennel"
 table.insert(package.loaders or package.searchers, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
-Fennel has its own search path; `fennel.path` acts the same as
-`package.path` but only for requiring Fennel modules.
+Or if you're doing it from Fennel code:
+
+```lisp
+(local fennel (require :fennel))
+(table.insert (or package.loaders package.searchers) fennel.searcher)
+```
+
+Once you add this, `require` will work on Fennel files just like it
+does with Lua; for instance `(require :mylib.parser)` will look in
+"mylib/parser.fnl" on Fennel's search path (stored in `fennel.path`
+which is distinct from `package.path` used to find Lua modules). The
+path usually includes an entry to let you load things relative to the
+current directory by default.
 
 ## Embedding
 

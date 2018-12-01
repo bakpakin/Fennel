@@ -2,6 +2,7 @@
 
 ## ???
 
+* Fix bug in the repl where locals-saving would fail for certain input
 * Fix launcher to write errors to stderr, not stdout
 
 ## 0.1.0 / 2018-11-29

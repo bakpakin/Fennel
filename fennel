@@ -8,10 +8,16 @@ local unpack = unpack or table.unpack
 local help = [[
 Usage: fennel [FLAG] [FILE]
 
+Run fennel, a lisp programming language for the Lua runtime.
+
   --repl          :  Launch an interactive repl session
   --compile FILES :  Compile files and write their Lua to stdout
+
+  --no-searcher   :  Skip installing package.searchers entry when running code
+  --indent VAL    :  Indent compiler output with VAL
+
   --help          :  Display this text
-  --no-searcher   :  Skip installing package.searchers entry
+  --version       :  Show version
 
   When not given a flag, runs the file given as the first argument.
   When given neither flag nor file, launches a repl.
@@ -82,6 +88,8 @@ elseif arg[1] == "--compile" then
         end
         f:close()
     end
+elseif arg[1] == "--version" then
+    print("Fennel " .. fennel.version)
 elseif #arg >= 1 and arg[1] ~= "--help" then
     local filename = table.remove(arg, 1) -- let the script have remaining args
     dosafe(filename, nil, arg)

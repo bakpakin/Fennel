@@ -1796,7 +1796,8 @@ local module = {
     dofile = dofile_fennel,
     macroLoaded = macroLoaded,
     path = "./?.fnl;./?/init.fnl",
-    traceback = traceback
+    traceback = traceback,
+    version = "0.1.1-dev",
 }
 
 local function searchModule(modulename)

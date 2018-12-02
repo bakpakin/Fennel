@@ -13,7 +13,7 @@ know where in the manual to look for further details, not to teach Lua.
 * `type`: returns a string describing the type of its argument
 * `pcall`: calls a function in protected mode so errors are not fatal
 * `error`: halts execution and break to the nearest `pcall`
-* `assert`: raises an error if a condition is nil or false
+* `assert`: raises an error if a condition is nil/false, otherwise returns it
 * `ipairs`: iterates over sequential tables
 * `pairs`: iterates over any table, sequential or not, in undefined order
 * `unpack`: turns a sequential table into multiple values

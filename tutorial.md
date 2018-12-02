@@ -1,13 +1,5 @@
 # Getting Started with Fennel
 
-If you know Lua and a lisp already, you'll feel right at home in
-Fennel. Even if not, Lua is one of the simplest programming languages
-in existence, so if you've programmed before you should be able to
-pick it up without too much trouble, especially if you've used another
-dynamic imperative language with closures. The
-[Lua reference manual](https://www.lua.org/manual/5.1/) is a fine place to
-look for details.
-
 A programming language is made up of **syntax** and **semantics**. The
 semantics of Fennel vary only in small ways from Lua (all noted
 below). The syntax of Fennel comes from the lisp family of
@@ -17,23 +9,30 @@ which makes it easier to
 as well as
 [structured editing](http://danmidwood.com/content/2014/11/21/animated-paredit.html).
 
+If you know Lua and a lisp already, you'll feel right at home in
+Fennel. Even if not, Lua is one of the simplest programming languages
+in existence, so if you've programmed before you should be able to
+pick it up without too much trouble, especially if you've used another
+dynamic imperative language with closures. The
+[Lua reference manual](https://www.lua.org/manual/5.1/) is a fine place to
+look for details.
+
 ## OK, so how do you do things?
 
-Globals are set with `global`. Good code doesn't use too many of
-these, but they can be nice for debugging and are needed in the repl, so
-we'll start there. Note that unlike most forms, with `global` there is
-no distinction between creating a new global and giving an existing
-global a new value. Functions are created with `fn`, using square
-brackets for arguments.
+Use `fn` to make functions. If you provide an optional name, the
+function will be bound to that name in local scope; otherwise it is
+simply a value. The argument list is provided in square brackets. The
+final value is returned.
+
+(If you've never used a lisp before, the main thing to note is that
+the function or macro being called goes *inside* the parens, not
+outside.)
 
 ```lisp
-(global add (fn [x y] (+ x y)))
-(add 32 12) ; -> 44
+(fn print-and-add [a b c]
+  (print a)
+  (+ b c))
 ```
-
-Unless you are doing ahead-of-time compilation, Fennel will track all
-known globals and prevent you from refering to unknown globals, which
-prevents a common source of bugs in Lua where typos go undetected.
 
 Functions defined with `fn` are fast; they have no runtime overhead
 compared to Lua. However, they also have no arity checking. (That is,
@@ -41,8 +40,7 @@ calling a function with the wrong number of arguments does not cause
 an error.) For safer code you can use `lambda`:
 
 ```lisp
-(global print-calculation
-        (lambda [x ?y z] (print (- x (* (or ?y 1) z)))))
+(lambda print-calculation [x ?y z] (print (- x (* (or ?y 1) z))))
 (print-calculation 5) ; -> error: Missing argument z
 ```
 
@@ -63,7 +61,7 @@ a single set of square brackets:
 
 Here `x` is bound to the result of adding 89 and 5.2, while `f` is
 bound to a function that prints twice its argument. These bindings are
-only valid for the body of the `let` call.
+only valid inside the body of the `let` call.
 
 You can also introduce locals with `local`, which is nice when they'll
 be used across the whole file, but in general `let` is preferred because
@@ -86,7 +84,7 @@ introduce new locals that shadow the outer names:
 
 If you need to change the value of a local, you can use `var` which
 works like `local` except it allows `set` to work on it. There is no
-nested equivalent of `var`.
+nested `let`-like equivalent of `var`.
 
 ```lisp
 (var x 19)
@@ -191,7 +189,15 @@ property of the table but depends on which iterator is used with it.
 You can call `ipairs` on any table, and it will only iterate
 over numeric keys starting with 1 until it hits a `nil`.
 
-You can use any Lua iterator with `each`, but these are by far the most common.
+You can use any [Lua iterator](https://www.lua.org/pil/7.1.html) with
+`each`, but these are the most common. Here's an example that walks
+through [matches in a string](https://www.lua.org/manual/5.1/manual.html#pdf-string.gmatch):
+
+```lisp
+(var sum 0)
+(each [digits (string.gmatch "244 127 163" "%d+")]
+  (set sum (+ sum (tonumber digits))))
+```
 
 The other iteration construct is `for` which iterates numerically from
 the provided start value to the inclusive finish value:
@@ -229,7 +235,7 @@ expression. Lua programmers will be glad to know there is no need to
 construct precarious chains of `and`/`or` just to get a value!
 
 The other conditional is `when`, which is used for an arbitrary number
-of side-effects, has no else clause, and always returns `nil`:
+of side-effects and has no else clause:
 
 ```lisp
 (when (currently-raining?)
@@ -273,6 +279,8 @@ Finally, `let` can destructure a sequential table into multiple locals:
   (print x))
 ```
 
+If the size of the table doesn't match the number of binding locals,
+missing values are filled with `nil` and extra values are discarded.
 Note that unlike many languages, `nil` in Lua actually represents the
 absence of a value, and thus tables cannot contain `nil`. It is an
 error to try to use `nil` as a key, and using `nil` as a value removes
@@ -299,11 +307,10 @@ by destructuring with parens instead of square brackets:
 You can write your own function which returns multiple values with `values`:
 
 ```lisp
-(global use-file
-        (fn [filename]
-          (if (valid-file-name? filename)
-              (open-file filename)
-              (values nil (.. "Invalid filename: " filename)))))
+(fn use-file [filename]
+  (if (valid-file-name? filename)
+      (open-file filename)
+      (values nil (.. "Invalid filename: " filename))))
 ```
 
 If you detect a serious error that needs to be signaled beyond just
@@ -382,13 +389,33 @@ as the varargs in the inner function are out of scope.
   (print ...)))
 ```
 
+## Globals
+
+Globals are set with `global`. Good code doesn't use too many of
+these, but they can be nice for debugging in some contexts. Note that
+unlike most forms, with `global` there is no distinction between
+creating a new global and giving an existing global a new
+value. Functions are created with `fn`, using square brackets for
+arguments.
+
+```lisp
+(global add (fn [x y] (+ x y)))
+(add 32 12) ; -> 44
+```
+
+Unless you are doing ahead-of-time compilation, Fennel will track all
+known globals and prevent you from refering to unknown globals, which
+prevents a common source of bugs in Lua where typos go undetected.
+
 ## Gotchas
 
 There are a few surprises that might bite seasoned lispers. Most of
 these result necessarily from Fennel's insistence upon imposing zero
 runtime overhead over Lua.
 
-* The arithmetic and comparison operators are not first-class functions.
+* The arithmetic and comparison operators are not first-class functions
+  They can behave in surprising ways with multiple-return-valued functions,
+  because the number of arguments to them must be known at compile-time.
 
 * There is no `apply` function; use `unpack` (or `table.unpack`
   depending on your Lua version) instead: `(f 1 3 (unpack [4 9])`.
@@ -400,19 +427,13 @@ runtime overhead over Lua.
   calling `(print tbl)` will emit output like `table: 0x55a3a8749ef0`.
   If you don't already have one, it's recommended for debugging to
   define a printer function which calls `fennelview` on its argument
-  before printing it: `(local view (fennel.dofile "fennelview.fnl"))
+  before printing it: `(local view (require :fennelview))
   (global pp (fn [x] (print (view x))))`
 
 * Lua's standard library is quite small, and so common functions like
   `map`, `reduce`, and `filter` are absent. It's recommended to pull
   in something like [Lume](https://github.com/rxi/lume) or
   [luafun](https://luafun.github.io/) for those.
-
-* Locals are per-chunk. Normally this means per-file, but you can also
-  create chunks with `fennel.eval` or Lua's `loadstring`, etc. One
-  common source of confusion is that in repl sessions, each input is
-  its own chunk, which makes `local` basically useless. For values to
-  persist in a repl session beyond one entry they need to be `global`.
 
 * Lua programmers should note Fennel functions cannot do early returns.
 
@@ -447,11 +468,11 @@ The last value in a Fennel file will be used as the value of the
 module. This is typically a table containing functions, though it
 can be any value, like a function.
 
-Modules are looked up by looking thru all the directories on `package.path`
-which usually contains the current directory. To require a module that's
-in a subdirectory, take the file name, replace the slashes with dots, and
-remove the extension, then pass that to `require`. For instance, a file
-called `lib/ui/menu.lua` would be read when loading the module `lib.ui.menu`.
+By default, modules are looked up by looking thru all the directories on
+`package.path`. To require a module that's in a subdirectory, take the file
+name, replace the slashes with dots, and remove the extension, then pass
+that to `require`. For instance, a file called `lib/ui/menu.lua` would be
+read when loading the module `lib.ui.menu`.
 
 Out of the box `require` doesn't work with Fennel files, but you can
 add an entry to Lua's `package.searchers` (`package.loaders` in Lua 5.1)
@@ -468,6 +489,7 @@ Or if you're doing it from Fennel code:
 ```lisp
 (local fennel (require :fennel))
 (table.insert (or package.loaders package.searchers) fennel.searcher)
+(local mylib (require :mylib))
 ```
 
 Once you add this, `require` will work on Fennel files just like it
@@ -493,8 +515,8 @@ Here is an example of embedding the Fennel compiler inside a
 ```lua
 local fennel = require("fennel")
 local f = io.open("mycode.fnl", "rb")
-;; mycode.fnl ends in a line like this:
-;; {:draw (fn [] ...) :update (fn [dt] ...)}
+-- mycode.fnl ends in a line like this:
+-- {:draw (fn [] ...) :update (fn [dt] ...)}
 local mycode = fennel.dofile("mycode.fnl")
 f:close()
 
@@ -520,8 +542,8 @@ end
 
 ```
 
-You can add `fennel.lua` as a single file to your project, but if you
-also add `fennelview.fnl` then when you use a Fennel repl you'll get
-results rendered much more nicely. You can use the function returned
-by `fennel.dofile("fennelview.fnl")` directly to turn any table into a
-fennel-syntax string rendering of that table for debugging.
+You can add `fennel.lua` as a single file to your project, but if you also
+add `fennelview.fnl` then when you use a Fennel repl you'll get results
+rendered much more nicely. Running `(local view (require :fennelview))`
+will get you a `view` function which turns any table into a fennel-syntax
+string rendering of that table for debugging.

@@ -129,14 +129,6 @@ main syntax for tables uses curly braces with key/value pairs in them:
  "f" (fn [x] (+ x 2))}
 ```
 
-Some tables are used to store data that's used sequentially; the keys
-in this case are just numbers starting with 1 and going up. Fennel
-provides alternate syntax for these tables with square brackets:
-
-```lisp
-["abc" "def" "xyz"] ; equivalent to {1 "abc" 2 "def" 3 "xyz"}
-```
-
 You can use `.` to get values out of tables:
 
 ```lisp
@@ -159,7 +151,38 @@ And `tset` to put them in:
 Immutable tables are not native to Lua, though it's possible to
 construct immutable tables using metatables with some performance overhead.
 
-The `#` function returns the length of sequential tables and strings:
+### Sequential Tables
+
+Some tables are used to store data that's used sequentially; the keys
+in this case are just numbers starting with 1 and going up. Fennel
+provides alternate syntax for these tables with square brackets:
+
+```lisp
+["abc" "def" "xyz"] ; equivalent to {1 "abc" 2 "def" 3 "xyz"}
+```
+
+Lua's built-in `table.insert` function is meant to be used with sequential
+tables; all values after the inserted value are shifted up by one index:
+If you don't provide an index to `table.insert` it will append to the end
+of the table.
+
+The `table.remove` function works similarly; it takes a table and an index
+(which defaults to the end of the table) and removes the value at that
+index, returning it.
+
+```lisp
+(local ltrs ["a" "b" "c" "d"])
+
+(table.remove ltrs)       ; Removes "d"
+(table.remove ltrs 1)     ; Removes "a"
+(table.insert ltrs "d")   ; Appends "d"
+(table.insert ltrs 1 "a") ; Prepends "a"
+
+(. ltrs 2)                ; -> "b"
+;; ltrs is back to its original value ["a" "b" "c" "d"]
+```
+
+The `#` form returns the length of sequential tables and strings:
 
 ```lisp
 (let [tbl ["abc" "def" "xyz"]]
@@ -170,6 +193,11 @@ The `#` function returns the length of sequential tables and strings:
 Note that the length of a table with gaps in it is undefined; it can
 return a number corresponding to any of the table's "boundary"
 positions between nil and non-nil values.
+
+Lua's standard library is very small, and thus several functions you might
+expect to be included are only found in 3rd-party libraries. For instance,
+finding the index in a table given a value is done by `lume.find` in the
+[Lume](https://github.com/rxi/lume) library.
 
 ### Iteration
 

@@ -40,14 +40,20 @@ each release.
 (print (fib 10))
 ```
 
-## Try it
+## Usage
 
 At [https://fennel-lang.org](https://fennel-lang.org) there's a live
 in-browser repl you can use without installing anything.
 
-Otherwise clone this repository, and run `./fennel --repl` to quickly
-start a repl. Use `./fennel my-file.fnl` to run code or `./fennel
---compile my-file.fnl > my-file.lua` to perform ahead-of-time compilation.
+Check your OS's package manager to see if Fennel is available
+there. If you use [LuaRocks](https://luarocks.org/) you can run
+`luarocks install fennel`.
+
+Otherwise clone this repository, and run `./fennel` to start a
+repl. Use `./fennel my-file.fnl` to run code or `./fennel --compile
+my-file.fnl > my-file.lua` to perform ahead-of-time compilation.
+
+See the [API documentation](api.md) for how to embed Fennel in your program.
 
 ## Differences from Lua
 
@@ -71,28 +77,6 @@ start a repl. Use `./fennel my-file.fnl` to run code or `./fennel
 * Readable compiler output resembles input
 
 (Obviously not all these apply to every lisp you could compare Fennel to.)
-
-## Install with Luarocks
-
-You can install the dev package from luarocks via
-```sh
-luarocks install --server=http://luarocks.org/dev fennel
-``` 
-
-This will install both the fennel module, which can be required into via `local fennel = require 'fennel'`,
-as well as the `fennel` executable which can be used to run a repl or compile Fennel to Lua.
-
-To start a repl:
-```sh
-fennel --repl
-```
-
-To compile a file:
-```sh
-fennel --compile myscript.fnl > myscript.lua
-```
-
-When given a file without a flag, it will simply load and run the file.
 
 ## Resources
 

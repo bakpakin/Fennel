@@ -1720,9 +1720,11 @@ local function repl(options)
         for name in pairs(env.___replLocals___) do
             table.insert(splicedSource, 1, bind:format(name, name))
         end
-        -- save off new locals at the end
-        if(#splicedSource > 1) then
-            table.insert(splicedSource, #splicedSource, saveSource)
+        -- save off new locals at the end - if safe to do so (i.e. last line is a return)
+        if (string.match(splicedSource[#splicedSource], "^ *return .*$")) then
+            if (#splicedSource > 1) then
+                table.insert(splicedSource, #splicedSource, saveSource)
+            end
         end
         return table.concat(splicedSource, "\n")
     end
@@ -1794,7 +1796,8 @@ local module = {
     dofile = dofile_fennel,
     macroLoaded = macroLoaded,
     path = "./?.fnl;./?/init.fnl",
-    traceback = traceback
+    traceback = traceback,
+    version = "0.1.1-dev",
 }
 
 local function searchModule(modulename)

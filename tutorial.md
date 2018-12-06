@@ -37,7 +37,9 @@ outside.)
 Functions defined with `fn` are fast; they have no runtime overhead
 compared to Lua. However, they also have no arity checking. (That is,
 calling a function with the wrong number of arguments does not cause
-an error.) For safer code you can use `lambda`:
+an error.) For safer code you can use `lambda` which ensures you will
+get at least as many arguments as you define, unless you signify that
+one may be omitted by beginning its name with a `?`:
 
 ```lisp
 (lambda print-calculation [x ?y z] (print (- x (* (or ?y 1) z))))
@@ -423,8 +425,7 @@ Globals are set with `global`. Good code doesn't use too many of
 these, but they can be nice for debugging in some contexts. Note that
 unlike most forms, with `global` there is no distinction between
 creating a new global and giving an existing global a new
-value. Functions are created with `fn`, using square brackets for
-arguments.
+value.
 
 ```lisp
 (global add (fn [x y] (+ x y)))

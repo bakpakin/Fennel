@@ -112,6 +112,8 @@ with `local` and `let`.
 
 Example: `(let [tbl {:d 32} field :d] (tset tbl field 19) tbl)` -> `{:d 19}`
 
+You can provide multiple successive field names to perform nested sets.
+
 ## Flow Control
 
 ### `if` conditional

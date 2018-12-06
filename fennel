@@ -57,6 +57,11 @@ if arg[1] == "--repl" or #arg == 0 then
     local ppok, pp = pcall(fennel.dofile, fennel_dir .. "fennelview.fnl", options)
     if ppok then
         options.pp = pp
+    else
+        ppok, pp = pcall(require, "fennelview")
+        if ppok then
+            options.pp = pp
+        end
     end
     local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
     local init = io.open(initFilename, "rb")

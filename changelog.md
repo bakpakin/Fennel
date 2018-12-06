@@ -1,7 +1,8 @@
 # Summary of user-visible changes
 
-## ???
+## 0.1.1 / 2018-12-05
 
+* Fix luarocks packaging so repl includes fennelview
 * Fix bug in the repl where locals-saving would fail for certain input
 * Fix launcher to write errors to stderr, not stdout
 

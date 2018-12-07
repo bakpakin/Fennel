@@ -119,14 +119,14 @@ local function granulate(getchunk)
     local c = ''
     local index = 1
     local done = false
-    return function ()
+    return function (parserState)
         if done then return nil end
         if index <= #c then
             local b = c:byte(index)
             index = index + 1
             return b
         else
-            c = getchunk()
+            c = getchunk(parserState)
             if not c or c == '' then
                 done = true
                 return nil
@@ -200,7 +200,7 @@ local function parser(getbyte, filename)
         if lastb then
             r, lastb = lastb, nil
         else
-            r = getbyte()
+            r = getbyte({ stackSize = #stack })
         end
         byteindex = byteindex + 1
         if r == 10 then line = line + 1 end
@@ -1652,8 +1652,8 @@ local function repl(options)
         __index = _ENV or _G
     })
 
-    local function defaultReadChunk()
-        io.write('>> ')
+    local function defaultReadChunk(parserState)
+        io.write(parserState.stackSize > 0 and '.. ' or '>> ')
         io.flush()
         local input = io.read()
         return input and input .. '\n'
@@ -1688,8 +1688,8 @@ local function repl(options)
     -- Make parser
     local bytestream, clearstream = granulate(readChunk)
     local chars = {}
-    local read = parser(function()
-        local c = bytestream()
+    local read = parser(function (parserState)
+        local c = bytestream(parserState)
         chars[#chars + 1] = c
         return c
     end)

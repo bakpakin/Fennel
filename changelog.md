@@ -1,5 +1,10 @@
 # Summary of user-visible changes
 
+## 0.1.2 / ???
+
+* Fix a bug where runtime errors were not reported by launcher correctly
+* Allow repl to recover gracefully from parse errors
+
 ## 0.1.1 / 2018-12-05
 
 * Fix luarocks packaging so repl includes fennelview

@@ -331,6 +331,8 @@ local function parser(getbyte, filename)
             end
         until done
         return true, retval
+    end, function ()
+        stack = {}
     end
 end
 
@@ -1688,7 +1690,7 @@ local function repl(options)
     -- Make parser
     local bytestream, clearstream = granulate(readChunk)
     local chars = {}
-    local read = parser(function (parserState)
+    local read, reset = parser(function (parserState)
         local c = bytestream(parserState)
         chars[#chars + 1] = c
         return c
@@ -1739,6 +1741,7 @@ local function repl(options)
         if not ok then
             onError('Parse', parseok)
             clearstream()
+            reset()
         else
             if not parseok then break end -- eof
             local compileOk, luaSource = pcall(compile, x, {

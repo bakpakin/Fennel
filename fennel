@@ -33,7 +33,7 @@ local function dosafe(filename, opts, args)
         return fennel.dofile(filename, opts, unpack(args))
     end, fennel.traceback)
     if not ok then
-        io.stderr.write(val .. "\n")
+        io.stderr:write(val .. "\n")
         os.exit(1)
     end
     return val

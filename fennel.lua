@@ -168,11 +168,13 @@ end
 local function issymbolchar(b)
     return b > 32 and
         not delims[b] and
-        b ~= 127 and
-        b ~= 34 and
-        b ~= 39 and
-        b ~= 59 and
-        b ~= 44
+        b ~= 127 and -- "<BS>"
+        b ~= 34 and -- "\""
+        b ~= 39 and -- "'"
+        b ~= 59 and -- ";"
+        b ~= 44 and -- ","
+        b ~= 96 -- "`"
+        -- TODO b ~= ~
 end
 
 -- Parse one value given a function that
@@ -180,15 +182,15 @@ end
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
-local function parser(getbyte, filename)
+local function parser(getbyte, filename, parent_line, parent_byteindex)
 
     -- Stack of unfinished values
     local stack = {}
 
     -- Provide one character buffer and keep
     -- track of current line and byte index
-    local line = 1
-    local byteindex = 0
+    local line = parent_line or 1
+    local byteindex = parent_byteindex or 0
     local lastb
     local function ungetb(ub)
         if ub == 10 then line = line - 1 end
@@ -211,7 +213,7 @@ local function parser(getbyte, filename)
     end
 
     -- Parse stream
-    return function ()
+    local function do_parse ()
 
         -- Dispatch when we complete a value
         local done, retval
@@ -298,6 +300,14 @@ local function parser(getbyte, filename)
                 local formatted = raw:gsub("[\1-\31]", function (c) return '\\' .. c:byte() end)
                 local loadFn = loadCode(('return %s'):format(formatted), nil, filename)
                 dispatch(loadFn())
+            elseif b == 96 then -- ` - form quote TODO - also handle ~ / unquote similarly
+                -- recursive parser for quoted form
+                local inner_parse = parser(getbyte, filename, line, byteindex)
+                local success, quoted, buffered = inner_parse()
+                if not(success) then parseError('failed to read quoted form') end
+                -- get back the buffered extra char from the child parser
+                ungetb(buffered)
+                dispatch(list(sym('quote'), quoted))
             else -- Try symbol
                 local chars = {}
                 local bytestart = byteindex
@@ -314,7 +324,7 @@ local function parser(getbyte, filename)
                     dispatch(rawstr:sub(2))
                 else
                     local forceNumber = rawstr:match('^%d')
-		    local numberWithStrippedUnderscores = rawstr:gsub("_", "")
+                    local numberWithStrippedUnderscores = rawstr:gsub("_", "")
                     local x
                     if forceNumber then
                         x = tonumber(numberWithStrippedUnderscores) or
@@ -330,8 +340,10 @@ local function parser(getbyte, filename)
                 end
             end
         until done
-        return true, retval
-    end, function ()
+        return true, retval, lastb
+    end
+    return do_parse,
+    function ()
         stack = {}
     end
 end
@@ -1529,6 +1541,51 @@ local function compile(ast, options)
     allowedGlobals = oldGlobals
     return flatten(chunk, options)
 end
+
+local function do_quote (form
+    --, scope, parent)
+    )
+    if isSym(form) then
+        return ("sym('%s')"):format(deref(form))
+    -- TODO - elseif isList(form) and isSym(form[1]) and deref(form[1]) == 'unquote' ...
+    -- (... return compiled string ...)
+    elseif isList(form) then
+        local quoted = 'list('
+        local prefix = ''
+        for _, x in ipairs(form) do
+            quoted = quoted .. prefix .. do_quote(x)
+            prefix = ', '
+        end
+        return quoted .. ')'
+    elseif type(form) == 'table' then
+        local quoted = '{'
+        local prefix = ''
+        for _, x in ipairs(form) do
+            quoted = quoted .. prefix .. do_quote(x)
+            prefix = ', '
+        end
+        for k, v in pairs(form) do
+            if type(k) ~= 'number' then
+                quoted = quoted .. prefix .. do_quote(k) .. '=' .. do_quote(v)
+            end
+            prefix = ', '
+        end
+        quoted = quoted .. '}'
+        return quoted
+    elseif type(form) == 'string' then
+        return serializeString(form)
+    else
+        return tostring(form)
+    end
+end
+
+local function quote(ast, scope, parent)
+    assertCompile(#ast == 2, "quote only takes a single form")
+    local form = ast[2]
+    return do_quote(form, scope, parent)
+end
+
+SPECIALS['quote'] = quote
 
 local function compileStream(strm, options)
     options = options or {}

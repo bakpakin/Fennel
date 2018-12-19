@@ -114,6 +114,19 @@ Example: `(let [tbl {:d 32} field :d] (tset tbl field 19) tbl)` -> `{:d 19}`
 
 You can provide multiple successive field names to perform nested sets.
 
+### multiple value binding
+In any of the above contexts where you can make a new binding, you
+can use multiple value binding. Otherwise you will only capture the first
+value.
+
+Example: `(let [x (values 1 2 3)] x)` => 1
+
+Example: `(let [(file-handle message code) (io.open "foo.blah")] message)` => "foo.blah: No such file or directory"
+
+Example: `(global (x-m x-e) (math.frexp 21)), {:m x-m :e m-e}` => {:e 5 :m 0.65625}
+
+Example: `(do (local (_ _ z) (unpack [:a :b :c :d :e])), z)` => c
+
 ## Flow Control
 
 ### `if` conditional

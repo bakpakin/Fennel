@@ -463,6 +463,7 @@ local mangling_tests = {
     ['a_b-c'] = '__fnl_global__a_5fb_2dc',
 }
 
+print("Running tests for mangling / unmangling...")
 for k, v in pairs(mangling_tests) do
     local manglek = fennel.mangle(k)
     local unmanglev = fennel.unmangle(v)
@@ -474,6 +475,34 @@ for k, v in pairs(mangling_tests) do
     end
     if k ~= unmanglev then
         print(" Expected fennel.unmangle(" .. v .. ") to be " .. k .. ", got " .. unmanglev)
+        fail = fail + 1
+    else
+        pass = pass + 1
+    end
+end
+
+local quoting_tests = {
+    ['`abcde'] = {"return sym('abcde')", "simple symbol quoting"},
+    ['~='] = {"return __fnl_global___7e_3d", "~= is hard-coded to the not-equals function"},
+    ['~a'] = {"return unquote(a)", "unquote outside quote is simply passed through"},
+    ['`(a b ~(+ 1 1) c)'] = {
+        "return list(sym('a'), sym('b'), (1 + 1), sym('c'))",
+        "unquote inside quote leads to evaluation"
+    },
+    ['(let [a (+ 2 3)] `(foo ~(+ a a)))'] = {
+        "local a = (2 + 3)\nreturn list(sym('foo'), (a + a))",
+        "unquote inside other forms"
+    }
+}
+
+print("Running tests for quote / unquote...")
+for k, v in pairs(quoting_tests) do
+    local compiled = fennel.compileString(k, {allowedGlobals=false})
+    local value = v[1]
+    local message = v[2]
+    local errorformat = "While testing %s\nExpected fennel.compileString(\"%s\") to be \"%s\" , got \"%s\""
+    if compiled ~= value then
+        print(errorformat:format(message, k, value, compiled))
         fail = fail + 1
     else
         pass = pass + 1

@@ -2,6 +2,7 @@
 
 ## 0.2.0 / ???
 
+* Add `-?>` and `-?>>` macros
 * Support key/value tables when destructuring
 * Add `match` macro for pattern matching
 * Add optional GNU readline support for repl

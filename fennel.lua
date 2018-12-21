@@ -2042,6 +2042,28 @@ local stdmacros = [===[
            (table.insert elt x)
            (set x elt))
          x)
+ "-?>" (fn [val ...]
+         (if (= 0 (# [...]))
+             val
+             (let [els [...]
+                   el (table.remove els 1)
+                   tmp (gensym)]
+               (table.insert el 2 tmp)
+               (list (sym :let) [tmp val]
+                     (list (sym :if) tmp
+                           (list (sym :-?>) el (unpack els))
+                           tmp)))))
+ "-?>>" (fn [val ...]
+          (if (= 0 (# [...]))
+              val
+              (let [els [...]
+                    el (table.remove els 1)
+                    tmp (gensym)]
+                (table.insert el tmp)
+                (list (sym :let) [tmp val]
+                      (list (sym :if) tmp
+                            (list (sym :-?>>) el (unpack els))
+                            tmp)))))
  :doto (fn [val ...]
          (let [name (gensym)
                form (list (sym :let) [name val])]

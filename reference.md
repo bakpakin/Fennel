@@ -387,7 +387,7 @@ Example:
 
 ## Other
 
-### `->` and `->>` threading macros
+### `->`, `->>`, `-?>` and `-?>>` threading macros
 
 The `->` macro takes its first value and splices it into the second
 form as the first argument. The result of evaluating the second form
@@ -404,6 +404,26 @@ Example:
 
 The `->>` macro works the same, except it splices it into the last
 position of each form instead of the first.
+
+`-?>` and `-?>>`, the thread maybe macros, are similar to `->` & `->>`
+but they also do falsey checking after the evaluation of each threaded
+form. If the result is falsey then the threading stops and the result
+is returned. `-?>` splices the threaded value as the first argument,
+like `->`, and `-?>>` splices it into the last position, like `->>`.
+
+This example shows how to use them to avoid accidentally indexing a
+nil value:
+
+```
+(-?> {:a {:b {:c 42}}}
+     (. :a)
+     (. :missing)
+     (. :c)) ; -> nil
+(-?>> :a
+      (. {:a :b})
+      (. {:b :missing})
+      (. {:c 42})) ; -> nil
+```
 
 Note that these have nothing to do with "threads" used for
 concurrency; they are named after the thread which is used in

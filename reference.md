@@ -101,11 +101,14 @@ local's value, but if it's a new local then the symbol is bound to the
 value. 
 
 Tables can be nested, and they may be either sequential (`[]` style)
-or key/value (`{}` style) tables.
+or key/value (`{}` style) tables. Sequential tables will match if they
+have at least as many elements as the pattern. (To allow an element to
+be nil, use a symbol like `?this`.) Tables will never fail to match
+due to having too many elements.
 
 ```lisp
 (match mytable
-  {:subtable [a b c] :depth depth} (* b depth)
+  {:subtable [a b ?c] :depth depth} (* b depth)
   _ :unknown)
 ```
 

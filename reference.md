@@ -71,6 +71,58 @@ Example: `(local lume (require "lume"))`
 
 Supports destructuring and multiple-value binding.
 
+### `match` pattern matching
+
+Evaluates its first argument, then searches thru the subsequent
+pattern/body clauses to find one where the pattern matches the value,
+and evaluates the corresponding body. Pattern matching can be thought
+of as a combination of destructuring and conditionals.
+
+Example:
+
+```lisp
+(match mytable
+  59      :will-never-match-hopefully
+  [9 q 5] (print :q q)
+  [1 a b] (+ a b))
+```
+
+In the example above, we have a `mytable` value followed by three
+pattern/body clauses. The first clause will only match if `mytable`
+is 59. The second clause will match if `mytable` is a table with 9 as
+its first element and 5 as its third element; if it matches, then it
+evaluates `(print :q q)` with `q` bound to the second element of
+`mytable`. The final clause will only match if `mytable` has 1 as its
+first element; if so then it will add up the second and third elements.
+
+Patterns can be tables, literal values, or symbols. If a symbol has
+already been bound, then the value is checked against the existing
+local's value, but if it's a new local then the symbol is bound to the
+value. 
+
+Tables can be nested, and they may be either sequential (`[]` style)
+or key/value (`{}` style) tables.
+
+```lisp
+(match mytable
+  {:subtable [a b c] :depth depth} (* b depth)
+  _ :unknown)
+```
+
+You can also match against multiple return values using
+parentheses. (These cannot be nested.) This can be useful for error
+checking.
+
+```lisp
+(match (io.open "/some/file")
+  (nil msg) (report-error msg)
+  f (read-file f))
+```
+
+(Note that Lua also has "patterns" which are matched against strings
+similar to how regular expressions work in other languages; these are
+two distinct concepts with similar names.)
+
 ### `global` set global variable
 
 Sets a global variable to a new value. Note that there is no
@@ -115,6 +167,7 @@ Example: `(let [tbl {:d 32} field :d] (tset tbl field 19) tbl)` -> `{:d 19}`
 You can provide multiple successive field names to perform nested sets.
 
 ### multiple value binding
+
 In any of the above contexts where you can make a new binding, you
 can use multiple value binding. Otherwise you will only capture the first
 value.

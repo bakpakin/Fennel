@@ -1,7 +1,8 @@
 # Summary of user-visible changes
 
-## 0.1.2 / ???
+## 0.2.0 / ???
 
+* Add `match` macro for pattern matching
 * Fix a bug where runtime errors were not reported by launcher correctly
 * Allow repl to recover gracefully from parse errors
 

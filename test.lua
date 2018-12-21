@@ -326,6 +326,60 @@ for code, expected in pairs(macro_cases) do
         end
     end
 end
+
+local match_cases = {
+    -- basic literal
+    ["(match (+ 1 6) 7 8)"]=8,
+    -- actually return the one that matches
+    ["(match (+ 1 6) 7 8 8 1 9 2)"]=8,
+    -- string literals? and values that come from locals?
+    ["(let [s :hey] (match s :wat :no :hey :yes))"]="yes",
+    -- tables please
+    ["(match [:a :b :c] [a b c] (.. b :eee))"]="beee",
+    -- tables with literals in them
+    ["(match [:a :b :c] [1 t d] :no [a b :d] :NO [a b :c] b)"]="b",
+    -- nested tables
+    ["(match [:a [:b :c]] [a b :c] :no [:a [:b c]] c)"]="c",
+    -- non-sequential tables
+    ["(match {:a 1 :b 2} {:c 3} :no {:a n} n)"]=1,
+    -- nested non-sequential
+    ["(match [:a {:b 8}] [a b :c] :no [:a {:b b}] b)"]=8,
+    -- unification
+    ["(let [k :k] (match [5 :k] :b :no [n k] n))"]=5,
+    -- length mismatch
+    ["(match [9 5] [a b c] :three [a b] (+ a b))"]=14,
+    -- 3rd arg may be nil here
+    ["(match [9 5] [a b ?c] :three [a b] (+ a b))"]="three",
+    -- no double-eval
+    ["(var x 1) (fn i [] (set x (+ x 1)) x) (match (i) 4 :N 3 :n 2 :y)"]="y",
+    -- multi-valued
+    ["(match (values 5 9) 9 :no (a b) (+ a b))"]=14,
+    -- multi-valued with nil
+    ["(match (values nil :nonnil) (true _) :no (nil b) b)"]="nonnil",
+    -- error values
+    ["(match (io.open \"/does/not/exist\") (nil msg) :err f f)"]="err",
+    -- last clause becomes default
+    ["(match [1 2 3] [3 2 1] :no [2 9 1] :NO :default)"]="default",
+}
+
+print("Running tests for pattern matching...")
+for code, expected in pairs(match_cases) do
+    local ok, res = pcall(fennel.eval, code)
+    if not ok then
+        err = err + 1
+        print(" Error: " .. res .. " in: ".. fennel.compile(code))
+    else
+        local actual = fennel.eval(code)
+        if expected ~= actual then
+            fail = fail + 1
+            print(" Expected " .. view(actual) .. " to be " .. view(expected))
+            print("   Compiled to: " .. fennel.compileString(code))
+        else
+            pass = pass + 1
+        end
+    end
+end
+
 if pcall(fennel.eval, "(->1 1 (+ 4))", {allowedGlobals = false}) then
     fail = fail + 1
     print(" Expected require-macros not leak into next evaluation.")

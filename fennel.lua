@@ -174,8 +174,12 @@ local function issymbolchar(b)
         b ~= 59 and -- ";"
         b ~= 44 and -- ","
         b ~= 96 -- "`"
-        -- TODO b ~= ~
 end
+
+local prefixes = { -- prefix chars substituted while reading
+    [96] = 'quote', -- `
+    [126] = 'unquote' -- ~
+}
 
 -- Parse one value given a function that
 -- returns sequential bytes. Will throw an error as soon
@@ -300,14 +304,25 @@ local function parser(getbyte, filename, parent_line, parent_byteindex)
                 local formatted = raw:gsub("[\1-\31]", function (c) return '\\' .. c:byte() end)
                 local loadFn = loadCode(('return %s'):format(formatted), nil, filename)
                 dispatch(loadFn())
-            elseif b == 96 then -- ` - form quote TODO - also handle ~ / unquote similarly
-                -- recursive parser for quoted form
+            elseif prefixes[b] then -- expand prefix byte into wrapping form eg. '`a' into '(quote a)'
+                local prefix = prefixes[b]
+                -- recursive parser for inner form
                 local inner_parse = parser(getbyte, filename, line, byteindex)
-                local success, quoted, buffered = inner_parse()
-                if not(success) then parseError('failed to read quoted form') end
+                local success, inner, buffered, new_line, new_index = inner_parse()
+                line = new_line
+                byteindex = new_index
+                if not(success) then
+                    local msgfmt = 'failed to read inner form for %s / %s'
+                    parseError(msgfmt:format(string.char(b), prefix))
+                end
                 -- get back the buffered extra char from the child parser
                 ungetb(buffered)
-                dispatch(list(sym('quote'), quoted))
+                -- special case for ~= despite other use of ~
+                if isSym(inner) and (string.char(b) .. deref(inner) == "~=") then
+                    dispatch(sym("~="))
+                else
+                    dispatch(list(sym(prefix), inner))
+                end
             else -- Try symbol
                 local chars = {}
                 local bytestart = byteindex
@@ -340,7 +355,7 @@ local function parser(getbyte, filename, parent_line, parent_byteindex)
                 end
             end
         until done
-        return true, retval, lastb
+        return true, retval, lastb, line, byteindex
     end
     return do_parse,
     function ()
@@ -1542,18 +1557,18 @@ local function compile(ast, options)
     return flatten(chunk, options)
 end
 
-local function do_quote (form
-    --, scope, parent)
-    )
+local function do_quote (form, scope, parent)
     if isSym(form) then
         return ("sym('%s')"):format(deref(form))
-    -- TODO - elseif isList(form) and isSym(form[1]) and deref(form[1]) == 'unquote' ...
-    -- (... return compiled string ...)
+    elseif isList(form) and isSym(form[1]) and (deref(form[1]) == 'unquote') then
+        local payload = form[2]
+        local res = unpack(compile1(payload, scope, parent))
+        return res[1]
     elseif isList(form) then
         local quoted = 'list('
         local prefix = ''
         for _, x in ipairs(form) do
-            quoted = quoted .. prefix .. do_quote(x)
+            quoted = quoted .. prefix .. do_quote(x, scope, parent)
             prefix = ', '
         end
         return quoted .. ')'
@@ -1561,12 +1576,12 @@ local function do_quote (form
         local quoted = '{'
         local prefix = ''
         for _, x in ipairs(form) do
-            quoted = quoted .. prefix .. do_quote(x)
+            quoted = quoted .. prefix .. do_quote(x, scope, parent)
             prefix = ', '
         end
         for k, v in pairs(form) do
             if type(k) ~= 'number' then
-                quoted = quoted .. prefix .. do_quote(k) .. '=' .. do_quote(v)
+                quoted = quoted .. prefix .. do_quote(k, scope, parent) .. '=' .. do_quote(v, scope, parent)
             end
             prefix = ', '
         end

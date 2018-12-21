@@ -59,6 +59,21 @@ if not options.no_searcher then
         fennel.make_searcher({correlate = true}))
 end
 
+-- Try to load readline library
+local function tryReadline(options)
+    local ok, readline = pcall(require, "readline")
+    if ok then
+        readline.set_options({
+            keeplines = 1000
+        })
+        function options.readChunk(parserState)
+            local prompt = parserState.stackSize > 0 and '.. ' or '>> '
+            local str = readline.readline(prompt)
+            return str
+        end
+    end
+end
+
 if arg[1] == "--repl" or #arg == 0 then
     local ppok, pp = pcall(fennel.dofile, fennel_dir .. "fennelview.fnl", options)
     if ppok then
@@ -71,6 +86,9 @@ if arg[1] == "--repl" or #arg == 0 then
     end
     local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
     local init = io.open(initFilename, "rb")
+    
+    tryReadline(options)
+
     if init then
         init:close()
         -- pass in options so fennerlrc can make changes to it

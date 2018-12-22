@@ -60,13 +60,13 @@ if not options.no_searcher then
 end
 
 -- Try to load readline library
-local function tryReadline(options)
+local function tryReadline(opts)
     local ok, readline = pcall(require, "readline")
     if ok then
         readline.set_options({
             keeplines = 1000
         })
-        function options.readChunk(parserState)
+        function opts.readChunk(parserState)
             local prompt = parserState.stackSize > 0 and '.. ' or '>> '
             local str = readline.readline(prompt)
             return str
@@ -86,7 +86,7 @@ if arg[1] == "--repl" or #arg == 0 then
     end
     local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
     local init = io.open(initFilename, "rb")
-    
+
     tryReadline(options)
 
     if init then

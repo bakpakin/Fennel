@@ -1922,7 +1922,7 @@ SPECIALS['eval-compiler'] = function(ast, scope, parent)
     ast[1] = sym('do')
     local luaSource = compile(ast, { scope = makeScope(COMPILER_SCOPE) })
     ast[1] = oldFirst
-    local loader = loadCode(luaSource, makeCompilerEnv(ast, scope, parent))
+    local loader = loadCode(luaSource, wrapEnv(makeCompilerEnv(ast, scope, parent)))
     loader()
 end
 

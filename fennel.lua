@@ -1560,6 +1560,27 @@ end
 --- Evaluation
 ---
 
+-- Convert a fennel environment table to a Lua environment table.
+-- This means automatically unmangling globals when getting a value,
+-- and mangling values when setting a value. This means the original
+-- env will see its values updated as expected, regardless of mangling rules.
+local function wrapEnv(env)
+    return setmetatable({}, {
+        __index = function (_, key)
+            if type(key) == 'string' then
+                key = globalUnmangling(key)
+            end
+            return env[key]
+        end,
+        __newindex = function (_, key, value)
+            if type(key) == 'string' then
+                key = globalMangling(key)
+            end
+            env[key] = value
+        end
+    })
+end
+
 -- A custom traceback function for Fennel that looks similar to
 -- the Lua's debug.traceback.
 -- Use with xpcall to produce fennel specific stacktraces.
@@ -1622,8 +1643,9 @@ local function eval(str, options, ...)
     if options.allowedGlobals == nil and not getmetatable(options.env) then
         options.allowedGlobals = currentGlobalNames(options.env)
     end
+    local env = options.env and wrapEnv(options.env)
     local luaSource = compileString(str, options)
-    local loader = loadCode(luaSource, options.env,
+    local loader = loadCode(luaSource, env,
         options.filename and ('@' .. options.filename) or str)
     return loader(...)
 end
@@ -1650,7 +1672,7 @@ local function repl(options)
         options.allowedGlobals = currentGlobalNames(opts.env)
     end
 
-    local env = opts.env or setmetatable({}, {
+    local env = opts.env and wrapEnv(opts.env) or setmetatable({}, {
         __index = _ENV or _G
     })
 
@@ -1849,11 +1871,11 @@ local function makeCompilerEnv(ast, scope, parent)
         sym = sym,
         unpack = unpack,
         gensym = function() return sym(gensym(scope)) end,
-        [globalMangling("list?")] = isList,
-        [globalMangling("multi-sym?")] = isMultiSym,
-        [globalMangling("sym?")] = isSym,
-        [globalMangling("table?")] = isTable,
-        [globalMangling("varg?")] = isVarg,
+        ["list?"] = isList,
+        ["multi-sym?"] = isMultiSym,
+        ["sym?"] = isSym,
+        ["table?"] = isTable,
+        ["varg?"] = isVarg,
     }, { __index = _ENV or _G })
 end
 

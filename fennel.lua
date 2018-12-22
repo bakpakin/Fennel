@@ -178,7 +178,7 @@ end
 
 local prefixes = { -- prefix chars substituted while reading
     [96] = 'quote', -- `
-    [126] = 'unquote' -- ~
+    [64] = 'unquote' -- @
 }
 
 -- Parse one value given a function that
@@ -186,15 +186,15 @@ local prefixes = { -- prefix chars substituted while reading
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
-local function parser(getbyte, filename, parent_line, parent_byteindex)
+local function parser(getbyte, filename)
 
     -- Stack of unfinished values
     local stack = {}
 
     -- Provide one character buffer and keep
     -- track of current line and byte index
-    local line = parent_line or 1
-    local byteindex = parent_byteindex or 0
+    local line = 1
+    local byteindex = 0
     local lastb
     local function ungetb(ub)
         if ub == 10 then line = line - 1 end
@@ -217,7 +217,7 @@ local function parser(getbyte, filename, parent_line, parent_byteindex)
     end
 
     -- Parse stream
-    local function do_parse ()
+    return function()
 
         -- Dispatch when we complete a value
         local done, retval
@@ -225,6 +225,10 @@ local function parser(getbyte, filename, parent_line, parent_byteindex)
             if #stack == 0 then
                 retval = v
                 done = true
+            elseif stack[#stack].prefix then
+                local stacktop = stack[#stack]
+                stack[#stack] = nil
+                return dispatch(list(sym(stacktop.prefix), v))
             else
                 table.insert(stack[#stack], v)
             end
@@ -305,24 +309,9 @@ local function parser(getbyte, filename, parent_line, parent_byteindex)
                 local loadFn = loadCode(('return %s'):format(formatted), nil, filename)
                 dispatch(loadFn())
             elseif prefixes[b] then -- expand prefix byte into wrapping form eg. '`a' into '(quote a)'
-                local prefix = prefixes[b]
-                -- recursive parser for inner form
-                local inner_parse = parser(getbyte, filename, line, byteindex)
-                local success, inner, buffered, new_line, new_index = inner_parse()
-                line = new_line
-                byteindex = new_index
-                if not(success) then
-                    local msgfmt = 'failed to read inner form for %s / %s'
-                    parseError(msgfmt:format(string.char(b), prefix))
-                end
-                -- get back the buffered extra char from the child parser
-                ungetb(buffered)
-                -- special case for ~= despite other use of ~
-                if isSym(inner) and (string.char(b) .. deref(inner) == "~=") then
-                    dispatch(sym("~="))
-                else
-                    dispatch(list(sym(prefix), inner))
-                end
+                table.insert(stack, {
+                    prefix = prefixes[b]
+                })
             else -- Try symbol
                 local chars = {}
                 local bytestart = byteindex
@@ -356,9 +345,7 @@ local function parser(getbyte, filename, parent_line, parent_byteindex)
             end
         until done
         return true, retval, lastb, line, byteindex
-    end
-    return do_parse,
-    function ()
+    end, function ()
         stack = {}
     end
 end

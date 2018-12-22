@@ -484,12 +484,12 @@ end
 local quoting_tests = {
     ['`abcde'] = {"return sym('abcde')", "simple symbol quoting"},
     ['~='] = {"return __fnl_global___7e_3d", "~= is hard-coded to the not-equals function"},
-    ['~a'] = {"return unquote(a)", "unquote outside quote is simply passed through"},
-    ['`(a b ~(+ 1 1) c)'] = {
+    ['@a'] = {"return unquote(a)", "unquote outside quote is simply passed through"},
+    ['`(a b @(+ 1 1) c)'] = {
         "return list(sym('a'), sym('b'), (1 + 1), sym('c'))",
         "unquote inside quote leads to evaluation"
     },
-    ['(let [a (+ 2 3)] `(foo ~(+ a a)))'] = {
+    ['(let [a (+ 2 3)] `(foo @(+ a a)))'] = {
         "local a = (2 + 3)\nreturn list(sym('foo'), (a + a))",
         "unquote inside other forms"
     }

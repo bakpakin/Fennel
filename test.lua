@@ -492,20 +492,36 @@ local quoting_tests = {
     ['(let [a (+ 2 3)] `(foo @(+ a a)))'] = {
         "local a = (2 + 3)\nreturn list(sym('foo'), (a + a))",
         "unquote inside other forms"
+    },
+    ['`[a b c]'] = {
+      "return {sym('a'), sym('b'), sym('c')}",
+      "quoted sequential table"
+    },
+    ['`{:a a :b b}'] = {
+        {
+            ["return {[\"a\"]=sym('a'), [\"b\"]=sym('b')}"] = true,
+            ["return {[\"b\"]=sym('b'), [\"a\"]=sym('a')}"] = true,
+        },
+      "quoted keyed table"
     }
 }
 
 print("Running tests for quote / unquote...")
 for k, v in pairs(quoting_tests) do
     local compiled = fennel.compileString(k, {allowedGlobals=false})
-    local value = v[1]
+    local accepted = v[1]
+    if type(accepted) ~= 'table' then
+        ans = accepted
+        accepted = {}
+        accepted[ans] = true
+    end
     local message = v[2]
     local errorformat = "While testing %s\nExpected fennel.compileString(\"%s\") to be \"%s\" , got \"%s\""
-    if compiled ~= value then
+    if accepted[compiled] then
+        pass = pass + 1
+    else
         print(errorformat:format(message, k, value, compiled))
         fail = fail + 1
-    else
-        pass = pass + 1
     end
 end
 

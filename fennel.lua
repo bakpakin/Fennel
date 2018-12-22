@@ -344,7 +344,7 @@ local function parser(getbyte, filename)
                 end
             end
         until done
-        return true, retval, lastb, line, byteindex
+        return true, retval
     end, function ()
         stack = {}
     end
@@ -1544,36 +1544,71 @@ local function compile(ast, options)
     return flatten(chunk, options)
 end
 
+-- map a function across all pairs in a table
+local function quote_tmap (f, t)
+    local res = {}
+    for k,v in pairs(t) do
+        local nk, nv = f(k, v)
+        if nk then
+            res[nk] = nv
+        end
+    end
+    return res
+end
+
+-- make a transformer for key / value table pairs, preserving all numeric keys
+local function entry_transform(fk,fv)
+    return function(k, v)
+        if type(k) == 'number' then
+            return k,fv(v)
+        else
+            return fk(k),fv(v)
+        end
+    end
+end
+
+-- consume everything return nothing
+local function no ()
+end
+
+local function mixed_concat (t, joiner)
+    local ret = ""
+    local s = ""
+    local seen = {}
+    for k,v in ipairs(t) do
+        table.insert(seen, k)
+        ret = ret .. s .. v
+        s = joiner
+    end
+    for k,v in pairs(t) do
+        if not(seen[k]) then
+            ret = ret .. s .. '[' .. k .. ']' .. '=' .. v
+            s = joiner
+        end
+    end
+    return ret
+end
+
+-- expand a quoted form into a data literal, evaluating unquote
 local function do_quote (form, scope, parent)
+    local q = function (x) return do_quote(x, scope, parent) end
+    -- symbol
     if isSym(form) then
         return ("sym('%s')"):format(deref(form))
+    -- unquote
     elseif isList(form) and isSym(form[1]) and (deref(form[1]) == 'unquote') then
         local payload = form[2]
         local res = unpack(compile1(payload, scope, parent))
         return res[1]
+    -- list
     elseif isList(form) then
-        local quoted = 'list('
-        local prefix = ''
-        for _, x in ipairs(form) do
-            quoted = quoted .. prefix .. do_quote(x, scope, parent)
-            prefix = ', '
-        end
-        return quoted .. ')'
+        local mapped = quote_tmap(entry_transform(no,q), form)
+        return 'list(' .. mixed_concat(mapped, ", ") .. ')'
+    -- table
     elseif type(form) == 'table' then
-        local quoted = '{'
-        local prefix = ''
-        for _, x in ipairs(form) do
-            quoted = quoted .. prefix .. do_quote(x, scope, parent)
-            prefix = ', '
-        end
-        for k, v in pairs(form) do
-            if type(k) ~= 'number' then
-                quoted = quoted .. prefix .. do_quote(k, scope, parent) .. '=' .. do_quote(v, scope, parent)
-            end
-            prefix = ', '
-        end
-        quoted = quoted .. '}'
-        return quoted
+        local mapped = quote_tmap(entry_transform(q,q), form)
+        return '{' .. mixed_concat(mapped, ", ") .. '}'
+    -- string
     elseif type(form) == 'string' then
         return serializeString(form)
     else

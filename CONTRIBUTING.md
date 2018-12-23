@@ -38,7 +38,9 @@ issue before sinking time and effort into something we may not merge.
 * Be consistent with the style of the project. If you are making changes to fennel.lua, run `make ci` or
   luacheck on the source code to check for style. Please try to code moderately tersely;
   code is a liability, so the less of it there is, the better.
-* For user-visible changes, include a description of the change in `changelog.md`.
+* For user-visible changes, include a description of the change in `changelog.md`. Changes that affect
+  the compiler API should update `api.md` while changes to the built-in forms will usually need to
+  update `reference.md` to reflect the new behavior.
 
 If all goes well, we should merge your changes fairly quickly.
 

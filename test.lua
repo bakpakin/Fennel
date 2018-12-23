@@ -1,7 +1,8 @@
-local fennel = require("fennel")
+-- don't use require; that will pick up luarocks-installed module, not checkout
+local fennel = dofile("fennel.lua")
 table.insert(package.loaders or package.searchers, fennel.searcher)
-local generate = require("generate")
-local view = require("fennelview")
+local generate = fennel.dofile("generate.fnl")
+local view = fennel.dofile("fennelview.fnl")
 
 -- Allow deterministic re-runs of generated things.
 local seed = os.getenv("SEED") or os.time()

@@ -69,7 +69,9 @@ local function tryReadline(opts)
         function opts.readChunk(parserState)
             local prompt = parserState.stackSize > 0 and '.. ' or '>> '
             local str = readline.readline(prompt)
-            return str
+            if str then
+                return str .. "\n"
+            end
         end
     end
 end

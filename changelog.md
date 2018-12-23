@@ -3,6 +3,7 @@
 ## 0.2.0 / ???
 
 * Add `match` macro for pattern matching
+* Add optional GNU readline support for repl
 * Fix a bug where runtime errors were not reported by launcher correctly
 * Allow repl to recover gracefully from parse errors
 

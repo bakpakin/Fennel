@@ -1545,7 +1545,7 @@ local function compile(ast, options)
 end
 
 -- map a function across all pairs in a table
-local function quote_tmap (f, t)
+local function quoteTmap(f, t)
     local res = {}
     for k,v in pairs(t) do
         local nk, nv = f(k, v)
@@ -1557,7 +1557,7 @@ local function quote_tmap (f, t)
 end
 
 -- make a transformer for key / value table pairs, preserving all numeric keys
-local function entry_transform(fk,fv)
+local function entryTransform(fk,fv)
     return function(k, v)
         if type(k) == 'number' then
             return k,fv(v)
@@ -1568,10 +1568,9 @@ local function entry_transform(fk,fv)
 end
 
 -- consume everything return nothing
-local function no ()
-end
+local function no() end
 
-local function mixed_concat (t, joiner)
+local function mixedConcat(t, joiner)
     local ret = ""
     local s = ""
     local seen = {}
@@ -1590,8 +1589,8 @@ local function mixed_concat (t, joiner)
 end
 
 -- expand a quoted form into a data literal, evaluating unquote
-local function do_quote (form, scope, parent)
-    local q = function (x) return do_quote(x, scope, parent) end
+local function doQuote (form, scope, parent, runtime)
+    local q = function (x) return doQuote(x, scope, parent, runtime) end
     -- symbol
     if isSym(form) then
         return ("sym('%s')"):format(deref(form))
@@ -1602,12 +1601,13 @@ local function do_quote (form, scope, parent)
         return res[1]
     -- list
     elseif isList(form) then
-        local mapped = quote_tmap(entry_transform(no,q), form)
-        return 'list(' .. mixed_concat(mapped, ", ") .. ')'
+        assertCompile(not runtime, "lists may only be used at compile time", form)
+        local mapped = quoteTmap(entryTransform(no, q), form)
+        return 'list(' .. mixedConcat(mapped, ", ") .. ')'
     -- table
     elseif type(form) == 'table' then
-        local mapped = quote_tmap(entry_transform(q,q), form)
-        return '{' .. mixed_concat(mapped, ", ") .. '}'
+        local mapped = quoteTmap(entryTransform(q, q), form)
+        return '{' .. mixedConcat(mapped, ", ") .. '}'
     -- string
     elseif type(form) == 'string' then
         return serializeString(form)
@@ -1616,13 +1616,15 @@ local function do_quote (form, scope, parent)
     end
 end
 
-local function quote(ast, scope, parent)
+SPECIALS['quote'] = function(ast, scope, parent)
     assertCompile(#ast == 2, "quote only takes a single form")
-    local form = ast[2]
-    return do_quote(form, scope, parent)
+    local runtime, thisScope = true, scope
+    while thisScope do
+        thisScope = thisScope.parent
+        if thisScope == COMPILER_SCOPE then runtime = false end
+    end
+    return doQuote(ast[2], scope, parent, runtime)
 end
-
-SPECIALS['quote'] = quote
 
 local function compileStream(strm, options)
     options = options or {}
@@ -2004,6 +2006,7 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
             local env = makeCompilerEnv(ast, scope, parent)
             mod = dofileFennel(filename, {
                 env = env,
+                scope = COMPILER_SCOPE,
                 allowedGlobals = macroGlobals(env, currentGlobalNames())
             })
             macroLoaded[modname] = mod

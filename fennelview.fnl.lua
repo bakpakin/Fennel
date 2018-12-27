@@ -1,7 +1,7 @@
 local function _0_(str)
   return ("\"" .. str:gsub("\"", "\\\"") .. "\"")
 end
-local quote = _0_
+local view_quote = _0_
 local short_control_char_escapes = {["\11"] = "\\v", ["\12"] = "\\f", ["\13"] = "\\r", ["\7"] = "\\a", ["\8"] = "\\b", ["\9"] = "\\t", ["\n"] = "\\n"}
 local function _1_(...)
   local long = {}
@@ -168,7 +168,7 @@ end
 local function _2_(self, v)
   local tv = type(v)
   if (tv == "string") then
-    return puts(self, quote(escape(v)))
+    return puts(self, view_quote(escape(v)))
   elseif ((tv == "number") or (tv == "boolean") or (tv == "nil")) then
     return puts(self, tostring(v))
   elseif (tv == "table") then

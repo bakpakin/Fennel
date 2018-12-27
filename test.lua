@@ -10,14 +10,13 @@ print("SEED=" .. seed)
 math.randomseed(seed)
 
 -- to store values in during tests
-tbl = {}
+tbl, nested = {}, false
 
 local cases = {
     calculations = {
         ["(+ 1 2 (- 1 2))"]=2,
         ["(* 1 2 (/ 1 2))"]=1,
         ["(+ 1 2 (^ 1 2))"]=4,
-        ["(+ 1 2 (- 1 2))"]=2,
         ["(% 1 2 (- 1 2))"]=0,
         -- 1 arity results
         ["(- 1)"]=-1,
@@ -312,6 +311,8 @@ local macro_cases = {
       x1"]=130,
     -- special form
     ["(reverse-it 1 2 3 4 5 6)"]=1,
+    -- nesting quote can only happen in the compiler
+    ["(eval-compiler (set tbl.nest ``nest)) (tostring tbl.nest)"]="(quote, nest)",
 }
 
 print("Running tests for macro system...")
@@ -453,7 +454,7 @@ for code, expected_msg in pairs(compile_failures) do
     end
 end
 
--- Mapping from any string to Lua identifiers. (in practice, will only be from fennel identifiers to lua, 
+-- Mapping from any string to Lua identifiers. (in practice, will only be from fennel identifiers to lua,
 -- should be general for programatically created symbols)
 local mangling_tests = {
     ['a'] = 'a',
@@ -482,25 +483,25 @@ for k, v in pairs(mangling_tests) do
 end
 
 local quoting_tests = {
-    ['`abcde'] = {"return sym('abcde')", "simple symbol quoting"},
+    ['`:abcde'] = {"return \"abcde\"", "simple string quoting"},
     ['~='] = {"return __fnl_global___7e_3d", "~= is hard-coded to the not-equals function"},
     ['@a'] = {"return unquote(a)", "unquote outside quote is simply passed through"},
-    ['`(a b @(+ 1 1) c)'] = {
-        "return list(sym('a'), sym('b'), (1 + 1), sym('c'))",
+    ['`[1 2 @(+ 1 2) 4]'] = {
+        "return {1, 2, (1 + 2), 4}",
         "unquote inside quote leads to evaluation"
     },
-    ['(let [a (+ 2 3)] `(foo @(+ a a)))'] = {
-        "local a = (2 + 3)\nreturn list(sym('foo'), (a + a))",
+    ['(let [a (+ 2 3)] `[:hey @(+ a a)])'] = {
+        "local a = (2 + 3)\nreturn {\"hey\", (a + a)}",
         "unquote inside other forms"
     },
-    ['`[a b c]'] = {
-      "return {sym('a'), sym('b'), sym('c')}",
+    ['`[:a :b :c]'] = {
+      "return {\"a\", \"b\", \"c\"}",
       "quoted sequential table"
     },
-    ['`{:a a :b b}'] = {
+    ['`{:a 5 :b 9}'] = {
         {
-            ["return {[\"a\"]=sym('a'), [\"b\"]=sym('b')}"] = true,
-            ["return {[\"b\"]=sym('b'), [\"a\"]=sym('a')}"] = true,
+            ["return {[\"a\"]=5, [\"b\"]=9}"] = true,
+            ["return {[\"b\"]=9, [\"a\"]=5}"] = true,
         },
       "quoted keyed table"
     }
@@ -509,7 +510,7 @@ local quoting_tests = {
 print("Running tests for quote / unquote...")
 for k, v in pairs(quoting_tests) do
     local compiled = fennel.compileString(k, {allowedGlobals=false})
-    local accepted = v[1]
+    local accepted, ans = v[1]
     if type(accepted) ~= 'table' then
         ans = accepted
         accepted = {}
@@ -520,10 +521,19 @@ for k, v in pairs(quoting_tests) do
     if accepted[compiled] then
         pass = pass + 1
     else
-        print(errorformat:format(message, k, value, compiled))
+        print(errorformat:format(message, k, ans, compiled))
         fail = fail + 1
     end
 end
+if pcall(fennel.eval, "`(hey)", {allowedGlobals = false}) then
+    fail = fail + 1
+    print(" Expected quoting lists to fail at runtime.")
+end
+if pcall(fennel.eval, "`[hey]", {allowedGlobals = false}) then
+    fail = fail + 1
+    print(" Expected quoting syms to fail at runtime.")
+end
+
 
 print(string.format("\n%s passes, %s failures, %s errors.", pass, fail, err))
 if(fail > 0 or err > 0) then os.exit(1) end

@@ -10,8 +10,8 @@ does not include built-in Lua functions; see the
 
 Creates a function which binds the arguments given inside the square
 brackets. Will accept any number of arguments; ones in excess of the
-declared ones are ignored, and if not enough arguments are given to
-match the declared ones, the remaining ones are `nil`.
+declared ones are ignored, and if not enough arguments are supplied to
+cover the declared ones, the remaining ones are `nil`.
 
 Example: `(fn pxy [x y] (print (+ x y)))`
 
@@ -113,14 +113,29 @@ due to having too many elements.
 ```
 
 You can also match against multiple return values using
-parentheses. (These cannot be nested.) This can be useful for error
-checking.
+parentheses. (These cannot be nested, but they can contain tables.)
+This can be useful for error checking.
 
 ```lisp
 (match (io.open "/some/file")
   (nil msg) (report-error msg)
   f (read-file f))
 ```
+
+Pattern matching performs unification, meaning that if `x` has an
+existing binding, clauses which attempt to bind it to a different
+value will not match:
+
+```lisp
+(let [x 95]
+ (match [52 85 95] 
+   [b a a] :no ; because a=85 and a=95
+   [x y z] :no ; because x=95 and x=52
+   [a b x] :yes)) ; a and b are fresh values while x=95 and x=95
+```
+
+There is a special case for `_`; it is never bound and always acts as
+a wildcard.
 
 (Note that Lua also has "patterns" which are matched against strings
 similar to how regular expressions work in other languages; these are

@@ -1977,49 +1977,59 @@ local stdmacros = [===[
                                           (or a.filename "unknown")
                                           (or a.line "?"))))))
              (list (sym "fn") (unpack args))))
-:match
+ :match
 (fn match [val ...]
-  ;; we have to assume we're matching against multiple values here
-  (fn match-pattern [vals pattern]
-    (let [[val] vals] ; but outside a multi-value pattern, we only want one val
-      (if (and (sym? pattern) ; unification with locals (or nil)
+  ;; this function takes the AST of values and a single pattern and returns a
+  ;; condition to determine if it matches as well as a list of bindings to
+  ;; introduce for the duration of the body if it does match.
+  (fn match-pattern [vals pattern unifications]
+    ;; we have to assume we're matching against multiple values here until we
+    ;; know we're either in a multi-valued clause (in which case we know the #
+    ;; of vals) or we're not, in which case we only care about the first one.
+    (let [[val] vals]
+      (if (and (sym? pattern) ; unification with outer locals (or nil)
                (or (in-scope? pattern)
                    (= :nil (tostring pattern))))
           (values (list (sym :=) val pattern) [])
 
-          ;; bind a local
-          (sym? pattern)
-          (values [] [pattern val])
+          ;; unify a local we've seen already
+          (and (sym? pattern)
+               (. unifications (tostring pattern)))
+          (values (list (sym :=) (. unifications (tostring pattern)) val) [])
 
-          ;; multi-valued patterns (lists)
+          ;; bind a fresh local
+          (sym? pattern)
+          (do (if (~= (tostring pattern) "_")
+                  (tset unifications (tostring pattern) val))
+              (values (if (: (tostring pattern) :find "^?")
+                          true (list (sym :~=) (sym :nil) val))
+                      [pattern val]))
+
+          ;; multi-valued patterns (represented as lists)
           (list? pattern)
           (let [condition (list (sym :and))
                 bindings []]
             (each [i pat (ipairs pattern)]
-              (let [(subcondition subbindings) (match-pattern [(. vals i)] pat)]
+              (let [(subcondition subbindings) (match-pattern [(. vals i)] pat
+                                                              unifications)]
                 (table.insert condition subcondition)
                 (each [_ b (ipairs subbindings)]
                   (table.insert bindings b))))
             (values condition bindings))
 
-          ;; table patterns
+          ;; table patterns)
           (= (type pattern) :table)
           (let [condition (list (sym :and)
                                 (list (sym :=) (list (sym :type) val) :table))
                 bindings []]
             (each [k pat (pairs pattern)]
-              (if (varg? pat) (error "TODO: match against varg not implemented")
-                  (sym? pat)
-                  (do (if (not (: (tostring pat) :find "^?"))
-                          (table.insert condition (list (sym :~=) (sym :nil)
-                                                        (list (sym :.) val k))))
-                      (table.insert bindings pat)
-                      (table.insert bindings (list (sym :.) val k)))
-                  (let [subval (list (sym :.) val k)
-                        (subcondition subbindings) (match-pattern [subval] pat)]
-                    (table.insert condition subcondition)
-                    (each [_ b (ipairs subbindings)]
-                      (table.insert bindings b)))))
+              (assert (not (varg? pat)) "TODO: match against varg not implemented")
+              (let [subval (list (sym :.) val k)
+                    (subcondition subbindings) (match-pattern [subval] pat
+                                                              unifications)]
+                (table.insert condition subcondition)
+                (each [_ b (ipairs subbindings)]
+                  (table.insert bindings b))))
             (values condition bindings))
 
           ;; literal value
@@ -2030,7 +2040,7 @@ local stdmacros = [===[
       (for [i 1 (# clauses) 2]
         (let [pattern (. clauses i)
               body (. clauses (+ i 1))
-              (condition bindings) (match-pattern vals pattern)]
+              (condition bindings) (match-pattern vals pattern {})]
           (table.insert out condition)
           (table.insert out (list (sym :let) bindings body))))
       out))
@@ -2054,7 +2064,7 @@ local stdmacros = [===[
     ;; many values as we ever match against in the clauses.
     (list (sym :let) [vals val]
           (match-condition vals clauses))))
-}
+ }
 ]===]
 do
     local env = makeCompilerEnv(nil, GLOBAL_SCOPE, {})

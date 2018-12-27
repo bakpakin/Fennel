@@ -360,6 +360,15 @@ local match_cases = {
     ["(match (io.open \"/does/not/exist\") (nil msg) :err f f)"]="err",
     -- last clause becomes default
     ["(match [1 2 3] [3 2 1] :no [2 9 1] :NO :default)"]="default",
+    -- intra-pattern unification
+    ["(match [1 2 3] [x y x] :no [x y z] :yes)"]="yes",
+    ["(match [1 2 1] [x y x] :yes)"]="yes",
+    ["(match (values 1 [1 2]) (x [x x]) :no (x [x y]) :yes)"]="yes",
+    -- deep nested unification
+    ["(match [1 2 [[3]]] [x y [[x]]] :no [x y z] :yes)"]="yes",
+    ["(match [1 2 [[1]]] [x y [z]] (. z 1))"]=1,
+    -- _ wildcard
+    ["(match [1 2] [_ _] :wildcard)"]="wildcard",
 }
 
 print("Running tests for pattern matching...")

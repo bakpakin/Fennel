@@ -88,7 +88,7 @@ elseif arg[1] == "--compile" then
         end
         f:close()
     end
-elseif arg[1] == "--version" then
+elseif arg[1] == "--version" or arg[1] == "-v" then
     print("Fennel " .. fennel.version)
 elseif #arg >= 1 and arg[1] ~= "--help" then
     local filename = table.remove(arg, 1) -- let the script have remaining args

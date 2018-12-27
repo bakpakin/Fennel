@@ -1650,7 +1650,7 @@ local function eval(str, options, ...)
     return loader(...)
 end
 
-local function dofile_fennel(filename, options, ...)
+local function dofileFennel(filename, options, ...)
     options = options or {sourcemap = true}
     if options.allowedGlobals == nil then
         options.allowedGlobals = currentGlobalNames(options.env)
@@ -1818,7 +1818,7 @@ local module = {
     gensym = gensym,
     eval = eval,
     repl = repl,
-    dofile = dofile_fennel,
+    dofile = dofileFennel,
     macroLoaded = macroLoaded,
     path = "./?.fnl;./?/init.fnl",
     traceback = traceback,
@@ -1844,7 +1844,7 @@ module.makeSearcher = function(options)
       local filename = searchModule(modulename)
       if filename then
          return function(modname)
-            return dofile_fennel(filename, opts, modname)
+            return dofileFennel(filename, opts, modname)
          end
       end
    end
@@ -1907,7 +1907,7 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
             local filename = assertCompile(searchModule(modname),
                                            modname .. " not found.", ast)
             local env = makeCompilerEnv(ast, scope, parent)
-            mod = dofile_fennel(filename, {
+            mod = dofileFennel(filename, {
                 env = env,
                 allowedGlobals = macroGlobals(env, currentGlobalNames())
             })

@@ -1837,7 +1837,7 @@ local function searchModule(modulename)
     end
 end
 
-module.make_searcher = function(options)
+module.makeSearcher = function(options)
    return function(modulename)
       local opts = {}
       for k,v in pairs(options or {}) do opts[k] = v end
@@ -1852,7 +1852,8 @@ end
 
 -- This will allow regular `require` to work with Fennel:
 -- table.insert(package.loaders, fennel.searcher)
-module.searcher = module.make_searcher()
+module.searcher = module.makeSearcher()
+module.make_searcher = module.makeSearcher -- oops backwards compatibility
 
 local function makeCompilerEnv(ast, scope, parent)
     return setmetatable({
@@ -1876,6 +1877,9 @@ local function makeCompilerEnv(ast, scope, parent)
         ["sym?"] = isSym,
         ["table?"] = isTable,
         ["varg?"] = isVarg,
+        ["in-scope?"] = function(symbol)
+            return scope.manglings[symbol]
+        end
     }, { __index = _ENV or _G })
 end
 
@@ -1973,7 +1977,94 @@ local stdmacros = [===[
                                           (or a.filename "unknown")
                                           (or a.line "?"))))))
              (list (sym "fn") (unpack args))))
-}
+ :match
+(fn match [val ...]
+  ;; this function takes the AST of values and a single pattern and returns a
+  ;; condition to determine if it matches as well as a list of bindings to
+  ;; introduce for the duration of the body if it does match.
+  (fn match-pattern [vals pattern unifications]
+    ;; we have to assume we're matching against multiple values here until we
+    ;; know we're either in a multi-valued clause (in which case we know the #
+    ;; of vals) or we're not, in which case we only care about the first one.
+    (let [[val] vals]
+      (if (and (sym? pattern) ; unification with outer locals (or nil)
+               (or (in-scope? pattern)
+                   (= :nil (tostring pattern))))
+          (values (list (sym :=) val pattern) [])
+
+          ;; unify a local we've seen already
+          (and (sym? pattern)
+               (. unifications (tostring pattern)))
+          (values (list (sym :=) (. unifications (tostring pattern)) val) [])
+
+          ;; bind a fresh local
+          (sym? pattern)
+          (do (if (~= (tostring pattern) "_")
+                  (tset unifications (tostring pattern) val))
+              (values (if (: (tostring pattern) :find "^?")
+                          true (list (sym :~=) (sym :nil) val))
+                      [pattern val]))
+
+          ;; multi-valued patterns (represented as lists)
+          (list? pattern)
+          (let [condition (list (sym :and))
+                bindings []]
+            (each [i pat (ipairs pattern)]
+              (let [(subcondition subbindings) (match-pattern [(. vals i)] pat
+                                                              unifications)]
+                (table.insert condition subcondition)
+                (each [_ b (ipairs subbindings)]
+                  (table.insert bindings b))))
+            (values condition bindings))
+
+          ;; table patterns)
+          (= (type pattern) :table)
+          (let [condition (list (sym :and)
+                                (list (sym :=) (list (sym :type) val) :table))
+                bindings []]
+            (each [k pat (pairs pattern)]
+              (assert (not (varg? pat)) "TODO: match against varg not implemented")
+              (let [subval (list (sym :.) val k)
+                    (subcondition subbindings) (match-pattern [subval] pat
+                                                              unifications)]
+                (table.insert condition subcondition)
+                (each [_ b (ipairs subbindings)]
+                  (table.insert bindings b))))
+            (values condition bindings))
+
+          ;; literal value
+          (values (list (sym "=") val pattern) []))))
+
+  (fn match-condition [vals clauses]
+    (let [out (list (sym :if))]
+      (for [i 1 (# clauses) 2]
+        (let [pattern (. clauses i)
+              body (. clauses (+ i 1))
+              (condition bindings) (match-pattern vals pattern {})]
+          (table.insert out condition)
+          (table.insert out (list (sym :let) bindings body))))
+      out))
+
+  ;; how many multi-valued clauses are there? return a list of that many gensyms
+  (fn val-syms [clauses]
+    (let [syms (list (gensym))]
+      (for [i 1 (# clauses) 2]
+        (if (list? (. clauses i))
+            (each [valnum (ipairs (. clauses i))]
+              (if (not (. syms valnum))
+                  (tset syms valnum (gensym))))))
+      syms))
+
+  ;; wrap it in a way that prevents double-evaluation of the matched value
+  (let [clauses [...]
+        vals (val-syms clauses)]
+    (if (~= 0 (% (# clauses) 2)) ; treat odd final clause as default
+        (table.insert clauses (# clauses) (sym :_)))
+    ;; protect against multiple evaluation of the value, bind against as
+    ;; many values as we ever match against in the clauses.
+    (list (sym :let) [vals val]
+          (match-condition vals clauses))))
+ }
 ]===]
 do
     local env = makeCompilerEnv(nil, GLOBAL_SCOPE, {})

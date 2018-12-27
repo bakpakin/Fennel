@@ -10,8 +10,8 @@ does not include built-in Lua functions; see the
 
 Creates a function which binds the arguments given inside the square
 brackets. Will accept any number of arguments; ones in excess of the
-declared ones are ignored, and if not enough arguments are given to
-match the declared ones, the remaining ones are `nil`.
+declared ones are ignored, and if not enough arguments are supplied to
+cover the declared ones, the remaining ones are `nil`.
 
 Example: `(fn pxy [x y] (print (+ x y)))`
 
@@ -71,6 +71,76 @@ Example: `(local lume (require "lume"))`
 
 Supports destructuring and multiple-value binding.
 
+### `match` pattern matching
+
+Evaluates its first argument, then searches thru the subsequent
+pattern/body clauses to find one where the pattern matches the value,
+and evaluates the corresponding body. Pattern matching can be thought
+of as a combination of destructuring and conditionals.
+
+Example:
+
+```lisp
+(match mytable
+  59      :will-never-match-hopefully
+  [9 q 5] (print :q q)
+  [1 a b] (+ a b))
+```
+
+In the example above, we have a `mytable` value followed by three
+pattern/body clauses. The first clause will only match if `mytable`
+is 59. The second clause will match if `mytable` is a table with 9 as
+its first element and 5 as its third element; if it matches, then it
+evaluates `(print :q q)` with `q` bound to the second element of
+`mytable`. The final clause will only match if `mytable` has 1 as its
+first element; if so then it will add up the second and third elements.
+
+Patterns can be tables, literal values, or symbols. If a symbol has
+already been bound, then the value is checked against the existing
+local's value, but if it's a new local then the symbol is bound to the
+value. 
+
+Tables can be nested, and they may be either sequential (`[]` style)
+or key/value (`{}` style) tables. Sequential tables will match if they
+have at least as many elements as the pattern. (To allow an element to
+be nil, use a symbol like `?this`.) Tables will never fail to match
+due to having too many elements.
+
+```lisp
+(match mytable
+  {:subtable [a b ?c] :depth depth} (* b depth)
+  _ :unknown)
+```
+
+You can also match against multiple return values using
+parentheses. (These cannot be nested, but they can contain tables.)
+This can be useful for error checking.
+
+```lisp
+(match (io.open "/some/file")
+  (nil msg) (report-error msg)
+  f (read-file f))
+```
+
+Pattern matching performs unification, meaning that if `x` has an
+existing binding, clauses which attempt to bind it to a different
+value will not match:
+
+```lisp
+(let [x 95]
+ (match [52 85 95] 
+   [b a a] :no ; because a=85 and a=95
+   [x y z] :no ; because x=95 and x=52
+   [a b x] :yes)) ; a and b are fresh values while x=95 and x=95
+```
+
+There is a special case for `_`; it is never bound and always acts as
+a wildcard.
+
+(Note that Lua also has "patterns" which are matched against strings
+similar to how regular expressions work in other languages; these are
+two distinct concepts with similar names.)
+
 ### `global` set global variable
 
 Sets a global variable to a new value. Note that there is no
@@ -115,6 +185,7 @@ Example: `(let [tbl {:d 32} field :d] (tset tbl field 19) tbl)` -> `{:d 19}`
 You can provide multiple successive field names to perform nested sets.
 
 ### multiple value binding
+
 In any of the above contexts where you can make a new binding, you
 can use multiple value binding. Otherwise you will only capture the first
 value.

@@ -1,0 +1,71 @@
+.TH FENNEL 1
+
+.SH NAME
+fennel \- a lisp programming language that runs on Lua
+.SH SYNOPSIS
+.B fennel
+[\fB--repl\fR] | 
+[\fB--compile \fIfilename\fR] | 
+[\fIfilename\fP] [\fIargs ...\fR]
+
+.SH DESCRIPTION
+This manual page documents briefly the
+.B fennel
+command.
+.PP
+.B fennel
+is the main entry point for Fennel, a lisp programming language that
+runs on Lua runtimes. With no options or arguments, it runs an
+interactive Read-Eval-Print loop (REPL).
+.PP
+Given a filename as its first argument, it runs that file and passes
+it the subsequent arguments. Ahead-of-time compilation can be invoked
+with the
+.B --compile
+flag.
+
+.SH OPTIONS
+A summary of options is included below.
+.TP
+.B \-\-repl
+Start an interactive repl session.
+.TP
+.B \-\-compile \fIfilename\fP
+Perform ahead-of-time compilation on the provided file and write the
+Lua output to stdout.
+.TP
+.B \-\-indent \fIval\fP
+When compiling, use the given string as indentation for the compiler
+output. This should consist of whitespace.
+.TP
+.B \-\-no-searcher
+When running a repl or a file,
+.B fennel.searcher
+is installed by default so that the
+.B require
+function can load Fennel files in addition to Lua files. This flag
+disables that behavior. Has no effect for ahead-of-time compilation.
+.TP
+.B \-v, \-\-version
+Print the version number and exit
+.TP
+.B \-h, \-?, \-\-help
+Print a help message and exit
+
+.SH DOCUMENTATION
+
+See https://fennel-lang.org for documentation on Fennel. The syntax is
+based on the lisp family of languages while the semantics are very
+close to Lua, so Lua's reference manual is helpful.
+
+.SH COMMUNITY
+
+The mailing list is at https://lists.sr.ht/~technomancy/fennel while
+the issue tracker is at https://github.com/bakpakin/Fennel/issues.
+
+.SH AUTHOR
+Calvin Rose and contributors:
+https://github.com/bakpakin/Fennel/graphs/contributors
+
+.SH LICENSE
+Copyright © 2016-2018, Released under the MIT/X11 license

@@ -74,8 +74,8 @@ on subsequent calls, while `fennel.dofile` will reload each time. The
 behavior of `fennel.path` mirrors that of Lua's `package.path`.
 
 If you install Fennel into `package.loaders` then you can use the
-3rd-party [lume.hotswap](https://github.com/rxi/lume#lumehotswapmodname) 
-function to reload modules that have been loaded with `require`.
+3rd-party [lume.hotswap][1] function to reload modules that have been
+loaded with `require`.
 
 ### Compile a string into Lua (can throw errors)
 
@@ -141,3 +141,5 @@ for ok, value in valuestream do
     print(ok, value)
 end
 ```
+
+[1]: https://github.com/rxi/lume#lumehotswapmodname

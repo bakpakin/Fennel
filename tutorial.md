@@ -4,18 +4,14 @@ A programming language is made up of **syntax** and **semantics**. The
 semantics of Fennel vary only in small ways from Lua (all noted
 below). The syntax of Fennel comes from the lisp family of
 languages. Lisps have syntax which is very uniform and predictable,
-which makes it easier to
-[write code that operates on code](http://www.defmacro.org/ramblings/lisp.html)
-as well as
-[structured editing](http://danmidwood.com/content/2014/11/21/animated-paredit.html).
+which makes it easier to [write code that operates on code][1] as well as
+[structured editing][2].
 
-If you know Lua and a lisp already, you'll feel right at home in
-Fennel. Even if not, Lua is one of the simplest programming languages
-in existence, so if you've programmed before you should be able to
-pick it up without too much trouble, especially if you've used another
-dynamic imperative language with closures. The
-[Lua reference manual](https://www.lua.org/manual/5.1/) is a fine place to
-look for details.
+If you know Lua and a lisp already, you'll feel right at home in Fennel. Even
+if not, Lua is one of the simplest programming languages in existence, so if
+you've programmed before you should be able to pick it up without too much
+trouble, especially if you've used another dynamic imperative language with
+closures. The [Lua reference manual][3] is a fine place to look for details.
 
 ## OK, so how do you do things?
 
@@ -112,9 +108,7 @@ underscores have no effect on the output.
 ```
 
 Strings are essentially immutable byte arrays. UTF-8 support is
-provided from a
-[3rd-party library](https://github.com/Stepets/utf8.lua). Strings are
-concatenated with `..`:
+provided from a [3rd-party library][4]. Strings are concatenated with `..`:
 
 ```lisp
 (.. "hello" " world")
@@ -199,7 +193,7 @@ positions between nil and non-nil values.
 Lua's standard library is very small, and thus several functions you might
 expect to be included are only found in 3rd-party libraries. For instance,
 finding the index in a table given a value is done by `lume.find` in the
-[Lume](https://github.com/rxi/lume) library.
+[Lume][5] library.
 
 ### Iteration
 
@@ -219,9 +213,8 @@ property of the table but depends on which iterator is used with it.
 You can call `ipairs` on any table, and it will only iterate
 over numeric keys starting with 1 until it hits a `nil`.
 
-You can use any [Lua iterator](https://www.lua.org/pil/7.1.html) with
-`each`, but these are the most common. Here's an example that walks
-through [matches in a string](https://www.lua.org/manual/5.1/manual.html#pdf-string.gmatch):
+You can use any [Lua iterator][6] with `each`, but these are the most
+common. Here's an example that walks through [matches in a string][7]:
 
 ```lisp
 (var sum 0)
@@ -450,7 +443,7 @@ runtime overhead over Lua.
   depending on your Lua version) instead: `(f 1 3 (unpack [4 9])`.
 
 * Tables are compared for identity, not based on the value of their
-  contents, as per [Baker](http://home.pipeline.com/%7Ehbaker1/ObjectIdentity.html).
+  contents, as per [Baker][8].
 
 * Return values in the default repl will get pretty-printed, but
   calling `(print tbl)` will emit output like `table: 0x55a3a8749ef0`.
@@ -461,25 +454,22 @@ runtime overhead over Lua.
 
 * Lua's standard library is quite small, and so common functions like
   `map`, `reduce`, and `filter` are absent. It's recommended to pull
-  in something like [Lume](https://github.com/rxi/lume) or
-  [luafun](https://luafun.github.io/) for those.
+  in something like [Lume][5] or [luafun][9] for those.
 
 * Lua programmers should note Fennel functions cannot do early returns.
 
 ## Other stuff just works
 
-Note that built-in functions in
-[Lua's standard library](https://www.lua.org/manual/5.1/manual.html#5)
-like `math.random` above can be called with no fuss and no overhead.
+Note that built-in functions in [Lua's standard library][10] like `math.random`
+above can be called with no fuss and no overhead.
 
 This includes features like coroutines, which are usually implemented
 using special syntax in other languages. Coroutines
-[let you express non-blocking operations without callbacks](http://leafo.net/posts/itchio-and-coroutines.html).
+[let you express non-blocking operations without callbacks][11].
 
-Tables in Lua may seem a bit limited, but
-[metatables](http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/)
-allow a great deal more flexibility. All the features of metatables
-are accessible from Fennel code just the same as they would be from Lua.
+Tables in Lua may seem a bit limited, but [metatables][12] allow a great deal
+more flexibility. All the features of metatables are accessible from Fennel
+code just the same as they would be from Lua.
 
 ## Modules and multiple files
 
@@ -539,7 +529,7 @@ inside your application or support reloading from disk, allowing a
 much more pleasant interactive development cycle.
 
 Here is an example of embedding the Fennel compiler inside a
-[LÖVE](https://love2d.org) game written in Lua to allow live reloads:
+[LÖVE][13] game written in Lua to allow live reloads:
 
 ```lua
 local fennel = require("fennel")
@@ -576,3 +566,17 @@ add `fennelview.fnl` then when you use a Fennel repl you'll get results
 rendered much more nicely. Running `(local view (require :fennelview))`
 will get you a `view` function which turns any table into a fennel-syntax
 string rendering of that table for debugging.
+
+[1]: http://www.defmacro.org/ramblings/lisp.html
+[2]: http://danmidwood.com/content/2014/11/21/animated-paredit.html
+[3]: https://www.lua.org/manual/5.1/
+[4]: https://github.com/Stepets/utf8.lua
+[5]: https://github.com/rxi/lume
+[6]: https://www.lua.org/pil/7.1.html
+[7]: https://www.lua.org/manual/5.1/manual.html#pdf-string.gmatch
+[8]: http://home.pipeline.com/%7Ehbaker1/ObjectIdentity.html
+[9]: https://luafun.github.io/
+[10]: https://www.lua.org/manual/5.1/manual.html#5
+[11]: http://leafo.net/posts/itchio-and-coroutines.html
+[12]: http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/
+[13]: https://love2d.org

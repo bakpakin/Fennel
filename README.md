@@ -1,7 +1,8 @@
 # Fennel
 
-[Fennel](https://fennel-lang.org) (formerly fnl) is a lisp that compiles to Lua. It aims to be easy to use, expressive, and has almost
-zero overhead compared to handwritten Lua.
+[Fennel][1] (formerly fnl) is a lisp that compiles to Lua. It aims to
+be easy to use, expressive, and has almost zero overhead compared to
+handwritten Lua.
 
 * *Full Lua compatibility* - You can use any function or library from Lua.
 * *Zero overhead* - Compiled code should be just as or more efficient than hand-written Lua.
@@ -18,7 +19,7 @@ zero overhead compared to handwritten Lua.
 * The [test suite](test.lua) has basic usage examples for most features.
 
 For a small complete example that uses the LÖVE game engine, see
-[pong.fnl](https://p.hagelb.org/pong.fnl.html).
+[pong.fnl][2].
 
 The [changelog](changelog.md) has a list of user-visible changes for
 each release.
@@ -42,12 +43,11 @@ each release.
 
 ## Usage
 
-At [https://fennel-lang.org](https://fennel-lang.org) there's a live
-in-browser repl you can use without installing anything.
+At [https://fennel-lang.org][1] there's a live in-browser repl you can
+use without installing anything.
 
 Check your OS's package manager to see if Fennel is available
-there. If you use [LuaRocks](https://luarocks.org/) you can run
-`luarocks install fennel`.
+there. If you use [LuaRocks][3] you can run `luarocks install fennel`.
 
 Otherwise clone this repository, and run `./fennel` to start a
 repl. Use `./fennel my-file.fnl` to run code or `./fennel --compile
@@ -69,7 +69,7 @@ See the [API documentation](api.md) for how to embed Fennel in your program.
 ## Differences from other lisp languages
 
 * Lua VM can be embedded in other programs with only 180kb
-* Access to [excellent FFI](http://luajit.org/ext_ffi_tutorial.html)
+* Access to [excellent FFI][4]
 * LuaJIT consistently ranks at the top of performance shootouts
 * Inherits aggressively simple semantics from Lua; easy to learn
 * Lua VM is already embedded in databases, window managers, games, etc
@@ -80,14 +80,24 @@ See the [API documentation](api.md) for how to embed Fennel in your program.
 
 ## Resources
 
-* [Mailing list](https://lists.sr.ht/%7Etechnomancy/fennel)
-* [Emacs support](https://gitlab.com/technomancy/fennel-mode)
-* [Wiki](https://github.com/bakpakin/Fennel/wiki)
-* Build: [![CircleCI](https://circleci.com/gh/bakpakin/Fennel.svg?style=svg)](https://circleci.com/gh/bakpakin/Fennel)
-* The `#fennel` IRC channel is [on Freenode](https://webchat.freenode.net/)
+* [Mailing list][5]
+* [Emacs support][6]
+* [Wiki][7]
+* Build: [![CircleCI](https://circleci.com/gh/bakpakin/Fennel.svg?style=svg)][8]
+* The `#fennel` IRC channel is [on Freenode][9]
 
 ## License
 
 Copyright © 2016-2018 Calvin Rose and contributors
 
 Released under the MIT license
+
+[1]: https://fennel-lang.org
+[2]: https://p.hagelb.org/pong.fnl.html
+[3]: https://luarocks.org/
+[4]: http://luajit.org/ext_ffi_tutorial.html
+[5]: https://lists.sr.ht/%7Etechnomancy/fennel
+[6]: https://gitlab.com/technomancy/fennel-mode
+[7]: https://github.com/bakpakin/Fennel/wiki
+[8]: https://circleci.com/gh/bakpakin/Fennel
+[9]: https://webchat.freenode.net/

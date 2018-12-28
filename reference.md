@@ -2,7 +2,7 @@
 
 These are all the special forms recognized by the Fennel compiler. It
 does not include built-in Lua functions; see the
-[Lua reference manual](https://www.lua.org/manual/5.1/) for that.
+[Lua reference manual][1] for that.
 
 ## Functions
 
@@ -500,3 +500,5 @@ functionality is visible to your Fennel code:
 
 Note that other internals of the compiler exposed in compiler scope are
 subject to change.
+
+[1]: https://www.lua.org/manual/5.1/

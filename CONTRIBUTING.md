@@ -19,8 +19,7 @@ Please read this document before making contributions.
 ## Contributing Changes
 
 If you want to contribute code to the project, please
-[send patches](https://man.sr.ht/git.sr.ht/send-email.md) to the
-[mailing list](https://lists.sr.ht/%7Etechnomancy/fennel). Note that
+[send patches][1] to the [mailing list][2]. Note that
 you do not need to subscribe to the mailing list in order to post to it!
 
 Alternately you may open a pull request on GitHub.
@@ -55,3 +54,5 @@ case for your changes before opening an issue.
 * Include descriptions of potential solutions if you have some in mind.
 * Add the appropriate tags to the issue. For new features, add the `enhancement` tag.
 
+[1]: https://man.sr.ht/git.sr.ht/send-email.md
+[2]: https://lists.sr.ht/%7Etechnomancy/fennel

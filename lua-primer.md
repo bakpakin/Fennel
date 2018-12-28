@@ -1,9 +1,9 @@
 # Lua Primer
 
-While the [Lua reference manual](https://www.lua.org/manual/5.1/) is
-indispensable, here are the most important parts of Lua you'll need to
-get started. This is meant to give a very brief overview and let you
-know where in the manual to look for further details, not to teach Lua.
+While the [Lua reference manual][1] is indispensable, here are the
+most important parts of Lua you'll need to get started. This is meant
+to give a very brief overview and let you know where in the manual to
+look for further details, not to teach Lua.
 
 ## Important functions
 
@@ -40,21 +40,17 @@ after the specified index. To remove something from a non-sequential
 table simply set the field to `nil`.
 
 Note that Lua does not implement regular expressions but its own more
-limited [pattern](https://www.lua.org/pil/20.2.html) language for
-`string.find`, `string.match`, etc.
+limited [pattern][2] language for `string.find`, `string.match`, etc.
 
 ## Advanced
 
 * `getfenv`/`setfenv`: access to first-class function environments in
-  Lua 5.1; in 5.2 onward use
-  [the _ENV table](http://leafo.net/guides/setfenv-in-lua52-and-above.html)
-  instead
+  Lua 5.1; in 5.2 onward use [the _ENV table][3] instead
 * `getmetatable`/`setmetatable`: metatables allow you to
-  [override the behavior of tables](https://www.lua.org/pil/13.html)
+  [override the behavior of tables][4]
   in flexible ways with functions of your choice
 * `coroutine`: the coroutine module allows you to do
-  [flexible control transfer](http://leafo.net/posts/itchio-and-coroutines.html)
-  in a first-class way
+  [flexible control transfer][5] in a first-class way
 * `package`: this module tracks and controls the loading of modules
 * `arg`: table of command-line arguments passed to the process
 * `...`: arguments passed to the current function; acts as multiple values
@@ -82,3 +78,9 @@ These are used for loading Lua code. The `load*` functions return a
 * `debug`: see the Lua manual for this module
 * `next`: needed for implementing your own iterators
 * `rawequal`/`rawget`/`rawlen`/`rawset`: operations which bypass metatables
+
+[1]: https://www.lua.org/manual/5.1/
+[2]: https://www.lua.org/pil/20.2.html
+[3]: http://leafo.net/guides/setfenv-in-lua52-and-above.html
+[4]: https://www.lua.org/pil/13.html
+[5]: http://leafo.net/posts/itchio-and-coroutines.html

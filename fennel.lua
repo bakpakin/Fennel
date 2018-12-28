@@ -168,12 +168,18 @@ end
 local function issymbolchar(b)
     return b > 32 and
         not delims[b] and
-        b ~= 127 and
-        b ~= 34 and
-        b ~= 39 and
-        b ~= 59 and
-        b ~= 44
+        b ~= 127 and -- "<BS>"
+        b ~= 34 and -- "\""
+        b ~= 39 and -- "'"
+        b ~= 59 and -- ";"
+        b ~= 44 and -- ","
+        b ~= 96 -- "`"
 end
+
+local prefixes = { -- prefix chars substituted while reading
+    [96] = 'quote', -- `
+    [64] = 'unquote' -- @
+}
 
 -- Parse one value given a function that
 -- returns sequential bytes. Will throw an error as soon
@@ -211,7 +217,7 @@ local function parser(getbyte, filename)
     end
 
     -- Parse stream
-    return function ()
+    return function()
 
         -- Dispatch when we complete a value
         local done, retval
@@ -219,6 +225,10 @@ local function parser(getbyte, filename)
             if #stack == 0 then
                 retval = v
                 done = true
+            elseif stack[#stack].prefix then
+                local stacktop = stack[#stack]
+                stack[#stack] = nil
+                return dispatch(list(sym(stacktop.prefix), v))
             else
                 table.insert(stack[#stack], v)
             end
@@ -298,6 +308,10 @@ local function parser(getbyte, filename)
                 local formatted = raw:gsub("[\1-\31]", function (c) return '\\' .. c:byte() end)
                 local loadFn = loadCode(('return %s'):format(formatted), nil, filename)
                 dispatch(loadFn())
+            elseif prefixes[b] then -- expand prefix byte into wrapping form eg. '`a' into '(quote a)'
+                table.insert(stack, {
+                    prefix = prefixes[b]
+                })
             else -- Try symbol
                 local chars = {}
                 local bytestart = byteindex
@@ -314,7 +328,7 @@ local function parser(getbyte, filename)
                     dispatch(rawstr:sub(2))
                 else
                     local forceNumber = rawstr:match('^%d')
-		    local numberWithStrippedUnderscores = rawstr:gsub("_", "")
+                    local numberWithStrippedUnderscores = rawstr:gsub("_", "")
                     local x
                     if forceNumber then
                         x = tonumber(numberWithStrippedUnderscores) or
@@ -1530,6 +1544,88 @@ local function compile(ast, options)
     return flatten(chunk, options)
 end
 
+-- map a function across all pairs in a table
+local function quoteTmap(f, t)
+    local res = {}
+    for k,v in pairs(t) do
+        local nk, nv = f(k, v)
+        if nk then
+            res[nk] = nv
+        end
+    end
+    return res
+end
+
+-- make a transformer for key / value table pairs, preserving all numeric keys
+local function entryTransform(fk,fv)
+    return function(k, v)
+        if type(k) == 'number' then
+            return k,fv(v)
+        else
+            return fk(k),fv(v)
+        end
+    end
+end
+
+-- consume everything return nothing
+local function no() end
+
+local function mixedConcat(t, joiner)
+    local ret = ""
+    local s = ""
+    local seen = {}
+    for k,v in ipairs(t) do
+        table.insert(seen, k)
+        ret = ret .. s .. v
+        s = joiner
+    end
+    for k,v in pairs(t) do
+        if not(seen[k]) then
+            ret = ret .. s .. '[' .. k .. ']' .. '=' .. v
+            s = joiner
+        end
+    end
+    return ret
+end
+
+-- expand a quoted form into a data literal, evaluating unquote
+local function doQuote (form, scope, parent, runtime)
+    local q = function (x) return doQuote(x, scope, parent, runtime) end
+    -- symbol
+    if isSym(form) then
+        return ("sym('%s')"):format(deref(form))
+    -- unquote
+    elseif isList(form) and isSym(form[1]) and (deref(form[1]) == 'unquote') then
+        local payload = form[2]
+        local res = unpack(compile1(payload, scope, parent))
+        return res[1]
+    -- list
+    elseif isList(form) then
+        assertCompile(not runtime, "lists may only be used at compile time", form)
+        local mapped = quoteTmap(entryTransform(no, q), form)
+        return 'list(' .. mixedConcat(mapped, ", ") .. ')'
+    -- table
+    elseif type(form) == 'table' then
+        local mapped = quoteTmap(entryTransform(q, q), form)
+        return '{' .. mixedConcat(mapped, ", ") .. '}'
+    -- string
+    elseif type(form) == 'string' then
+        return serializeString(form)
+    else
+        return tostring(form)
+    end
+end
+
+SPECIALS['quote'] = function(ast, scope, parent)
+    assertCompile(#ast == 2, "quote only takes a single form")
+    local runtime, thisScope = true, scope
+    while thisScope do
+        thisScope = thisScope.parent
+        if thisScope == COMPILER_SCOPE then runtime = false end
+    end
+    return doQuote(ast[2], scope, parent, runtime)
+end
+
 local function compileStream(strm, options)
     options = options or {}
     local oldGlobals = allowedGlobals
@@ -1910,6 +2006,7 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
             local env = makeCompilerEnv(ast, scope, parent)
             mod = dofileFennel(filename, {
                 env = env,
+                scope = COMPILER_SCOPE,
                 allowedGlobals = macroGlobals(env, currentGlobalNames())
             })
             macroLoaded[modname] = mod

@@ -1,7 +1,7 @@
 ;; A pretty-printer that outputs tables in Fennel syntax.
 ;; Loosely based on inspect.lua: http://github.com/kikito/inspect.lua
 
-(local quote (fn [str] (.. '"' (: str :gsub '"' '\\"') '"')))
+(local view-quote (fn [str] (.. '"' (: str :gsub '"' '\\"') '"')))
 
 (local short-control-char-escapes
        {"\a" "\\a" "\b" "\\b" "\f" "\\f" "\n" "\\n"
@@ -136,7 +136,7 @@
 (set put-value (fn [self v]
                  (let [tv (type v)]
                    (if (= tv "string")
-                       (puts self (quote (escape v)))
+                       (puts self (view-quote (escape v)))
                        (or (= tv "number") (= tv "boolean") (= tv "nil"))
                        (puts self (tostring v))
                        (= tv "table")

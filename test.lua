@@ -254,6 +254,8 @@ local cases = {
         -- nesting quote can only happen in the compiler
         ["(eval-compiler (set tbl.nest ``nest))\
           (tostring tbl.nest)"]="(quote, nest)",
+        -- inline macros
+        ["(macros {:plus (fn [x y] `(+ @x @y))}) (plus 9 9)"]=18,
     },
     match = {
         -- basic literal

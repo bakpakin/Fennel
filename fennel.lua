@@ -2013,38 +2013,49 @@ local function macroGlobals(env, globals)
     return allowed
 end
 
-SPECIALS['require-macros'] = function(ast, scope, parent)
-    for i = 2, #ast do
-        local modname = ast[i]
-        local mod
-        if macroLoaded[modname] then
-            mod = macroLoaded[modname]
-        else
-            local filename = assertCompile(searchModule(modname),
-                                           modname .. " not found.", ast)
-            local env = makeCompilerEnv(ast, scope, parent)
-            mod = dofileFennel(filename, {
-                env = env,
-                scope = COMPILER_SCOPE,
-                allowedGlobals = macroGlobals(env, currentGlobalNames())
-            })
-            macroLoaded[modname] = mod
-        end
-        for k, v in pairs(assertCompile(isTable(mod), 'expected ' .. modname ..
-                                        ' module to be table', ast)) do
-            if allowedGlobals then table.insert(allowedGlobals, k) end
-            scope.specials[k] = macroToSpecial(v)
-        end
+local function addMacros(macros, ast, scope, parent)
+    assertCompile(isTable(macros), 'expected macros to be table', ast)
+    for k, v in pairs(macros) do
+        scope.specials[k] = macroToSpecial(v)
     end
+end
+
+local function loadMacros(modname, ast, scope, parent)
+    local filename = assertCompile(searchModule(modname),
+                                   modname .. " not found.", ast)
+    local env = makeCompilerEnv(ast, scope, parent)
+    local globals = macroGlobals(env, currentGlobalNames())
+    return dofileFennel(filename, { env = env, allowedGlobals = globals,
+                                    scope = COMPILER_SCOPE })
+end
+
+SPECIALS['require-macros'] = function(ast, scope, parent)
+    assertCompile(#ast == 2, "Expected one module name argument", ast)
+    local modname = ast[2]
+    if not macroLoaded[modname] then
+        macroLoaded[modname] = loadMacros(modname, ast, scope, parent)
+    end
+    addMacros(macroLoaded[modname], ast, scope, parent)
+end
+
+local function evalCompiler(ast, scope, parent)
+    local luaSource = compile(ast, { scope = makeScope(COMPILER_SCOPE) })
+    local loader = loadCode(luaSource, wrapEnv(makeCompilerEnv(ast, scope, parent)))
+    return loader()
+end
+
+SPECIALS['macros'] = function(ast, scope, parent)
+    assertCompile(#ast == 2, "Expected one table argument", ast)
+    local macros = evalCompiler(ast[2], scope, parent)
+    addMacros(macros, ast, scope, parent)
 end
 
 SPECIALS['eval-compiler'] = function(ast, scope, parent)
     local oldFirst = ast[1]
     ast[1] = sym('do')
-    local luaSource = compile(ast, { scope = makeScope(COMPILER_SCOPE) })
+    local val = evalCompiler(ast, scope, parent)
     ast[1] = oldFirst
-    local loader = loadCode(luaSource, wrapEnv(makeCompilerEnv(ast, scope, parent)))
-    loader()
+    return val
 end
 
 -- Load standard macros

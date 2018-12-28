@@ -2,6 +2,7 @@
 
 ## 0.2.0 / ???
 
+* Support key/value tables when destructuring
 * Add `match` macro for pattern matching
 * Add optional GNU readline support for repl
 * Fix a bug where runtime errors were not reported by launcher correctly

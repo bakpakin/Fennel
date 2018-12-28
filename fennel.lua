@@ -918,16 +918,17 @@ local function destructure(to, from, ast, scope, parent, opts)
         elseif isTable(left) then -- table destructuring
             local s = gensym(scope)
             emit(parent, ("local %s = %s"):format(s, exprs1(rightexprs)), left)
-            for i, v in ipairs(left) do
-                if isSym(left[i]) and left[i][1] == "&" then
-                    assertCompile(not left[i+2],
+            for k, v in pairs(left) do
+                if isSym(left[k]) and left[k][1] == "&" then
+                    assertCompile(type(k) == "number" and not left[k+2],
                         "expected rest argument in final position", left)
-                    local subexpr = expr(('{(table.unpack or unpack)(%s, %s)}'):format(s, i),
+                    local subexpr = expr(('{(table.unpack or unpack)(%s, %s)}'):format(s, k),
                         'expression')
-                    destructure1(left[i+1], {subexpr}, left)
+                    destructure1(left[k+1], {subexpr}, left)
                     return
                 else
-                    local subexpr = expr(('%s[%d]'):format(s, i), 'expression')
+                    if type(k) ~= "number" then k = serializeString(k) end
+                    local subexpr = expr(('%s[%s]'):format(s, k), 'expression')
                     destructure1(v, {subexpr}, left)
                 end
             end

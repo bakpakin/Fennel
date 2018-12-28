@@ -55,11 +55,13 @@ an inner `let` or `local`. Outside the body of the `let`, the bindings
 it introduces are no longer visible.
 
 Any time you bind a local, you can destructure it if the value is a
-sequential table or a function call which returns multiple values:
+table or a function call which returns multiple values:
 
 Example: `(let [[a b c] [1 2 3]] (+ a b c))` -> `6`
 
 Example: `(let [(x y z) (unpack [10 9 8])] (+ x y z))` -> `27`
+
+Example: `(let [{:msg msg :val val} (returns-a-table)] (print msg) val)`
 
 ### `local` declare local
 

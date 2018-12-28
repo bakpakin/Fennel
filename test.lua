@@ -181,6 +181,10 @@ local cases = {
         ["((fn dest [a [b c] [d]] (+ a b c d)) 5 [9 7] [2])"]=23,
         -- each
         ["(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x"]=14,
+        -- key/value destructuring
+        ["(let [{:a x :b y} {:a 2 :b 4}] (+ x y))"]=6,
+        -- nesting k/v and sequential
+        ["(let [{:a [x y z]} {:a [1 2 4]}] (+ x y z))"]=7,
     },
 
     loops = {

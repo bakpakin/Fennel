@@ -292,11 +292,11 @@ You can also use this syntax with `set`:
   tbl) ; -> {:one 1 :two 2}
 ```
 
-Finally, `let` can destructure a sequential table into multiple locals:
+Finally, `let` can destructure a table into multiple locals:
 
 ```lisp
-(let [f (fn [] ["abc" "def" "xyz"])
-      [a d x] (f)]
+(let [f (fn [] ["abc" "def" {:x "xyz"}])
+      [a d {:x x}] (f)]
   (print a)
   (print d)
   (print x))

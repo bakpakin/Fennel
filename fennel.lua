@@ -2063,10 +2063,10 @@ local stdmacros = [===[
                    el (table.remove els 1)
                    tmp (gensym)]
                (table.insert el 2 tmp)
-               (list (sym :let) [tmp val]
-                     (list (sym :if) tmp
-                           (list (sym :-?>) el (unpack els))
-                           tmp)))))
+               `(let [@tmp @val]
+                  (if @tmp
+                      (-?> @el @(unpack els))
+                      @tmp)))))
  "-?>>" (fn [val ...]
           (if (= 0 (# [...]))
               val
@@ -2074,13 +2074,13 @@ local stdmacros = [===[
                     el (table.remove els 1)
                     tmp (gensym)]
                 (table.insert el tmp)
-                (list (sym :let) [tmp val]
-                      (list (sym :if) tmp
-                            (list (sym :-?>>) el (unpack els))
-                            tmp)))))
+                `(let [@tmp @val]
+                   (if @tmp
+                       (-?>> @el @(unpack els))
+                       @tmp)))))
  :doto (fn [val ...]
          (let [name (gensym)
-               form (list (sym :let) [name val])]
+               form `(let [@name @val])]
            (each [_ elt (pairs [...])]
              (table.insert elt 2 name)
              (table.insert form elt))
@@ -2088,12 +2088,12 @@ local stdmacros = [===[
            form))
  :when (fn [condition body1 ...]
          (assert body1 "expected body")
-         (list (sym 'if') condition
-               (list (sym 'do') body1 ...)))
+         `(if @condition
+              (do @body1 @...)))
  :partial (fn [f ...]
             (let [body (list f ...)]
               (table.insert body _VARARG)
-              (list (sym "fn") [_VARARG] body)))
+              `(fn [@_VARARG] @body)))
  :lambda (fn [...]
            (let [args [...]
                  has-internal-name? (sym? (. args 1))
@@ -2104,13 +2104,12 @@ local stdmacros = [===[
                (if (and (not (: (tostring a) :match "^?"))
                         (~= (tostring a) "..."))
                    (table.insert args arity-check-position
-                                 (list (sym "assert")
-                                       (list (sym "~=") (sym "nil") a)
-                                       (: "Missing argument %s on %s:%s"
-                                          :format (tostring a)
-                                          (or a.filename "unknown")
-                                          (or a.line "?"))))))
-             (list (sym "fn") (unpack args))))
+                                 `(assert (~= nil @a)
+                                          (: "Missing argument %s on %s:%s"
+                                             :format @(tostring a)
+                                             @(or a.filename "unknown")
+                                             @(or a.line "?"))))))
+             `(fn @(unpack args))))
  :match
 (fn match [val ...]
   ;; this function takes the AST of values and a single pattern and returns a
@@ -2124,24 +2123,24 @@ local stdmacros = [===[
       (if (and (sym? pattern) ; unification with outer locals (or nil)
                (or (in-scope? pattern)
                    (= :nil (tostring pattern))))
-          (values (list (sym :=) val pattern) [])
+          (values `(= @val @pattern) [])
 
           ;; unify a local we've seen already
           (and (sym? pattern)
                (. unifications (tostring pattern)))
-          (values (list (sym :=) (. unifications (tostring pattern)) val) [])
+          (values `(= @(. unifications (tostring pattern)) @val) [])
 
           ;; bind a fresh local
           (sym? pattern)
           (do (if (~= (tostring pattern) "_")
                   (tset unifications (tostring pattern) val))
               (values (if (: (tostring pattern) :find "^?")
-                          true (list (sym :~=) (sym :nil) val))
+                          true `(~= @(sym :nil) @val))
                       [pattern val]))
 
           ;; multi-valued patterns (represented as lists)
           (list? pattern)
-          (let [condition (list (sym :and))
+          (let [condition `(and)
                 bindings []]
             (each [i pat (ipairs pattern)]
               (let [(subcondition subbindings) (match-pattern [(. vals i)] pat
@@ -2153,12 +2152,11 @@ local stdmacros = [===[
 
           ;; table patterns)
           (= (type pattern) :table)
-          (let [condition (list (sym :and)
-                                (list (sym :=) (list (sym :type) val) :table))
+          (let [condition `(and (= (type @val) :table))
                 bindings []]
             (each [k pat (pairs pattern)]
               (assert (not (varg? pat)) "TODO: match against varg not implemented")
-              (let [subval (list (sym :.) val k)
+              (let [subval `(. @val @k)
                     (subcondition subbindings) (match-pattern [subval] pat
                                                               unifications)]
                 (table.insert condition subcondition)
@@ -2167,16 +2165,16 @@ local stdmacros = [===[
             (values condition bindings))
 
           ;; literal value
-          (values (list (sym "=") val pattern) []))))
+          (values `(= @val @pattern) []))))
 
   (fn match-condition [vals clauses]
-    (let [out (list (sym :if))]
+    (let [out `(if)]
       (for [i 1 (# clauses) 2]
         (let [pattern (. clauses i)
               body (. clauses (+ i 1))
               (condition bindings) (match-pattern vals pattern {})]
           (table.insert out condition)
-          (table.insert out (list (sym :let) bindings body))))
+          (table.insert out `(let @bindings @body))))
       out))
 
   ;; how many multi-valued clauses are there? return a list of that many gensyms
@@ -2201,9 +2199,10 @@ local stdmacros = [===[
  }
 ]===]
 do
-    local env = makeCompilerEnv(nil, GLOBAL_SCOPE, {})
+    local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
     for name, fn in pairs(eval(stdmacros, {
         env = env,
+        scope = makeScope(COMPILER_SCOPE),
         allowedGlobals = macroGlobals(env, currentGlobalNames()),
     })) do
         SPECIALS[name] = macroToSpecial(fn)

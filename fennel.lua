@@ -1739,7 +1739,10 @@ end
 
 local function currentGlobalNames(env)
     local names = {}
-    for k in pairs(env or _G) do table.insert(names, k) end
+    for k in pairs(env or _G) do
+       k = globalUnmangling(k)
+       table.insert(names, k)
+    end
     return names
 end
 

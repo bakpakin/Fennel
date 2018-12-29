@@ -550,5 +550,15 @@ if(not pcall(fennel.eval, "(each [k (pairs _G)] (tset tbl k true))", {env = g})
     print(" Expected wrapped _G to support env iteration.")
 end
 
+do
+    local e = {}
+    if (not pcall(fennel.eval, "(global x-x 42)", {env = e})
+        or not pcall(fennel.eval, "x-x", {env = e})) then
+        fail = fail + 1
+        print(" Expected mangled globals to be accessible across eval invocations.")
+    end
+end
+
+
 print(string.format("\n%s passes, %s failures, %s errors.", pass, fail, err))
 if(fail > 0 or err > 0) then os.exit(1) end

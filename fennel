@@ -10,14 +10,16 @@ Usage: fennel [FLAG] [FILE]
 
 Run fennel, a lisp programming language for the Lua runtime.
 
-  --repl          :  Launch an interactive repl session
-  --compile FILES :  Compile files and write their Lua to stdout
+  --repl                  : Launch an interactive repl session
+  --compile FILES         : Compile files and write their Lua to stdout
 
-  --no-searcher   :  Skip installing package.searchers entry when running code
-  --indent VAL    :  Indent compiler output with VAL
+  --no-searcher           : Skip installing package.searchers entry
+  --indent VAL            : Indent compiler output with VAL
+  --add-package-path PATH : Add PATH to package.path for finding Lua modules
+  --add-fennel-path  PATH : Add PATH to fennel.path for finding Fennel modules
 
-  --help          :  Display this text
-  --version       :  Show version
+  --help                  : Display this text
+  --version               : Show version
 
   When not given a flag, runs the file given as the first argument.
   When given neither flag nor file, launches a repl.
@@ -46,6 +48,14 @@ for i=#arg, 1, -1 do
     elseif arg[i] == "--indent" then
         options.indent = table.remove(arg, i+1)
         if options.indent == "false" then options.indent = false end
+        table.remove(arg, i)
+    elseif arg[i] == "--add-package-path" then
+        local entry = table.remove(arg, i+1)
+        package.path = entry .. ";" .. package.path
+        table.remove(arg, i)
+    elseif arg[i] == "--add-fennel-path" then
+        local entry = table.remove(arg, i+1)
+        fennel.path = entry .. ";" .. fennel.path
         table.remove(arg, i)
     elseif arg[i] == "--sourcemap" then
         options.sourcemap = table.remove(arg, i+1)

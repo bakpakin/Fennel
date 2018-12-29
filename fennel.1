@@ -46,6 +46,17 @@ is installed by default so that the
 function can load Fennel files in addition to Lua files. This flag
 disables that behavior. Has no effect for ahead-of-time compilation.
 .TP
+.B \-\-add-package-path \fIpath\fP
+Add the given path to
+.B package.path
+so that the
+.B require
+function will know to look there when searching for Lua modules.
+.TP
+.B \-\-add-fennel-path \fIpath\fP
+Same as above, but for Fennel's path used when searching for Fennel
+modules.
+.TP
 .B \-v, \-\-version
 Print the version number and exit
 .TP

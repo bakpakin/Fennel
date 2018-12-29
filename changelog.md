@@ -2,6 +2,7 @@
 
 ## 0.2.0 / ???
 
+* Add `--add-package-path` and `--add-fennel-path` to launcher script
 * Add `-?>` and `-?>>` macros
 * Support key/value tables when destructuring
 * Add `match` macro for pattern matching

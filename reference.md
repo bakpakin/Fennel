@@ -406,8 +406,8 @@ The `->>` macro works the same, except it splices it into the last
 position of each form instead of the first.
 
 `-?>` and `-?>>`, the thread maybe macros, are similar to `->` & `->>`
-but they also do falsey checking after the evaluation of each threaded
-form. If the result is falsey then the threading stops and the result
+but they also do checking after the evaluation of each threaded
+form. If the result is false or nil then the threading stops and the result
 is returned. `-?>` splices the threaded value as the first argument,
 like `->`, and `-?>>` splices it into the last position, like `->>`.
 

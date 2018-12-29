@@ -538,6 +538,30 @@ if pcall(fennel.eval, "`[hey]", {allowedGlobals = false}) then
     print(" Expected quoting syms to fail at runtime.")
 end
 
+if not pcall(fennel.eval, "(.. hello-world :w)",
+             {env = {["hello-world"] = "hi"}}) then
+    fail = fail + 1
+    print(" Expected global mangling to work.")
+end
+
+-- tragically lua 5.1 does not have metatable-aware pairs, so we fake it here
+local mtpairs = function(t)
+   local mt = getmetatable(t)
+   if(mt and mt.__pairs) then
+      return mt.__pairs(t)
+   else
+      return pairs(t)
+   end
+end
+
+local g = {["hello-world"] = "hi", pairs=mtpairs, tbl=_G.tbl}
+g._G = g
+local ok = pcall(fennel.eval, "(each [k (pairs _G)] (tset tbl k true))", {env = g})
+
+if not ok or not _G.tbl["hello-world"] then
+    fail = fail + 1
+    print(" Expected wrapped _G to support env iteration.")
+end
 
 print(string.format("\n%s passes, %s failures, %s errors.", pass, fail, err))
 if(fail > 0 or err > 0) then os.exit(1) end

@@ -1663,18 +1663,31 @@ end
 -- env will see its values updated as expected, regardless of mangling rules.
 local function wrapEnv(env)
     return setmetatable({}, {
-        __index = function (_, key)
+        __index = function(_, key)
             if type(key) == 'string' then
                 key = globalUnmangling(key)
             end
             return env[key]
         end,
-        __newindex = function (_, key, value)
+        __newindex = function(_, key, value)
             if type(key) == 'string' then
                 key = globalMangling(key)
             end
             env[key] = value
-        end
+        end,
+        -- checking the __pairs metamethod won't work automatically in Lua 5.1
+        -- sadly, but it's important for 5.2+ and can be done manually in 5.1
+        __pairs = function()
+            local pt = {}
+            for key, value in pairs(env) do
+                if type(key) == 'string' then
+                    pt[globalUnmangling(key)] = value
+                else
+                    pt[key] = value
+                end
+            end
+            return next, pt, nil
+        end,
     })
 end
 

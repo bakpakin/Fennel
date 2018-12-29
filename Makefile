@@ -10,7 +10,7 @@ testall:
 	luajit test.lua
 
 luacheck:
-	luacheck fennel.lua fennel
+	luacheck fennel.lua fennel test.lua
 
 count:
 	cloc fennel.lua

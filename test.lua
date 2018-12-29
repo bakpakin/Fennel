@@ -9,8 +9,12 @@ local seed = os.getenv("SEED") or os.time()
 print("SEED=" .. seed)
 math.randomseed(seed)
 
--- to store values in during tests
-tbl, nested = {}, false
+local pass, fail, err = 0, 0, 0
+
+-- one global to store values in during tests
+_G.tbl = {}
+
+---- core language tests ----
 
 local cases = {
     calculations = {
@@ -204,7 +208,9 @@ local cases = {
         -- IIFE in if statement required
         ["(let [(a b c d e f g) (if (= (+ 1 1) 2) (values 1 2 3 4 5 6 7))] (+ a b c d e f g))"]=28,
         -- IIFE in if statement required v2
-        ["(let [(a b c d e f g) (if (= (+ 1 1) 3) nil ((or unpack table.unpack) [1 2 3 4 5 6 7]))] (+ a b c d e f g))"]=28,
+        ["(let [(a b c d e f g) (if (= (+ 1 1) 3) nil\
+                                       ((or unpack table.unpack) [1 2 3 4 5 6 7]))]\
+            (+ a b c d e f g))"]=28,
         -- IIFE if test v3
         ["(# [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))])"]=5,
         -- IIFE if test v4
@@ -212,9 +218,87 @@ local cases = {
         -- Values special in array literal
         ["(# [(values 1 2 3 4 5)])"]=5
     },
-}
 
-local pass, fail, err = 0, 0, 0
+    macros = {
+        -- built-in macros
+        ["(let [x [1]]\
+            (doto x (table.insert 2) (table.insert 3)) (table.concat x))"]="123",
+        -- arrow threading
+        ["(-> (+ 85 21) (+ 1) (- 99))"]=8,
+        ["(->> (+ 85 21) (+ 1) (- 99))"]=-8,
+        -- nil-safe forms
+        ["(-?> {:a {:b {:c :z}}} (. :a) (. :b) (. :c))"]="z",
+        ["(-?> {:a {:b {:c :z}}} (. :a) (. :missing) (. :c))"]=nil,
+        ["(-?>> :w (. {:w :x}) (. {:x :y}) (. {:y :z}))"]="z",
+        ["(-?>> :w (. {:w :x}) (. {:x :missing}) (. {:y :z}))"]=nil,
+        -- just a boring old set+fn combo
+        ["(require-macros \"test-macros\")\
+          (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,
+        -- macros with mangled names
+        ["(require-macros \"test-macros\")\
+          (->1 9 (+ 2) (* 11))"]=121,
+        -- macros loaded in function scope shouldn't leak to other functions
+        ["((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))\
+          (pcall (fn [] (global x1 (->1 23 (+ 1)))))\
+          x1"]=130,
+        -- special form
+        [ [[(eval-compiler
+             (tset _SPECIALS "reverse-it" (fn [ast scope parent opts]
+               (tset ast 1 "do")
+               (for [i 2 (math.ceil (/ (# ast) 2))]
+                 (let [a (. ast i) b (. ast (- (# ast) (- i 2)))]
+                   (tset ast (- (# ast) (- i 2)) a)
+                   (tset ast i b)))
+               (_SPECIALS.do ast scope parent opts))))
+           (reverse-it 1 2 3 4 5 6)]]]=1,
+        -- nesting quote can only happen in the compiler
+        ["(eval-compiler (set tbl.nest ``nest))\
+          (tostring tbl.nest)"]="(quote, nest)",
+    },
+    match = {
+        -- basic literal
+        ["(match (+ 1 6) 7 8)"]=8,
+        -- actually return the one that matches
+        ["(match (+ 1 6) 7 8 8 1 9 2)"]=8,
+        -- string literals? and values that come from locals?
+        ["(let [s :hey] (match s :wat :no :hey :yes))"]="yes",
+        -- tables please
+        ["(match [:a :b :c] [a b c] (.. b :eee))"]="beee",
+        -- tables with literals in them
+        ["(match [:a :b :c] [1 t d] :no [a b :d] :NO [a b :c] b)"]="b",
+        -- nested tables
+        ["(match [:a [:b :c]] [a b :c] :no [:a [:b c]] c)"]="c",
+        -- non-sequential tables
+        ["(match {:a 1 :b 2} {:c 3} :no {:a n} n)"]=1,
+        -- nested non-sequential
+        ["(match [:a {:b 8}] [a b :c] :no [:a {:b b}] b)"]=8,
+        -- unification
+        ["(let [k :k] (match [5 :k] :b :no [n k] n))"]=5,
+        -- length mismatch
+        ["(match [9 5] [a b c] :three [a b] (+ a b))"]=14,
+        -- 3rd arg may be nil here
+        ["(match [9 5] [a b ?c] :three [a b] (+ a b))"]="three",
+        -- no double-eval
+        ["(var x 1) (fn i [] (set x (+ x 1)) x) (match (i) 4 :N 3 :n 2 :y)"]="y",
+        -- multi-valued
+        ["(match (values 5 9) 9 :no (a b) (+ a b))"]=14,
+        -- multi-valued with nil
+        ["(match (values nil :nonnil) (true _) :no (nil b) b)"]="nonnil",
+        -- error values
+        ["(match (io.open \"/does/not/exist\") (nil msg) :err f f)"]="err",
+        -- last clause becomes default
+        ["(match [1 2 3] [3 2 1] :no [2 9 1] :NO :default)"]="default",
+        -- intra-pattern unification
+        ["(match [1 2 3] [x y x] :no [x y z] :yes)"]="yes",
+        ["(match [1 2 1] [x y x] :yes)"]="yes",
+        ["(match (values 1 [1 2]) (x [x x]) :no (x [x y]) :yes)"]="yes",
+        -- deep nested unification
+        ["(match [1 2 [[3]]] [x y [[x]]] :no [x y z] :yes)"]="yes",
+        ["(match [1 2 [[1]]] [x y [z]] (. z 1))"]=1,
+        -- _ wildcard
+        ["(match [1 2] [_ _] :wildcard)"]="wildcard",
+    }
+}
 
 for name, tests in pairs(cases) do
     print("Running tests for " .. name .. "...")
@@ -233,6 +317,8 @@ for name, tests in pairs(cases) do
         end
     end
 end
+
+---- fennelview tests ----
 
 local function count(t)
     local c = 0
@@ -262,7 +348,7 @@ local function deep_equal(a, b)
     end
 end
 
-print("Running tests for viewer...")
+print("Running tests for fennelview...")
 for _ = 1, 16 do
     local item = generate()
     local ok, viewed = pcall(view, item)
@@ -286,123 +372,7 @@ for _ = 1, 16 do
     end
 end
 
-fennel.eval([[(eval-compiler
-  (tset _SPECIALS "reverse-it" (fn [ast scope parent opts]
-    (tset ast 1 "do")
-    (for [i 2 (math.ceil (/ (# ast) 2))]
-      (let [a (. ast i) b (. ast (- (# ast) (- i 2)))]
-        (tset ast (- (# ast) (- i 2)) a)
-        (tset ast i b)))
-    (_SPECIALS.do ast scope parent opts)))
-)]])
-
-local macro_cases = {
-    -- built-in macros
-    ["(let [x [1]] (doto x (table.insert 2) (table.insert 3)) (table.concat x))"]="123",
-    ["(-?> {:a {:b {:c :z}}} (. :a) (. :b) (. :c))"]="z",
-    ["(-?> {:a {:b {:c :z}}} (. :a) (. :missing) (. :c))"]=nil,
-    ["(-?>> :w (. {:w :x}) (. {:x :y}) (. {:y :z}))"]="z",
-    ["(-?>> :w (. {:w :x}) (. {:x :missing}) (. {:y :z}))"]=nil,
-    -- just a boring old set+fn combo
-    ["(require-macros \"test-macros\")\
-      (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,
-    -- macros with mangled names
-    ["(require-macros \"test-macros\")\
-      (->1 9 (+ 2) (* 11))"]=121,
-    -- macros loaded in function scope shouldn't leak to other functions
-    ["((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))\
-      (pcall (fn [] (global x1 (->1 23 (+ 1)))))\
-      x1"]=130,
-    -- special form
-    ["(reverse-it 1 2 3 4 5 6)"]=1,
-    -- nesting quote can only happen in the compiler
-    ["(eval-compiler (set tbl.nest ``nest)) (tostring tbl.nest)"]="(quote, nest)",
-}
-
-print("Running tests for macro system...")
-for code, expected in pairs(macro_cases) do
-    local ok, res = pcall(fennel.eval, code)
-    if not ok then
-        err = err + 1
-        print(" Error: " .. res .. " in: ".. fennel.compile(code))
-    else
-        local actual = fennel.eval(code)
-        if expected ~= actual then
-            fail = fail + 1
-            print(" Expected " .. view(actual) .. " to be " .. view(expected))
-            print("   Compiled to: " .. fennel.compileString(code))
-        else
-            pass = pass + 1
-        end
-    end
-end
-
-local match_cases = {
-    -- basic literal
-    ["(match (+ 1 6) 7 8)"]=8,
-    -- actually return the one that matches
-    ["(match (+ 1 6) 7 8 8 1 9 2)"]=8,
-    -- string literals? and values that come from locals?
-    ["(let [s :hey] (match s :wat :no :hey :yes))"]="yes",
-    -- tables please
-    ["(match [:a :b :c] [a b c] (.. b :eee))"]="beee",
-    -- tables with literals in them
-    ["(match [:a :b :c] [1 t d] :no [a b :d] :NO [a b :c] b)"]="b",
-    -- nested tables
-    ["(match [:a [:b :c]] [a b :c] :no [:a [:b c]] c)"]="c",
-    -- non-sequential tables
-    ["(match {:a 1 :b 2} {:c 3} :no {:a n} n)"]=1,
-    -- nested non-sequential
-    ["(match [:a {:b 8}] [a b :c] :no [:a {:b b}] b)"]=8,
-    -- unification
-    ["(let [k :k] (match [5 :k] :b :no [n k] n))"]=5,
-    -- length mismatch
-    ["(match [9 5] [a b c] :three [a b] (+ a b))"]=14,
-    -- 3rd arg may be nil here
-    ["(match [9 5] [a b ?c] :three [a b] (+ a b))"]="three",
-    -- no double-eval
-    ["(var x 1) (fn i [] (set x (+ x 1)) x) (match (i) 4 :N 3 :n 2 :y)"]="y",
-    -- multi-valued
-    ["(match (values 5 9) 9 :no (a b) (+ a b))"]=14,
-    -- multi-valued with nil
-    ["(match (values nil :nonnil) (true _) :no (nil b) b)"]="nonnil",
-    -- error values
-    ["(match (io.open \"/does/not/exist\") (nil msg) :err f f)"]="err",
-    -- last clause becomes default
-    ["(match [1 2 3] [3 2 1] :no [2 9 1] :NO :default)"]="default",
-    -- intra-pattern unification
-    ["(match [1 2 3] [x y x] :no [x y z] :yes)"]="yes",
-    ["(match [1 2 1] [x y x] :yes)"]="yes",
-    ["(match (values 1 [1 2]) (x [x x]) :no (x [x y]) :yes)"]="yes",
-    -- deep nested unification
-    ["(match [1 2 [[3]]] [x y [[x]]] :no [x y z] :yes)"]="yes",
-    ["(match [1 2 [[1]]] [x y [z]] (. z 1))"]=1,
-    -- _ wildcard
-    ["(match [1 2] [_ _] :wildcard)"]="wildcard",
-}
-
-print("Running tests for pattern matching...")
-for code, expected in pairs(match_cases) do
-    local ok, res = pcall(fennel.eval, code)
-    if not ok then
-        err = err + 1
-        print(" Error: " .. res .. " in: ".. fennel.compile(code))
-    else
-        local actual = fennel.eval(code)
-        if expected ~= actual then
-            fail = fail + 1
-            print(" Expected " .. view(actual) .. " to be " .. view(expected))
-            print("   Compiled to: " .. fennel.compileString(code))
-        else
-            pass = pass + 1
-        end
-    end
-end
-
-if pcall(fennel.eval, "(->1 1 (+ 4))", {allowedGlobals = false}) then
-    fail = fail + 1
-    print(" Expected require-macros not leak into next evaluation.")
-end
+---- tests for compilation failures ----
 
 local compile_failures = {
     ["(f"]="unexpected end of source in unknown:1",
@@ -458,8 +428,12 @@ for code, expected_msg in pairs(compile_failures) do
     end
 end
 
--- Mapping from any string to Lua identifiers. (in practice, will only be from fennel identifiers to lua,
--- should be general for programatically created symbols)
+---- mangling and unmangling ----
+
+-- Mapping from any string to Lua identifiers. (in practice, will only be from
+-- fennel identifiers to lua, should be general for programatically created
+-- symbols)
+
 local mangling_tests = {
     ['a'] = 'a',
     ['a_3'] = 'a_3',
@@ -473,23 +447,27 @@ for k, v in pairs(mangling_tests) do
     local manglek = fennel.mangle(k)
     local unmanglev = fennel.unmangle(v)
     if v ~= manglek then
-        print(" Expected fennel.mangle(" .. k .. ") to be " .. v .. ", got " .. manglek)
+        print(" Expected fennel.mangle(" .. k .. ") to be " .. v ..
+                  ", got " .. manglek)
         fail = fail + 1
     else
         pass = pass + 1
     end
     if k ~= unmanglev then
-        print(" Expected fennel.unmangle(" .. v .. ") to be " .. k .. ", got " .. unmanglev)
+        print(" Expected fennel.unmangle(" .. v .. ") to be " .. k ..
+                  ", got " .. unmanglev)
         fail = fail + 1
     else
         pass = pass + 1
     end
 end
 
+---- quoting and unquoting ----
+
 local quoting_tests = {
     ['`:abcde'] = {"return \"abcde\"", "simple string quoting"},
-    ['~='] = {"return __fnl_global___7e_3d", "~= is hard-coded to the not-equals function"},
-    ['@a'] = {"return unquote(a)", "unquote outside quote is simply passed through"},
+    ['@a'] = {"return unquote(a)",
+              "unquote outside quote is simply passed thru"},
     ['`[1 2 @(+ 1 2) 4]'] = {
         "return {1, 2, (1 + 2), 4}",
         "unquote inside quote leads to evaluation"
@@ -521,7 +499,8 @@ for k, v in pairs(quoting_tests) do
         accepted[ans] = true
     end
     local message = v[2]
-    local errorformat = "While testing %s\nExpected fennel.compileString(\"%s\") to be \"%s\" , got \"%s\""
+    local errorformat = "While testing %s\n" ..
+        "Expected fennel.compileString(\"%s\") to be \"%s\" , got \"%s\""
     if accepted[compiled] then
         pass = pass + 1
     else
@@ -529,10 +508,19 @@ for k, v in pairs(quoting_tests) do
         fail = fail + 1
     end
 end
+
+---- misc one-off tests ----
+
+if pcall(fennel.eval, "(->1 1 (+ 4))", {allowedGlobals = false}) then
+    fail = fail + 1
+    print(" Expected require-macros not leak into next evaluation.")
+end
+
 if pcall(fennel.eval, "`(hey)", {allowedGlobals = false}) then
     fail = fail + 1
     print(" Expected quoting lists to fail at runtime.")
 end
+
 if pcall(fennel.eval, "`[hey]", {allowedGlobals = false}) then
     fail = fail + 1
     print(" Expected quoting syms to fail at runtime.")
@@ -544,21 +532,20 @@ if not pcall(fennel.eval, "(.. hello-world :w)",
     print(" Expected global mangling to work.")
 end
 
--- tragically lua 5.1 does not have metatable-aware pairs, so we fake it here
-local mtpairs = function(t)
-   local mt = getmetatable(t)
-   if(mt and mt.__pairs) then
-      return mt.__pairs(t)
-   else
-      return pairs(t)
-   end
-end
-
-local g = {["hello-world"] = "hi", pairs=mtpairs, tbl=_G.tbl}
+local g = {["hello-world"] = "hi", tbl = _G.tbl,
+    -- tragically lua 5.1 does not have metatable-aware pairs so we fake it here
+    pairs = function(t)
+        local mt = getmetatable(t)
+        if(mt and mt.__pairs) then
+            return mt.__pairs(t)
+        else
+            return pairs(t)
+        end
+    end}
 g._G = g
-local ok = pcall(fennel.eval, "(each [k (pairs _G)] (tset tbl k true))", {env = g})
 
-if not ok or not _G.tbl["hello-world"] then
+if(not pcall(fennel.eval, "(each [k (pairs _G)] (tset tbl k true))", {env = g})
+   or not _G.tbl["hello-world"]) then
     fail = fail + 1
     print(" Expected wrapped _G to support env iteration.")
 end

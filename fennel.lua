@@ -1593,6 +1593,7 @@ local function doQuote (form, scope, parent, runtime)
     local q = function (x) return doQuote(x, scope, parent, runtime) end
     -- symbol
     if isSym(form) then
+        assertCompile(not runtime, "symbols may only be used at compile time", form)
         return ("sym('%s')"):format(deref(form))
     -- unquote
     elseif isList(form) and isSym(form[1]) and (deref(form[1]) == 'unquote') then

@@ -453,10 +453,10 @@ subsequent forms are evaluated solely for side-effects.
 
 ### `require-macros`
 
-Requires a module and binds its fields locally as macros.
+Requires a module at compile-time and binds its fields locally as macros.
 
 Macros currently must be defined in separate modules. A macro module
-exports any number of functions which take forms as arguments at
+exports any number of functions which take code forms as arguments at
 compile time and emit lists which are fed back into the compiler. For
 instance, here is a macro function which implements `when` in terms of
 `if` and `do`:
@@ -464,32 +464,35 @@ instance, here is a macro function which implements `when` in terms of
 ```
 (fn [condition body1 ...]
   (assert body1 "expected body")
-  (list (sym 'if') condition
-        (list (sym 'do') body1 ...)))
+  `(if @condition
+     (do @body1 @...)))
 ```
 
-It constructs a `list` where the first element is the symbol "if", the
-second element is the condition passed in, and the third element is a
-list with a "do" symbol as its first element and the rest of the body
-inside that list. In effect it turns this input:
+A full explanation of how macros work is out of scope for this document,
+but you can think of it as a compile-time template function. The backtick
+on the third line creates a template for the code emitted by the macro. The
+`@` serves as "unquote" (other lisps use `,` or `~` for this purpose) which
+splices values into the template.
+
+In effect it turns this input:
 
 ```
-(when (= 3 (+ 2 a)) (print "yes"))
+(when (= 3 (+ 2 a)) 
+  (print "yes")
+  (finish-calculation))
 ```
 
-into this output:
+and transforms it into this code at compile time:
 
 ```
-(if (= 3 (+ 2 a)) (do (print "yes")))
+(if (= 3 (+ 2 a))
+  (do
+    (print "yes")
+    (finish-calculation)))
 ```
 
-See "Compiler API" below for details about extra functions and tables
-visible inside compiler scope which macros run in. Note that lists are
-compile-time concepts that don't typically exist at runtime; they are
-implemented as regular tables which have a special metatable to
-distinguish them from regular tables defined with square or curly
-brackets. Similarly symbols are tables with a string entry for their
-name and a metatable that the compiler uses to distinguish them.
+See "Compiler API" below for details about additional functions visible
+inside compiler scope which macros run in.
 
 Note that the macro interface is still preliminary and is subject to
 change over time.
@@ -509,16 +512,24 @@ Example:
 
 ### Compiler API
 
-Inside `eval-compiler` blocks or `require-macros` modules, this extra
-functionality is visible to your Fennel code:
+Inside `eval-compiler` blocks or `require-macros` modules, these functions
+are visible to your code.
 
-* `list`
-* `sym`
-* `list?`
-* `sym?`
-* `multi-sym?`
-* `table?`
-* `varg?`
+Note that lists are compile-time concepts that don't exist at runtime; they
+are implemented as regular tables which have a special metatable to
+distinguish them from regular tables defined with square or curly
+brackets. Similarly symbols are tables with a string entry for their name
+and a metatable that the compiler uses to distinguish them. You can use
+`tostring` to get the name of a symbol.
+
+* `list` - return a list, which is a special kind of table used for code
+* `sym` - turn a string into a symbol
+* `list?` - is the argument a list?
+* `sym?` - is the argument a symbol?
+* `table?` - is the argument a non-list table?
+* `varg?` - is this a `...` symbol which indicates var args?
+* `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
+* `in-scope?` - does this symbol refer to a local in the current scope?
 
 Note that other internals of the compiler exposed in compiler scope are
 subject to change.

@@ -4,6 +4,7 @@
 
 * Add `--add-package-path` and `--add-fennel-path` to launcher script
 * Add `-?>` and `-?>>` macros
+* Add support for quoting with backtick and unquoting with @
 * Support key/value tables when destructuring
 * Add `match` macro for pattern matching
 * Add optional GNU readline support for repl

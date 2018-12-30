@@ -1227,6 +1227,8 @@ end
 
 -- For setting items in a table
 SPECIALS['tset'] = function(ast, scope, parent)
+    assertCompile(#ast > 3,
+                  ('tset form needs table, key, and value'), ast)
     local root = compile1(ast[2], scope, parent, {nval = 1})[1]
     local keys = {}
     for i = 3, #ast - 1 do

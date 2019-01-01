@@ -379,11 +379,11 @@ taking a variable number of arguments to a function is the `...` symbol, which
 must be the last parameter to a function. This syntax is inherited from Lua rather
 than Lisp.
 
-The `...` form is not a list or first class value, it expands to multiple values inline.
-To access individual elements of the vararg, first wrap it in a table literal (`[...]`)
-and index like a normal table, or use the `select` function from Lua's core library. Often,
-the vararg can be passed directly to another function such as `print` without needing to
-bind it to a single table.
+The `...` form is not a list or first class value, it expands to multiple values
+inline.  To access individual elements of the vararg, first wrap it in a table
+literal (`[...]`) and index like a normal table, or use the `select` function
+from Lua's core library. Often, the vararg can be passed directly to another
+function such as `print` without needing to bind it to a single table.
 
 ```lisp
 (fn print-each [...]
@@ -402,9 +402,10 @@ bind it to a single table.
 (myprint ":D " :d :e :f)
 ```
 
-Varargs are scoped differently than other variables as well - they are only accessible to
-the function in which they are created. This means that the following code wil NOT work,
-as the varargs in the inner function are out of scope.
+Varargs are scoped differently than other variables as well - they are only
+accessible to the function in which they are created. This means that the
+following code wil NOT work, as the varargs in the inner function are out of
+scope.
 
 ```lisp
 (fn badcode [...]
@@ -428,6 +429,14 @@ value.
 Unless you are doing ahead-of-time compilation, Fennel will track all
 known globals and prevent you from refering to unknown globals, which
 prevents a common source of bugs in Lua where typos go undetected.
+
+If you get an error that says `unknown global in strict mode` it means that
+you're trying compile code that uses a global which the Fennel compiler doesn't
+know about. Most of the time, this is due to a coding mistake. However, in some
+cases you may get this error with a legitimate global reference. If this
+happens, it may be due to a bug in the compiler, or it may be an inherent
+limitation of Fennel's strategy. You can use `_G.myglobal` to refer to it in a
+way that works around this check.
 
 ## Gotchas
 

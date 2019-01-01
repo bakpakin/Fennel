@@ -2,6 +2,7 @@
 
 ## 0.2.0 / ???
 
+* Allow macros to be defined inline with `macros`
 * Add `--add-package-path` and `--add-fennel-path` to launcher script
 * Add `-?>` and `-?>>` macros
 * Add support for quoting with backtick and unquoting with @

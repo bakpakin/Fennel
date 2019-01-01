@@ -2062,21 +2062,24 @@ end
 local stdmacros = [===[
 {"->" (fn [val ...]
         (var x val)
-        (each [_ elt (ipairs [...])]
-          (table.insert elt 2 x)
-          (set x elt))
+        (each [_ e (ipairs [...])]
+          (let [elt (if (list? e) e (list e))]
+            (table.insert elt 2 x)
+            (set x elt)))
         x)
  "->>" (fn [val ...]
          (var x val)
-         (each [_ elt (pairs [...])]
-           (table.insert elt x)
-           (set x elt))
+         (each [_ e (pairs [...])]
+           (let [elt (if (list? e) e (list e))]
+             (table.insert elt x)
+             (set x elt)))
          x)
  "-?>" (fn [val ...]
          (if (= 0 (# [...]))
              val
              (let [els [...]
-                   el (table.remove els 1)
+                   e (table.remove els 1)
+                   el (if (list? e) e (list e))
                    tmp (gensym)]
                (table.insert el 2 tmp)
                `(let [@tmp @val]
@@ -2087,7 +2090,8 @@ local stdmacros = [===[
           (if (= 0 (# [...]))
               val
               (let [els [...]
-                    el (table.remove els 1)
+                    e (table.remove els 1)
+                    el (if (list? e) e (list e))
                     tmp (gensym)]
                 (table.insert el tmp)
                 `(let [@tmp @val]

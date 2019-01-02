@@ -2013,7 +2013,7 @@ local function macroGlobals(env, globals)
     return allowed
 end
 
-local function addMacros(macros, ast, scope, parent)
+local function addMacros(macros, ast, scope)
     assertCompile(isTable(macros), 'expected macros to be table', ast)
     for k, v in pairs(macros) do
         scope.specials[k] = macroToSpecial(v)

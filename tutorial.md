@@ -292,7 +292,25 @@ You can also use this syntax with `set`:
   tbl) ; -> {:one 1 :two 2}
 ```
 
-Finally, `let` can destructure a table into multiple locals:
+Finally, `let` can destructure a table into multiple locals.
+
+There is positional destructuring:
+
+```lisp
+(let [data [1 2 3]
+      [fst snd thrd] data]
+  (print fst snd thrd)) ; -> 1       2       3
+```
+
+And destructuring of tables via key:
+
+```lisp
+(let [pos {:x 23 :y 42}
+      {:x x-pos :y y-pos} pos]
+  (print x-pos y-pos)) ; -> 23      42
+```
+
+This can mix and match:
 
 ```lisp
 (let [f (fn [] ["abc" "def" {:x "xyz"}])

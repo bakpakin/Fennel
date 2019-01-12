@@ -928,6 +928,9 @@ local function destructure(to, from, ast, scope, parent, opts)
     -- Recursive auxiliary function
     local function destructure1(left, rightexprs, up1)
         if isSym(left) and left[1] ~= "nil" then
+            -- Check if symbol will be over shadowed by special
+            assertCompile(not scope.specials[left[1]],
+                ("symbol %s may be overshadowed by a special form or macro"):format(left[1]), left)
             emit(parent, setter:format(getname(left, up1), exprs1(rightexprs)), left)
         elseif isTable(left) then -- table destructuring
             local s = gensym(scope)

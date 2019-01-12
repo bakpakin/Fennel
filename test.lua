@@ -415,6 +415,11 @@ local compile_failures = {
     ["(let [t {:a 1}] (+ t.a BAD))"]="BAD",
     ["(each [k v (pairs {})] (BAD k v))"]="BAD",
     ["(global good (fn [] nil)) (good) (BAD)"]="BAD",
+    ["(global + 1)"]="overshadowed",
+    ["(global // 1)"]="overshadowed",
+    ["(global let 1)"]="overshadowed",
+    ["(global - 1)"]="overshadowed",
+    ["(let [global 1] 1)"]="overshadowed",
 }
 
 print("Running tests for compile errors...")

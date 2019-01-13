@@ -19,14 +19,15 @@ look for further details, not to teach Lua.
 * `unpack`: turns a sequential table into multiple values
 * `require`: loads and returns a given module
 
-Note that `tostring` on tables will give unsatisfactory results; you
-will want to use `fennelview` or another pretty-printer for debugging
-and development.
+Note that `tostring` on tables will give unsatisfactory results; simply
+evaluating the table in the REPL will invoke `fennelview` for you and
+show a human-readable view of the table (or you can invoke `fennelview`
+explicitly in your code).
 
 ## Important modules
 
-You can explore a module with `(each [k v (pairs math)] (print k v))`
-in the repl to see all the functions and values it contains.
+You can explore a module by evaluating it in the REPL (which will
+use `fennelview` to display all the functions and values it contains.
 
 * `math`: all your standard math things including trig and `random`
 * `table`: `concat`, `insert`, `remove`, and `sort` are the main things

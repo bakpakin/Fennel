@@ -267,14 +267,14 @@ local function parser(getbyte, filename)
                                ', expected ' .. string.char(last.closer))
                 end
                 last.byteend = byteindex -- Set closing byte index
-                if b == 41 then -- )
+                if b == 41 then -- ; )
                     val = last
-                elseif b == 93 then -- ]
+                elseif b == 93 then -- ; ]
                     val = {}
                     for i = 1, #last do
                         val[i] = last[i]
                     end
-                else -- }
+                else -- ; }
                     if #last % 2 ~= 0 then
                         parseError('expected even number of values in table literal')
                     end
@@ -783,7 +783,7 @@ local function compile1(ast, scope, parent, opts)
             if type(exprs) == 'string' then exprs = expr(exprs, 'expression') end
             if getmetatable(exprs) == EXPR_MT then exprs = {exprs} end
             -- Unless the special form explicitly handles the target, tail, and nval properties,
-            -- (indicated via the 'returned' flag, handle these options.
+            -- (indicated via the 'returned' flag), handle these options.
             if not exprs.returned then
                 exprs = handleCompileOpts(exprs, parent, opts, ast)
             elseif opts.tail or opts.target then
@@ -1723,8 +1723,8 @@ local function traceback(msg, start)
                 -- And some global info
                 info.short_src = remap.short_src
                 local mapping = remap[info.currentline]
-                -- Overwrite info with values from the mapping (mapping is now just integer,
-                -- but may eventually be a table
+                -- Overwrite info with values from the mapping (mapping is now
+                -- just integer, but may eventually be a table)
                 info.currentline = mapping
             end
             if info.what == 'Lua' then

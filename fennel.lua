@@ -2182,7 +2182,8 @@ local stdmacros = [===[
                   (do (assert (not (. pattern (+ k 2)))
                               "expected rest argument in final position")
                       (table.insert bindings (. pattern (+ k 1)))
-                      (table.insert bindings [`(select @k (unpack @val))]))
+                      (table.insert bindings [`(select @k ((or unpack table.unpack)
+                                                           @val))]))
                   (and (= :number (type k))
                        (= "&" (tostring (. pattern (- k 1)))))
                   nil ; don't process the pattern right after &; already got it

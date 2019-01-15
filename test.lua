@@ -299,6 +299,9 @@ local cases = {
         ["(match [1 2 [[1]]] [x y [z]] (. z 1))"]=1,
         -- _ wildcard
         ["(match [1 2] [_ _] :wildcard)"]="wildcard",
+        -- rest args
+        ["(match [1 2 3] [a & b] (+ a (. b 1) (. b 2)))"]=6,
+        ["(match [1] [a & b] (# b))"]=0,
     }
 }
 
@@ -420,6 +423,7 @@ local compile_failures = {
     ["(global let 1)"]="overshadowed",
     ["(global - 1)"]="overshadowed",
     ["(let [global 1] 1)"]="overshadowed",
+    ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
 }
 
 print("Running tests for compile errors...")

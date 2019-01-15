@@ -2178,13 +2178,20 @@ local stdmacros = [===[
           (let [condition `(and (= (type @val) :table))
                 bindings []]
             (each [k pat (pairs pattern)]
-              (assert (not (varg? pat)) "TODO: match against varg not implemented")
-              (let [subval `(. @val @k)
-                    (subcondition subbindings) (match-pattern [subval] pat
-                                                              unifications)]
-                (table.insert condition subcondition)
-                (each [_ b (ipairs subbindings)]
-                  (table.insert bindings b))))
+              (if (and (sym? pat) (= "&" (tostring pat)))
+                  (do (assert (not (. pattern (+ k 2)))
+                              "expected rest argument in final position")
+                      (table.insert bindings (. pattern (+ k 1)))
+                      (table.insert bindings [`(select @k (unpack @val))]))
+                  (and (= :number (type k))
+                       (= "&" (tostring (. pattern (- k 1)))))
+                  nil ; don't process the pattern right after &; already got it
+                  (let [subval `(. @val @k)
+                        (subcondition subbindings) (match-pattern [subval] pat
+                                                                  unifications)]
+                    (table.insert condition subcondition)
+                    (each [_ b (ipairs subbindings)]
+                      (table.insert bindings b)))))
             (values condition bindings))
 
           ;; literal value

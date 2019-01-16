@@ -2,6 +2,7 @@
 
 ## 0.2.0 / ???
 
+* Make parens around steps optional in arrow macros for single-arg calls
 * Allow macros to be defined inline with `macros`
 * Add `--add-package-path` and `--add-fennel-path` to launcher script
 * Add `-?>` and `-?>>` macros

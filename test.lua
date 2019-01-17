@@ -423,6 +423,7 @@ local compile_failures = {
     ["(global let 1)"]="overshadowed",
     ["(global - 1)"]="overshadowed",
     ["(let [global 1] 1)"]="overshadowed",
+    ["(fn global [] 1)"]="overshadowed",
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
 }
 

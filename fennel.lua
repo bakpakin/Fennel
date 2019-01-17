@@ -524,8 +524,17 @@ local function gensym(scope)
     return mangling
 end
 
+-- Check if a binding is valid
+local function checkBindingValid(symbol, scope, ast)
+    -- Check if symbol will be over shadowed by special
+    local name = symbol[1]
+    assertCompile(not scope.specials[name],
+    ("symbol %s may be overshadowed by a special form or macro"):format(name), ast)
+end
+
 -- Declare a local symbol
 local function declareLocal(symbol, meta, scope, ast)
+    checkBindingValid(symbol, scope, ast)
     local name = symbol[1]
     assertCompile(not isMultiSym(name), "did not expect mutltisym", ast)
     local mangling = localMangling(name, scope, ast)
@@ -928,9 +937,7 @@ local function destructure(to, from, ast, scope, parent, opts)
     -- Recursive auxiliary function
     local function destructure1(left, rightexprs, up1)
         if isSym(left) and left[1] ~= "nil" then
-            -- Check if symbol will be over shadowed by special
-            assertCompile(not scope.specials[left[1]],
-                ("symbol %s may be overshadowed by a special form or macro"):format(left[1]), left)
+            checkBindingValid(left, scope, left)
             emit(parent, setter:format(getname(left, up1), exprs1(rightexprs)), left)
         elseif isTable(left) then -- table destructuring
             local s = gensym(scope)

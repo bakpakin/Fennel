@@ -2,6 +2,7 @@
 
 ## 0.2.0 / ???
 
+* Prevent creation of bindings that collide with special forms and macros.
 * Make parens around steps optional in arrow macros for single-arg calls
 * Allow macros to be defined inline with `macros`
 * Add `--add-package-path` and `--add-fennel-path` to launcher script

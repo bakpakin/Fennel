@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.2.0 / ???
+## 0.2.0 / 2019-01-17
 
 * Prevent creation of bindings that collide with special forms and macros.
 * Make parens around steps optional in arrow macros for single-arg calls

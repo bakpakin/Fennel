@@ -380,7 +380,7 @@ end
 ---- tests for compilation failures ----
 
 local compile_failures = {
-    ["(f"]="unexpected end of source in unknown:1",
+    ["(f"]="expected closing delimiter %) in unknown:1",
     ["\n\n(+))"]="unexpected closing delimiter in unknown:3",
     ["(fn)"]="expected vector arg list",
     ["(fn [12])"]="expected symbol for function parameter",

@@ -234,6 +234,18 @@ local function parser(getbyte, filename)
             end
         end
 
+        -- Throw nice error when we expect more characters
+        -- but reach end of stream.
+        local function badend()
+            local accum = {}
+            for _, item in ipairs(stack) do
+                accum[#accum + 1] = item.closer
+            end
+            parseError(('expected closing delimiter%s %s'):format(
+                #stack == 1 and "" or "s",
+                string.char(unpack(accum))))
+        end
+
         -- The main parse loop
         repeat
             local b
@@ -243,7 +255,7 @@ local function parser(getbyte, filename)
                 b = getb()
             until not b or not iswhitespace(b)
             if not b then
-                if #stack > 0 then parseError 'unexpected end of source' end
+                if #stack > 0 then badend() end
                 return nil
             end
 
@@ -289,6 +301,7 @@ local function parser(getbyte, filename)
                 local start = b
                 local state = "base"
                 local chars = {start}
+                stack[#stack + 1] = {closer = b}
                 repeat
                     b = getb()
                     chars[#chars + 1] = b
@@ -303,7 +316,8 @@ local function parser(getbyte, filename)
                         state = "base"
                     end
                 until not b or (state == "done")
-                if not b then parseError('unexpected end of source') end
+                if not b then badend() end
+                stack[#stack] = nil
                 local raw = string.char(unpack(chars))
                 local formatted = raw:gsub("[\1-\31]", function (c) return '\\' .. c:byte() end)
                 local loadFn = loadCode(('return %s'):format(formatted), nil, filename)

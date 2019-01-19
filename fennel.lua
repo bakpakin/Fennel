@@ -1557,9 +1557,9 @@ local function macroToSpecial(mac)
         local oldScope = macroCurrentScope
         macroCurrentScope = scope
         local ok, transformed = pcall(mac, unpack(ast, 2))
+        macroCurrentScope = oldScope
         assertCompile(ok, transformed, ast)
         local result = compile1(transformed, scope, parent, opts)
-        macroCurrentScope = oldScope
         return result
     end
 end
@@ -2018,12 +2018,13 @@ local function makeCompilerEnv(ast, scope, parent)
         list = list,
         sym = sym,
         unpack = unpack,
-        gensym = function() return sym(gensym(scope)) end,
+        gensym = function() return sym(gensym(macroCurrentScope)) end,
         ["list?"] = isList,
         ["multi-sym?"] = isMultiSym,
         ["sym?"] = isSym,
         ["table?"] = isTable,
         ["varg?"] = isVarg,
+        ["get-scope"] = function() return macroCurrentScope end,
         ["in-scope?"] = function(symbol)
             return macroCurrentScope.manglings[symbol]
         end

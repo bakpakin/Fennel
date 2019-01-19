@@ -1,5 +1,10 @@
 # Summary of user-visible changes
 
+## 0.2.1 / ???
+
+* Fix a bug with variadic `~=` comparisons
+* Improve error reporting for mismatched delimiters
+
 ## 0.2.0 / 2019-01-17
 
 * Prevent creation of bindings that collide with special forms and macros.

@@ -1505,7 +1505,7 @@ defineArithmeticSpecial('//', nil, '1')
 defineArithmeticSpecial('or', 'false')
 defineArithmeticSpecial('and', 'true')
 
-local function defineComparatorSpecial(name, realop)
+local function defineComparatorSpecial(name, realop, chainOp)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
         local len = #ast
@@ -1520,8 +1520,8 @@ local function defineComparatorSpecial(name, realop)
             for i = 4, len do -- variadic comparison
                 local nextval = once(compile1(ast[i], scope, parent, {nval = 1})[1],
                                      ast[i], scope, parent)
-                out = (out .. " and (%s %s %s)"):
-                    format(tostring(lastval), op, tostring(nextval))
+                out = (out .. " %s (%s %s %s)"):
+                    format(chainOp or 'and', tostring(lastval), op, tostring(nextval))
                 lastval = nextval
             end
             out = '(' .. out .. ')'
@@ -1535,7 +1535,7 @@ defineComparatorSpecial('<')
 defineComparatorSpecial('>=')
 defineComparatorSpecial('<=')
 defineComparatorSpecial('=', '==')
-defineComparatorSpecial('~=')
+defineComparatorSpecial('~=', '~=', 'or')
 
 local function defineUnarySpecial(op, realop)
     SPECIALS[op] = function(ast, scope, parent)

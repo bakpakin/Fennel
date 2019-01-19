@@ -2260,7 +2260,7 @@ local stdmacros = [===[
  }
 ]===]
 do
-    local env = wrapEnv(makeCompilerEnv(nil, COMPILER_SCOPE, {}))
+    local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
     for name, fn in pairs(eval(stdmacros, {
         env = env,
         scope = makeScope(COMPILER_SCOPE),

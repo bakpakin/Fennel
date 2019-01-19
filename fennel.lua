@@ -1548,12 +1548,19 @@ end
 defineUnarySpecial('not', 'not ')
 defineUnarySpecial('#')
 
+-- Save current macro scope
+local macroCurrentScope = GLOBAL_SCOPE
+
 -- Covert a macro function to a special form
 local function macroToSpecial(mac)
     return function(ast, scope, parent, opts)
+        local oldScope = macroCurrentScope
+        macroCurrentScope = scope
         local ok, transformed = pcall(mac, unpack(ast, 2))
         assertCompile(ok, transformed, ast)
-        return compile1(transformed, scope, parent, opts)
+        local result = compile1(transformed, scope, parent, opts)
+        macroCurrentScope = oldScope
+        return result
     end
 end
 
@@ -2018,7 +2025,7 @@ local function makeCompilerEnv(ast, scope, parent)
         ["table?"] = isTable,
         ["varg?"] = isVarg,
         ["in-scope?"] = function(symbol)
-            return scope.manglings[symbol]
+            return macroCurrentScope.manglings[symbol]
         end
     }, { __index = _ENV or _G })
 end
@@ -2163,6 +2170,7 @@ local stdmacros = [===[
     ;; we have to assume we're matching against multiple values here until we
     ;; know we're either in a multi-valued clause (in which case we know the #
     ;; of vals) or we're not, in which case we only care about the first one.
+    (print "(in-scope? \"x\") -> " (in-scope? "x"))
     (let [[val] vals]
       (if (and (sym? pattern) ; unification with outer locals (or nil)
                (or (in-scope? pattern)
@@ -2251,7 +2259,7 @@ local stdmacros = [===[
  }
 ]===]
 do
-    local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
+    local env = wrapEnv(makeCompilerEnv(nil, COMPILER_SCOPE, {}))
     for name, fn in pairs(eval(stdmacros, {
         env = env,
         scope = makeScope(COMPILER_SCOPE),

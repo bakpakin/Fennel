@@ -342,7 +342,7 @@ by destructuring with parens instead of square brackets:
   (if f
       (do (use-file-contents (f.read f "*all"))
           (f.close f))
-      (print "Could not open file: " .. msg)))
+      (print (.. "Could not open file: " msg))))
 ```
 
 You can write your own function which returns multiple values with `values`:

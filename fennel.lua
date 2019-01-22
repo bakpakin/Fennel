@@ -1970,7 +1970,7 @@ local module = {
     macroLoaded = macroLoaded,
     path = "./?.fnl;./?/init.fnl",
     traceback = traceback,
-    version = "0.2.0",
+    version = "0.2.1",
 }
 
 local function searchModule(modulename)

@@ -1548,12 +1548,19 @@ end
 defineUnarySpecial('not', 'not ')
 defineUnarySpecial('#')
 
+-- Save current macro scope
+local macroCurrentScope = GLOBAL_SCOPE
+
 -- Covert a macro function to a special form
 local function macroToSpecial(mac)
     return function(ast, scope, parent, opts)
+        local oldScope = macroCurrentScope
+        macroCurrentScope = scope
         local ok, transformed = pcall(mac, unpack(ast, 2))
+        macroCurrentScope = oldScope
         assertCompile(ok, transformed, ast)
-        return compile1(transformed, scope, parent, opts)
+        local result = compile1(transformed, scope, parent, opts)
+        return result
     end
 end
 
@@ -2011,14 +2018,15 @@ local function makeCompilerEnv(ast, scope, parent)
         list = list,
         sym = sym,
         unpack = unpack,
-        gensym = function() return sym(gensym(scope)) end,
+        gensym = function() return sym(gensym(macroCurrentScope)) end,
         ["list?"] = isList,
         ["multi-sym?"] = isMultiSym,
         ["sym?"] = isSym,
         ["table?"] = isTable,
         ["varg?"] = isVarg,
+        ["get-scope"] = function() return macroCurrentScope end,
         ["in-scope?"] = function(symbol)
-            return scope.manglings[symbol]
+            return macroCurrentScope.manglings[tostring(symbol)]
         end
     }, { __index = _ENV or _G })
 end

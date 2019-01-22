@@ -1536,6 +1536,7 @@ defineComparatorSpecial('>=')
 defineComparatorSpecial('<=')
 defineComparatorSpecial('=', '==')
 defineComparatorSpecial('~=', '~=', 'or')
+defineComparatorSpecial('not=', '~=', 'or')
 
 local function defineUnarySpecial(op, realop)
     SPECIALS[op] = function(ast, scope, parent)

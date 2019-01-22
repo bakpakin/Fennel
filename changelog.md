@@ -2,6 +2,7 @@
 
 ## 0.2.1 / ???
 
+* Add `not=` as an alias for `~=`
 * Fix a bug with `in-scope?` which caused `match` outer unification to fail
 * Fix a bug with variadic `~=` comparisons
 * Improve error reporting for mismatched delimiters

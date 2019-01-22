@@ -2026,7 +2026,7 @@ local function makeCompilerEnv(ast, scope, parent)
         ["varg?"] = isVarg,
         ["get-scope"] = function() return macroCurrentScope end,
         ["in-scope?"] = function(symbol)
-            return macroCurrentScope.manglings[symbol]
+            return macroCurrentScope.manglings[tostring(symbol)]
         end
     }, { __index = _ENV or _G })
 end
@@ -2171,7 +2171,6 @@ local stdmacros = [===[
     ;; we have to assume we're matching against multiple values here until we
     ;; know we're either in a multi-valued clause (in which case we know the #
     ;; of vals) or we're not, in which case we only care about the first one.
-    (print "(in-scope? \"x\") -> " (in-scope? "x"))
     (let [[val] vals]
       (if (and (sym? pattern) ; unification with outer locals (or nil)
                (or (in-scope? pattern)

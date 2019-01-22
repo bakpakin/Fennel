@@ -294,6 +294,8 @@ local cases = {
         ["(match [1 2 3] [x y x] :no [x y z] :yes)"]="yes",
         ["(match [1 2 1] [x y x] :yes)"]="yes",
         ["(match (values 1 [1 2]) (x [x x]) :no (x [x y]) :yes)"]="yes",
+        -- external unification
+        ["(let [x 95] (match [52 85 95] [x y z] :nope [a b x] :yes))"]="yes",
         -- deep nested unification
         ["(match [1 2 [[3]]] [x y [[x]]] :no [x y z] :yes)"]="yes",
         ["(match [1 2 [[1]]] [x y [z]] (. z 1))"]=1,

@@ -783,6 +783,7 @@ end
 --      Could be one variable, 'a', or a list, like 'a, b, _0_'.
 --   'tail' - boolean indicating tail position if set. If set, form will generate a return
 --   instruction.
+--   'nval' - The number of values to compile to if it is known to be a fixed value.
 local function compile1(ast, scope, parent, opts)
     opts = opts or {}
     local exprs = {}
@@ -1279,17 +1280,20 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     local elseBranch = nil
 
     -- Calculate some external stuff. Optimizes for tail calls and what not
-    local outerTail = true
-    local outerTarget = nil
-    local wrapper = 'iife'
-    if opts.tail then
+    local wrapper, innerTail
+    if opts.tail or opts.target or opts.nval == 0 then
         wrapper = 'none'
+        innerTail = opts.tail
+    else
+        wrapper = 'iife'
+        innerTail = true
     end
 
     -- Compile bodies and conditions
     local bodyOpts = {
-        tail = outerTail,
-        target = outerTarget
+        tail = innerTail,
+        target = opts.target,
+        nval = opts.nval == 0 and 0
     }
     local function compileBody(i)
         local chunk = {}
@@ -1302,7 +1306,7 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     end
     for i = 2, #ast - 1, 2 do
         local condchunk = {}
-        local cond =  compile1(ast[i], doScope, condchunk, {nval = 1})
+        local cond = compile1(ast[i], doScope, condchunk, {nval = 1})
         local branch = compileBody(i + 1)
         branch.cond = cond
         branch.condchunk = condchunk

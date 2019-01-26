@@ -1156,12 +1156,18 @@ SPECIALS['fn'] = function(ast, scope, parent)
     return expr(fnName, 'sym')
 end
 
-SPECIALS['luaexpr'] = function(ast)
-    return tostring(ast[2])
-end
-
-SPECIALS['luastatement'] = function(ast)
-    return expr(tostring(ast[2]), 'statement')
+-- (lua "print('hello!')") -> prints hello, evaluates to nil
+-- (lua "print 'hello!'" "10") -> prints hello, evaluates to the number 10
+-- (lua nil "{1,2,3}") -> Evaluates to a table literal
+SPECIALS['lua'] = function(ast, _, parent)
+    assertCompile(#ast == 2 or #ast == 3,
+        "expected 2 or 3 arguments in 'lua' special form", ast)
+    if ast[2] ~= nil then
+        table.insert(parent, {leaf = tostring(ast[2]), ast = ast})
+    end
+    if #ast == 3 then
+        return tostring(ast[3])
+    end
 end
 
 -- Wrapper for table access

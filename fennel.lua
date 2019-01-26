@@ -949,12 +949,32 @@ local function destructure(to, from, ast, scope, parent, opts)
         end
     end
 
+    -- Compile the outer most form. We can generate better Lua in this case.
+    local function compileTopTarget(lvalue)
+        local plen = #parent
+        local ret = compile1(from, scope, parent, {target = lvalue})
+        if declaration then
+            if #parent == plen + 1 and parent[#parent].leaf then
+                parent[#parent].leaf = 'local ' .. parent[#parent].leaf
+            else
+                table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue, ast = ast})
+            end
+        end
+        return ret
+    end
+
     -- Recursive auxiliary function
-    local function destructure1(left, rightexprs, up1)
+    local function destructure1(left, rightexprs, up1, top)
         if isSym(left) and left[1] ~= "nil" then
             checkBindingValid(left, scope, left)
-            emit(parent, setter:format(getname(left, up1), exprs1(rightexprs)), left)
+            local lname = getname(left, up1)
+            if top then
+                compileTopTarget(lname)
+            else
+                emit(parent, setter:format(lname, exprs1(rightexprs)), left)
+            end
         elseif isTable(left) then -- table destructuring
+            if top then rightexprs = compile1(from, scope, parent) end
             local s = gensym(scope)
             emit(parent, ("local %s = %s"):format(s, exprs1(rightexprs)), left)
             for k, v in pairs(left) do
@@ -983,19 +1003,22 @@ local function destructure(to, from, ast, scope, parent, opts)
                 end
                 table.insert(leftNames, symname)
             end
-            emit(parent, setter:
-            format(table.concat(leftNames, ", "), exprs1(rightexprs)), left)
+            local lvalue = table.concat(leftNames, ', ')
+            if top then
+                compileTopTarget(lvalue)
+            else
+                emit(parent, setter:format(lvalue, exprs1(rightexprs)), left)
+            end
             for _, pair in pairs(tables) do -- recurse if left-side tables found
                 destructure1(pair[1], {pair[2]}, left)
             end
         else
             assertCompile(false, 'unable to destructure ' .. tostring(left), up1)
         end
+        if top then return {returned = true} end
     end
 
-    local rexps = compile1(from, scope, parent)
-    local ret = destructure1(to, rexps, ast)
-    return ret
+    return destructure1(to, nil, ast, true)
 end
 
 -- Unlike most expressions and specials, 'values' resolves with multiple
@@ -2187,12 +2210,10 @@ local stdmacros = [===[
                (or (in-scope? pattern)
                    (= :nil (tostring pattern))))
           (values `(= @val @pattern) [])
-
           ;; unify a local we've seen already
           (and (sym? pattern)
                (. unifications (tostring pattern)))
           (values `(= @(. unifications (tostring pattern)) @val) [])
-
           ;; bind a fresh local
           (sym? pattern)
           (do (if (~= (tostring pattern) "_")
@@ -2200,7 +2221,6 @@ local stdmacros = [===[
               (values (if (: (tostring pattern) :find "^?")
                           true `(~= @(sym :nil) @val))
                       [pattern val]))
-
           ;; multi-valued patterns (represented as lists)
           (list? pattern)
           (let [condition `(and)
@@ -2212,7 +2232,6 @@ local stdmacros = [===[
                 (each [_ b (ipairs subbindings)]
                   (table.insert bindings b))))
             (values condition bindings))
-
           ;; table patterns)
           (= (type pattern) :table)
           (let [condition `(and (= (type @val) :table))
@@ -2234,10 +2253,8 @@ local stdmacros = [===[
                     (each [_ b (ipairs subbindings)]
                       (table.insert bindings b)))))
             (values condition bindings))
-
           ;; literal value
           (values `(= @val @pattern) []))))
-
   (fn match-condition [vals clauses]
     (let [out `(if)]
       (for [i 1 (# clauses) 2]
@@ -2247,7 +2264,6 @@ local stdmacros = [===[
           (table.insert out condition)
           (table.insert out `(let @bindings @body))))
       out))
-
   ;; how many multi-valued clauses are there? return a list of that many gensyms
   (fn val-syms [clauses]
     (let [syms (list (gensym))]
@@ -2257,7 +2273,6 @@ local stdmacros = [===[
               (if (not (. syms valnum))
                   (tset syms valnum (gensym))))))
       syms))
-
   ;; wrap it in a way that prevents double-evaluation of the matched value
   (let [clauses [...]
         vals (val-syms clauses)]

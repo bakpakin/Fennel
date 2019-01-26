@@ -1,24 +1,19 @@
-local function _0_(str)
+local function view_quote(str)
   return ("\"" .. str:gsub("\"", "\\\"") .. "\"")
 end
-local view_quote = _0_
 local short_control_char_escapes = {["\11"] = "\\v", ["\12"] = "\\f", ["\13"] = "\\r", ["\7"] = "\\a", ["\8"] = "\\b", ["\9"] = "\\t", ["\n"] = "\\n"}
-local function _1_(...)
+local long_control_char_esapes
+do
   local long = {}
   for i = 0, 31 do
     local ch = string.char(i)
-    local function _2_(...)
-      if not short_control_char_escapes[ch] then
-        short_control_char_escapes[ch] = ("\\" .. i)
-        long[ch] = ("\\%03d"):format(i)
-        return nil
-      end
+    if not short_control_char_escapes[ch] then
+      short_control_char_escapes[ch] = ("\\" .. i)
+      long[ch] = ("\\%03d"):format(i)
     end
-    _2_(...)
   end
-  return long
+  long_control_char_esapes = long
 end
-local long_control_char_esapes = _1_(...)
 local function escape(str)
   local str = str:gsub("\\", "\\\\")
   local str = str:gsub("(%c)%f[0-9]", long_control_char_esapes)
@@ -58,35 +53,27 @@ local function get_nonsequential_keys(t)
   local keys = {}
   local sequence_length = get_sequence_length(t)
   for k in pairs(t) do
-    local function _2_()
-      if not sequence_key_3f(k, sequence_length) then
-        return table.insert(keys, k)
-      end
+    if not sequence_key_3f(k, sequence_length) then
+      table.insert(keys, k)
     end
-    _2_()
   end
   table.sort(keys, sort_keys)
   return keys, sequence_length
 end
 local function count_table_appearances(t, appearances)
-  local function _2_()
-    if (type(t) == "table") then
-      if not appearances[t] then
-        appearances[t] = 1
-        for k, v in pairs(t) do
-          count_table_appearances(k, appearances)
-          count_table_appearances(v, appearances)
-        end
-        return nil
-      end
-    else
-      if (t and (t == t)) then
-        appearances[t] = ((appearances[t] or 0) + 1)
-        return nil
+  if (type(t) == "table") then
+    if not appearances[t] then
+      appearances[t] = 1
+      for k, v in pairs(t) do
+        count_table_appearances(k, appearances)
+        count_table_appearances(v, appearances)
       end
     end
+  else
+    if (t and (t == t)) then
+      appearances[t] = ((appearances[t] or 0) + 1)
+    end
   end
-  _2_()
   return appearances
 end
 local put_value = nil
@@ -104,16 +91,12 @@ local function already_visited_3f(self, v)
 end
 local function get_id(self, v)
   local id = self.ids[v]
-  local function _2_()
-    if not id then
-      local tv = type(v)
-      id = ((self["max-ids"][tv] or 0) + 1)
-      self["max-ids"][tv] = id
-      self.ids[v] = id
-      return nil
-    end
+  if not id then
+    local tv = type(v)
+    id = ((self["max-ids"][tv] or 0) + 1)
+    self["max-ids"][tv] = id
+    self.ids[v] = id
   end
-  _2_()
   return tostring(id)
 end
 local function put_sequential_table(self, t, length)
@@ -165,7 +148,7 @@ local function put_table(self, t)
     end
   end
 end
-local function _2_(self, v)
+local function _0_(self, v)
   local tv = type(v)
   if (tv == "string") then
     return puts(self, view_quote(escape(v)))
@@ -177,7 +160,7 @@ local function _2_(self, v)
     return puts(self, "#<", tostring(v), ">")
   end
 end
-put_value = _2_
+put_value = _0_
 local function fennelview(root, options)
   local options = (options or {})
   local inspector = {["max-ids"] = {}, appearances = count_table_appearances(root, {}), buffer = {}, depth = (options.depth or 128), ids = {}, indent = (options.indent or "  "), level = 0}

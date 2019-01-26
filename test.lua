@@ -219,7 +219,8 @@ local cases = {
         -- IIFE if test v4
         ["(select \"#\" (if (= 1 (- 3 2)) (values 1 2 3 4 5) :onevalue))"]=5,
         -- Values special in array literal
-        ["(# [(values 1 2 3 4 5)])"]=5
+        ["(# [(values 1 2 3 4 5)])"]=5,
+        ["(let [x (if 3 4 5)] x)"]=4
     },
 
     macros = {

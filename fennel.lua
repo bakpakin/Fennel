@@ -1281,7 +1281,7 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
 
     -- Calculate some external stuff. Optimizes for tail calls and what not
     local wrapper, innerTail
-    if opts.tail or opts.target or opts.nval == 0 then
+    if opts.tail or opts.target or opts.nval then
         wrapper = 'none'
         innerTail = opts.tail
     else
@@ -1293,7 +1293,7 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     local bodyOpts = {
         tail = innerTail,
         target = opts.target,
-        nval = opts.nval == 0 and 0
+        nval = opts.nval
     }
     local function compileBody(i)
         local chunk = {}

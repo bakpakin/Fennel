@@ -1,5 +1,10 @@
 # Summary of user-visible changes
 
+## 0.2.2 / ??
+
+* Remove `luaexpr` and `luastatement` for a single `lua` special.
+* Improve code generation for if expressions in many situations.
+
 ## 0.2.1 / 2019-01-22
 
 * Add `not=` as an alias for `~=`

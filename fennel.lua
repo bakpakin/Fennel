@@ -739,7 +739,7 @@ local function handleCompileOpts(exprs, parent, opts, ast)
             if len > n then
                 -- Drop extra
                 keepSideEffects(exprs, parent, n + 1, ast)
-                for i = n, len do
+                for i = n + 1, len do
                     exprs[i] = nil
                 end
             else
@@ -1023,21 +1023,20 @@ end
 
 -- Unlike most expressions and specials, 'values' resolves with multiple
 -- values, one for each argument, allowing multiple return values. The last
--- expression, can return multiple arguments as well, allowing for more than the number
+-- expression can return multiple arguments as well, allowing for more than the number
 -- of expected arguments.
 local function values(ast, scope, parent)
     local len = #ast
     local exprs = {}
     for i = 2, len do
-        local subexprs = compile1(ast[i], scope, parent, {})
-        exprs[#exprs + 1] = subexprs[1] or expr('nil', 'literal')
+        local subexprs = compile1(ast[i], scope, parent, {
+            nval = (i ~= len) and 1
+        })
+        exprs[#exprs + 1] = subexprs[1]
         if i == len then
             for j = 2, #subexprs do
                 exprs[#exprs + 1] = subexprs[j]
             end
-        else
-            -- Emit sub expression only for side effects
-            keepSideEffects(subexprs, parent, 2, ast)
         end
     end
     return exprs
@@ -1303,25 +1302,42 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     local elseBranch = nil
 
     -- Calculate some external stuff. Optimizes for tail calls and what not
-    local wrapper, innerTail
+    local wrapper, innerTail, innerTarget, targetExprs
     if opts.tail or opts.target or opts.nval then
-        wrapper = 'none'
-        innerTail = opts.tail
+        if opts.nval and opts.nval ~= 0 and not opts.target then
+            -- We need to create a target
+            targetExprs = {}
+            local accum = {}
+            for i = 1, opts.nval do
+                local s = gensym(scope)
+                accum[i] = s
+                targetExprs[i] = expr(s, 'sym')
+            end
+            wrapper = 'target'
+            innerTail = opts.tail
+            innerTarget = table.concat(accum, ', ')
+        else
+            wrapper = 'none'
+            innerTail = opts.tail
+            innerTarget = opts.target
+        end
     else
         wrapper = 'iife'
         innerTail = true
+        innerTarget = nil
     end
 
     -- Compile bodies and conditions
     local bodyOpts = {
         tail = innerTail,
-        target = opts.target,
+        target = innerTarget,
         nval = opts.nval
     }
     local function compileBody(i)
         local chunk = {}
         local cscope = makeScope(doScope)
-        compile1(ast[i], cscope, chunk, bodyOpts)
+        keepSideEffects(compile1(ast[i], cscope, chunk, bodyOpts),
+        chunk, nil, ast[i])
         return {
             chunk = chunk,
             scope = cscope
@@ -1329,7 +1345,9 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     end
     for i = 2, #ast - 1, 2 do
         local condchunk = {}
-        local cond = compile1(ast[i], doScope, condchunk, {nval = 1})
+        local res = compile1(ast[i], doScope, condchunk, {nval = 1})
+        local cond = res[1]
+        --print(ast[i], res, cond)
         local branch = compileBody(i + 1)
         branch.cond = cond
         branch.condchunk = condchunk
@@ -1346,7 +1364,7 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     for i = 1, #branches do
         local branch = branches[i]
         local fstr = not branch.nested and 'if %s then' or 'elseif %s then'
-        local condLine = fstr:format(tostring(branch.cond[1]))
+        local condLine = fstr:format(tostring(branch.cond))
         if branch.nested then
             emit(lastBuffer, branch.condchunk, ast)
         else
@@ -1381,6 +1399,12 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
             emit(parent, buffer[i], ast)
         end
         return {returned = true}
+    else -- wrapper == 'target'
+        emit(parent, ('local %s'):format(innerTarget), ast)
+        for i = 1, #buffer do
+            emit(parent, buffer[i], ast)
+        end
+        return targetExprs
     end
 end
 
@@ -1956,6 +1980,7 @@ local function repl(options)
                 clearstream()
                 onError('Compile', luaSource) -- luaSource is error message in this case
             else
+                print(luaSource)
                 if saveLocals then
                     luaSource = spliceSaveLocals(luaSource)
                 end

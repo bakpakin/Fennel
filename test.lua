@@ -159,6 +159,15 @@ local cases = {
         ["(do (var a nil) (var b nil) (local ret (fn [] a)) (set (a b) (values 4 5)) (ret))"]=4,
     },
 
+    ifforms = {
+        ["(do (fn myfn [x y z] (+ x y z)) (myfn 1 (if 1 2 3) 4))"]=7,
+        ["(do (fn myfn [x y z] (+ x y z)) (myfn 1 (if 1 (values 2 5) 3) 4))"]=7,
+        ["(let [x (if false 3 (values 2 5))] x)"]=2,
+        ["(if (values 1 2) 3 4)"]=3,
+        ["(if (values 1) 3 4)"]=3,
+        ["(do (fn myfn [x y z] (+ x y z)) (myfn 1 4 (if 1 2 3)))"]=7,
+    },
+
     destructuring = {
         -- regular tables
         ["(let [[a b c d] [4 2 43 7]] (+ (* a b) (- c d)))"]=44,

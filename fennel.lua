@@ -1980,7 +1980,6 @@ local function repl(options)
                 clearstream()
                 onError('Compile', luaSource) -- luaSource is error message in this case
             else
-                print(luaSource)
                 if saveLocals then
                     luaSource = spliceSaveLocals(luaSource)
                 end

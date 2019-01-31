@@ -527,6 +527,8 @@ and a metatable that the compiler uses to distinguish them. You can use
 * `list?` - is the argument a list?
 * `sym?` - is the argument a symbol?
 * `table?` - is the argument a non-list table?
+* `sequence?` - is the argument a non-list _sequential_ table (created
+  with `[]`, as opposed to `{}`)?
 * `varg?` - is this a `...` symbol which indicates var args?
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
 * `in-scope?` - does this symbol refer to a local in the current scope?

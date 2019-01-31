@@ -44,6 +44,7 @@ local LIST_MT = { 'LIST',
         return '(' .. table.concat(strs, ', ', 1, #self) .. ')'
     end
 }
+local SEQUENCE_MT = { 'SEQUENCE' }
 
 -- Load code with an environment in all recent Lua versions
 local function loadCode(code, environment, filename)
@@ -73,6 +74,11 @@ local function sym(str, scope, meta)
     return setmetatable(s, SYMBOL_MT)
 end
 
+-- Create a new sequence
+local function sequence(...)
+   return setmetatable({...}, SEQUENCE_MT)
+end
+
 -- Create a new expr
 -- etype should be one of
 --   "literal", -- literals like numbers, strings, nil, true, false
@@ -83,6 +89,7 @@ end
 local function expr(strcode, etype)
     return setmetatable({ strcode, type = etype }, EXPR_MT)
 end
+
 
 local function varg()
     return VARARG
@@ -107,6 +114,11 @@ local function isTable(x)
     return type(x) == 'table' and
         x ~= VARARG and
         getmetatable(x) ~= LIST_MT and getmetatable(x) ~= SYMBOL_MT and x
+end
+
+-- Checks if an object is a sequence (created with a [] literal)
+local function isSequence(x)
+   return type(x) == 'table' and getmetatable(x) == SEQUENCE_MT and x
 end
 
 --
@@ -282,7 +294,7 @@ local function parser(getbyte, filename)
                 if b == 41 then -- ; )
                     val = last
                 elseif b == 93 then -- ; ]
-                    val = {}
+                    val = sequence()
                     for i = 1, #last do
                         val[i] = last[i]
                     end
@@ -2081,6 +2093,7 @@ local function makeCompilerEnv(ast, scope, parent)
         ["multi-sym?"] = isMultiSym,
         ["sym?"] = isSym,
         ["table?"] = isTable,
+	["sequence?"] = isSequence,
         ["varg?"] = isVarg,
         ["get-scope"] = function() return macroCurrentScope end,
         ["in-scope?"] = function(symbol)

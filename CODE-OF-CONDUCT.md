@@ -106,13 +106,13 @@ Sometimes, though, you need to get admins involved. Admins will do their best to
 
 > Patt: "I'm not attacking anyone, are you deaf?"
 
-> Alex: *DMs admin* "hey uh. Can someone look at #general? Patt is getting a bit aggro. I tried to nudge them about it, but nope."
+> Alex: *DMs admin* "hey uh. Can someone look at #fennel? Patt is getting a bit aggro. I tried to nudge them about it, but nope."
 
-> MxAdmin1: <joins #general> "Hey Patt, admin here. Could you tone it down? This sort of attack is really not okay in this space."
+> MxAdmin1: <joins #fennel> "Hey Patt, admin here. Could you tone it down? This sort of attack is really not okay in this space."
 
 > Patt: "Leave me alone I haven't said anything bad wtf is wrong with you."
 
-> MxAdmin1: *removes patt* *DMs patt* "I mean it. Please refer to the CoC in the repository if you have questions, but you can consider this an actual warning. I'd appreciate it if you reworded your messages in #general, since they made folks there uncomfortable. Let's try and be kind, yeah?"
+> MxAdmin1: *removes patt* *DMs patt* "I mean it. Please refer to the CoC in the repository if you have questions, but you can consider this an actual warning. I'd appreciate it if you reworded your messages in #fennel, since they made folks there uncomfortable. Let's try and be kind, yeah?"
 
 > Patt: *Replies to DM* "@mxadmin1 Okay sorry. I'm just frustrated and I'm kinda burnt out and I guess I got carried away. I'll DM Alex a note apologizing and edit my messages. Sorry for the trouble."
 
@@ -124,11 +124,11 @@ Sometimes, though, you need to get admins involved. Admins will do their best to
 
 > Patt: "NOOOOPE. OH NOPE NOPE."
 
-> Alex: "JFC NO. NOPE. `/admin nope nope nope @ #javascript`"
+> Alex: "JFC NO. NOPE. /msg MxAdmin1 Nope nope nope"
 
-> MxAdmin1: "👀 Nope. NOPE NOPE NOPE. 🔥"
+> MxAdmin1: "/kick PepeTheFrog"
 
-> PepeTheFrog🐸 has been deactivated.
+> PepeTheFrog🐸 has been kicked.
 
 ## Attribution
 

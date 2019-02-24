@@ -15,22 +15,22 @@ closures. The [Lua reference manual][3] is a fine place to look for details.
 
 ## OK, so how do you do things?
 
-Use `fn` to make functions. If you provide an optional name, the
-function will be bound to that name in local scope; otherwise it is
-simply a value. The argument list is provided in square brackets. The
-final value is returned.
+Use `fn` or `defn` to make functions. If you provide an optional name to `fn`,
+the function will be bound to that name in local scope; otherwise it is
+simply a value. `defn` requires a function name. The argument list is provided
+in square brackets. The final value is returned.
 
 (If you've never used a lisp before, the main thing to note is that
 the function or macro being called goes *inside* the parens, not
 outside.)
 
 ```lisp
-(fn print-and-add [a b c]
+(defn print-and-add [a b c]
   (print a)
   (+ b c))
 ```
 
-Functions defined with `fn` are fast; they have no runtime overhead
+Functions defined with `fn` or `defn` are fast; they have no runtime overhead
 compared to Lua. However, they also have no arity checking. (That is,
 calling a function with the wrong number of arguments does not cause
 an error.) For safer code you can use `lambda` which ensures you will

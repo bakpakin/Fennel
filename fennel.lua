@@ -1292,8 +1292,7 @@ end
 
 -- For setting items in a table
 SPECIALS['tset'] = function(ast, scope, parent)
-    assertCompile(#ast > 3,
-                  ('tset form needs table, key, and value'), ast)
+    assertCompile(#ast > 3, ('tset form needs table, key, and value'), ast)
     local root = compile1(ast[2], scope, parent, {nval = 1})[1]
     local keys = {}
     for i = 3, #ast - 1 do
@@ -2326,7 +2325,10 @@ do
     for name, fn in pairs(eval(stdmacros, {
         env = env,
         scope = makeScope(COMPILER_SCOPE),
-        allowedGlobals = macroGlobals(env, currentGlobalNames()),
+        -- assume the code to load globals doesn't have any mistaken globals,
+        -- otherwise this can be problematic when loading fennel in contexts
+        -- where _G is an empty table with an __index metamethod. (openresty)
+        allowedGlobals = false,
     })) do
         SPECIALS[name] = macroToSpecial(fn)
     end

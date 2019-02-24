@@ -88,7 +88,7 @@ See the [API documentation](api.md) for how to embed Fennel in your program.
 
 ## License
 
-Copyright © 2016-2018 Calvin Rose and contributors
+Copyright © 2016-2019 Calvin Rose and contributors
 
 Released under the MIT license
 

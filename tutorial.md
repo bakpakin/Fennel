@@ -110,8 +110,8 @@ underscores have no effect on the output.
 Strings are essentially immutable byte arrays. UTF-8 support is
 provided from a [3rd-party library][4]. Strings are concatenated with `..`:
 
-Bare-words prefixed with `:` look like keywords in other LISPs but are just
-sugar that evaulates to a string.
+Bare-words without spaces prefixed with `:` look like keywords in other LISPs
+but are just sugar that evaulates to a string. (See "Back to Tables" later).
 
 ```lisp
 (.. "hello" " world")
@@ -251,11 +251,9 @@ for multiple conditions compiling into `elseif` branches:
 
 ```lisp
 (let [x (math.random 64)]
-  (if (= 0 (% x 2))
-      "even"
-      (= 0 (% x 10))
-      "multiple of ten"
-      "I dunno, something else"))
+  (if (= 0 (% x 2))  "even"
+      (= 0 (% x 10)) "multiple of ten"
+                     "I dunno, something else"))
 ```
 
 Being a lisp, Fennel has no statements, so `if` returns a value as an

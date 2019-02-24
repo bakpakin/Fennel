@@ -110,8 +110,12 @@ underscores have no effect on the output.
 Strings are essentially immutable byte arrays. UTF-8 support is
 provided from a [3rd-party library][4]. Strings are concatenated with `..`:
 
+Bare-words prefixed with `:` look like keywords in other LISPs but are just
+sugar that evaulates to a string.
+
 ```lisp
 (.. "hello" " world")
+(.. :good :bye)
 ```
 
 ### Tables
@@ -121,8 +125,9 @@ main syntax for tables uses curly braces with key/value pairs in them:
 
 ```lisp
 {"key" value
- "number" 531
- "f" (fn [x] (+ x 2))}
+  "number" 531
+  :string-with-keyword-syntax "just-a-string"
+  :f (fn [x] (+ x 2))}
 ```
 
 You can use `.` to get values out of tables:

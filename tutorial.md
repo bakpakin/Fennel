@@ -90,6 +90,12 @@ nested `let`-like equivalent of `var`.
 (print x) ; -> 27
 ```
 
+Multiple return values from Lua functions use ()
+```lisp
+(let [(r h x) (https.request url )]
+    r)
+```
+
 ### Numbers and strings
 
 Of course, all our standard arithmetic operators like `+`, `-`, `*`,

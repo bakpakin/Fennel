@@ -1300,9 +1300,11 @@ SPECIALS['tset'] = function(ast, scope, parent)
         keys[#keys + 1] = tostring(key)
     end
     local value = compile1(ast[#ast], scope, parent, {nval = 1})[1]
-    emit(parent, ('%s[%s] = %s'):format(tostring(root),
-                                        table.concat(keys, ']['),
-                                        tostring(value)), ast)
+    local rootstr = tostring(root)
+    local fmtstr = (rootstr:match('^{')) and '(%s)[%s] = %s' or '%s[%s] = %s'
+    emit(parent, fmtstr:format(tostring(root),
+                               table.concat(keys, ']['),
+                               tostring(value)), ast)
 end
 
 -- The if special form behaves like the cond form in

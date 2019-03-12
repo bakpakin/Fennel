@@ -2094,7 +2094,7 @@ local function makeCompilerEnv(ast, scope, parent)
         ["multi-sym?"] = isMultiSym,
         ["sym?"] = isSym,
         ["table?"] = isTable,
-	["sequence?"] = isSequence,
+        ["sequence?"] = isSequence,
         ["varg?"] = isVarg,
         ["get-scope"] = function() return macroCurrentScope end,
         ["in-scope?"] = function(symbol)

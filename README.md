@@ -82,6 +82,7 @@ See the [API documentation](api.md) for how to embed Fennel in your program.
 
 * [Mailing list][5]
 * [Emacs support][6]
+* [Vim support][10]
 * [Wiki][7]
 * Build: [![CircleCI](https://circleci.com/gh/bakpakin/Fennel.svg?style=svg)][8]
 * The `#fennel` IRC channel is [on Freenode][9]
@@ -101,3 +102,4 @@ Released under the MIT license
 [7]: https://github.com/bakpakin/Fennel/wiki
 [8]: https://circleci.com/gh/bakpakin/Fennel
 [9]: https://webchat.freenode.net/
+[10]: https://github.com/bakpakin/fennel.vim

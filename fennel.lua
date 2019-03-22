@@ -1695,8 +1695,12 @@ end
 -- expand a quoted form into a data literal, evaluating unquote
 local function doQuote (form, scope, parent, runtime)
     local q = function (x) return doQuote(x, scope, parent, runtime) end
+    -- vararg
+    if isVarg(form) then
+        assertCompile(not runtime, "symbols may only be used at compile time", form)
+        return ("_VARARG"):format(deref(form))
     -- symbol
-    if isSym(form) then
+    elseif isSym(form) then
         assertCompile(not runtime, "symbols may only be used at compile time", form)
         return ("sym('%s')"):format(deref(form))
     -- unquote

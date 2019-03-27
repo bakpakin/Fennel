@@ -1546,7 +1546,7 @@ SPECIALS[':'] = function(ast, scope, parent)
         table.concat(args, ', ')), 'statement')
 end
 
-SPECIALS['comment'] = function(ast, scope, parent)
+SPECIALS['comment'] = function(ast, _, parent)
     local els = {}
     for i = 2, #ast do
         els[#els + 1] = tostring(ast[i]):gsub('\n', ' ')

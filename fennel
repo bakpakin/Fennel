@@ -106,7 +106,7 @@ if arg[1] == "--repl" or #arg == 0 then
         -- pass in options so fennerlrc can make changes to it
         dosafe(initFilename, options, options)
     end
-    print("Welcome to fennel!")
+    print("Fennel " .. fennel.version .. " - Welcome to Fennel!")
     fennel.repl(options)
 elseif arg[1] == "--compile" then
     for i = 2, #arg do

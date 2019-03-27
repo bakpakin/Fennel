@@ -962,14 +962,23 @@ local function destructure(to, from, ast, scope, parent, opts)
     end
 
     -- Compile the outer most form. We can generate better Lua in this case.
-    local function compileTopTarget(lvalue)
+    local function compileTopTarget(lvalues)
+        -- Calculate initial rvalue
+        local inits = {}
+        for _, x in ipairs(lvalues) do
+            table.insert(inits, scope.manglings[x] and x or 'nil')
+        end
+        local init = table.concat(inits, ', ')
+        local lvalue = table.concat(lvalues, ', ')
+
         local plen = #parent
         local ret = compile1(from, scope, parent, {target = lvalue})
         if declaration then
             if #parent == plen + 1 and parent[#parent].leaf then
+                -- A single leaf emitted means an simple assignment a = x was emitted
                 parent[#parent].leaf = 'local ' .. parent[#parent].leaf
             else
-                table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue, ast = ast})
+                table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue .. ' = ' .. init, ast = ast})
             end
         end
         return ret
@@ -981,7 +990,7 @@ local function destructure(to, from, ast, scope, parent, opts)
             checkBindingValid(left, scope, left)
             local lname = getname(left, up1)
             if top then
-                compileTopTarget(lname)
+                compileTopTarget({lname})
             else
                 emit(parent, setter:format(lname, exprs1(rightexprs)), left)
             end
@@ -1015,10 +1024,10 @@ local function destructure(to, from, ast, scope, parent, opts)
                 end
                 table.insert(leftNames, symname)
             end
-            local lvalue = table.concat(leftNames, ', ')
             if top then
-                compileTopTarget(lvalue)
+                compileTopTarget(leftNames)
             else
+                local lvalue = table.concat(leftNames, ', ')
                 emit(parent, setter:format(lvalue, exprs1(rightexprs)), left)
             end
             for _, pair in pairs(tables) do -- recurse if left-side tables found

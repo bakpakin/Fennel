@@ -202,6 +202,8 @@ local cases = {
         ["(let [{:a x :b y} {:a 2 :b 4}] (+ x y))"]=6,
         -- nesting k/v and sequential
         ["(let [{:a [x y z]} {:a [1 2 4]}] (+ x y z))"]=7,
+        -- Local shadowing in let form
+        ["(let [x 1 x (if (= x 1) 2 3)] x)"]=2,
     },
 
     loops = {

@@ -1546,6 +1546,15 @@ SPECIALS[':'] = function(ast, scope, parent)
         table.concat(args, ', ')), 'statement')
 end
 
+SPECIALS['comment'] = function(ast, scope, parent)
+    local els = {}
+    for i = 2, #ast do
+        els[#els + 1] = tostring(ast[i]):gsub('\n', ' ')
+    end
+    emit(parent, '-- ' .. table.concat(els, ' '), ast)
+    return nil
+end
+
 local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
     SPECIALS[name] = function(ast, scope, parent)

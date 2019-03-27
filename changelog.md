@@ -12,6 +12,7 @@
 * Add `def` macro that works correctly in repl. If the current scope is
   a top level scope that has the correct flag set (such as in the repl),
   `def` will create a global, otherwise a local.
+* Add `(comment)` special which emits a Lua comment in the generated source
 
 ## 0.2.1 / 2019-01-22
 

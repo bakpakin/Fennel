@@ -1,7 +1,7 @@
 ;; A pretty-printer that outputs tables in Fennel syntax.
 ;; Loosely based on inspect.lua: http://github.com/kikito/inspect.lua
 
-(fn view-quote [str] (.. '"' (: str :gsub '"' '\\"') '"'))
+(fn view-quote [str] (.. "\"" (: str :gsub "\"" "\\\"") "\""))
 
 (local short-control-char-escapes
        {"\a" "\\a" "\b" "\\b" "\f" "\\f" "\n" "\\n"
@@ -32,7 +32,7 @@
 
 (fn sort-keys [a b]
   (let [ta (type a) tb (type b)]
-    (if (and (= ta tb) (~= ta "boolean")
+    (if (and (= ta tb) (not= ta "boolean")
              (or (= ta "string") (= ta "number")))
         (< a b)
         (let [dta (. type-order a)
@@ -78,7 +78,7 @@
 
 (fn tabify [self] (puts self "\n" (: self.indent :rep self.level)))
 
-(fn already-visited? [self v] (~= (. self.ids v) nil))
+(fn already-visited? [self v] (not= (. self.ids v) nil))
 
 (fn get-id [self v]
   (var id (. self.ids v))
@@ -89,10 +89,10 @@
       (tset self.ids v id)))
   (tostring id))
 
-(fn put-sequential-table [self t length]
+(fn put-sequential-table [self t len]
   (puts self "[")
   (set self.level (+ self.level 1))
-  (for [i 1 length]
+  (for [i 1 len]
     (puts self " ")
     (put-value self (. t i)))
   (set self.level (- self.level 1))
@@ -122,14 +122,14 @@
       (>= self.level self.depth)
       (puts self "{...}")
       :else
-      (let [(non-seq-keys length) (get-nonsequential-keys t)
+      (let [(non-seq-keys len) (get-nonsequential-keys t)
             id (get-id self t)]
         (if (> (. self.appearances t) 1)
             (puts self "#<" id ">")
-            (and (= (# non-seq-keys) 0) (= (# t) 0))
+            (and (= (length non-seq-keys) 0) (= (length t) 0))
             (puts self "{}")
-            (= (# non-seq-keys) 0)
-            (put-sequential-table self t length)
+            (= (length non-seq-keys) 0)
+            (put-sequential-table self t len)
             :else
             (put-kv-table self t)))))
 

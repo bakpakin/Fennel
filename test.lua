@@ -55,10 +55,9 @@ local cases = {
         ["(< -4 89)"]=true,
         ["(>= 22 (+ 21 1))"]=true,
         ["(<= 88 32)"]=false,
-        ["(~= 33 1)"]=true,
         ["(not= 33 1)"]=true,
         ["(= 1 1 2 2)"]=false,
-        ["(~= 6 6 9)"]=true,
+        ["(not= 6 6 9)"]=true,
         ["(let [f (fn [] (tset tbl :dbl (+ 1 (or (. tbl :dbl) 0))) 1)]\
             (< 0 (f) 2) (. tbl :dbl))"]=1,
     },
@@ -66,7 +65,6 @@ local cases = {
     parsing = {
         ["\"\\\\\""]="\\",
         ["\"abc\\\"def\""]="abc\"def",
-        ["\'abc\\\"\'"]="abc\"",
         ["\"abc\\240\""]="abc\240",
         ["\"abc\n\\240\""]="abc\n\240",
         ["150_000"]=150000,
@@ -228,11 +226,11 @@ local cases = {
                                        ((or unpack table.unpack) [1 2 3 4 5 6 7]))]\
             (+ a b c d e f g))"]=28,
         -- IIFE if test v3
-        ["(# [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))])"]=5,
+        ["(length [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))])"]=5,
         -- IIFE if test v4
         ["(select \"#\" (if (= 1 (- 3 2)) (values 1 2 3 4 5) :onevalue))"]=5,
         -- Values special in array literal
-        ["(# [(values 1 2 3 4 5)])"]=5,
+        ["(length [(values 1 2 3 4 5)])"]=5,
         ["(let [x (if 3 4 5)] x)"]=4,
         ["(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) (xyz (if (and c1 c2) true false) 52))"]=52
     },
@@ -263,9 +261,9 @@ local cases = {
         [ [[(eval-compiler
              (tset _SPECIALS "reverse-it" (fn [ast scope parent opts]
                (tset ast 1 "do")
-               (for [i 2 (math.ceil (/ (# ast) 2))]
-                 (let [a (. ast i) b (. ast (- (# ast) (- i 2)))]
-                   (tset ast (- (# ast) (- i 2)) a)
+               (for [i 2 (math.ceil (/ (length ast) 2))]
+                 (let [a (. ast i) b (. ast (- (length ast) (- i 2)))]
+                   (tset ast (- (length ast) (- i 2)) a)
                    (tset ast i b)))
                (_SPECIALS.do ast scope parent opts))))
            (reverse-it 1 2 3 4 5 6)]]]=1,
@@ -273,7 +271,7 @@ local cases = {
         ["(eval-compiler (set tbl.nest ``nest))\
           (tostring tbl.nest)"]="(quote, nest)",
         -- inline macros
-        ["(macros {:plus (fn [x y] `(+ @x @y))}) (plus 9 9)"]=18,
+        ["(macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)"]=18,
         -- Vararg in quasiquote
         ["(macros {:x (fn [] `(fn [...] (+ 1 1)))}) ((x))"]=2,
     },
@@ -323,7 +321,7 @@ local cases = {
         ["(match [1 2] [_ _] :wildcard)"]="wildcard",
         -- rest args
         ["(match [1 2 3] [a & b] (+ a (. b 1) (. b 2)))"]=6,
-        ["(match [1] [a & b] (# b))"]=0,
+        ["(match [1] [a & b] (length b))"]=0,
     }
 }
 
@@ -500,13 +498,13 @@ end
 
 local quoting_tests = {
     ['`:abcde'] = {"return \"abcde\"", "simple string quoting"},
-    ['@a'] = {"return unquote(a)",
+    [',a'] = {"return unquote(a)",
               "unquote outside quote is simply passed thru"},
-    ['`[1 2 @(+ 1 2) 4]'] = {
+    ['`[1 2 ,(+ 1 2) 4]'] = {
         "return {1, 2, (1 + 2), 4}",
         "unquote inside quote leads to evaluation"
     },
-    ['(let [a (+ 2 3)] `[:hey @(+ a a)])'] = {
+    ['(let [a (+ 2 3)] `[:hey ,(+ a a)])'] = {
         "local a = (2 + 3)\nreturn {\"hey\", (a + a)}",
         "unquote inside other forms"
     },

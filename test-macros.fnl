@@ -7,4 +7,4 @@
         x)
  :defn1 (fn [name args ...]
           (assert (sym? name) "defn1: function names must be symbols")
-          `(global @name (fn @args @...)))}
+          `(global ,name (fn ,args ,...)))}

@@ -1,9 +1,17 @@
 # Summary of user-visible changes
 
-## 0.2.2 / ??
+## 0.3.0 / ??
 
 * Remove `luaexpr` and `luastatement` for a single `lua` special.
 * Improve code generation for if expressions in many situations.
+* Replace `#` special with `length`
+* Replace `@` (unquote) with `,`. Comma is no longer whitespace
+* Remove `~=` special and disallow ~ in symbols. Use `not=` instead.
+* Add `hashfn` and `#` reader macro for shorthand functions like `#(+ $1 $2)`
+* Add `defmacro` macro to make defining a quick macro easier.
+* Add `def` macro that works correctly in repl. If the current scope is
+  a top level scope that has the correct flag set (such as in the repl),
+  `def` will create a global, otherwise a local.
 
 ## 0.2.1 / 2019-01-22
 

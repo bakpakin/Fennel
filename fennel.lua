@@ -193,7 +193,8 @@ end
 local prefixes = { -- prefix chars substituted while reading
     [96] = 'quote', -- `
     [44] = 'unquote', -- ,
-    [39] = 'quote' -- '
+    [39] = 'quote', -- '
+    [35] = 'hashfn' -- #
 }
 
 -- Parse one value given a function that
@@ -2211,6 +2212,9 @@ local stdmacros = [===[
                                              ,(or a.filename "unknown")
                                              ,(or a.line "?"))))))
              `(fn ,(unpack args))))
+ :hashfn (fn hashfn [body]
+           (assert body "expected body")
+           `(fn [$1 $2 $3 $4 $5 $6 $7 $8 $9] ,body))
  :defmacro (fn defmacro [name ...]
           (assert name "expected macro name")
           (local args [...])

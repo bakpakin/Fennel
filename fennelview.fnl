@@ -100,7 +100,7 @@
 
 (fn put-key [self k]
   (if (and (= (type k) "string")
-           (: k :find "^[-%w?\\^_`!#$%&*+./@~:|<=>]+$"))
+           (: k :find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
       (puts self ":" k)
       (put-value self k)))
 

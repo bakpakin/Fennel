@@ -1949,42 +1949,8 @@ local function repl(options)
         return c
     end)
 
-    local envdbg = (opts.env or _G)["debug"]
-    -- if the environment doesn't support debug.getlocal you can't save locals
-    local saveLocals = opts.saveLocals ~= false and envdbg and envdbg.getlocal
-    local saveSource = table.
-       concat({"local ___i___ = 1",
-               "while true do",
-               " local name, value = debug.getlocal(1, ___i___)",
-               " if(name and name ~= \"___i___\") then",
-               " ___replLocals___[name] = value",
-               " ___i___ = ___i___ + 1",
-               " else break end end"}, "\n")
-
-    local spliceSaveLocals = function(luaSource)
-        -- we do some source munging in order to save off locals from each chunk
-        -- and reintroduce them to the beginning of the next chunk, allowing
-        -- locals to work in the repl the way you'd expect them to.
-        env.___replLocals___ = env.___replLocals___ or {}
-        local splicedSource = {}
-        for line in luaSource:gmatch("([^\n]+)\n?") do
-            table.insert(splicedSource, line)
-        end
-        -- reintroduce locals from the previous time around
-        local bind = "local %s = ___replLocals___['%s']"
-        for name in pairs(env.___replLocals___) do
-            table.insert(splicedSource, 1, bind:format(name, name))
-        end
-        -- save off new locals at the end - if safe to do so (i.e. last line is a return)
-        if (string.match(splicedSource[#splicedSource], "^ *return .*$")) then
-            if (#splicedSource > 1) then
-                table.insert(splicedSource, #splicedSource, saveSource)
-            end
-        end
-        return table.concat(splicedSource, "\n")
-    end
-
     local scope = makeScope(GLOBAL_SCOPE)
+    scope.globalDefs = true
 
     -- REPL loop
     while true do
@@ -2006,9 +1972,6 @@ local function repl(options)
                 clearstream()
                 onError('Compile', luaSource) -- luaSource is error message in this case
             else
-                if saveLocals then
-                    luaSource = spliceSaveLocals(luaSource)
-                end
                 local luacompileok, loader = pcall(loadCode, luaSource, env)
                 if not luacompileok then
                     clearstream()
@@ -2247,6 +2210,18 @@ local stdmacros = [===[
                                              @(or a.filename "unknown")
                                              @(or a.line "?"))))))
              `(fn @(unpack args))))
+ :macro (fn macro [name ...]
+          (assert name "expected macro name")
+          (local args [...])
+          `(macros { @(tostring name) (fn @name @(unpack args))}))
+ :def (fn def [binding value]
+         (assert binding "expected binding")
+         (assert value "expected value")
+         (if (. (get-scope) :globalDefs)
+            ;top scope
+            `(global @binding @value)
+            ;not top scope
+            `(local @binding @value)))
  :match
 (fn match [val ...]
   ;; this function takes the AST of values and a single pattern and returns a

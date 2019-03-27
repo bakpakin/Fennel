@@ -275,6 +275,18 @@ local cases = {
         -- Vararg in quasiquote
         ["(macros {:x (fn [] `(fn [...] (+ 1 1)))}) ((x))"]=2,
     },
+    hashfn = {
+        -- Basic hashfn
+        ["(#(+ $1 $2) 3 4)"]=7,
+        -- Ignore arguments hashfn
+        ["(#(+ $3 $4) 1 1 3 4)"]=7,
+        -- One argument
+        ["(#(+ $1 45) 1)"]=46,
+        -- With let
+        ["(let [f #(+ $1 45)] (f 1))"]=46,
+        -- Complex body
+        ["(let [f #(do (local a 1) (local b (+ $1 $1 a)) (+ a b))] (f 1))"]=4,
+    },
     match = {
         -- basic literal
         ["(match (+ 1 6) 7 8)"]=8,

@@ -110,7 +110,7 @@ local function put_sequential_table(self, t, len)
   return puts(self, " ]")
 end
 local function put_key(self, k)
-  if ((type(k) == "string") and k:find("^[-%w?\\^_`!#$%&*+./@~:|<=>]+$")) then
+  if ((type(k) == "string") and k:find("^[-%w?\\^_!$%&*+./@:|<=>]+$")) then
     return puts(self, ":", k)
   else
     return put_value(self, k)

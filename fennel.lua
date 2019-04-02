@@ -32,19 +32,334 @@ local unpack = unpack or table.unpack
 
 local function deref(self) return self[1] end
 
-local SYMBOL_MT = { 'SYMBOL', __tostring = deref }
-local EXPR_MT = { 'EXPR', __tostring = deref }
-local VARARG = setmetatable({ '...' }, { 'VARARG', __tostring = deref })
-local LIST_MT = { 'LIST',
+-- Allow printing a string to Lua, also keep as 1 line.
+local serializeSubst = {
+    ['\a'] = '\\a',
+    ['\b'] = '\\b',
+    ['\f'] = '\\f',
+    ['\n'] = 'n',
+    ['\t'] = '\\t',
+    ['\v'] = '\\v'
+}
+local function serializeString(str)
+    local s = ("%q"):format(str)
+    s = s:gsub('.', serializeSubst):gsub("[\128-\255]", function(c)
+        return "\\" .. c:byte()
+    end)
+    return s
+end
+
+local checkSchema = true
+local function schemaIndex(index) return function (self, key)
+    local mt = getmetatable(self)
+    local val = rawget(self, key)
+    if val == nil then
+        if type(index) == 'function' then
+            return index(self, key)
+        elseif index ~= nil then
+            return index[key]
+        end
+    else
+        local schema = mt.schema
+        local ty = schema[key]
+        if ty == nil then
+            error(string.format("Key '%s' not found in %s instance '%s'",
+                                tostring(key), tostring(schema[1]), tostring(self)))
+        else
+            return val
+        end
+    end
+end end
+local function schemaCheckNewIndex(mt, t, key, val, annot)
+    local schema = mt.schema
+    local ty = schema[key]
+    if ty == nil then
+        error(string.format("Key '%s' not present in %s%s instance '%s'",
+                            tostring(key), annot, tostring(mt), tostring(t)))
+    else
+        local tyTy = ty[1]
+        local tyDesc = ty[2]
+        local valTy
+        if type(tyTy) == 'string' then
+            valTy = type(val)
+            if valTy == 'nil' and string.sub(tyDesc, 1, 1) ~= '?' then
+                error(string.format("Key '%s' (%s: %s) set to nil in %s%s instance '%s'",
+                                    tostring(key), tostring(tyTy), tostring(tyDesc),
+                                    annot, tostring(mt), tostring(t)))
+            end
+        else
+            valTy = getmetatable(val)
+        end
+        if valTy ~= tyTy then
+            error(string.format("Key '%s' (%s: %s) set to '%s' (%s) in %s%s instance '%s'",
+                                tostring(key), tostring(tyTy), tostring(tyDesc),
+                                tostring(val), tostring(valTy), annot,
+                                tostring(mt), tostring(t)))
+        else
+            return nil
+        end
+    end
+end
+local function schemaNewIndex(newIndex) return function (self, key, val)
+    schemaCheckNewIndex(getmetatable(self), self, key, val, '')
+    if rawget(self, key) ~= nil then
+        rawset(self, key, val)
+    elseif newIndex == nil then
+        rawset(self, key, val)
+    elseif type(newIndex) == 'function' then
+        newIndex(self, key, val)
+    else
+        newIndex[key] = val
+    end
+end end
+local function schemaNew(mt)
+    if checkSchema then
+        local schema = mt.schema
+        local default = mt.default
+        return function (t)
+            if t == nil then
+                error(string.format("nil table in new %s instance", tostring(mt[1])))
+            end
+            local unsetKeys = {}
+            for _, key in ipairs(mt.schemaKeys) do
+                table.insert(unsetKeys, key)
+            end
+            for key, val in pairs(t) do
+                schemaCheckNewIndex(mt, t, key, val, 'new ')
+                for i, k in ipairs(unsetKeys) do
+                    if k == key then
+                        table.remove(unsetKeys, i)
+                        break
+                    end
+                end
+            end
+            for _, key in ipairs(unsetKeys) do
+                local ty = schema[key]
+                local val = default[key]
+                if val == nil and string.sub(ty[2], 1, 1) ~= '?' then
+                    error(string.format("Key '%s' (%s: %s) set to nil in new %s instance",
+                                        tostring(key), tostring(ty[1]),
+                                        tostring(ty[2]), tostring(mt[1])))
+                end
+                t[key] = val
+            end
+            return setmetatable(t, mt)
+        end
+    else
+        return function (t) return setmetatable(t, mt) end
+    end
+end
+local SCHEMA_MT = {
+    __tostring = deref,
+}
+local function withSchema(mt, parent)
+    mt = setmetatable(mt, SCHEMA_MT)
+    local schema = mt.schema or {}
+    local default = mt.default or {}
+    if parent ~= nil then
+        default = setmetatable(default, {__index = parent.default})
+    end
+    if checkSchema then
+        mt.__index = schemaIndex(mt.__index)
+        mt.__newindex = schemaNewIndex(mt.__newindex)
+        local schemaKeys = {}
+        for key, _ in pairs(schema) do
+            table.insert(schemaKeys, key)
+        end
+        table.sort(schemaKeys, function (a, b) return tostring(a) < tostring(b) end)
+        if parent ~= nil then
+            for _, v in ipairs(parent.schemaKeys) do
+                if schema[v] == nil then
+                    table.insert(schemaKeys, v)
+                end
+            end
+            schema = setmetatable(schema, {__index = parent.schema})
+        end
+        mt.schemaKeys = schemaKeys
+    else
+        if parent ~= nil then
+            schema.__index = parent.schema
+        end
+    end
+    mt.default = default
+    mt.schema = schema
+    mt.new = schemaNew(mt)
+    mt.check = function (x) return getmetatable(x) == mt end
+    return mt
+end
+
+local SPAN_MT = withSchema({
+    'SPAN',
+    __tostring = function (self)
+        return string.format('[span (%s) %s:%s-%s]', tostring(self.filename),
+                             tostring(self.line), tostring(self.byteStart),
+                             tostring(self.byteEnd))
+    end,
+    schema = {
+        byteEnd = {'number', 'ending byte'},
+        byteStart = {'number', 'starting byte'},
+        filename = {'string', '? filename'},
+        line = {'number', 'line number'},
+    },
+})
+local span = SPAN_MT.new
+local isSpan = SPAN_MT.check
+
+local EXPR_MT = withSchema({
+    'EXPR',
+    __tostring = function (_) return '[base expr]' end,
+    schema = {
+        luaRepr = {'function', 'method to call for Lua code'},
+        pure = {'boolean', 'whether expression is known free of side effects'},
+        span = {SPAN_MT, 'source span'},
+    },
+    default = {
+        luaRepr = function (self) tostring(self) end,
+        pure = false,
+    },
+})
+local expr = EXPR_MT.new
+local isExpr = EXPR_MT.check
+
+local SYMBOL_MT = withSchema({
+    'SYMBOL',
+    __tostring = deref,
+    schema = {
+        [1] = {'string', 'backing string'},
+    },
+}, EXPR_MT)
+local sym = SYMBOL_MT.new
+local isSym = SYMBOL_MT.check
+
+local VARARG_MT = withSchema({
+    'VARARG',
+    __tostring = function (_) return '...' end,
+}, EXPR_MT)
+local vararg = VARARG_MT.new
+local isVararg = VARARG_MT.check
+
+local BOOLEAN_MT = withSchema({
+    'BOOLEAN',
+    __tostring = function (self) return tostring(self[1]) end,
+    schema = {
+        [1] = {'boolean', 'backing boolean'},
+    },
+    default = {
+        pure = true,
+    }
+}, EXPR_MT)
+local booln = BOOLEAN_MT.new
+local isBool = BOOLEAN_MT.check
+
+local NUMBER_MT = withSchema({
+    'NUMBER',
+    __tostring = function (self) return ('%.17g'):format(self[1]) end,
+    schema = {
+        [1] = {'number', 'backing number'},
+    },
+    default = {
+        pure = true,
+    }
+}, EXPR_MT)
+local nmbr = NUMBER_MT.new
+local isNumber = NUMBER_MT.check
+
+local function isValidKeyword(str)
+    return string.find(str, "^[-%w?\\^_`!#$%&*+./@~:|<=>]+$")
+end
+
+local STRING_MT = withSchema({
+    'STRING',
+    __tostring = function (self)
+        local s = self[1]
+        if self.keyword and isValidKeyword(s) then
+            return ':' .. s
+        else
+            return serializeString(s)
+        end
+    end,
+    schema = {
+        [1] = {'string', 'backing string'},
+        keyword = {'boolean', 'whether string should be keyword style'},
+    },
+    default = {
+        pure = true,
+        keyword = false,
+    }
+}, EXPR_MT)
+local strng = STRING_MT.new
+local isString = STRING_MT.check
+
+local LIST_MT = withSchema({
+    'LIST',
     __tostring = function (self)
         local strs = {}
-        for _, s in ipairs(self) do
+        for _, s in ipairs(self[1]) do
             table.insert(strs, tostring(s))
         end
-        return '(' .. table.concat(strs, ', ', 1, #self) .. ')'
-    end
-}
-local SEQUENCE_MT = { 'SEQUENCE' }
+        return '(' .. table.concat(strs, ' ') .. ')'
+    end,
+    schema = {
+        [1] = {'table', 'backing integer-keyed table of exprs'},
+    },
+    __index = {
+        opener = 40, -- (
+        closer = 41, -- )
+    },
+}, EXPR_MT)
+local list = LIST_MT.new
+local isList = LIST_MT.check
+
+local TABLE_MT = withSchema({
+    'TABLE',
+    __tostring = function (self)
+        local strs = {}
+        for k, v in pairs(self[1]) do
+            table.insert(strs, tostring(k) .. ' ' .. tostring(v))
+        end
+        return '{' .. table.concat(strs, ' ') .. '}'
+    end,
+    schema = {
+        [1] = {'table', 'backing integer-keyed table of exprs'},
+    },
+    __index = {
+        opener = 123, -- {
+        closer = 125, -- }
+    },
+}, EXPR_MT)
+local tbl = TABLE_MT.new
+local isTable = TABLE_MT.new
+
+local SEQUENCE_MT = withSchema({
+    'SEQUENCE',
+    __tostring = function (self)
+        local strs = {}
+        for _, s in ipairs(self[1]) do
+            table.insert(strs, tostring(s))
+        end
+        return '[' .. table.concat(strs, ' ') .. ']'
+    end,
+    schema = {
+        [1] = {'table', 'backing integer-keyed table of exprs'},
+    },
+    __index = {
+        opener = 91, -- [
+        closer = 93, -- ]
+    },
+}, EXPR_MT)
+local seq = SEQUENCE_MT.new
+local isSequence = SEQUENCE_MT.new
+
+local PREFIX_MT = withSchema({
+    'PREFIX',
+    __tostring = function (self) return '(prefix ' .. self[1] .. ')' end,
+    schema = {
+        [1] = {'string', 'backing symbol string'},
+        span = {SPAN_MT, 'source span'},
+    },
+})
+local prefix = PREFIX_MT.new
+local isPrefix = PREFIX_MT.check
 
 -- Load code with an environment in all recent Lua versions
 local function loadCode(code, environment, filename)
@@ -56,69 +371,6 @@ local function loadCode(code, environment, filename)
     else
         return assert(load(code, filename, "t", environment))
     end
-end
-
--- Create a new list
-local function list(...)
-    return setmetatable({...}, LIST_MT)
-end
-
--- Create a new symbol
-local function sym(str, scope, meta)
-    local s = {str, scope = scope}
-    if meta then
-        for k, v in pairs(meta) do
-            if type(k) == 'string' then s[k] = v end
-        end
-    end
-    return setmetatable(s, SYMBOL_MT)
-end
-
--- Create a new sequence
-local function sequence(...)
-   return setmetatable({...}, SEQUENCE_MT)
-end
-
--- Create a new expr
--- etype should be one of
---   "literal", -- literals like numbers, strings, nil, true, false
---   "expression", -- Complex strings of Lua code, may have side effects, etc, but is an expression
---   "statement", -- Same as expression, but is also a valid statement (function calls).
---   "vargs", -- varargs symbol
---   "sym", -- symbol reference
-local function expr(strcode, etype)
-    return setmetatable({ strcode, type = etype }, EXPR_MT)
-end
-
-
-local function varg()
-    return VARARG
-end
-
-local function isVarg(x)
-    return x == VARARG and x
-end
-
--- Checks if an object is a List. Returns the object if is a List.
-local function isList(x)
-    return type(x) == 'table' and getmetatable(x) == LIST_MT and x
-end
-
--- Checks if an object is a symbol. Returns the object if it is a symbol.
-local function isSym(x)
-    return type(x) == 'table' and getmetatable(x) == SYMBOL_MT and x
-end
-
--- Checks if an object any kind of table, EXCEPT list or symbol
-local function isTable(x)
-    return type(x) == 'table' and
-        x ~= VARARG and
-        getmetatable(x) ~= LIST_MT and getmetatable(x) ~= SYMBOL_MT and x
-end
-
--- Checks if an object is a sequence (created with a [] literal)
-local function isSequence(x)
-   return type(x) == 'table' and getmetatable(x) == SEQUENCE_MT and x
 end
 
 --
@@ -161,8 +413,8 @@ local function stringStream(str)
     end
 end
 
--- Table of delimiter bytes - (, ), [, ], {, }
--- Opener keys have closer as the value, and closers keys
+-- Table of delimiters - (, ), [, ], {, }
+-- Opener keys have their closer as their value, and closer keys
 -- have true as their value.
 local delims = {
     [40] = 41,        -- (
@@ -173,8 +425,22 @@ local delims = {
     [125] = true      -- }
 }
 
+-- Table of opening delimiters
+-- Opener keys have their respective AST function as their value.
+local openers = {
+    [40] = list,
+    [91] = seq,
+    [123] = tbl,
+}
+
+local closers = {
+    [41] = LIST_MT,
+    [93] = SEQUENCE_MT,
+    [125] = TABLE_MT,
+}
+
 local function iswhitespace(b)
-    return b == 32 or (b >= 9 and b <= 13) or b == 44
+    return b == 32 or (b >= 9 and b <= 13)
 end
 
 local function issymbolchar(b)
@@ -188,9 +454,16 @@ local function issymbolchar(b)
         b ~= 96 -- "`"
 end
 
-local prefixes = { -- prefix chars substituted while reading
-    [96] = 'quote', -- `
-    [64] = 'unquote' -- @
+-- prefix chars substituted while reading
+-- (nesting beyond two levels locks you into a prefix chain due to
+-- the one byte parsing buffer)
+local prefixes = {
+    [39] = 'quote', -- '
+    [96] = 'quasiquote', -- `
+    [44] = {
+        [false] = 'unquote', -- ,
+        [64] = 'unquote-splicing', -- ,@
+    },
 }
 
 -- Parse one value given a function that
@@ -206,11 +479,11 @@ local function parser(getbyte, filename)
     -- Provide one character buffer and keep
     -- track of current line and byte index
     local line = 1
-    local byteindex = 0
+    local byteIndex = 0
     local lastb
     local function ungetb(ub)
         if ub == 10 then line = line - 1 end
-        byteindex = byteindex - 1
+        byteIndex = byteIndex - 1
         lastb = ub
     end
     local function getb()
@@ -220,7 +493,7 @@ local function parser(getbyte, filename)
         else
             r = getbyte({ stackSize = #stack })
         end
-        byteindex = byteindex + 1
+        byteIndex = byteIndex + 1
         if r == 10 then line = line + 1 end
         return r
     end
@@ -234,15 +507,28 @@ local function parser(getbyte, filename)
         -- Dispatch when we complete a value
         local done, retval
         local function dispatch(v)
+            local mt = getmetatable(v)
+            local ty = '?'
+            if mt ~= nil then ty = mt[1] end
+            print('dispatching', ty, v)
             if #stack == 0 then
                 retval = v
                 done = true
-            elseif stack[#stack].prefix then
-                local stacktop = stack[#stack]
+            elseif isPrefix(stack[#stack]) then
+                local top = stack[#stack]
                 stack[#stack] = nil
-                return dispatch(list(sym(stacktop.prefix), v))
+                return dispatch(list({ { sym({ top[1],
+                                               span = span({ byteStart = top.span.byteStart,
+                                                             byteEnd = top.span.byteEnd,
+                                                             filename = top.span.filename,
+                                                             line = top.span.line, }), }),
+                                         v, },
+                                        span = span({ byteStart = top.span.byteStart,
+                                                      byteEnd = v.span.byteEnd,
+                                                      filename = top.span.filename,
+                                                      line = top.span.line, }), }))
             else
-                table.insert(stack[#stack], v)
+                table.insert(stack[#stack][1], v)
             end
         end
 
@@ -258,7 +544,6 @@ local function parser(getbyte, filename)
                 string.char(unpack(accum))))
         end
 
-        -- The main parse loop
         repeat
             local b
 
@@ -275,14 +560,16 @@ local function parser(getbyte, filename)
                 repeat
                     b = getb()
                 until not b or b == 10 -- newline
-            elseif type(delims[b]) == 'number' then -- Opening delimiter
-                table.insert(stack, setmetatable({
-                    closer = delims[b],
-                    line = line,
-                    filename = filename,
-                    bytestart = byteindex
-                }, LIST_MT))
-            elseif delims[b] then -- Closing delimiter
+            elseif openers[b] then -- Opening delimiter
+                print('opening', string.char(b))
+                table.insert(stack, openers[b]({
+                    {},
+                    span = span({ byteEnd = -1,
+                                  byteStart = byteIndex,
+                                  filename = filename,
+                                  line = line, })
+                }))
+            elseif closers[b] then -- Closing delimiter
                 if #stack == 0 then parseError 'unexpected closing delimiter' end
                 local last = stack[#stack]
                 local val
@@ -290,27 +577,31 @@ local function parser(getbyte, filename)
                     parseError('unexpected delimiter ' .. string.char(b) ..
                                ', expected ' .. string.char(last.closer))
                 end
-                last.byteend = byteindex -- Set closing byte index
+                last.span.byteEnd = byteIndex -- Set closing byte index
+                local lastVal = last[1]
                 if b == 41 then -- ; )
-                    val = last
+                    val = lastVal
                 elseif b == 93 then -- ; ]
-                    val = sequence()
-                    for i = 1, #last do
-                        val[i] = last[i]
+                    val = {}
+                    for i = 1, #lastVal do
+                        val[i] = lastVal[i]
                     end
                 else -- ; }
-                    if #last % 2 ~= 0 then
+                    if #lastVal % 2 ~= 0 then
                         parseError('expected even number of values in table literal')
                     end
                     val = {}
-                    for i = 1, #last, 2 do
-                        val[last[i]] = last[i + 1]
+                    for i = 1, #lastVal, 2 do
+                        val[lastVal[i]] = lastVal[i + 1]
                     end
                 end
                 stack[#stack] = nil
-                dispatch(val)
-            elseif b == 34 or b == 39 then -- Quoted string
+                last[1] = val
+                dispatch(last)
+            elseif b == 34 then -- Quoted string
                 local start = b
+                local byteStart = byteIndex
+                local lineStart = line
                 local state = "base"
                 local chars = {start}
                 stack[#stack + 1] = {closer = b}
@@ -333,42 +624,70 @@ local function parser(getbyte, filename)
                 local raw = string.char(unpack(chars))
                 local formatted = raw:gsub("[\1-\31]", function (c) return '\\' .. c:byte() end)
                 local loadFn = loadCode(('return %s'):format(formatted), nil, filename)
-                dispatch(loadFn())
-            elseif prefixes[b] then -- expand prefix byte into wrapping form eg. '`a' into '(quote a)'
-                table.insert(stack, {
-                    prefix = prefixes[b]
-                })
+                dispatch(strng({ loadFn(),
+                                 span = span({ byteStart = byteStart,
+                                               byteEnd = byteIndex,
+                                               filename = filename,
+                                               line = lineStart, }), }))
+            elseif prefixes[b] then -- expand prefix byte into wrapping form eg. '`a' into '(quasiquote a)'
+                local state = prefixes[b]
+                local byteStart = byteIndex
+                while type(state) == 'table' do
+                    b = getb()
+                    local oldState = state
+                    state = state[b]
+                    if state == nil then
+                        state = oldState[false] or oldState
+                        ungetb(b)
+                    end
+                end
+                table.insert(stack, prefix({ state,
+                                             span = span({ byteStart = byteStart,
+                                                           byteEnd = byteIndex,
+                                                           line = line,
+                                                           filename = filename, }), }))
             else -- Try symbol
                 local chars = {}
-                local bytestart = byteindex
+                local byteStart = byteIndex
+                local lineStart = line
                 repeat
                     chars[#chars + 1] = b
                     b = getb()
                 until not b or not issymbolchar(b)
                 if b then ungetb(b) end
                 local rawstr = string.char(unpack(chars))
-                if rawstr == 'true' then dispatch(true)
-                elseif rawstr == 'false' then dispatch(false)
-                elseif rawstr == '...' then dispatch(VARARG)
+                print('byteStart', byteStart, 'byteIndex', byteIndex)
+                local spn = span({ byteStart = byteStart,
+                                   byteEnd = byteIndex,
+                                   filename = filename,
+                                   line = lineStart, })
+                if rawstr == 'true' then dispatch(booln({ true,
+                                                          span = spn, }))
+                elseif rawstr == 'false' then dispatch(booln({ false,
+                                                               span = spn, }))
+                elseif rawstr == '...' then
+                    dispatch(vararg({ span = spn, }))
                 elseif rawstr:match('^:.+$') then -- keyword style strings
-                    dispatch(rawstr:sub(2))
+                    dispatch(strng({ rawstr:sub(2),
+                                     keyword = true,
+                                     span = spn, }))
                 else
                     local forceNumber = rawstr:match('^%d')
                     local numberWithStrippedUnderscores = rawstr:gsub("_", "")
-                    local x
-                    if forceNumber then
-                        x = tonumber(numberWithStrippedUnderscores) or
-                            parseError('could not read token "' .. rawstr .. '"')
+                    local x = tonumber(numberWithStrippedUnderscores)
+                    if x then
+                        x = nmbr({ x,
+                                   span = spn, })
+                    elseif forceNumber then
+                        parseError('could not read token "' .. rawstr .. '"')
                     else
-                        x = tonumber(numberWithStrippedUnderscores) or
-                            sym(rawstr, nil, { line = line,
-                                               filename = filename,
-                                               bytestart = bytestart,
-                                               byteend = byteindex, })
+                        x = sym({ rawstr,
+                                  span = spn, })
                     end
                     dispatch(x)
                 end
             end
+
         until done
         return true, retval
     end, function ()
@@ -379,30 +698,6 @@ end
 --
 -- Compilation
 --
-
--- Create a new Scope, optionally under a parent scope. Scopes are compile time constructs
--- that are responsible for keeping track of local variables, name mangling, and macros.
--- They are accessible to user code via the '*compiler' special form (may change). They
--- use metatables to implement nesting via inheritance.
-local function makeScope(parent)
-    return {
-        unmanglings = setmetatable({}, {
-            __index = parent and parent.unmanglings
-        }),
-        manglings = setmetatable({}, {
-            __index = parent and parent.manglings
-        }),
-        specials = setmetatable({}, {
-            __index = parent and parent.specials
-        }),
-        symmeta = setmetatable({}, {
-            __index = parent and parent.symmeta
-        }),
-        parent = parent,
-        vararg = parent and parent.vararg,
-        depth = parent and ((parent.depth or 0) + 1) or 0
-    }
-end
 
 -- Assert a condition and raise a compile error with line numbers. The ast arg
 -- should be unmodified so that its first element is the form being called.
@@ -416,11 +711,6 @@ local function assertCompile(condition, msg, ast)
     return condition
 end
 
-local GLOBAL_SCOPE = makeScope()
-GLOBAL_SCOPE.vararg = true
-local SPECIALS = GLOBAL_SCOPE.specials
-local COMPILER_SCOPE = makeScope(GLOBAL_SCOPE)
-
 local luaKeywords = {
     'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 'function',
     'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true',
@@ -432,23 +722,6 @@ end
 
 local function isValidLuaIdentifier(str)
     return (str:match('^[%a_][%w_]*$') and not luaKeywords[str])
-end
-
--- Allow printing a string to Lua, also keep as 1 line.
-local serializeSubst = {
-    ['\a'] = '\\a',
-    ['\b'] = '\\b',
-    ['\f'] = '\\f',
-    ['\n'] = 'n',
-    ['\t'] = '\\t',
-    ['\v'] = '\\v'
-}
-local function serializeString(str)
-    local s = ("%q"):format(str)
-    s = s:gsub('.', serializeSubst):gsub("[\128-\255]", function(c)
-        return "\\" .. c:byte()
-    end)
-    return s
 end
 
 -- A multi symbol is a symbol that is actually composed of
@@ -493,36 +766,6 @@ local function globalUnmangling(identifier)
     else
         return identifier
     end
-end
-
--- Creates a symbol from a string by mangling it.
--- ensures that the generated symbol is unique
--- if the input string is unique in the scope.
-local function localMangling(str, scope, ast)
-    if scope.manglings[str] then
-        return scope.manglings[str]
-    end
-    local append = 0
-    local mangling = str
-    assertCompile(not isMultiSym(str), 'did not expect multi symbol ' .. str, ast)
-
-    -- Mapping mangling to a valid Lua identifier
-    if luaKeywords[mangling] or mangling:match('^%d') then
-        mangling = '_' .. mangling
-    end
-    mangling = mangling:gsub('-', '_')
-    mangling = mangling:gsub('[^%w_]', function (c)
-        return ('_%02x'):format(c:byte())
-    end)
-
-    local raw = mangling
-    while scope.unmanglings[mangling] do
-        mangling = raw .. append
-        append = append + 1
-    end
-    scope.unmanglings[mangling] = str
-    scope.manglings[str] = mangling
-    return mangling
 end
 
 -- Combine parts of a symbol
@@ -854,7 +1097,7 @@ local function compile1(ast, scope, parent, opts)
             local call = ('%s(%s)'):format(tostring(fcallee), exprs1(fargs))
             exprs = handleCompileOpts({expr(call, 'statement')}, parent, opts, ast)
         end
-    elseif isVarg(ast) then
+    elseif isVararg(ast) then
         assertCompile(scope.vararg, "unexpected vararg", ast)
         exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts, ast)
     elseif isSym(ast) then
@@ -1157,7 +1400,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
                                   'expected vector arg list [a b ...]', ast)
     local argNameList = {}
     for i = 1, #argList do
-        if isVarg(argList[i]) then
+        if isVararg(argList[i]) then
             assertCompile(i == #argList, "expected vararg in last parameter position", ast)
             argNameList[i] = '...'
             fScope.vararg = true
@@ -1692,9 +1935,9 @@ local function mixedConcat(t, joiner)
     return ret
 end
 
--- expand a quoted form into a data literal, evaluating unquote
-local function doQuote (form, scope, parent, runtime)
-    local q = function (x) return doQuote(x, scope, parent, runtime) end
+-- expand a quasiquoted form into a data literal, evaluating unquotes
+local function doQuasiquote (form, scope, parent, runtime)
+    local q = function (x) return doQuasiquote(x, scope, parent, runtime) end
     -- symbol
     if isSym(form) then
         assertCompile(not runtime, "symbols may only be used at compile time", form)
@@ -1721,14 +1964,14 @@ local function doQuote (form, scope, parent, runtime)
     end
 end
 
-SPECIALS['quote'] = function(ast, scope, parent)
-    assertCompile(#ast == 2, "quote only takes a single form")
+SPECIALS['quasiquote'] = function(ast, scope, parent)
+    assertCompile(#ast == 2, "quasiquote only takes a single form")
     local runtime, thisScope = true, scope
     while thisScope do
         thisScope = thisScope.parent
         if thisScope == COMPILER_SCOPE then runtime = false end
     end
-    return doQuote(ast[2], scope, parent, runtime)
+    return doQuasiquote(ast[2], scope, parent, runtime)
 end
 
 local function compileStream(strm, options)
@@ -2031,7 +2274,7 @@ local module = {
     unmangle = globalUnmangling,
     list = list,
     sym = sym,
-    varg = varg,
+    vararg = vararg,
     scope = makeScope,
     gensym = gensym,
     eval = eval,
@@ -2095,7 +2338,7 @@ local function makeCompilerEnv(ast, scope, parent)
         ["sym?"] = isSym,
         ["table?"] = isTable,
         ["sequence?"] = isSequence,
-        ["varg?"] = isVarg,
+        ["vararg?"] = isVararg,
         ["get-scope"] = function() return macroCurrentScope end,
         ["in-scope?"] = function(symbol)
             return macroCurrentScope.manglings[tostring(symbol)]
@@ -2186,10 +2429,10 @@ local stdmacros = [===[
                    el (if (list? e) e (list e))
                    tmp (gensym)]
                (table.insert el 2 tmp)
-               `(let [@tmp @val]
-                  (if @tmp
-                      (-?> @el @(unpack els))
-                      @tmp)))))
+               `(let [,tmp ,val]
+                  (if ,tmp
+                      (-?> ,el ,(unpack els))
+                      ,tmp)))))
  "-?>>" (fn [val ...]
           (if (= 0 (# [...]))
               val
@@ -2198,13 +2441,13 @@ local stdmacros = [===[
                     el (if (list? e) e (list e))
                     tmp (gensym)]
                 (table.insert el tmp)
-                `(let [@tmp @val]
-                   (if @tmp
-                       (-?>> @el @(unpack els))
-                       @tmp)))))
+                `(let [,tmp ,val]
+                   (if ,tmp
+                       (-?>> ,el ,(unpack els))
+                       ,tmp)))))
  :doto (fn [val ...]
          (let [name (gensym)
-               form `(let [@name @val])]
+               form `(let [,name ,val])]
            (each [_ elt (pairs [...])]
              (table.insert elt 2 name)
              (table.insert form elt))
@@ -2212,12 +2455,12 @@ local stdmacros = [===[
            form))
  :when (fn [condition body1 ...]
          (assert body1 "expected body")
-         `(if @condition
-              (do @body1 @...)))
+         `(if ,condition
+              (do ,body1 ,...)))
  :partial (fn [f ...]
             (let [body (list f ...)]
               (table.insert body _VARARG)
-              `(fn [@_VARARG] @body)))
+              `(fn [,_VARARG] ,body)))
  :lambda (fn [...]
            (let [args [...]
                  has-internal-name? (sym? (. args 1))
@@ -2228,12 +2471,12 @@ local stdmacros = [===[
                (if (and (not (: (tostring a) :match "^?"))
                         (~= (tostring a) "..."))
                    (table.insert args arity-check-position
-                                 `(assert (~= nil @a)
+                                 `(assert (~= nil ,a)
                                           (: "Missing argument %s on %s:%s"
-                                             :format @(tostring a)
-                                             @(or a.filename "unknown")
-                                             @(or a.line "?"))))))
-             `(fn @(unpack args))))
+                                             :format ,(tostring a)
+                                             ,(or a.filename "unknown")
+                                             ,(or a.line "?"))))))
+             `(fn ,@args)))
  :match
 (fn match [val ...]
   ;; this function takes the AST of values and a single pattern and returns a
@@ -2247,17 +2490,17 @@ local stdmacros = [===[
       (if (and (sym? pattern) ; unification with outer locals (or nil)
                (or (in-scope? pattern)
                    (= :nil (tostring pattern))))
-          (values `(= @val @pattern) [])
+          (values `(= ,val ,pattern) [])
           ;; unify a local we've seen already
           (and (sym? pattern)
                (. unifications (tostring pattern)))
-          (values `(= @(. unifications (tostring pattern)) @val) [])
+          (values `(= ,(. unifications (tostring pattern)) ,val) [])
           ;; bind a fresh local
           (sym? pattern)
           (do (if (~= (tostring pattern) "_")
                   (tset unifications (tostring pattern) val))
               (values (if (: (tostring pattern) :find "^?")
-                          true `(~= @(sym :nil) @val))
+                          true `(~= ,(sym :nil) ,val))
                       [pattern val]))
           ;; multi-valued patterns (represented as lists)
           (list? pattern)
@@ -2272,19 +2515,18 @@ local stdmacros = [===[
             (values condition bindings))
           ;; table patterns)
           (= (type pattern) :table)
-          (let [condition `(and (= (type @val) :table))
+          (let [condition `(and (= (type ,val) :table))
                 bindings []]
             (each [k pat (pairs pattern)]
               (if (and (sym? pat) (= "&" (tostring pat)))
                   (do (assert (not (. pattern (+ k 2)))
                               "expected rest argument in final position")
                       (table.insert bindings (. pattern (+ k 1)))
-                      (table.insert bindings [`(select @k ((or unpack table.unpack)
-                                                           @val))]))
+                      (table.insert bindings [`(select ,k ,@val)]))
                   (and (= :number (type k))
                        (= "&" (tostring (. pattern (- k 1)))))
                   nil ; don't process the pattern right after &; already got it
-                  (let [subval `(. @val @k)
+                  (let [subval `(. ,val ,k)
                         (subcondition subbindings) (match-pattern [subval] pat
                                                                   unifications)]
                     (table.insert condition subcondition)
@@ -2292,7 +2534,7 @@ local stdmacros = [===[
                       (table.insert bindings b)))))
             (values condition bindings))
           ;; literal value
-          (values `(= @val @pattern) []))))
+          (values `(= ,val ,pattern) []))))
   (fn match-condition [vals clauses]
     (let [out `(if)]
       (for [i 1 (# clauses) 2]
@@ -2300,7 +2542,7 @@ local stdmacros = [===[
               body (. clauses (+ i 1))
               (condition bindings) (match-pattern vals pattern {})]
           (table.insert out condition)
-          (table.insert out `(let @bindings @body))))
+          (table.insert out `(let ,bindings ,body))))
       out))
   ;; how many multi-valued clauses are there? return a list of that many gensyms
   (fn val-syms [clauses]
@@ -2324,16 +2566,16 @@ local stdmacros = [===[
 ]===]
 do
     local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
-    for name, fn in pairs(eval(stdmacros, {
-        env = env,
-        scope = makeScope(COMPILER_SCOPE),
-        -- assume the code to load globals doesn't have any mistaken globals,
-        -- otherwise this can be problematic when loading fennel in contexts
-        -- where _G is an empty table with an __index metamethod. (openresty)
-        allowedGlobals = false,
-    })) do
-        SPECIALS[name] = macroToSpecial(fn)
-    end
+    -- for name, fn in pairs(eval(stdmacros, {
+    --     env = env,
+    --     scope = makeScope(COMPILER_SCOPE),
+    --     -- assume the code to load globals doesn't have any mistaken globals,
+    --     -- otherwise this can be problematic when loading fennel in contexts
+    --     -- where _G is an empty table with an __index metamethod. (openresty)
+    --     allowedGlobals = false,
+    -- })) do
+    --     SPECIALS[name] = macroToSpecial(fn)
+    -- end
 end
 SPECIALS['λ'] = SPECIALS['lambda']
 

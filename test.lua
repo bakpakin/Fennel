@@ -66,7 +66,7 @@ local cases = {
     parsing = {
         ["\"\\\\\""]="\\",
         ["\"abc\\\"def\""]="abc\"def",
-        ["\'abc\\\"\'"]="abc\"",
+        ["\"abc\\\"\""]="abc\"",
         ["\"abc\\240\""]="abc\240",
         ["\"abc\n\\240\""]="abc\n\240",
         ["150_000"]=150000,
@@ -269,9 +269,9 @@ local cases = {
            (reverse-it 1 2 3 4 5 6)]]]=1,
         -- nesting quote can only happen in the compiler
         ["(eval-compiler (set tbl.nest ``nest))\
-          (tostring tbl.nest)"]="(quote, nest)",
+          (tostring tbl.nest)"]="(quote nest)",
         -- inline macros
-        ["(macros {:plus (fn [x y] `(+ @x @y))}) (plus 9 9)"]=18,
+        ["(macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)"]=18,
     },
     match = {
         -- basic literal
@@ -495,27 +495,27 @@ end
 ---- quoting and unquoting ----
 
 local quoting_tests = {
-    ['`:abcde'] = {"return \"abcde\"", "simple string quoting"},
-    ['@a'] = {"return unquote(a)",
-              "unquote outside quote is simply passed thru"},
-    ['`[1 2 @(+ 1 2) 4]'] = {
+    ['`:abcde'] = {"return \"abcde\"", "simple string quasiquoting"},
+    [',a'] = {"return unquote(a)",
+              "unquote outside quasiquote is simply passed thru"},
+    ['`[1 2 ,(+ 1 2) 4]'] = {
         "return {1, 2, (1 + 2), 4}",
-        "unquote inside quote leads to evaluation"
+        "unquote inside quasiquote leads to evaluation"
     },
-    ['(let [a (+ 2 3)] `[:hey @(+ a a)])'] = {
+    ['(let [a (+ 2 3)] `[:hey ,(+ a a)])'] = {
         "local a = (2 + 3)\nreturn {\"hey\", (a + a)}",
         "unquote inside other forms"
     },
     ['`[:a :b :c]'] = {
       "return {\"a\", \"b\", \"c\"}",
-      "quoted sequential table"
+      "quasiquoted sequential table"
     },
     ['`{:a 5 :b 9}'] = {
         {
             ["return {[\"a\"]=5, [\"b\"]=9}"] = true,
             ["return {[\"b\"]=9, [\"a\"]=5}"] = true,
         },
-      "quoted keyed table"
+      "quasiquoted keyed table"
     }
 }
 

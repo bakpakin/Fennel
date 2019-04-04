@@ -1994,7 +1994,7 @@ local function repl(options)
         local function addMatchesFromGen(next, param, state)
           for k in next, param, state do
             if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming output
-            elseif inputFragment == k:sub(0, #inputFragment) then table.insert(matches, k) end
+            elseif inputFragment == k:sub(0, #inputFragment):lower() then table.insert(matches, k) end
           end
         end
         addMatchesFromGen(pairs(env._ENV or env._G or {}))

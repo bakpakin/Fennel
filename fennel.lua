@@ -1986,6 +1986,33 @@ local function repl(options)
 
     local scope = makeScope(GLOBAL_SCOPE)
 
+    local getReplVars = loadCode([[
+    local vars = {}
+    for k in pairs(___replLocals___ or {}) do if type(k) == "string" then table.insert(vars, k) end end
+    for k in pairs(_G or _ENV or {}) do if type(k) == "string" then table.insert(vars, k) end end
+    return vars
+    ]], env)
+
+    local replCompleter = function(text, from, to)
+        local matches = {}
+        local textSlice = string.lower(text):sub(from, to):gsub("[%s()]*(.+)", "%1")
+        local ok, replVars = pcall(getReplVars)
+        for k in pairs(SPECIALS or {}) do
+            if #matches >= 20  then break
+            elseif textSlice == k:sub(0, #textSlice) then table.insert(matches, k) end
+        end
+        for k in pairs(scope.specials or {}) do
+            if #matches >= 20  then break
+            elseif textSlice == k:sub(0, #textSlice) then table.insert(matches, k) end
+        end
+        for idx, k in ipairs(replVars or {}) do
+            if #matches >= 20 then break
+            elseif textSlice == k:sub(0, #textSlice) then table.insert(matches, k) end
+        end
+        return matches
+    end
+    if options.registerCompleter then options.registerCompleter(replCompleter) end
+
     -- REPL loop
     while true do
         chars = {}

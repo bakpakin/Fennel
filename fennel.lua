@@ -1986,29 +1986,21 @@ local function repl(options)
 
     local scope = makeScope(GLOBAL_SCOPE)
 
-    local getReplVars = loadCode([[
-    local vars = {}
-    for k in pairs(___replLocals___ or {}) do if type(k) == "string" then table.insert(vars, k) end end
-    for k in pairs(_G or _ENV or {}) do if type(k) == "string" then table.insert(vars, k) end end
-    return vars
-    ]], env)
-
     local replCompleter = function(text, from, to)
         local matches = {}
-        local textSlice = string.lower(text):sub(from, to):gsub("[%s()]*(.+)", "%1")
-        local ok, replVars = pcall(getReplVars)
-        for k in pairs(SPECIALS or {}) do
-            if #matches >= 20  then break
-            elseif textSlice == k:sub(0, #textSlice) then table.insert(matches, k) end
+        local inputFragment = string.lower(text):sub(from, to):gsub("[%s)(]*(.+)", "%1")
+
+        -- adds any matching keys from the provided generator/iterator to matches
+        local function addMatchesFromGen(next, param, state)
+          for k in next, param, state do
+            if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming output
+            elseif inputFragment == k:sub(0, #inputFragment) then table.insert(matches, k) end
+          end
         end
-        for k in pairs(scope.specials or {}) do
-            if #matches >= 20  then break
-            elseif textSlice == k:sub(0, #textSlice) then table.insert(matches, k) end
-        end
-        for idx, k in ipairs(replVars or {}) do
-            if #matches >= 20 then break
-            elseif textSlice == k:sub(0, #textSlice) then table.insert(matches, k) end
-        end
+        addMatchesFromGen(pairs(env._ENV or env._G or {}))
+        addMatchesFromGen(pairs(env.___replLocals___ or {}))
+        addMatchesFromGen(pairs(SPECIALS or {}))
+        addMatchesFromGen(pairs(scope.specials or {}))
         return matches
     end
     if options.registerCompleter then options.registerCompleter(replCompleter) end

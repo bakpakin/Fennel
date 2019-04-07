@@ -34,10 +34,6 @@ Start an interactive repl session.
 Perform ahead-of-time compilation on the provided file and write the
 Lua output to stdout.
 .TP
-.B \-\-indent \fIval\fP
-When compiling, use the given string as indentation for the compiler
-output. This should consist of whitespace.
-.TP
 .B \-\-no-searcher
 When running a repl or a file,
 .B fennel.searcher
@@ -45,6 +41,10 @@ is installed by default so that the
 .B require
 function can load Fennel files in addition to Lua files. This flag
 disables that behavior. Has no effect for ahead-of-time compilation.
+.TP
+.B \-\-indent \fIval\fP
+When compiling, use the given string as indentation for the compiler
+output. This should consist of whitespace.
 .TP
 .B \-\-add-package-path \fIpath\fP
 Add the given path to
@@ -57,11 +57,19 @@ function will know to look there when searching for Lua modules.
 Same as above, but for Fennel's path used when searching for Fennel
 modules.
 .TP
+.B \-\-globals \fIVAR1[,VAR2...]\fP
+Allow VAR1, VAR2, etc as globals in addition to the standard set of
+globals. This enables strict global checking even in ahead-of-time
+compilation where it otherwise would be disabled.
+.TP
+.B \-\-globals-only \fIVAR1[,VAR2...]\fP
+Same as above, but without the addition of the standard set of globals.
+.TP
+.B \-h, \-\-help
+Print a help message and exit
+.TP
 .B \-v, \-\-version
 Print the version number and exit
-.TP
-.B \-h, \-?, \-\-help
-Print a help message and exit
 
 .SH DOCUMENTATION
 

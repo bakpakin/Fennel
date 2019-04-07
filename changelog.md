@@ -1,7 +1,8 @@
 # Summary of user-visible changes
 
-## 0.2.2 / ??
+## 0.3.0 / ??
 
+* Add `--globals` and `--globals-only` options to launcher script.
 * Remove `luaexpr` and `luastatement` for a single `lua` special.
 * Improve code generation for if expressions in many situations.
 

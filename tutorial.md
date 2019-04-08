@@ -178,12 +178,12 @@ index, returning it.
 ;; ltrs is back to its original value ["a" "b" "c" "d"]
 ```
 
-The `#` form returns the length of sequential tables and strings:
+The `length` form returns the length of sequential tables and strings:
 
 ```lisp
 (let [tbl ["abc" "def" "xyz"]]
-  (+ (# tbl)
-     (# (. tbl 1)))) ; -> 6
+  (+ (length tbl)
+     (length (. tbl 1)))) ; -> 6
 ```
 
 Note that the length of a table with gaps in it is undefined; it can

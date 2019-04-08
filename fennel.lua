@@ -1997,6 +1997,25 @@ local function repl(options)
 
     local scope = makeScope(GLOBAL_SCOPE)
 
+    local replCompleter = function(text, from, to)
+        local matches = {}
+        local inputFragment = string.lower(text):sub(from, to):gsub("[%s)(]*(.+)", "%1")
+
+        -- adds any matching keys from the provided generator/iterator to matches
+        local function addMatchesFromGen(next, param, state)
+          for k in next, param, state do
+            if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming output
+            elseif inputFragment == k:sub(0, #inputFragment):lower() then table.insert(matches, k) end
+          end
+        end
+        addMatchesFromGen(pairs(env._ENV or env._G or {}))
+        addMatchesFromGen(pairs(env.___replLocals___ or {}))
+        addMatchesFromGen(pairs(SPECIALS or {}))
+        addMatchesFromGen(pairs(scope.specials or {}))
+        return matches
+    end
+    if options.registerCompleter then options.registerCompleter(replCompleter) end
+
     -- REPL loop
     while true do
         chars = {}

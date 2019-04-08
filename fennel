@@ -17,6 +17,8 @@ Run fennel, a lisp programming language for the Lua runtime.
   --indent VAL            : Indent compiler output with VAL
   --add-package-path PATH : Add PATH to package.path for finding Lua modules
   --add-fennel-path  PATH : Add PATH to fennel.path for finding Fennel modules
+  --globals G1[,G2...]    : Allow these globals in addition to standard ones
+  --globals-only G1[,G2]  : Same as above, but exclude standard ones
 
   --help                  : Display this text
   --version               : Show version
@@ -41,6 +43,13 @@ local function dosafe(filename, opts, args)
     return val
 end
 
+local function allowGlobals(globalNames)
+    options.allowedGlobals = {}
+    for g in globalNames:gmatch("([^,]+),?") do
+        table.insert(options.allowedGlobals, g)
+    end
+end
+
 for i=#arg, 1, -1 do
     if arg[i] == "--no-searcher" then
         options.no_searcher = true
@@ -60,6 +69,15 @@ for i=#arg, 1, -1 do
     elseif arg[i] == "--sourcemap" then
         options.sourcemap = table.remove(arg, i+1)
         if options.sourcemap == "false" then options.sourcemap = false end
+        table.remove(arg, i)
+    elseif arg[i] == "--globals" then
+        allowGlobals(table.remove(arg, i+1))
+        for globalName in pairs(_G) do
+            table.insert(options.allowedGlobals, globalName)
+        end
+        table.remove(arg, i)
+    elseif arg[i] == "--globals-only" then
+        allowGlobals(table.remove(arg, i+1))
         table.remove(arg, i)
     end
 end
@@ -83,7 +101,17 @@ local function tryReadline(opts)
                 return str .. "\n"
             end
         end
-    end
+
+        -- completer is registered by the repl, until then returns empty list
+        local completer
+        function opts.registerCompleter(replCompleter)
+          completer = replCompleter
+        end
+        local function replCompleter(text, from, to)
+          if completer then return completer(text, from, to) else return {} end
+        end
+        readline.set_complete_function(replCompleter)
+      end
 end
 
 if arg[1] == "--repl" or #arg == 0 then
@@ -125,7 +153,7 @@ elseif arg[1] == "--compile" then
     end
 elseif arg[1] == "--version" or arg[1] == "-v" then
     print("Fennel " .. fennel.version)
-elseif #arg >= 1 and arg[1] ~= "--help" then
+elseif #arg >= 1 and arg[1] ~= "--help" and arg[1] ~= "-h" then
     local filename = table.remove(arg, 1) -- let the script have remaining args
     dosafe(filename, nil, arg)
 else

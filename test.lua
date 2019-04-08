@@ -274,6 +274,9 @@ local cases = {
         ["(macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)"]=18,
         -- Vararg in quasiquote
         ["(macros {:x (fn [] `(fn [...] (+ 1 1)))}) ((x))"]=2,
+	-- Threading macro with single function, with and without parens
+	["(-> 1234 (string.reverse) (string.upper))"]="4321",
+	["(-> 1234 string.reverse string.upper)"]="4321"
     },
     hashfn = {
         -- Basic hashfn

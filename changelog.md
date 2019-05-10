@@ -2,6 +2,7 @@
 
 ## 0.3.0 / ??
 
+* Add support for guard clauses with `:?` in pattern matches.
 * Support completion in repl when `readline.lua` is available.
 * Add `--globals` and `--globals-only` options to launcher script.
 * Remove `luaexpr` and `luastatement` for a single `lua` special.

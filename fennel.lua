@@ -2291,6 +2291,14 @@ local stdmacros = [===[
               (values (if (: (tostring pattern) :find "^?")
                           true `(~= @(sym :nil) @val))
                       [pattern val]))
+          ;; guard clause
+          (and (list? pattern) (= :? (. pattern 2)))
+          (let [(condition bindings) (match-pattern vals (. pattern 1)
+                                                    unifications)]
+            (values `(let @bindings
+                       (and @(select 3 (unpack pattern)) @condition))
+                    bindings))
+
           ;; multi-valued patterns (represented as lists)
           (list? pattern)
           (let [condition `(and)

@@ -327,6 +327,18 @@ local cases = {
         -- rest args
         ["(match [1 2 3] [a & b] (+ a (. b 1) (. b 2)))"]=6,
         ["(match [1] [a & b] (# b))"]=0,
+        -- guard clause
+        ["(match {:sieze :him} \
+            (tbl :? (. tbl :no)) :no \
+            (tbl :? (. tbl :sieze)) :siezed)"]="siezed",
+        -- multiple guard clauses
+        ["(match {:sieze :him} \
+            (tbl :? tbl.sieze tbl.no) :no \
+            (tbl :? tbl.sieze (= tbl.sieze :him)) :siezed)"]="siezed",
+        -- guards with patterns inside
+        ["(match [{:sieze :him} 5] \
+            ([f 4] :? f.sieze (= f.sieze :him)) 4\
+            ([f 5] :? f.sieze (= f.sieze :him)) 5)"]=5,
     }
 }
 

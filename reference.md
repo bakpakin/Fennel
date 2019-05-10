@@ -137,7 +137,21 @@ value will not match:
 ```
 
 There is a special case for `_`; it is never bound and always acts as
-a wildcard.
+a wildcard. If no clause matches, it returns nil.
+
+Sometimes you need to match on something more general than a structure
+or specific value. In these cases you can use guard clauses:
+
+```lisp
+(match [91 12 53]
+  ([a b c] :? (= 5 a)) :will-not-match
+  ([a b c] :? (= 0 (math.fmod (+ a b c) 2)) (= 91 a)) c) ; -> 53
+```
+
+In this case the pattern should be wrapped in parens (like when
+matching against multiple values) but the second thing in the parens
+is the `:?` marker. Each form following this marker is a condition;
+all the conditions must evaluate to true for that pattern to match.
 
 (Note that Lua also has "patterns" which are matched against strings
 similar to how regular expressions work in other languages; these are

@@ -334,7 +334,7 @@ local cases = {
         -- multiple guard clauses
         ["(match {:sieze :him} \
             (tbl :? tbl.sieze tbl.no) :no \
-            (tbl :? tbl.sieze (= tbl.sieze :him)) :siezed)"]="siezed",
+            (tbl :? tbl.sieze (= tbl.sieze :him)) :siezed2)"]="siezed2",
         -- guards with patterns inside
         ["(match [{:sieze :him} 5] \
             ([f 4] :? f.sieze (= f.sieze :him)) 4\

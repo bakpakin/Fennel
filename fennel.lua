@@ -2293,11 +2293,12 @@ local stdmacros = [===[
                       [pattern val]))
           ;; guard clause
           (and (list? pattern) (= :? (. pattern 2)))
-          (let [(condition bindings) (match-pattern vals (. pattern 1)
-                                                    unifications)]
-            (values `(let @bindings
-                       (and @(select 3 (unpack pattern)) @condition))
-                    bindings))
+          (let [(pcondition bindings) (match-pattern vals (. pattern 1)
+                                                     unifications)
+                condition `(and @pcondition)]
+            (for [i 3 (# pattern)] ; splice in guard clauses
+              (table.insert condition (. pattern i)))
+            (values `(let @bindings @condition) bindings))
 
           ;; multi-valued patterns (represented as lists)
           (list? pattern)

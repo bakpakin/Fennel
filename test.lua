@@ -137,6 +137,8 @@ local cases = {
         ["(let [x 17] (. 17))"]=17,
         -- table lookup with literal
         ["(+ (. {:a 93 :b 4} :a) (. [1 2 3] 2))"]=95,
+        -- table lookup with literal using matching-key-and-variable shorthand
+        ["(let [k 5 t {: k}] t.k)"]=5,
         -- set works with multisyms
         ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
         -- set works on parent scopes

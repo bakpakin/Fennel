@@ -135,6 +135,8 @@ local cases = {
         ["(let [x 17] (. 17))"]=17,
         -- table lookup with literal
         ["(+ (. {:a 93 :b 4} :a) (. [1 2 3] 2))"]=95,
+        -- table lookup with literal using matching-key-and-variable shorthand
+        ["(let [k 5 t {: k}] t.k)"]=5,
         -- set works with multisyms
         ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
         -- set works on parent scopes
@@ -198,6 +200,8 @@ local cases = {
         ["(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x"]=14,
         -- key/value destructuring
         ["(let [{:a x :b y} {:a 2 :b 4}] (+ x y))"]=6,
+        -- key/value destructuring with the same names
+        ["(let [{: a : b} {:a 3 :b 5}] (+ a b))"]=8,
         -- nesting k/v and sequential
         ["(let [{:a [x y z]} {:a [1 2 4]}] (+ x y z))"]=7,
         -- Local shadowing in let form
@@ -274,6 +278,9 @@ local cases = {
         ["(macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)"]=18,
         -- Vararg in quasiquote
         ["(macros {:x (fn [] `(fn [...] (+ 1 1)))}) ((x))"]=2,
+	-- Threading macro with single function, with and without parens
+	["(-> 1234 (string.reverse) (string.upper))"]="4321",
+	["(-> 1234 string.reverse string.upper)"]="4321"
     },
     hashfn = {
         -- Basic hashfn

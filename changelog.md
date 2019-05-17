@@ -6,7 +6,7 @@
 * Add `--globals` and `--globals-only` options to launcher script.
 * Remove `luaexpr` and `luastatement` for a single `lua` special.
 * Improve code generation for if expressions in many situations.
-* Replace `#` special with `length`
+* Alias `#` special with `length`
 * Replace `@` (unquote) with `,`. Comma is no longer whitespace
 * Remove `~=` special and disallow ~ in symbols. Use `not=` instead.
 * Add `hashfn` and `#` reader macro for shorthand functions like `#(+ $1 $2)`

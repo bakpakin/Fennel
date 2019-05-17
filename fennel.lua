@@ -344,6 +344,16 @@ local function parser(getbyte, filename)
                 table.insert(stack, {
                     prefix = prefixes[b]
                 })
+                local nextb = getb()
+                if iswhitespace(nextb) then
+                    if b == 35 then
+                        stack[#stack] = nil
+                        dispatch(sym('#'))
+                    else
+                        parseError('invalid whitespace after quoting prefix')
+                    end
+                end
+                ungetb(nextb)
             else -- Try symbol
                 local chars = {}
                 local bytestart = byteindex
@@ -1642,6 +1652,7 @@ end
 
 defineUnarySpecial('not', 'not ')
 defineUnarySpecial('length', '#')
+SPECIALS['#'] = SPECIALS['length']
 
 -- Save current macro scope
 local macroCurrentScope = GLOBAL_SCOPE
@@ -2284,7 +2295,7 @@ local stdmacros = [===[
  :hashfn (fn hashfn [body]
            (assert body "expected body")
            `(fn [$1 $2 $3 $4 $5 $6 $7 $8 $9] ,body))
- :defmacro (fn defmacro [name ...]
+ :macro (fn macro [name ...]
           (assert name "expected macro name")
           (local args [...])
           `(macros { ,(tostring name) (fn ,name ,(unpack args))}))

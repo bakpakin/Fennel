@@ -292,6 +292,15 @@ You can also use this syntax with `set`:
   tbl) ; -> {:one 1 :two 2}
 ```
 
+If a table key has the same name as the variable you're setting it to,
+you can omit the key name and use `:` instead:
+
+```lisp
+(let [one 1 two 2
+      tbl {: one : two}]
+  tbl) ; -> {:one 1 :two 2}
+```
+
 Finally, `let` can destructure a table into multiple locals.
 
 There is positional destructuring:
@@ -310,14 +319,24 @@ And destructuring of tables via key:
   (print x-pos y-pos)) ; -> 23      42
 ```
 
+As above, if a table key has the same name as the variable you're
+destructuring it to, you can omit the key name and use `:` instead:
+
+```lisp
+(let [pos {:x 23 :y 42}
+      {: x : y} pos]
+  (print x y)) ; -> 23      42
+```
+
 This can mix and match:
 
 ```lisp
-(let [f (fn [] ["abc" "def" {:x "xyz"}])
-      [a d {:x x}] (f)]
+(let [f (fn [] ["abc" "def" {:x "xyz" :y "abc"}])
+      [a d {:x x : y}] (f)]
   (print a)
   (print d)
-  (print x))
+  (print x)
+  (print y))
 ```
 
 If the size of the table doesn't match the number of binding locals,

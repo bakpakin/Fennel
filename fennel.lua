@@ -304,6 +304,9 @@ local function parser(getbyte, filename)
                     end
                     val = {}
                     for i = 1, #last, 2 do
+                        if tostring(last[i]) == ":" and isSym(last[i + 1]) then
+                            last[i] = tostring(last[i + 1])
+                        end
                         val[last[i]] = last[i + 1]
                     end
                 end

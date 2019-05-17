@@ -61,7 +61,7 @@ Example: `(let [[a b c] [1 2 3]] (+ a b c))` -> `6`
 
 Example: `(let [(x y z) (unpack [10 9 8])] (+ x y z))` -> `27`
 
-Example: `(let [{:msg msg :val val} (returns-a-table)] (print msg) val)`
+Example: `(let [{:msg message : val} (returns-a-table)] (print message) val)`
 
 ### `local` declare local
 

@@ -464,6 +464,8 @@ local compile_failures = {
     ["(let [global 1] 1)"]="overshadowed",
     ["(fn global [] 1)"]="overshadowed",
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
+    ["(x(y))"]="expected whitespace before opening delimiter %(",
+    ["(x[1 2])"]="expected whitespace before opening delimiter %[",
 }
 
 print("Running tests for compile errors...")

@@ -420,7 +420,7 @@ end
 
 local compile_failures = {
     ["(f"]="expected closing delimiter %) in unknown:1",
-    ["\n\n(+))"]="unexpected closing delimiter in unknown:3",
+    ["\n\n(+))"]="unexpected closing delimiter %) in unknown:3",
     ["(fn)"]="expected vector arg list",
     ["(fn [12])"]="expected symbol for function parameter",
     ["(fn [:huh] 4)"]="expected symbol for function parameter",

@@ -295,7 +295,7 @@ local function parser(getbyte, filename)
                     bytestart = byteindex
                 }, LIST_MT))
             elseif delims[b] then -- Closing delimiter
-                if #stack == 0 then parseError 'unexpected closing delimiter' end
+                if #stack == 0 then parseError('unexpected closing delimiter ' .. string.char(b)) end
                 local last = stack[#stack]
                 local val
                 if last.closer ~= b then

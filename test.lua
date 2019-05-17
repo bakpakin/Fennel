@@ -202,6 +202,8 @@ local cases = {
         ["(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x"]=14,
         -- key/value destructuring
         ["(let [{:a x :b y} {:a 2 :b 4}] (+ x y))"]=6,
+        -- key/value destructuring with the same names
+        ["(let [{: a : b} {:a 3 :b 5}] (+ a b))"]=8,
         -- nesting k/v and sequential
         ["(let [{:a [x y z]} {:a [1 2 4]}] (+ x y z))"]=7,
         -- Local shadowing in let form

@@ -1010,6 +1010,7 @@ local function destructure(to, from, ast, scope, parent, opts)
                     destructure1(left[k+1], {subexpr}, left)
                     return
                 else
+                    if isSym(k) and tostring(k) == ":" and isSym(v) then k = tostring(v) end
                     if type(k) ~= "number" then k = serializeString(k) end
                     local subexpr = expr(('%s[%s]'):format(s, k), 'expression')
                     destructure1(v, {subexpr}, left)

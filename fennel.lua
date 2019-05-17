@@ -237,6 +237,7 @@ local function parser(getbyte, filename)
 
         -- Dispatch when we complete a value
         local done, retval
+        local whitespaceSinceDispatch = true
         local function dispatch(v)
             if #stack == 0 then
                 retval = v
@@ -248,6 +249,7 @@ local function parser(getbyte, filename)
             else
                 table.insert(stack[#stack], v)
             end
+            whitespaceSinceDispatch = false
         end
 
         -- Throw nice error when we expect more characters
@@ -269,6 +271,9 @@ local function parser(getbyte, filename)
             -- Skip whitespace
             repeat
                 b = getb()
+                if b and iswhitespace(b) then
+                    whitespaceSinceDispatch = true
+                end
             until not b or not iswhitespace(b)
             if not b then
                 if #stack > 0 then badend() end
@@ -280,6 +285,9 @@ local function parser(getbyte, filename)
                     b = getb()
                 until not b or b == 10 -- newline
             elseif type(delims[b]) == 'number' then -- Opening delimiter
+                if not whitespaceSinceDispatch then
+                    parseError('expected whitespace before opening delimiter ' .. string.char(b))
+                end
                 table.insert(stack, setmetatable({
                     closer = delims[b],
                     line = line,
@@ -287,7 +295,7 @@ local function parser(getbyte, filename)
                     bytestart = byteindex
                 }, LIST_MT))
             elseif delims[b] then -- Closing delimiter
-                if #stack == 0 then parseError 'unexpected closing delimiter' end
+                if #stack == 0 then parseError('unexpected closing delimiter ' .. string.char(b)) end
                 local last = stack[#stack]
                 local val
                 if last.closer ~= b then

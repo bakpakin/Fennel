@@ -420,7 +420,7 @@ end
 
 local compile_failures = {
     ["(f"]="expected closing delimiter %) in unknown:1",
-    ["\n\n(+))"]="unexpected closing delimiter in unknown:3",
+    ["\n\n(+))"]="unexpected closing delimiter %) in unknown:3",
     ["(fn)"]="expected vector arg list",
     ["(fn [12])"]="expected symbol for function parameter",
     ["(fn [:huh] 4)"]="expected symbol for function parameter",
@@ -464,6 +464,8 @@ local compile_failures = {
     ["(let [global 1] 1)"]="overshadowed",
     ["(fn global [] 1)"]="overshadowed",
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
+    ["(x(y))"]="expected whitespace before opening delimiter %(",
+    ["(x[1 2])"]="expected whitespace before opening delimiter %[",
 }
 
 print("Running tests for compile errors...")

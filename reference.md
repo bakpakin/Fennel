@@ -61,7 +61,7 @@ Example: `(let [[a b c] [1 2 3]] (+ a b c))` -> `6`
 
 Example: `(let [(x y z) (unpack [10 9 8])] (+ x y z))` -> `27`
 
-Example: `(let [{:msg msg :val val} (returns-a-table)] (print msg) val)`
+Example: `(let [{:msg message : val} (returns-a-table)] (print message) val)`
 
 ### `local` declare local
 
@@ -303,10 +303,10 @@ this `begin` or `progn`.
 
 * `and`, `or`, `not` boolean
 * `+`, `-`, `*`, `/`, `//`, `%`, `^` arithmetic
-* `>`, `<`, `>=`, `<=`, `=`, `~=` comparison
+* `>`, `<`, `>=`, `<=`, `=`, `not=` comparison
 
-These all work as you would expect, with a few caveats. The `~=`
-operator is used for "not equal", and `//` for integer division is
+These all work as you would expect, with a few caveats.
+`//` for integer division is
 only available in Lua 5.3 and onward.
 
 They all take any number of arguments, as long as that number is fixed
@@ -323,7 +323,7 @@ strings, but not other types.
 
 Example: `(.. "Hello" " " "world" 7 "!!!")` -> `"Hello world7!!!"`
 
-### `#` string or table length
+### `length` string or table length
 
 Returns the length of a string or table. Note that the length of a
 table with gaps in it is undefined; it can return a number
@@ -333,7 +333,7 @@ consecutive numeric index starting at 1, you must calculate it
 yourself with `ipairs`; if you want to know the maximum numeric key in
 a table with nils, you can use `table.maxn`.
 
-Example: `(+ (# [1 2 3 nil 8]) (# "abc"))` -> `6` or `8`
+Example: `(+ (length [1 2 3 nil 8]) (length "abc"))` -> `6` or `8`
 
 ### `.` table lookup
 
@@ -443,6 +443,38 @@ Note that these have nothing to do with "threads" used for
 concurrency; they are named after the thread which is used in
 sewing. This is similar to the way that `|>` works in OCaml and Elixir.
 
+### Hash Function Literals
+
+It's pretty easy to create function literals, but Fennel provides
+an even shorter form of functions. Hash functions are anonymous
+functions of one form, with implicitly named arguments. All
+of the below functions are functionally equivalent.
+
+```
+(fn sum [a b] (+ a b))
+```
+
+```
+(hashfn (+ $1 $2))
+```
+
+```
+#(+ $1 $2)
+```
+
+This style of anonymous function is useful as a parameter to
+higher order functions, such as those provided by Lua libraries
+like lume and luafun.
+
+The current implementation only allows for functions of up to
+9 arguments, each named `$1` through `$9`.
+
+Hash functions are defined with the `hashfn` macro, which wraps
+it's single argument in a function literal. For example, `#$3`
+is a function that returns it's third argument. `#[$1 $2 $3]` is
+a function that returns a table from the first 3 arguments. And
+so on.
+
 ### `doto`
 
 Similarly, the `doto` macro splices the first value into subsequent
@@ -478,15 +510,14 @@ instance, here is a macro function which implements `when` in terms of
 ```
 (fn [condition body1 ...]
   (assert body1 "expected body")
-  `(if @condition
-     (do @body1 @...)))
+  `(if ,condition
+     (do ,body1 ,...)))
 ```
 
 A full explanation of how macros work is out of scope for this document,
 but you can think of it as a compile-time template function. The backtick
 on the third line creates a template for the code emitted by the macro. The
-`@` serves as "unquote" (other lisps use `,` or `~` for this purpose) which
-splices values into the template.
+`,` serves as "unquote" which splices values into the template.
 
 In effect it turns this input:
 
@@ -511,6 +542,45 @@ inside compiler scope which macros run in.
 Note that the macro interface is still preliminary and is subject to
 change over time.
 
+### `defmacro`
+
+Defines a single macro, local to the current fennel file. Note that inside the
+macro definition, you cannot access variables and bindings
+from the surrounding code. Each macro is essentially compiled in it's
+own compiler environment. Again, see the "Compiler API" section for more
+details about the macro interface.
+
+Defmacro is useful for one-off, quick macros, or even some more complicated
+macros, but be careful. It may be tempting to try and use some function
+you have previously defined,  but if you need such functionality, you
+should probably use `require-macros`.
+
+Good Example:
+
+```
+(defmacro my-max
+  [x y]
+  (let [xx (gensym) yy (gensym)]
+    `(let [,xx ,x ,yy ,y] (if (< ,xx ,yy) ,yy ,xx))))
+
+(print (my-max 10 20))
+(print (my-max 20 10))
+(print (my-max 20 20))
+```
+
+Bad Example - will not compile in strict mode!
+Even when it does compile, it will fail trying to
+call a global `my-fn`.
+
+```
+(fn my-fn [] (print "hi!"))
+(defmacro my-max
+  [x y]
+  (my-fn)
+  (let [xx (gensym) yy (gensym)]
+    `(let [,xx ,x ,yy ,y] (if (< ,xx ,yy) ,yy ,xx))))
+```
+
 ### `eval-compiler`
 
 Evaluate a block of code during compile-time with access to compiler
@@ -526,8 +596,8 @@ Example:
 
 ### Compiler API
 
-Inside `eval-compiler` blocks or `require-macros` modules, these functions
-are visible to your code.
+Inside `eval-compiler`, `macros`, or `defmacro` blocks, as well as 
+`require-macros` modules, these functions are visible to your code.
 
 Note that lists are compile-time concepts that don't exist at runtime; they
 are implemented as regular tables which have a special metatable to
@@ -543,6 +613,7 @@ and a metatable that the compiler uses to distinguish them. You can use
 * `table?` - is the argument a non-list table?
 * `sequence?` - is the argument a non-list _sequential_ table (created
   with `[]`, as opposed to `{}`)?
+* `gensym` - generates a unique symbol for use in macros.
 * `varg?` - is this a `...` symbol which indicates var args?
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
 * `in-scope?` - does this symbol refer to a local in the current scope?

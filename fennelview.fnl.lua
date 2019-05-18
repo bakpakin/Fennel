@@ -2,7 +2,7 @@ local function view_quote(str)
   return ("\"" .. str:gsub("\"", "\\\"") .. "\"")
 end
 local short_control_char_escapes = {["\11"] = "\\v", ["\12"] = "\\f", ["\13"] = "\\r", ["\7"] = "\\a", ["\8"] = "\\b", ["\9"] = "\\t", ["\n"] = "\\n"}
-local long_control_char_esapes
+local long_control_char_esapes = nil
 do
   local long = {}
   for i = 0, 31 do
@@ -99,10 +99,10 @@ local function get_id(self, v)
   end
   return tostring(id)
 end
-local function put_sequential_table(self, t, length)
+local function put_sequential_table(self, t, len)
   puts(self, "[")
   self.level = (self.level + 1)
-  for i = 1, length do
+  for i = 1, len do
     puts(self, " ")
     put_value(self, t[i])
   end
@@ -110,7 +110,7 @@ local function put_sequential_table(self, t, length)
   return puts(self, " ]")
 end
 local function put_key(self, k)
-  if ((type(k) == "string") and k:find("^[-%w?\\^_`!#$%&*+./@~:|<=>]+$")) then
+  if ((type(k) == "string") and k:find("^[-%w?\\^_!$%&*+./@:|<=>]+$")) then
     return puts(self, ":", k)
   else
     return put_value(self, k)
@@ -135,14 +135,14 @@ local function put_table(self, t)
   elseif (self.level >= self.depth) then
     return puts(self, "{...}")
   elseif "else" then
-    local non_seq_keys, length = get_nonsequential_keys(t)
+    local non_seq_keys, len = get_nonsequential_keys(t)
     local id = get_id(self, t)
     if (self.appearances[t] > 1) then
       return puts(self, "#<", id, ">")
     elseif ((#non_seq_keys == 0) and (#t == 0)) then
       return puts(self, "{}")
     elseif (#non_seq_keys == 0) then
-      return put_sequential_table(self, t, length)
+      return put_sequential_table(self, t, len)
     elseif "else" then
       return put_kv_table(self, t)
     end

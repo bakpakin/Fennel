@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2016-2018 Calvin Rose and contributors
+Copyright (c) 2016-2019 Calvin Rose and contributors
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
@@ -90,7 +90,6 @@ local function expr(strcode, etype)
     return setmetatable({ strcode, type = etype }, EXPR_MT)
 end
 
-
 local function varg()
     return VARARG
 end
@@ -174,7 +173,7 @@ local delims = {
 }
 
 local function iswhitespace(b)
-    return b == 32 or (b >= 9 and b <= 13) or b == 44
+    return b == 32 or (b >= 9 and b <= 13)
 end
 
 local function issymbolchar(b)
@@ -183,14 +182,19 @@ local function issymbolchar(b)
         b ~= 127 and -- "<BS>"
         b ~= 34 and -- "\""
         b ~= 39 and -- "'"
+        b ~= 126 and -- "~"
         b ~= 59 and -- ";"
         b ~= 44 and -- ","
+        b ~= 35 and -- "#"
+        b ~= 64 and -- "@"
         b ~= 96 -- "`"
 end
 
 local prefixes = { -- prefix chars substituted while reading
     [96] = 'quote', -- `
-    [64] = 'unquote' -- @
+    [44] = 'unquote', -- ,
+    [39] = 'quote', -- '
+    [35] = 'hashfn' -- #
 }
 
 -- Parse one value given a function that
@@ -233,6 +237,7 @@ local function parser(getbyte, filename)
 
         -- Dispatch when we complete a value
         local done, retval
+        local whitespaceSinceDispatch = true
         local function dispatch(v)
             if #stack == 0 then
                 retval = v
@@ -244,6 +249,7 @@ local function parser(getbyte, filename)
             else
                 table.insert(stack[#stack], v)
             end
+            whitespaceSinceDispatch = false
         end
 
         -- Throw nice error when we expect more characters
@@ -265,6 +271,9 @@ local function parser(getbyte, filename)
             -- Skip whitespace
             repeat
                 b = getb()
+                if b and iswhitespace(b) then
+                    whitespaceSinceDispatch = true
+                end
             until not b or not iswhitespace(b)
             if not b then
                 if #stack > 0 then badend() end
@@ -276,6 +285,9 @@ local function parser(getbyte, filename)
                     b = getb()
                 until not b or b == 10 -- newline
             elseif type(delims[b]) == 'number' then -- Opening delimiter
+                if not whitespaceSinceDispatch then
+                    parseError('expected whitespace before opening delimiter ' .. string.char(b))
+                end
                 table.insert(stack, setmetatable({
                     closer = delims[b],
                     line = line,
@@ -283,7 +295,7 @@ local function parser(getbyte, filename)
                     bytestart = byteindex
                 }, LIST_MT))
             elseif delims[b] then -- Closing delimiter
-                if #stack == 0 then parseError 'unexpected closing delimiter' end
+                if #stack == 0 then parseError('unexpected closing delimiter ' .. string.char(b)) end
                 local last = stack[#stack]
                 local val
                 if last.closer ~= b then
@@ -304,23 +316,25 @@ local function parser(getbyte, filename)
                     end
                     val = {}
                     for i = 1, #last, 2 do
+                        if tostring(last[i]) == ":" and isSym(last[i + 1]) then
+                            last[i] = tostring(last[i + 1])
+                        end
                         val[last[i]] = last[i + 1]
                     end
                 end
                 stack[#stack] = nil
                 dispatch(val)
-            elseif b == 34 or b == 39 then -- Quoted string
-                local start = b
+            elseif b == 34 then -- Quoted string
                 local state = "base"
-                local chars = {start}
-                stack[#stack + 1] = {closer = b}
+                local chars = {34}
+                stack[#stack + 1] = {closer = 34}
                 repeat
                     b = getb()
                     chars[#chars + 1] = b
                     if state == "base" then
                         if b == 92 then
                             state = "backslash"
-                        elseif b == start then
+                        elseif b == 34 then
                             state = "done"
                         end
                     else
@@ -338,6 +352,16 @@ local function parser(getbyte, filename)
                 table.insert(stack, {
                     prefix = prefixes[b]
                 })
+                local nextb = getb()
+                if iswhitespace(nextb) then
+                    if b == 35 then
+                        stack[#stack] = nil
+                        dispatch(sym('#'))
+                    else
+                        parseError('invalid whitespace after quoting prefix')
+                    end
+                end
+                ungetb(nextb)
             else -- Try symbol
                 local chars = {}
                 local bytestart = byteindex
@@ -1007,6 +1031,7 @@ local function destructure(to, from, ast, scope, parent, opts)
                     destructure1(left[k+1], {subexpr}, left)
                     return
                 else
+                    if isSym(k) and tostring(k) == ":" and isSym(v) then k = tostring(v) end
                     if type(k) ~= "number" then k = serializeString(k) end
                     local subexpr = expr(('%s[%s]'):format(s, k), 'expression')
                     destructure1(v, {subexpr}, left)
@@ -1543,6 +1568,15 @@ SPECIALS[':'] = function(ast, scope, parent)
         table.concat(args, ', ')), 'statement')
 end
 
+SPECIALS['comment'] = function(ast, _, parent)
+    local els = {}
+    for i = 2, #ast do
+        els[#els + 1] = tostring(ast[i]):gsub('\n', ' ')
+    end
+    emit(parent, '-- ' .. table.concat(els, ' '), ast)
+    return nil
+end
+
 local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
     SPECIALS[name] = function(ast, scope, parent)
@@ -1614,7 +1648,6 @@ defineComparatorSpecial('<')
 defineComparatorSpecial('>=')
 defineComparatorSpecial('<=')
 defineComparatorSpecial('=', '==')
-defineComparatorSpecial('~=', '~=', 'or')
 defineComparatorSpecial('not=', '~=', 'or')
 
 local function defineUnarySpecial(op, realop)
@@ -1626,7 +1659,8 @@ local function defineUnarySpecial(op, realop)
 end
 
 defineUnarySpecial('not', 'not ')
-defineUnarySpecial('#')
+defineUnarySpecial('length', '#')
+SPECIALS['#'] = SPECIALS['length']
 
 -- Save current macro scope
 local macroCurrentScope = GLOBAL_SCOPE
@@ -1934,21 +1968,6 @@ local function repl(options)
         end
     end
 
-    -- Read options
-    local readChunk = opts.readChunk or defaultReadChunk
-    local onValues = opts.onValues or defaultOnValues
-    local onError = opts.onError or defaultOnError
-    local pp = opts.pp or tostring
-
-    -- Make parser
-    local bytestream, clearstream = granulate(readChunk)
-    local chars = {}
-    local read, reset = parser(function (parserState)
-        local c = bytestream(parserState)
-        chars[#chars + 1] = c
-        return c
-    end)
-
     local envdbg = (opts.env or _G)["debug"]
     -- if the environment doesn't support debug.getlocal you can't save locals
     local saveLocals = opts.saveLocals ~= false and envdbg and envdbg.getlocal
@@ -1983,6 +2002,21 @@ local function repl(options)
         end
         return table.concat(splicedSource, "\n")
     end
+
+    -- Read options
+    local readChunk = opts.readChunk or defaultReadChunk
+    local onValues = opts.onValues or defaultOnValues
+    local onError = opts.onError or defaultOnError
+    local pp = opts.pp or tostring
+
+    -- Make parser
+    local bytestream, clearstream = granulate(readChunk)
+    local chars = {}
+    local read, reset = parser(function (parserState)
+        local c = bytestream(parserState)
+        chars[#chars + 1] = c
+        return c
+    end)
 
     local scope = makeScope(GLOBAL_SCOPE)
 
@@ -2072,7 +2106,7 @@ local module = {
     macroLoaded = macroLoaded,
     path = "./?.fnl;./?/init.fnl",
     traceback = traceback,
-    version = "0.2.1",
+    version = "0.3.0",
 }
 
 local function searchModule(modulename)
@@ -2211,32 +2245,32 @@ local stdmacros = [===[
              (set x elt)))
          x)
  "-?>" (fn [val ...]
-         (if (= 0 (# [...]))
+         (if (= 0 (select "#" ...))
              val
              (let [els [...]
                    e (table.remove els 1)
                    el (if (list? e) e (list e))
                    tmp (gensym)]
                (table.insert el 2 tmp)
-               `(let [@tmp @val]
-                  (if @tmp
-                      (-?> @el @(unpack els))
-                      @tmp)))))
+               `(let [,tmp ,val]
+                  (if ,tmp
+                      (-?> ,el ,(unpack els))
+                      ,tmp)))))
  "-?>>" (fn [val ...]
-          (if (= 0 (# [...]))
+          (if (= 0 (select "#" ...))
               val
               (let [els [...]
                     e (table.remove els 1)
                     el (if (list? e) e (list e))
                     tmp (gensym)]
                 (table.insert el tmp)
-                `(let [@tmp @val]
-                   (if @tmp
-                       (-?>> @el @(unpack els))
-                       @tmp)))))
+                `(let [,tmp ,val]
+                   (if ,tmp
+                       (-?>> ,el ,(unpack els))
+                       ,tmp)))))
  :doto (fn [val ...]
          (let [name (gensym)
-               form `(let [@name @val])]
+               form `(let [,name ,val])]
            (each [_ elt (pairs [...])]
              (table.insert elt 2 name)
              (table.insert form elt))
@@ -2244,28 +2278,35 @@ local stdmacros = [===[
            form))
  :when (fn [condition body1 ...]
          (assert body1 "expected body")
-         `(if @condition
-              (do @body1 @...)))
+         `(if ,condition
+              (do ,body1 ,...)))
  :partial (fn [f ...]
             (let [body (list f ...)]
               (table.insert body _VARARG)
-              `(fn [@_VARARG] @body)))
+              `(fn [,_VARARG] ,body)))
  :lambda (fn [...]
            (let [args [...]
                  has-internal-name? (sym? (. args 1))
                  arglist (if has-internal-name? (. args 2) (. args 1))
                  arity-check-position (if has-internal-name? 3 2)]
-             (assert (> (# args) 1) "missing body expression")
+             (assert (> (length args) 1) "missing body expression")
              (each [i a (ipairs arglist)]
                (if (and (not (: (tostring a) :match "^?"))
-                        (~= (tostring a) "..."))
+                        (not= (tostring a) "..."))
                    (table.insert args arity-check-position
-                                 `(assert (~= nil @a)
+                                 `(assert (not= nil ,a)
                                           (: "Missing argument %s on %s:%s"
-                                             :format @(tostring a)
-                                             @(or a.filename "unknown")
-                                             @(or a.line "?"))))))
-             `(fn @(unpack args))))
+                                             :format ,(tostring a)
+                                             ,(or a.filename "unknown")
+                                             ,(or a.line "?"))))))
+             `(fn ,(unpack args))))
+ :hashfn (fn hashfn [body]
+           (assert body "expected body")
+           `(fn [$1 $2 $3 $4 $5 $6 $7 $8 $9] ,body))
+ :macro (fn macro [name ...]
+          (assert name "expected macro name")
+          (local args [...])
+          `(macros { ,(tostring name) (fn ,name ,(unpack args))}))
  :match
 (fn match [val ...]
   ;; this function takes the AST of values and a single pattern and returns a
@@ -2279,26 +2320,26 @@ local stdmacros = [===[
       (if (and (sym? pattern) ; unification with outer locals (or nil)
                (or (in-scope? pattern)
                    (= :nil (tostring pattern))))
-          (values `(= @val @pattern) [])
+          (values `(= ,val ,pattern) [])
           ;; unify a local we've seen already
           (and (sym? pattern)
                (. unifications (tostring pattern)))
-          (values `(= @(. unifications (tostring pattern)) @val) [])
+          (values `(= ,(. unifications (tostring pattern)) ,val) [])
           ;; bind a fresh local
           (sym? pattern)
-          (do (if (~= (tostring pattern) "_")
+          (do (if (not= (tostring pattern) "_")
                   (tset unifications (tostring pattern) val))
               (values (if (: (tostring pattern) :find "^?")
-                          true `(~= @(sym :nil) @val))
+                          true `(not= ,(sym :nil) ,val))
                       [pattern val]))
           ;; guard clause
           (and (list? pattern) (= :? (. pattern 2)))
           (let [(pcondition bindings) (match-pattern vals (. pattern 1)
                                                      unifications)
-                condition `(and @pcondition)]
+                condition `(and ,pcondition)]
             (for [i 3 (# pattern)] ; splice in guard clauses
               (table.insert condition (. pattern i)))
-            (values `(let @bindings @condition) bindings))
+            (values `(let ,bindings ,condition) bindings))
 
           ;; multi-valued patterns (represented as lists)
           (list? pattern)
@@ -2313,19 +2354,19 @@ local stdmacros = [===[
             (values condition bindings))
           ;; table patterns)
           (= (type pattern) :table)
-          (let [condition `(and (= (type @val) :table))
+          (let [condition `(and (= (type ,val) :table))
                 bindings []]
             (each [k pat (pairs pattern)]
               (if (and (sym? pat) (= "&" (tostring pat)))
                   (do (assert (not (. pattern (+ k 2)))
                               "expected rest argument in final position")
                       (table.insert bindings (. pattern (+ k 1)))
-                      (table.insert bindings [`(select @k ((or unpack table.unpack)
-                                                           @val))]))
+                      (table.insert bindings [`(select ,k ((or unpack table.unpack)
+                                                           ,val))]))
                   (and (= :number (type k))
                        (= "&" (tostring (. pattern (- k 1)))))
                   nil ; don't process the pattern right after &; already got it
-                  (let [subval `(. @val @k)
+                  (let [subval `(. ,val ,k)
                         (subcondition subbindings) (match-pattern [subval] pat
                                                                   unifications)]
                     (table.insert condition subcondition)
@@ -2333,20 +2374,20 @@ local stdmacros = [===[
                       (table.insert bindings b)))))
             (values condition bindings))
           ;; literal value
-          (values `(= @val @pattern) []))))
+          (values `(= ,val ,pattern) []))))
   (fn match-condition [vals clauses]
     (let [out `(if)]
-      (for [i 1 (# clauses) 2]
+      (for [i 1 (length clauses) 2]
         (let [pattern (. clauses i)
               body (. clauses (+ i 1))
               (condition bindings) (match-pattern vals pattern {})]
           (table.insert out condition)
-          (table.insert out `(let @bindings @body))))
+          (table.insert out `(let ,bindings ,body))))
       out))
   ;; how many multi-valued clauses are there? return a list of that many gensyms
   (fn val-syms [clauses]
     (let [syms (list (gensym))]
-      (for [i 1 (# clauses) 2]
+      (for [i 1 (length clauses) 2]
         (if (list? (. clauses i))
             (each [valnum (ipairs (. clauses i))]
               (if (not (. syms valnum))
@@ -2355,8 +2396,8 @@ local stdmacros = [===[
   ;; wrap it in a way that prevents double-evaluation of the matched value
   (let [clauses [...]
         vals (val-syms clauses)]
-    (if (~= 0 (% (# clauses) 2)) ; treat odd final clause as default
-        (table.insert clauses (# clauses) (sym :_)))
+    (if (not= 0 (% (length clauses) 2)) ; treat odd final clause as default
+        (table.insert clauses (length clauses) (sym :_)))
     ;; protect against multiple evaluation of the value, bind against as
     ;; many values as we ever match against in the clauses.
     (list (sym :let) [vals val]

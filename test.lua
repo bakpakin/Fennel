@@ -55,10 +55,9 @@ local cases = {
         ["(< -4 89)"]=true,
         ["(>= 22 (+ 21 1))"]=true,
         ["(<= 88 32)"]=false,
-        ["(~= 33 1)"]=true,
         ["(not= 33 1)"]=true,
         ["(= 1 1 2 2)"]=false,
-        ["(~= 6 6 9)"]=true,
+        ["(not= 6 6 9)"]=true,
         ["(let [f (fn [] (tset tbl :dbl (+ 1 (or (. tbl :dbl) 0))) 1)]\
             (< 0 (f) 2) (. tbl :dbl))"]=1,
     },
@@ -66,7 +65,6 @@ local cases = {
     parsing = {
         ["\"\\\\\""]="\\",
         ["\"abc\\\"def\""]="abc\"def",
-        ["\'abc\\\"\'"]="abc\"",
         ["\"abc\\240\""]="abc\240",
         ["\"abc\n\\240\""]="abc\n\240",
         ["150_000"]=150000,
@@ -137,6 +135,8 @@ local cases = {
         ["(let [x 17] (. 17))"]=17,
         -- table lookup with literal
         ["(+ (. {:a 93 :b 4} :a) (. [1 2 3] 2))"]=95,
+        -- table lookup with literal using matching-key-and-variable shorthand
+        ["(let [k 5 t {: k}] t.k)"]=5,
         -- set works with multisyms
         ["(let [t {}] (set t.a :multi) (. t :a))"]="multi",
         -- set works on parent scopes
@@ -200,6 +200,8 @@ local cases = {
         ["(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x"]=14,
         -- key/value destructuring
         ["(let [{:a x :b y} {:a 2 :b 4}] (+ x y))"]=6,
+        -- key/value destructuring with the same names
+        ["(let [{: a : b} {:a 3 :b 5}] (+ a b))"]=8,
         -- nesting k/v and sequential
         ["(let [{:a [x y z]} {:a [1 2 4]}] (+ x y z))"]=7,
         -- Local shadowing in let form
@@ -228,11 +230,11 @@ local cases = {
                                        ((or unpack table.unpack) [1 2 3 4 5 6 7]))]\
             (+ a b c d e f g))"]=28,
         -- IIFE if test v3
-        ["(# [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))])"]=5,
+        ["(length [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))])"]=5,
         -- IIFE if test v4
         ["(select \"#\" (if (= 1 (- 3 2)) (values 1 2 3 4 5) :onevalue))"]=5,
         -- Values special in array literal
-        ["(# [(values 1 2 3 4 5)])"]=5,
+        ["(length [(values 1 2 3 4 5)])"]=5,
         ["(let [x (if 3 4 5)] x)"]=4,
         ["(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) (xyz (if (and c1 c2) true false) 52))"]=52
     },
@@ -263,9 +265,9 @@ local cases = {
         [ [[(eval-compiler
              (tset _SPECIALS "reverse-it" (fn [ast scope parent opts]
                (tset ast 1 "do")
-               (for [i 2 (math.ceil (/ (# ast) 2))]
-                 (let [a (. ast i) b (. ast (- (# ast) (- i 2)))]
-                   (tset ast (- (# ast) (- i 2)) a)
+               (for [i 2 (math.ceil (/ (length ast) 2))]
+                 (let [a (. ast i) b (. ast (- (length ast) (- i 2)))]
+                   (tset ast (- (length ast) (- i 2)) a)
                    (tset ast i b)))
                (_SPECIALS.do ast scope parent opts))))
            (reverse-it 1 2 3 4 5 6)]]]=1,
@@ -273,12 +275,24 @@ local cases = {
         ["(eval-compiler (set tbl.nest ``nest))\
           (tostring tbl.nest)"]="(quote, nest)",
         -- inline macros
-        ["(macros {:plus (fn [x y] `(+ @x @y))}) (plus 9 9)"]=18,
+        ["(macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)"]=18,
         -- Vararg in quasiquote
         ["(macros {:x (fn [] `(fn [...] (+ 1 1)))}) ((x))"]=2,
         -- Threading macro with single function, with and without parens
         ["(-> 1234 (string.reverse) (string.upper))"]="4321",
         ["(-> 1234 string.reverse string.upper)"]="4321"
+    },
+    hashfn = {
+        -- Basic hashfn
+        ["(#(+ $1 $2) 3 4)"]=7,
+        -- Ignore arguments hashfn
+        ["(#(+ $3 $4) 1 1 3 4)"]=7,
+        -- One argument
+        ["(#(+ $1 45) 1)"]=46,
+        -- With let
+        ["(let [f #(+ $1 45)] (f 1))"]=46,
+        -- Complex body
+        ["(let [f #(do (local a 1) (local b (+ $1 $1 a)) (+ a b))] (f 1))"]=4,
     },
     match = {
         -- basic literal
@@ -339,6 +353,7 @@ local cases = {
         ["(match [{:sieze :him} 5] \
             ([f 4] :? f.sieze (= f.sieze :him)) 4\
             ([f 5] :? f.sieze (= f.sieze :him)) 5)"]=5,
+        ["(match [1] [a & b] (length b))"]=0,
     }
 }
 
@@ -418,7 +433,7 @@ end
 
 local compile_failures = {
     ["(f"]="expected closing delimiter %) in unknown:1",
-    ["\n\n(+))"]="unexpected closing delimiter in unknown:3",
+    ["\n\n(+))"]="unexpected closing delimiter %) in unknown:3",
     ["(fn)"]="expected vector arg list",
     ["(fn [12])"]="expected symbol for function parameter",
     ["(fn [:huh] 4)"]="expected symbol for function parameter",
@@ -462,6 +477,8 @@ local compile_failures = {
     ["(let [global 1] 1)"]="overshadowed",
     ["(fn global [] 1)"]="overshadowed",
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
+    ["(x(y))"]="expected whitespace before opening delimiter %(",
+    ["(x[1 2])"]="expected whitespace before opening delimiter %[",
 }
 
 print("Running tests for compile errors...")
@@ -515,13 +532,13 @@ end
 
 local quoting_tests = {
     ['`:abcde'] = {"return \"abcde\"", "simple string quoting"},
-    ['@a'] = {"return unquote(a)",
+    [',a'] = {"return unquote(a)",
               "unquote outside quote is simply passed thru"},
-    ['`[1 2 @(+ 1 2) 4]'] = {
+    ['`[1 2 ,(+ 1 2) 4]'] = {
         "return {1, 2, (1 + 2), 4}",
         "unquote inside quote leads to evaluation"
     },
-    ['(let [a (+ 2 3)] `[:hey @(+ a a)])'] = {
+    ['(let [a (+ 2 3)] `[:hey ,(+ a a)])'] = {
         "local a = (2 + 3)\nreturn {\"hey\", (a + a)}",
         "unquote inside other forms"
     },

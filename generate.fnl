@@ -35,7 +35,7 @@
                               (for [_ 1 (math.random 16)]
                                 ;; no nans plz
                                 (set k (generate 0.9))
-                                (while (~= k k) (set k (generate 0.9)))
+                                (while (not= k k) (set k (generate 0.9)))
                                 (tset t k (generate (* table-chance 1.5))))
                               t))
                    :boolean (fn [] (> (math.random) 0.5))})

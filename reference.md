@@ -144,13 +144,13 @@ or specific value. In these cases you can use guard clauses:
 
 ```lisp
 (match [91 12 53]
-  ([a b c] :? (= 5 a)) :will-not-match
-  ([a b c] :? (= 0 (math.fmod (+ a b c) 2)) (= 91 a)) c) ; -> 53
+  ([a b c] ? (= 5 a)) :will-not-match
+  ([a b c] ? (= 0 (math.fmod (+ a b c) 2)) (= 91 a)) c) ; -> 53
 ```
 
 In this case the pattern should be wrapped in parens (like when
 matching against multiple values) but the second thing in the parens
-is the `:?` marker. Each form following this marker is a condition;
+is the `?` symbol. Each form following this marker is a condition;
 all the conditions must evaluate to true for that pattern to match.
 
 (Note that Lua also has "patterns" which are matched against strings

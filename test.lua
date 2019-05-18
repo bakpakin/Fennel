@@ -343,16 +343,16 @@ local cases = {
         ["(match [1] [a & b] (# b))"]=0,
         -- guard clause
         ["(match {:sieze :him} \
-            (tbl :? (. tbl :no)) :no \
-            (tbl :? (. tbl :sieze)) :siezed)"]="siezed",
+            (tbl ? (. tbl :no)) :no \
+            (tbl ? (. tbl :sieze)) :siezed)"]="siezed",
         -- multiple guard clauses
         ["(match {:sieze :him} \
-            (tbl :? tbl.sieze tbl.no) :no \
-            (tbl :? tbl.sieze (= tbl.sieze :him)) :siezed2)"]="siezed2",
+            (tbl ? tbl.sieze tbl.no) :no \
+            (tbl ? tbl.sieze (= tbl.sieze :him)) :siezed2)"]="siezed2",
         -- guards with patterns inside
         ["(match [{:sieze :him} 5] \
-            ([f 4] :? f.sieze (= f.sieze :him)) 4\
-            ([f 5] :? f.sieze (= f.sieze :him)) 5)"]=5,
+            ([f 4] ? f.sieze (= f.sieze :him)) 4\
+            ([f 5] ? f.sieze (= f.sieze :him)) 5)"]=5,
         ["(match [1] [a & b] (length b))"]=0,
     }
 }

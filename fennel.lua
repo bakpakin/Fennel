@@ -2333,7 +2333,7 @@ local stdmacros = [===[
                           true `(not= ,(sym :nil) ,val))
                       [pattern val]))
           ;; guard clause
-          (and (list? pattern) (= :? (. pattern 2)))
+          (and (list? pattern) (sym? (. pattern 2)) (= :? (tostring (. pattern 2))))
           (let [(pcondition bindings) (match-pattern vals (. pattern 1)
                                                      unifications)
                 condition `(and ,pcondition)]

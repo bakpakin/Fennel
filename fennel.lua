@@ -2304,7 +2304,7 @@ local stdmacros = [===[
            (assert body "expected body")
            `(fn [$1 $2 $3 $4 $5 $6 $7 $8 $9] ,body))
  :macro (fn macro [name ...]
-          (assert name "expected macro name")
+          (assert (sym? name) "expected symbol for macro name")
           (local args [...])
           `(macros { ,(tostring name) (fn ,name ,(unpack args))}))
  :match
@@ -2413,6 +2413,7 @@ do
         -- otherwise this can be problematic when loading fennel in contexts
         -- where _G is an empty table with an __index metamethod. (openresty)
         allowedGlobals = false,
+        filename = "built-ins",
     })) do
         SPECIALS[name] = macroToSpecial(fn)
     end

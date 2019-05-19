@@ -2,16 +2,17 @@
 
 ## 0.3.0 / ??
 
-* Add support for guard clauses with `?` in pattern matches.
-* Support completion in repl when `readline.lua` is available.
-* Add `--globals` and `--globals-only` options to launcher script.
-* Remove `luaexpr` and `luastatement` for a single `lua` special.
-* Improve code generation for if expressions in many situations.
+* Add support for guard clauses with `?` in pattern matching
+* Support completion in repl when `readline.lua` is available
+* Add `--globals` and `--globals-only` options to launcher script
+* **Remove** `luaexpr` and `luastatement` for a single `lua` special
+* Improve code generation for `if` expressions in many situations
 * Alias `#` special with `length`
-* Replace `@` (unquote) with `,`. Comma is no longer whitespace
-* Remove `~=` special and disallow ~ in symbols. Use `not=` instead.
+* Replace `@` (unquote) with `,`. Comma is **no longer** whitespace
+* **Disallow** `~` in symbols
+* **Remove** `~=` special; use `not=` instead
 * Add `hashfn` and `#` reader macro for shorthand functions like `#(+ $1 $2)`
-* Add `defmacro` macro to make defining a quick macro easier.
+* Add `macro` to make defining a single macro easier
 * Add `(comment)` special which emits a Lua comment in the generated source
 
 ## 0.2.1 / 2019-01-22
@@ -28,7 +29,7 @@
 * Allow macros to be defined inline with `macros`
 * Add `--add-package-path` and `--add-fennel-path` to launcher script
 * Add `-?>` and `-?>>` macros
-* Add support for quoting with backtick and unquoting with @
+* Add support for quoting with backtick and unquoting with `@` (later changed to `,`)
 * Support key/value tables when destructuring
 * Add `match` macro for pattern matching
 * Add optional GNU readline support for repl
@@ -45,13 +46,13 @@
 
 * Save locals in between chunks in the repl
 * Allow destructuring in more places
-* Remove redundant `defn` macro
+* **Remove** redundant `defn` macro
 * Add `doto` macro
 * Support newlines in strings
 * Prevent typos from accidentally referring to unknown globals
 * Improve readability of compiler output
 * Add `->` and `->>` macros
-* Remove deprecated special forms: `pack`, `$`, `block`, `*break`, `special`
+* **Remove** deprecated special forms: `pack`, `$`, `block`, `*break`, `special`
 * Support nested lookup in `.` form
 * Add `var`; disallow regular locals from being set
 * Add `global`; refuse to set globals without it

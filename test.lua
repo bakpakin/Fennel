@@ -354,6 +354,8 @@ local cases = {
             ([f 4] ? f.sieze (= f.sieze :him)) 4\
             ([f 5] ? f.sieze (= f.sieze :him)) 5)"]=5,
         ["(match [1] [a & b] (length b))"]=0,
+        -- multisym
+        ["(let [x {:y :z}] (match :z x.y 1 _ 0))"]=1,
     }
 }
 

@@ -480,6 +480,9 @@ end
 -- from normal symbols is that they cannot be declared local, and
 -- they may have side effects on invocation (metatables)
 local function isMultiSym(str)
+    if isSym(str) then
+        return isMultiSym(tostring(str))
+    end
     if type(str) ~= 'string' then return end
     local parts = {}
     for part in str:gmatch('[^%.]+') do
@@ -2317,9 +2320,11 @@ local stdmacros = [===[
     ;; know we're either in a multi-valued clause (in which case we know the #
     ;; of vals) or we're not, in which case we only care about the first one.
     (let [[val] vals]
-      (if (and (sym? pattern) ; unification with outer locals (or nil)
-               (or (in-scope? pattern)
-                   (= :nil (tostring pattern))))
+      (if (or (and (sym? pattern) ; unification with outer locals (or nil)
+                   (or (in-scope? pattern)
+                       (= :nil (tostring pattern))))
+              (and (multi-sym? pattern)
+                   (in-scope? (. (multi-sym? pattern) 1))))
           (values `(= ,val ,pattern) [])
           ;; unify a local we've seen already
           (and (sym? pattern)

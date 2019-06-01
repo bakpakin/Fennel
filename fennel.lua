@@ -1271,7 +1271,11 @@ end
 
 SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
-    if allowedGlobals then table.insert(allowedGlobals, ast[2][1]) end
+    if allowedGlobals then
+        for _,global in ipairs(isList(ast[2]) and ast[2] or {ast[2]}) do
+            table.insert(allowedGlobals, deref(global))
+        end
+    end
     destructure(ast[2], ast[3], ast, scope, parent, {
         nomulti = true,
         forceglobal = true

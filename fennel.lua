@@ -1937,7 +1937,7 @@ local function repl(options)
     -- This would get set for us when calling eval, but we want to seed it
     -- with a value that is persistent so it doesn't get reset on each eval.
     if opts.allowedGlobals == nil then
-        options.allowedGlobals = currentGlobalNames(opts.env)
+        opts.allowedGlobals = currentGlobalNames(opts.env)
     end
 
     local env = opts.env and wrapEnv(opts.env) or setmetatable({}, {
@@ -2040,7 +2040,7 @@ local function repl(options)
         addMatchesFromGen(pairs(scope.specials or {}))
         return matches
     end
-    if options.registerCompleter then options.registerCompleter(replCompleter) end
+    if opts.registerCompleter then opts.registerCompleter(replCompleter) end
 
     -- REPL loop
     while true do

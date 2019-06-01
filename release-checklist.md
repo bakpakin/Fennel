@@ -13,3 +13,5 @@ is intended for Fennel maintainers.
 7. Commit above changes.
 8. Tag release with chosen git tag, and push to repository.
 9. Upload rock with `luarocks upload rockspecs/fennel-(version)-1.rockspec`. Fennel is now released!
+10. Update the submodule for fennel-lang.org.
+11. Announce it on the mailing list.

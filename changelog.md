@@ -2,13 +2,15 @@
 
 ## 0.3.0 / ??
 
+* Fix a few bugs in `match`
+* **Remove** undocumented support for single-quoted strings
 * Add support for guard clauses with `?` in pattern matching
 * Support completion in repl when `readline.lua` is available
 * Add `--globals` and `--globals-only` options to launcher script
 * **Remove** `luaexpr` and `luastatement` for a single `lua` special
 * Improve code generation for `if` expressions in many situations
 * Alias `#` special with `length`
-* Replace `@` (unquote) with `,`. Comma is **no longer** whitespace
+* Replace `@` (unquote) with `,`; comma is **no longer** whitespace
 * **Disallow** `~` in symbols
 * **Remove** `~=` special; use `not=` instead
 * Add `hashfn` and `#` reader macro for shorthand functions like `#(+ $1 $2)`

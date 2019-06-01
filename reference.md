@@ -4,6 +4,8 @@ These are all the special forms recognized by the Fennel compiler. It
 does not include built-in Lua functions; see the
 [Lua reference manual][1] for that.
 
+Fennel source code should be UTF-8-encoded text.
+
 ## Functions
 
 ### `fn` function

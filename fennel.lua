@@ -2327,11 +2327,11 @@ local stdmacros = [===[
           (values `(= ,(. unifications (tostring pattern)) ,val) [])
           ;; bind a fresh local
           (sym? pattern)
-          (do (if (not= (tostring pattern) "_")
-                  (tset unifications (tostring pattern) val))
-              (values (if (: (tostring pattern) :find "^?")
-                          true `(not= ,(sym :nil) ,val))
-                      [pattern val]))
+          (let [wildcard? (= (tostring pattern) "_")]
+            (if (not wildcard?) (tset unifications (tostring pattern) val))
+            (values (if (or wildcard? (: (tostring pattern) :find "^?"))
+                        true `(not= ,(sym :nil) ,val))
+                    [pattern val]))
           ;; guard clause
           (and (list? pattern) (sym? (. pattern 2)) (= :? (tostring (. pattern 2))))
           (let [(pcondition bindings) (match-pattern vals (. pattern 1)

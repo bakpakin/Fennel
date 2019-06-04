@@ -2,7 +2,7 @@ local function view_quote(str)
   return ("\"" .. str:gsub("\"", "\\\"") .. "\"")
 end
 local short_control_char_escapes = {["\11"] = "\\v", ["\12"] = "\\f", ["\13"] = "\\r", ["\7"] = "\\a", ["\8"] = "\\b", ["\9"] = "\\t", ["\n"] = "\\n"}
-local long_control_char_esapes = nil
+local long_control_char_escapes = nil
 do
   local long = {}
   for i = 0, 31 do
@@ -12,11 +12,11 @@ do
       long[ch] = ("\\%03d"):format(i)
     end
   end
-  long_control_char_esapes = long
+  long_control_char_escapes = long
 end
 local function escape(str)
   local str = str:gsub("\\", "\\\\")
-  local str = str:gsub("(%c)%f[0-9]", long_control_char_esapes)
+  local str = str:gsub("(%c)%f[0-9]", long_control_char_escapes)
   return str:gsub("%c", short_control_char_escapes)
 end
 local function sequence_key_3f(k, len)

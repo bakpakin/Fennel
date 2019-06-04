@@ -7,7 +7,7 @@
        {"\a" "\\a" "\b" "\\b" "\f" "\\f" "\n" "\\n"
         "\r" "\\r" "\t" "\\t" "\v" "\\v"})
 
-(local long-control-char-esapes
+(local long-control-char-escapes
        (let [long {}]
          (for [i 0 31]
            (let [ch (string.char i)]
@@ -18,7 +18,7 @@
 
 (fn escape [str]
   (let [str (: str :gsub "\\" "\\\\")
-        str (: str :gsub "(%c)%f[0-9]" long-control-char-esapes)]
+        str (: str :gsub "(%c)%f[0-9]" long-control-char-escapes)]
     (: str :gsub "%c" short-control-char-escapes)))
 
 (fn sequence-key? [k len]

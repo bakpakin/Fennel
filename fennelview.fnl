@@ -146,11 +146,19 @@
 
 
 
+(fn one-line [str]
+  (-> str
+      (: :gsub "\n" " ")
+      (: :gsub "%[ " "[") (: :gsub " %]" "]")
+      (: :gsub "%{ " "{") (: :gsub " %}" "}")
+      (: :gsub "%( " "(") (: :gsub " %)" ")")))
+
 (fn fennelview [root options]
   (let [options (or options {})
         inspector {:appearances (count-table-appearances root {})
                    :depth (or options.depth 128)
                    :level 0 :buffer {} :ids {} :max-ids {}
-                   :indent (or options.indent "  ")}]
+                   :indent (or options.indent (if options.one-line "" "  "))}]
     (put-value inspector root)
-    (table.concat inspector.buffer)))
+    (let [str (table.concat inspector.buffer)]
+      (if options.one-line (one-line str) str))))

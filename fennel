@@ -151,11 +151,23 @@ elseif arg[1] == "--compile" then
         end
         f:close()
     end
+elseif arg[1] == "--eval" or arg[1] == "-e" then
+   if arg[2] and arg[2] ~= "-" then
+      print(fennel.eval(arg[2], options))
+   else
+      local source = io.stdin:read("*a")
+      print(fennel.eval(source, options))
+   end
 elseif arg[1] == "--version" or arg[1] == "-v" then
     print("Fennel " .. fennel.version)
 elseif #arg >= 1 and arg[1] ~= "--help" and arg[1] ~= "-h" then
     local filename = table.remove(arg, 1) -- let the script have remaining args
-    dosafe(filename, nil, arg)
+    if filename == "-" then
+       local source = io.stdin:read("*a")
+       fennel.eval(source, options)
+    else
+       dosafe(filename, nil, arg)
+    end
 else
     print(help)
 end

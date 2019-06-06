@@ -19,9 +19,11 @@ Run fennel, a lisp programming language for the Lua runtime.
   --add-fennel-path  PATH : Add PATH to fennel.path for finding Fennel modules
   --globals G1[,G2...]    : Allow these globals in addition to standard ones
   --globals-only G1[,G2]  : Same as above, but exclude standard ones
+  
+  --eval SOURCE (-e)      : Evaluate source code and print the result
 
-  --help                  : Display this text
-  --version               : Show version
+  --help (-h)             : Display this text
+  --version (-v)          : Show version
 
   When not given a flag, runs the file given as the first argument.
   When given neither flag nor file, launches a repl.

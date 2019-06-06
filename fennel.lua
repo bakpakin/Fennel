@@ -422,6 +422,9 @@ local function makeScope(parent)
         symmeta = setmetatable({}, {
             __index = parent and parent.symmeta
         }),
+        includes = setmetatable({}, {
+            __index = parent and parent.includes
+        }),
         parent = parent,
         vararg = parent and parent.vararg,
         depth = parent and ((parent.depth or 0) + 1) or 0
@@ -2213,6 +2216,42 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
         macroLoaded[modname] = loadMacros(modname, ast, scope, parent)
     end
     addMacros(macroLoaded[modname], ast, scope, parent)
+end
+
+SPECIALS['include'] = function(ast, scope, parent, opts)
+    assertCompile(#ast == 2, 'expected one argument', ast)
+    local mod = tostring(ast[2])
+    local path = searchModule(mod)
+    assertCompile(path, 'could not find module ' .. mod, ast)
+
+    -- Find cached includes for current scope
+    local includeExpr = scope.includes[path]
+    if includeExpr then
+        -- Path already loaded, don't include twice
+        return includeExpr
+    else
+        -- new path, splice in source and memoize it
+        -- so we can include it again without duplication
+        local f = io.open(path)
+        local s = f:read('*all')
+        f:close()
+        local p, clear = parser(stringStream(s), path)
+        local forms = {}
+        for _, val in p do table.insert(forms, val) end
+        -- Compile all but the last form as usual
+        for i = 1, #forms do
+            if i ~= #forms then
+                compile1(forms[i], scope, parent, {
+                    nval = 0
+                })
+            end
+        end
+        -- Memoize the last form and return it
+        local expr = compile1(forms[#forms], scope, parent, {nval = 1})[1]
+        local memoize = once(expr, ast, scope, parent)
+        scope.includes[path] = memoize
+        return memoize
+    end
 end
 
 local function evalCompiler(ast, scope, parent)

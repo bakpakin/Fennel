@@ -2119,9 +2119,9 @@ local module = {
     version = "0.3.0",
 }
 
-local function searchModule(modulename)
+local function searchModule(modulename, pathstring)
     modulename = modulename:gsub("%.", "/")
-    for path in string.gmatch(module.path..";", "([^;]*);") do
+    for path in string.gmatch((pathstring or module.path)..";", "([^;]*);") do
         local filename = path:gsub("%?", modulename)
         local file = io.open(filename, "rb")
         if(file) then
@@ -2218,11 +2218,18 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
     addMacros(macroLoaded[modname], ast, scope, parent)
 end
 
-SPECIALS['include'] = function(ast, scope, parent, opts)
+SPECIALS['include'] = function(ast, scope, parent)
     assertCompile(#ast == 2, 'expected one argument', ast)
     local mod = tostring(ast[2])
+
+    -- Find path to source
     local path = searchModule(mod)
-    assertCompile(path, 'could not find module ' .. mod, ast)
+    local isFennel = true
+    if not path then
+        isFennel = false
+        path = searchModule(mod, package.path)
+        assertCompile(path, 'could not find module ' .. mod, ast)
+    end
 
     -- Find cached includes for current scope
     local includeExpr = scope.includes[path]
@@ -2235,20 +2242,18 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
         local f = io.open(path)
         local s = f:read('*all')
         f:close()
-        local p, clear = parser(stringStream(s), path)
-        local forms = {}
-        for _, val in p do table.insert(forms, val) end
-        -- Compile all but the last form as usual
-        for i = 1, #forms do
-            if i ~= #forms then
-                compile1(forms[i], scope, parent, {
-                    nval = 0
-                })
-            end
+        local e
+
+        if isFennel then
+            local p = parser(stringStream(s), path)
+            local forms = list(sym('do'))
+            for _, val in p do table.insert(forms, val) end
+            e = compile1(forms, scope, parent, {nval = 1})[1]
+        else
+            e = expr('(function()' .. s .. ' end)()')
         end
-        -- Memoize the last form and return it
-        local expr = compile1(forms[#forms], scope, parent, {nval = 1})[1]
-        local memoize = once(expr, ast, scope, parent)
+
+        local memoize = once(e, ast, scope, parent)
         scope.includes[path] = memoize
         return memoize
     end

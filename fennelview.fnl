@@ -104,12 +104,19 @@
       (puts self ":" k)
       (put-value self k)))
 
-(fn put-kv-table [self t]
+(fn put-kv-table [self t ordered-keys]
   (puts self "{")
   (set self.level (+ self.level 1))
-  (each [k v (pairs t)]
+  ;; first, output sorted nonsequential keys
+  (each [_ k (ipairs ordered-keys)]
     (tabify self)
     (put-key self k)
+    (puts self " ")
+    (put-value self (. t k)))
+  ;; next, output any sequential keys
+  (each [i v (ipairs t)]
+    (tabify self)
+    (put-key self i)
     (puts self " ")
     (put-value self v))
   (set self.level (- self.level 1))
@@ -131,7 +138,7 @@
             (= (length non-seq-keys) 0)
             (put-sequential-table self t len)
             :else
-            (put-kv-table self t)))))
+            (put-kv-table self t non-seq-keys)))))
 
 (set put-value (fn [self v]
                  (let [tv (type v)]

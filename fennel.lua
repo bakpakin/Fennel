@@ -424,7 +424,8 @@ local function makeScope(parent)
         }),
         parent = parent,
         vararg = parent and parent.vararg,
-        depth = parent and ((parent.depth or 0) + 1) or 0
+        depth = parent and ((parent.depth or 0) + 1) or 0,
+        hashfn = parent and parent.hashfn
     }
 end
 
@@ -611,9 +612,11 @@ end
 -- if they have already been declared via declareLocal
 local function symbolToExpression(symbol, scope, isReference)
     local name = symbol[1]
+    if scope.hashfn and name == '$' then name = '$1' end
     local parts = isMultiSym(name) or {name}
     local etype = (#parts > 1) and "expression" or "sym"
     local isLocal = scope.manglings[parts[1]]
+    if isLocal and scope.symmeta[name] then scope.symmeta[name].used = true end
     -- if it's a reference and not a symbol which introduces a new binding
     -- then we need to check for allowed globals
     assertCompile(not isReference or isLocal or globalAllowed(parts[1]),
@@ -1584,6 +1587,27 @@ SPECIALS['comment'] = function(ast, _, parent)
     return nil
 end
 
+SPECIALS['hashfn'] = function(ast, scope, parent)
+    assertCompile(#ast == 2, "expected one argument", ast)
+    local fScope = makeScope(scope)
+    local fChunk = {}
+    local name = gensym(scope)
+    local symbol = sym(name)
+    declareLocal(symbol, {}, scope, ast)
+    fScope.vararg = false
+    fScope.hashfn = true
+    local args = {}
+    for i = 1, 9 do args[i] = declareLocal(sym('$' .. i), {}, fScope, ast) end
+    -- Compile body
+    compile1(ast[2], fScope, fChunk, {tail = true})
+    local maxUsed = 0
+    for i = 1, 9 do if fScope.symmeta['$' .. i].used then maxUsed = i end end
+    emit(parent, ('local function %s(%s)'):format(name, table.concat(args, ', ', 1, maxUsed)), ast)
+    emit(parent, fChunk, ast)
+    emit(parent, 'end', ast)
+    return expr(name, 'sym')
+end
+
 local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
     SPECIALS[name] = function(ast, scope, parent)
@@ -2307,9 +2331,6 @@ local stdmacros = [===[
                                              ,(or a.filename "unknown")
                                              ,(or a.line "?"))))))
              `(fn ,(unpack args))))
- :hashfn (fn hashfn [body]
-           (assert body "expected body")
-           `(fn [$1 $2 $3 $4 $5 $6 $7 $8 $9] ,body))
  :macro (fn macro [name ...]
           (assert (sym? name) "expected symbol for macro name")
           (local args [...])

@@ -293,6 +293,10 @@ local cases = {
         ["(let [f #(+ $1 45)] (f 1))"]=46,
         -- Complex body
         ["(let [f #(do (local a 1) (local b (+ $1 $1 a)) (+ a b))] (f 1))"]=4,
+        -- Basic hashfn ($)
+        ["(#(+ $ 2) 3)"]=5,
+        -- Mixed $ types
+        ["(let [f #(+ $ $1 $2)] (f 1 2))"]=4,
     },
     match = {
         -- basic literal

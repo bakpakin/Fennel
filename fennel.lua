@@ -829,6 +829,7 @@ end
 local function compile1(ast, scope, parent, opts)
     opts = opts or {}
     local exprs = {}
+    scope.chunk = parent
 
     -- Compile the form
     if isList(ast) then
@@ -935,6 +936,7 @@ local function compile1(ast, scope, parent, opts)
         assertCompile(false, 'could not compile value of type ' .. type(ast), ast)
     end
     exprs.returned = true
+    scope.chunk = nil
     return exprs
 end
 
@@ -2218,9 +2220,15 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
     addMacros(macroLoaded[modname], ast, scope, parent)
 end
 
-SPECIALS['include'] = function(ast, scope, parent)
+SPECIALS['include'] = function(ast, scope)
     assertCompile(#ast == 2, 'expected one argument', ast)
     local mod = tostring(ast[2])
+
+    -- Check cache
+    local includeExpr = scope.includes[mod]
+    if includeExpr then
+        return includeExpr
+    end
 
     -- Find path to source
     local path = searchModule(mod)
@@ -2231,32 +2239,41 @@ SPECIALS['include'] = function(ast, scope, parent)
         assertCompile(path, 'could not find module ' .. mod, ast)
     end
 
-    -- Find cached includes for current scope
-    local includeExpr = scope.includes[path]
-    if includeExpr then
-        -- Path already loaded, don't include twice
-        return includeExpr
-    else
-        -- new path, splice in source and memoize it
-        -- so we can include it again without duplication
-        local f = io.open(path)
-        local s = f:read('*all')
-        f:close()
-        local e
-
-        if isFennel then
-            local p = parser(stringStream(s), path)
-            local forms = list(sym('do'))
-            for _, val in p do table.insert(forms, val) end
-            e = compile1(forms, scope, parent, {nval = 1})[1]
-        else
-            e = expr('(function()' .. s .. ' end)()', 'expression')
-        end
-
-        local memoize = once(e, ast, scope, parent)
-        scope.includes[path] = memoize
-        return memoize
+    -- Get root scope that is compiling into a chunk (not GLOBAL_SCOPE)
+    -- we need to get the top level chunk to append our code to
+    local rootScope = scope
+    while rootScope.parent and rootScope.parent.chunk do
+        rootScope = rootScope.parent
     end
+
+    -- Read source
+    local f = io.open(path)
+    local s = f:read('*all')
+    f:close()
+
+    -- splice in source and memoize it
+    -- so we can include it again without duplication
+    local target = gensym(scope)
+    local ret = expr(target, 'sym')
+    if isFennel then
+        local p = parser(stringStream(s), path)
+        local forms = list(sym('do'))
+        for _, val in p do table.insert(forms, val) end
+        local subscope = makeScope(rootScope.parent)
+        subscope.depth = subscope.depth + 2
+        local subopts = {
+            nval = 1,
+            target = target
+        }
+        emit(rootScope.chunk, 'local ' .. target, ast)
+        compile1(forms, subscope, rootScope.chunk, subopts)
+    else
+        emit(rootScope.chunk, 'local ' .. target .. ' = (function() ' .. s .. ' end)()', ast)
+    end
+
+    -- Put in cache and return
+    rootScope.includes[mod] = ret
+    return ret
 end
 
 local function evalCompiler(ast, scope, parent)

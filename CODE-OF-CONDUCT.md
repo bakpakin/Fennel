@@ -132,7 +132,7 @@ Sometimes, though, you need to get admins involved. Admins will do their best to
 
 ## Attribution
 
-This Code of Conduct is adapted from the [Package Community Code of Conduct[http://package.community/code-of-conduct]] Which was adapted from the [WeAllJS Code of Conduct](https://wealljs.org/code-of-conduct),
-itself adapted from [Contributor Covenant](http://contributor-covenant.org),version 1.4, available at
-[http://contributor-covenant.org/version/1/4](http://contributor-covenant.org/version/1/4), and the LGBTQ in
-Technology Slack [Code of Conduct](http://lgbtq.technology/coc.html).
+This Code of Conduct is adapted from the [Package Community Code of Conduct](http://package.community/code-of-conduct), which was adapted from the [WeAllJS Code of Conduct](https://wealljs.org/code-of-conduct),
+itself adapted from [Contributor Covenant](https://contributor-covenant.org) version 1.4 (available at
+[contributor-covenant.org/version/1/4](https://contributor-covenant.org/version/1/4)) and the LGBTQ in
+Technology Slack [Code of Conduct](https://lgbtq.technology/coc.html).

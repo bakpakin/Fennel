@@ -147,11 +147,13 @@
 
 
 (fn one-line [str]
-  (-> str
-      (: :gsub "\n" " ")
-      (: :gsub "%[ " "[") (: :gsub " %]" "]")
-      (: :gsub "%{ " "{") (: :gsub " %}" "}")
-      (: :gsub "%( " "(") (: :gsub " %)" ")")))
+  ;; save return value as local to ignore gsub's extra return value
+  (let [ret (-> str
+                (: :gsub "\n" " ")
+                (: :gsub "%[ " "[") (: :gsub " %]" "]")
+                (: :gsub "%{ " "{") (: :gsub " %}" "}")
+                (: :gsub "%( " "(") (: :gsub " %)" ")"))]
+    ret))
 
 (fn fennelview [root options]
   (let [options (or options {})

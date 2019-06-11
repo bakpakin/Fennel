@@ -2250,7 +2250,7 @@ SPECIALS['include'] = function(ast, scope, parent)
             for _, val in p do table.insert(forms, val) end
             e = compile1(forms, scope, parent, {nval = 1})[1]
         else
-            e = expr('(function()' .. s .. ' end)()')
+            e = expr('(function()' .. s .. ' end)()', 'expression')
         end
 
         local memoize = once(e, ast, scope, parent)

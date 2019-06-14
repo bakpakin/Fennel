@@ -1690,6 +1690,7 @@ local function macroToSpecial(mac)
     end
 end
 
+local includeSpecial
 local function compile(ast, options)
     options = options or {}
     local oldGlobals = allowedGlobals
@@ -1697,6 +1698,7 @@ local function compile(ast, options)
     if options.indent == nil then options.indent = '  ' end
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
+    if options.include then scope.specials.require = includeSpecial end
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
     allowedGlobals = oldGlobals
@@ -1796,6 +1798,7 @@ local function compileStream(strm, options)
     allowedGlobals = options.allowedGlobals
     if options.indent == nil then options.indent = '  ' end
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
+    if options.include then scope.specials.require = includeSpecial end
     local vals = {}
     for ok, val in parser(strm, options.filename) do
         if not ok then break end
@@ -2220,7 +2223,7 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
     addMacros(macroLoaded[modname], ast, scope, parent)
 end
 
-SPECIALS['include'] = function(ast, scope)
+includeSpecial = function (ast, scope)
     assertCompile(#ast == 2, 'expected one argument', ast)
     local mod = tostring(ast[2])
 

@@ -2320,9 +2320,12 @@ local stdmacros = [===[
                  has-internal-name? (sym? (. args 1))
                  arglist (if has-internal-name? (. args 2) (. args 1))
                  arity-check-position (if has-internal-name? 3 2)]
-             (assert (> (length args) 1) "missing body expression")
-             (each [i a (ipairs arglist)]
-               (if (and (not (: (tostring a) :match "^?"))
+             (fn check! [a]
+               (if (table? a)
+                   (each [_ a (pairs a)]
+                     (check! a))
+                   (and (not (: (tostring a) :match "^?"))
+                        (not= (tostring a) "&")
                         (not= (tostring a) "..."))
                    (table.insert args arity-check-position
                                  `(assert (not= nil ,a)
@@ -2330,6 +2333,9 @@ local stdmacros = [===[
                                              :format ,(tostring a)
                                              ,(or a.filename "unknown")
                                              ,(or a.line "?"))))))
+             (assert (> (length args) 1) "missing body expression")
+             (each [_ a (ipairs arglist)]
+               (check! a))
              `(fn ,(unpack args))))
  :macro (fn macro [name ...]
           (assert (sym? name) "expected symbol for macro name")

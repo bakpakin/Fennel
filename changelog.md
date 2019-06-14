@@ -2,6 +2,9 @@
 
 ## 0.3.0 / ??
 
+* Fix a bug in `lambda` arity checks when using destructuring
+* Support `:one-line` output in fennelview
+* Add `--eval` argument to command-line launcher
 * Fix a few bugs in `match`
 * **Remove** undocumented support for single-quoted strings
 * Add support for guard clauses with `?` in pattern matching

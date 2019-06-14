@@ -192,6 +192,8 @@ local cases = {
         ["(local (-a -b) ((fn [] (values 4 29)))) (+ -a -b)"]=33,
         -- rest args
         ["(let [[a b & c] [1 2 3 4 5]] (+ a (. c 2) (. c 3)))"]=10,
+        -- rest args on lambda
+        ["((lambda [[a & b]] (+ a (. b 2))) [90 99 4])"]=94,
         -- all vars get flagged as var
         ["(var [a [b c]] [1 [2 3]]) (set a 2) (set c 8) (+ a b c)"]=12,
         -- fn args

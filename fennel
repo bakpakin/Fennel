@@ -19,7 +19,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --add-fennel-path  PATH : Add PATH to fennel.path for finding Fennel modules
   --globals G1[,G2...]    : Allow these globals in addition to standard ones
   --globals-only G1[,G2]  : Same as above, but exclude standard ones
-  --include               : Inline required modules in the output
+  --require-as-include    : Inline required modules in the output
 
   --eval SOURCE (-e)      : Evaluate source code and print the result
 
@@ -82,8 +82,8 @@ for i=#arg, 1, -1 do
     elseif arg[i] == "--globals-only" then
         allowGlobals(table.remove(arg, i+1))
         table.remove(arg, i)
-    elseif arg[i] == "--include" then
-        options.include = true
+    elseif arg[i] == "--require-as-include" then
+        options.requireAsInclude = true
         table.remove(arg, i)
     end
 end

@@ -404,6 +404,11 @@ end
 -- Compilation
 --
 
+-- Top level compilation bindings.
+local rootChunk
+local rootScope
+local rootOptions
+
 -- Create a new Scope, optionally under a parent scope. Scopes are compile time constructs
 -- that are responsible for keeping track of local variables, name mangling, and macros.
 -- They are accessible to user code via the '*compiler' special form (may change). They
@@ -829,7 +834,6 @@ end
 local function compile1(ast, scope, parent, opts)
     opts = opts or {}
     local exprs = {}
-    scope.chunk = parent
 
     -- Compile the form
     if isList(ast) then
@@ -936,7 +940,6 @@ local function compile1(ast, scope, parent, opts)
         assertCompile(false, 'could not compile value of type ' .. type(ast), ast)
     end
     exprs.returned = true
-    scope.chunk = nil
     return exprs
 end
 
@@ -1690,18 +1693,27 @@ local function macroToSpecial(mac)
     end
 end
 
-local includeSpecial
+local requireSpecial
 local function compile(ast, options)
     options = options or {}
     local oldGlobals = allowedGlobals
+    local oldChunk = rootChunk
+    local oldScope = rootScope
+    local oldOptions = rootOptions
     allowedGlobals = options.allowedGlobals
     if options.indent == nil then options.indent = '  ' end
     local chunk = {}
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
-    if options.include then scope.specials.require = includeSpecial end
+    rootChunk = chunk
+    rootScope = scope
+    rootOptions = options
+    if options.requireAsInclude then scope.specials.require = requireSpecial end
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
     allowedGlobals = oldGlobals
+    rootChunk = oldChunk
+    rootScope = oldScope
+    rootOptions = oldOptions
     return flatten(chunk, options)
 end
 
@@ -1795,16 +1807,22 @@ end
 local function compileStream(strm, options)
     options = options or {}
     local oldGlobals = allowedGlobals
+    local oldChunk = rootChunk
+    local oldScope = rootScope
+    local oldOptions = rootOptions
     allowedGlobals = options.allowedGlobals
     if options.indent == nil then options.indent = '  ' end
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
-    if options.include then scope.specials.require = includeSpecial end
+    if options.requireAsInclude then scope.specials.require = requireSpecial end
     local vals = {}
     for ok, val in parser(strm, options.filename) do
         if not ok then break end
         vals[#vals + 1] = val
     end
     local chunk = {}
+    rootChunk = chunk
+    rootScope = scope
+    rootOptions = options
     for i = 1, #vals do
         local exprs = compile1(vals[i], scope, chunk, {
             tail = i == #vals
@@ -1812,6 +1830,9 @@ local function compileStream(strm, options)
         keepSideEffects(exprs, chunk, nil, vals[i])
     end
     allowedGlobals = oldGlobals
+    rootChunk = oldChunk
+    rootScope = oldScope
+    rootOptions = oldOptions
     return flatten(chunk, options)
 end
 
@@ -2223,9 +2244,20 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
     addMacros(macroLoaded[modname], ast, scope, parent)
 end
 
-includeSpecial = function (ast, scope)
+SPECIALS['include'] = function(ast, scope, parent, opts)
     assertCompile(#ast == 2, 'expected one argument', ast)
-    local mod = tostring(ast[2])
+
+    -- Compile mod argument
+    local modexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
+    if modexpr.type ~= 'literal' or modexpr[1]:byte() ~= 34 then
+        if opts.fallback then
+            return opts.fallback(modexpr)
+        else
+            assertCompile(false, 'module name must resolve to a string literal', ast)
+        end
+    end
+    local code = 'return ' .. modexpr[1]
+    local mod = loadCode(code)()
 
     -- Check cache
     local includeExpr = scope.includes[mod]
@@ -2239,14 +2271,13 @@ includeSpecial = function (ast, scope)
     if not path then
         isFennel = false
         path = searchModule(mod, package.path)
-        assertCompile(path, 'could not find module ' .. mod, ast)
-    end
-
-    -- Get root scope that is compiling into a chunk (not GLOBAL_SCOPE)
-    -- we need to get the top level chunk to append our code to
-    local rootScope = scope
-    while rootScope.parent and rootScope.parent.chunk do
-        rootScope = rootScope.parent
+        if not path then
+            if opts.fallback then
+                return opts.fallback(modexpr)
+            else
+                assertCompile(false, 'could not find module ' .. mod, ast)
+            end
+        end
     end
 
     -- Read source
@@ -2263,20 +2294,32 @@ includeSpecial = function (ast, scope)
         local forms = list(sym('do'))
         for _, val in p do table.insert(forms, val) end
         local subscope = makeScope(rootScope.parent)
-        subscope.depth = subscope.depth + 2
+        if rootOptions.requireAsInclude then
+            subscope.specials.require = requireSpecial
+        end
         local subopts = {
             nval = 1,
             target = target
         }
-        emit(rootScope.chunk, 'local ' .. target, ast)
-        compile1(forms, subscope, rootScope.chunk, subopts)
+        emit(rootChunk, 'local ' .. target, ast)
+        compile1(forms, subscope, rootChunk, subopts)
     else
-        emit(rootScope.chunk, 'local ' .. target .. ' = (function() ' .. s .. ' end)()', ast)
+        emit(rootChunk, 'local ' .. target .. ' = (function() ' .. s .. ' end)()', ast)
     end
 
     -- Put in cache and return
     rootScope.includes[mod] = ret
     return ret
+end
+
+local function requireFallback(e)
+    local code = ('require(%s)'):format(tostring(e))
+    return expr(code, 'statement')
+end
+
+requireSpecial = function (ast, scope, parent, opts)
+    opts.fallback = requireFallback
+    return SPECIALS['include'](ast, scope, parent, opts)
 end
 
 local function evalCompiler(ast, scope, parent)

@@ -131,7 +131,10 @@
       :else
       (let [(non-seq-keys len) (get-nonsequential-keys t)
             id (get-id self t)]
-        (if (> (. self.appearances t) 1)
+        ;; fancy metatable stuff can result in self.appearances not including a
+        ;; table, so if it's not found, assume we haven't seen it; we can't do
+        ;; cycle detection in that case.
+        (if (and (. self.appearances t) (> (. self.appearances t) 1))
             (puts self "#<" id ">")
             (and (= (length non-seq-keys) 0) (= (length t) 0))
             (puts self "{}")

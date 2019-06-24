@@ -161,10 +161,28 @@ local function _0_(self, v)
   end
 end
 put_value = _0_
+local function one_line(str)
+  return str:gsub("\n", " "):gsub("%[ ", "["):gsub(" %]", "]"):gsub("%{ ", "{"):gsub(" %}", "}"):gsub("%( ", "("):gsub(" %)", ")")
+end
 local function fennelview(root, options)
   local options = (options or {})
-  local inspector = {["max-ids"] = {}, appearances = count_table_appearances(root, {}), buffer = {}, depth = (options.depth or 128), ids = {}, indent = (options.indent or "  "), level = 0}
+  local inspector = inspector
+  local function _1_()
+    if options["one-line"] then
+      return ""
+    else
+      return "  "
+    end
+  end
+  inspector = {["max-ids"] = {}, appearances = count_table_appearances(root, {}), buffer = {}, depth = (options.depth or 128), ids = {}, indent = (options.indent or _1_()), level = 0}
   put_value(inspector, root)
-  return table.concat(inspector.buffer)
+  do
+    local str = table.concat(inspector.buffer)
+    if options["one-line"] then
+      return one_line(str)
+    else
+      return str
+    end
+  end
 end
 return fennelview

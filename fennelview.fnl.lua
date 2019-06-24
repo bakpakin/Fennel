@@ -116,12 +116,18 @@ local function put_key(self, k)
     return put_value(self, k)
   end
 end
-local function put_kv_table(self, t)
+local function put_kv_table(self, t, ordered_keys)
   puts(self, "{")
   self.level = (self.level + 1)
-  for k, v in pairs(t) do
+  for _, k in ipairs(ordered_keys) do
     tabify(self)
     put_key(self, k)
+    puts(self, " ")
+    put_value(self, t[k])
+  end
+  for i, v in ipairs(t) do
+    tabify(self)
+    put_key(self, i)
     puts(self, " ")
     put_value(self, v)
   end
@@ -137,14 +143,14 @@ local function put_table(self, t)
   elseif "else" then
     local non_seq_keys, len = get_nonsequential_keys(t)
     local id = get_id(self, t)
-    if (self.appearances[t] > 1) then
+    if (self.appearances[t] and (self.appearances[t] > 1)) then
       return puts(self, "#<", id, ">")
     elseif ((#non_seq_keys == 0) and (#t == 0)) then
       return puts(self, "{}")
     elseif (#non_seq_keys == 0) then
       return put_sequential_table(self, t, len)
     elseif "else" then
-      return put_kv_table(self, t)
+      return put_kv_table(self, t, non_seq_keys)
     end
   end
 end
@@ -162,7 +168,8 @@ local function _0_(self, v)
 end
 put_value = _0_
 local function one_line(str)
-  return str:gsub("\n", " "):gsub("%[ ", "["):gsub(" %]", "]"):gsub("%{ ", "{"):gsub(" %}", "}"):gsub("%( ", "("):gsub(" %)", ")")
+  local ret = str:gsub("\n", " "):gsub("%[ ", "["):gsub(" %]", "]"):gsub("%{ ", "{"):gsub(" %}", "}"):gsub("%( ", "("):gsub(" %)", ")")
+  return ret
 end
 local function fennelview(root, options)
   local options = (options or {})

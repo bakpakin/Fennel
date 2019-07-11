@@ -2,6 +2,8 @@
 
 ## 0.3.0 / ??
 
+* **Disallow** non-gensym identifiers in backtick/macros.
+* Support `x#` syntax for auto-gensym inside backtick.
 * Fix a bug in `lambda` arity checks when using destructuring
 * Support `:one-line` output in fennelview
 * Add `--eval` argument to command-line launcher

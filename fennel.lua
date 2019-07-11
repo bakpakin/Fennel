@@ -185,7 +185,6 @@ local function issymbolchar(b)
         b ~= 126 and -- "~"
         b ~= 59 and -- ";"
         b ~= 44 and -- ","
-        b ~= 35 and -- "#"
         b ~= 64 and -- "@"
         b ~= 96 -- "`"
 end
@@ -430,6 +429,7 @@ local function makeScope(parent)
         includes = setmetatable({}, {
             __index = parent and parent.includes
         }),
+        autogensyms = {},
         parent = parent,
         vararg = parent and parent.vararg,
         depth = parent and ((parent.depth or 0) + 1) or 0,
@@ -505,6 +505,8 @@ local function isMultiSym(str)
     parts
 end
 
+local function isQuoted(symbol) return symbol.quoted end
+
 -- Mangler for global symbols. Does not protect against collisions,
 -- but makes them unlikely. This is the mangling that is exposed to
 -- to the world.
@@ -575,14 +577,24 @@ local function combineParts(parts, scope)
 end
 
 -- Generates a unique symbol in the scope.
-local function gensym(scope)
+local function gensym(scope, base)
     local mangling
     local append = 0
     repeat
-        mangling = '_' .. append .. '_'
+        mangling = (base or '') .. '_' .. append .. '_'
         append = append + 1
     until not scope.unmanglings[mangling]
     scope.unmanglings[mangling] = true
+    return mangling
+end
+
+-- Generates a unique symbol in the scope based on the base name. Calling
+-- repeatedly with the same base and same scope will return existing symbol
+-- rather than generating new one.
+local function autogensym(base, scope)
+    if scope.autogensyms[base] then return scope.autogensyms[base] end
+    local mangling = gensym(scope, base)
+    scope.autogensyms[base] = mangling
     return mangling
 end
 
@@ -592,6 +604,9 @@ local function checkBindingValid(symbol, scope, ast)
     local name = symbol[1]
     assertCompile(not scope.specials[name],
     ("symbol %s may be overshadowed by a special form or macro"):format(name), ast)
+    assertCompile(not isQuoted(symbol), 'macro tried to bind ' .. name ..
+                      ' without gensym; try ' .. name .. '# instead', ast)
+
 end
 
 -- Declare a local symbol
@@ -1795,7 +1810,11 @@ local function doQuote (form, scope, parent, runtime)
     -- symbol
     elseif isSym(form) then
         assertCompile(not runtime, "symbols may only be used at compile time", form)
-        return ("sym('%s')"):format(deref(form))
+        if deref(form):find("#$") then -- autogensym
+            return ("sym('%s')"):format(autogensym(deref(form), scope))
+        else -- prevent non-gensymmed symbols from being bound as an identifier
+            return ("sym('%s', nil, {quoted=true})"):format(deref(form))
+        end
     -- unquote
     elseif isList(form) and isSym(form[1]) and (deref(form[1]) == 'unquote') then
         local payload = form[2]

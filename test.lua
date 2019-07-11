@@ -159,6 +159,8 @@ local cases = {
         ["(do (var a nil) (var b nil) (local ret (fn [] a)) (set (a b) (values 4 5)) (ret))"]=4,
         -- Tset doesn't screw up with table literal
         ["(do (tset {} :a 1) 1)"]=1,
+        -- # is valid symbol constituent character
+        ["(local x#x# 90) x#x#"]=90,
     },
 
     ifforms = {
@@ -282,7 +284,9 @@ local cases = {
         ["(macros {:x (fn [] `(fn [...] (+ 1 1)))}) ((x))"]=2,
         -- Threading macro with single function, with and without parens
         ["(-> 1234 (string.reverse) (string.upper))"]="4321",
-        ["(-> 1234 string.reverse string.upper)"]="4321"
+        ["(-> 1234 string.reverse string.upper)"]="4321",
+        -- Auto-gensym
+        ["(macros {:m (fn [y] `(let [xa# 1] (+ xa# ,y)))}) (m 4)"]=5,
     },
     hashfn = {
         -- Basic hashfn
@@ -479,12 +483,21 @@ local compile_failures = {
     ["(let [t {:a 1}] (+ t.a BAD))"]="BAD",
     ["(each [k v (pairs {})] (BAD k v))"]="BAD",
     ["(global good (fn [] nil)) (good) (BAD)"]="BAD",
+    -- shadowing built-ins
     ["(global + 1)"]="overshadowed",
     ["(global // 1)"]="overshadowed",
     ["(global let 1)"]="overshadowed",
     ["(global - 1)"]="overshadowed",
     ["(let [global 1] 1)"]="overshadowed",
     ["(fn global [] 1)"]="overshadowed",
+    -- symbol capture detection
+    ["(macros {:m (fn [y] `(let [x 1] (+ x ,y)))}) (m 4)"]=
+        "tried to bind x without gensym",
+    ["(macros {:m (fn [t] `(fn [xabc] (+ xabc 9)))}) ((m 4))"]=
+        "tried to bind xabc without gensym",
+    ["(macros {:m (fn [t] `(each [mykey (pairs ,t)] (print mykey)))}) (m [])"]=
+        "tried to bind mykey without gensym",
+    -- other
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
     ["(x(y))"]="expected whitespace before opening delimiter %(",
     ["(x[1 2])"]="expected whitespace before opening delimiter %[",

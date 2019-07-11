@@ -20,6 +20,8 @@ Run fennel, a lisp programming language for the Lua runtime.
   --globals G1[,G2...]    : Allow these globals in addition to standard ones
   --globals-only G1[,G2]  : Same as above, but exclude standard ones
   --require-as-include    : Inline required modules in the output
+  --metadata              : Enable function metadata, even in compiled output (not recommended in production)
+  --no-metadata           : Disable function metadata, even in REPL
 
   --eval SOURCE (-e)      : Evaluate source code and print the result
 
@@ -84,6 +86,12 @@ for i=#arg, 1, -1 do
         table.remove(arg, i)
     elseif arg[i] == "--require-as-include" then
         options.requireAsInclude = true
+        table.remove(arg, i)
+    elseif arg[i] == "--metadata" then
+        options.useMetadata = true
+        table.remove(arg, i)
+    elseif arg[i] == "--no-metadata" then
+        options.useMetadata = false
         table.remove(arg, i)
     end
 end

@@ -45,6 +45,19 @@ local LIST_MT = { 'LIST',
     end
 }
 local SEQUENCE_MT = { 'SEQUENCE' }
+local METADATA_MT = {
+  __mode = 'k',
+  __index = {
+    get = function(self, tgt, key)
+      if self[tgt] then return self[tgt][key] end
+      return nil
+    end,
+    set = function(self, tgt, key, value)
+      self[tgt] = self[tgt] or {}
+      self[tgt][key] = value
+      return tgt
+    end
+  }}
 
 -- Load code with an environment in all recent Lua versions
 local function loadCode(code, environment, filename)
@@ -752,6 +765,16 @@ local function flatten(chunk, options)
     end
 end
 
+-- module-wide state for metadata
+-- create metadata table with weakly-referenced keys
+local function makeMetadata()
+  return setmetatable({}, METADATA_MT)
+end
+
+local metadata = makeMetadata()
+local doc = function(tgt)
+  print(metadata:get(tgt, 'docstring'))
+end
 -- Convert expressions to Lua string
 local function exprs1(exprs)
     local t = {}
@@ -1182,12 +1205,13 @@ SPECIALS['values'] = values
 -- The fn special declares a function. Syntax is similar to other lisps;
 -- (fn optional-name [arg ...] (body))
 -- Further decoration such as docstrings, meta info, and multibody functions a possibility.
-SPECIALS['fn'] = function(ast, scope, parent)
+SPECIALS['fn'] = function(ast, scope, parent, options)
     local fScope = makeScope(scope)
     local fChunk = {}
     local index = 2
     local fnName = isSym(ast[index])
     local isLocalFn
+    local docstring
     fScope.vararg = false
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not isMultiSym(fnName[1])
@@ -1221,10 +1245,23 @@ SPECIALS['fn'] = function(ast, scope, parent)
             assertCompile(false, 'expected symbol for function parameter', ast)
         end
     end
+    if type(ast[index + 1]) == 'string' and index + 1 < #ast then
+      index = index + 1
+      docstring = ast[index]
+      if rootOptions.useMetadata then
+        docstring = docstring -- account for newlines and nested [[ ]] multiline strings
+                :gsub('\n', '\\n')
+                :gsub('[[](=*)[[]', '[=%1['):gsub('[]](=*)[]]', ']=%1]')
+        -- splice in argslist and format docstring contents
+        local argSep = #argNameList > 0 and ' ' or ''
+        local invokeStr = string.format("(%s%s%s)", fnName, argSep, table.concat(argNameList, ' '))
+        docstring = string.format("%s\n  %s", invokeStr, docstring)
+      end
+    end
     for i = index + 1, #ast do
         compile1(ast[i], fScope, fChunk, {
             tail = i == #ast,
-            nval = i ~= #ast and 0 or nil
+            nval = i ~= #ast and 0 or nil,
         })
     end
     if isLocalFn then
@@ -1234,8 +1271,16 @@ SPECIALS['fn'] = function(ast, scope, parent)
         emit(parent, ('%s = function(%s)')
                  :format(fnName, table.concat(argNameList, ', ')), ast)
     end
+
     emit(parent, fChunk, ast)
     emit(parent, 'end', ast)
+
+    if rootOptions.useMetadata and docstring then
+      local docSetter = string.format('require("fennel").metadata:set(%s, "docstring", [[%s]])',
+        fnName, docstring)
+      emit(parent, docSetter)
+    end
+
     return expr(fnName, 'sym')
 end
 
@@ -1849,7 +1894,7 @@ local function compileStream(strm, options)
     rootOptions = options
     for i = 1, #vals do
         local exprs = compile1(vals[i], scope, chunk, {
-            tail = i == #vals
+            tail = i == #vals,
         })
         keepSideEffects(exprs, chunk, nil, vals[i])
     end
@@ -1997,6 +2042,10 @@ local function repl(options)
         opts.allowedGlobals = currentGlobalNames(opts.env)
     end
 
+    if opts.useMetadata == nil then
+      opts.useMetadata = true
+    end
+
     local env = opts.env and wrapEnv(opts.env) or setmetatable({}, {
         __index = _ENV or _G
     })
@@ -2044,7 +2093,8 @@ local function repl(options)
         -- we do some source munging in order to save off locals from each chunk
         -- and reintroduce them to the beginning of the next chunk, allowing
         -- locals to work in the repl the way you'd expect them to.
-        env.___replLocals___ = env.___replLocals___ or {}
+        local replDoc = opts.useMetadata and require("fennel").doc or nil
+        env.___replLocals___ = env.___replLocals___ or { doc = replDoc }
         local splicedSource = {}
         for line in luaSource:gmatch("([^\n]+)\n?") do
             table.insert(splicedSource, line)
@@ -2114,6 +2164,7 @@ local function repl(options)
                 sourcemap = opts.sourcemap,
                 source = srcstring,
                 scope = scope,
+                useMetadata = opts.useMetadata,
             })
             if not compileOk then
                 clearstream()
@@ -2193,6 +2244,11 @@ module.makeSearcher = function(options)
       end
    end
 end
+
+-- Add metadata and docstrings to fennel module
+module.makeMetadata = makeMetadata
+module.metadata = metadata
+module.doc = doc
 
 -- This will allow regular `require` to work with Fennel:
 -- table.insert(package.loaders, fennel.searcher)

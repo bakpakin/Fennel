@@ -172,7 +172,7 @@ elseif #arg >= 1 and arg[1] ~= "--help" and arg[1] ~= "-h" then
        local source = io.stdin:read("*a")
        fennel.eval(source, options)
     else
-       dosafe(filename, nil, arg)
+       dosafe(filename, options, arg)
     end
 else
     print(help)

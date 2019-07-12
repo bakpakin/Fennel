@@ -1274,7 +1274,7 @@ SPECIALS['values'] = values
 -- The fn special declares a function. Syntax is similar to other lisps;
 -- (fn optional-name [arg ...] (body))
 -- Further decoration such as docstrings, meta info, and multibody functions a possibility.
-SPECIALS['fn'] = function(ast, scope, parent, options)
+SPECIALS['fn'] = function(ast, scope, parent)
     local fScope = makeScope(scope)
     local fChunk = {}
     local index = 2

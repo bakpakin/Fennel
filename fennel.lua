@@ -2560,7 +2560,10 @@ local stdmacros = [===[
            (let [args [...]
                  has-internal-name? (sym? (. args 1))
                  arglist (if has-internal-name? (. args 2) (. args 1))
-                 arity-check-position (if has-internal-name? 3 2)]
+                 docstring-position (if has-internal-name? 3 2)
+                 has-docstring? (and (> (# args) docstring-position)
+                                     (= :string (type (. args docstring-position))))
+                 arity-check-position (- 4 (if has-internal-name? 0 1) (if has-docstring? 0 1))]
              (fn check! [a]
                (if (table? a)
                    (each [_ a (pairs a)]

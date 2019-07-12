@@ -584,6 +584,40 @@ for k, v in pairs(quoting_tests) do
     end
 end
 
+---- docstring tests ----
+
+print("Running tests for docstrings...")
+local docstring_tests = {
+  ['(doc (fn [] :A 1))'] = {'(_0_)\\n  A', 'anonymous fn docstring mistmatch'},
+  ['(doc (λ [a] :B :ret-str))'] = {'(_0_ a)\\n  B', 'anonymous lambda docstring mistmatch'},
+  ['(doc (fn foo [a] :C 1))'] = {'(foo a)\\n  C', 'named fn docstring mismatch'},
+  ['(doc (λ foo [] :D 1))'] = {'(foo)\\n  D', 'anonymous lambda docstring mistmatch'},
+  ['(doc (fn [] "return str"))'] = {'<nil>', "do not confuse returned string for docstring in undocumented fn"},
+}
+
+local doc_env = {}
+for k, v in pairs(_ENV or _G) do doc_env[k] = v end
+doc_env.doc = function(fn) return fennel.metadata:get(fn, 'docstring') end
+doc_env.require = function(tgt)
+  if tgt == "fennel" then return fennel else return require(tgt) end
+end
+for code, cond_msg in pairs(docstring_tests) do
+  local expected, msg = (unpack or table.unpack)(cond_msg)
+  local ok, actual = pcall(fennel.eval, code, { useMetadata = true, env = doc_env })
+  actual = string.gsub(actual or '<nil>', '\n', '\\n')
+  if ok and expected == actual then
+    pass = pass + 1
+  else
+    if ok then
+      fail = fail + 1
+      print(string.format("While testing %s,\n\tExpected %s to be %s", msg, expected, actual))
+    else
+      err = err + 1
+      print(string.format("While testing %s, got error:\n\t%s", msg, actual))
+    end
+  end
+end
+
 ---- misc one-off tests ----
 
 if pcall(fennel.eval, "(->1 1 (+ 4))", {allowedGlobals = false}) then

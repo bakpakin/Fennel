@@ -32,6 +32,38 @@ Example: `(lambda [x ?y z] (print (- x (* (or ?y 1) z))))`
 
 The `λ` form is an alias for `lambda` and behaves identically.
 
+### Hash function literal shorthand
+
+It's pretty easy to create function literals, but Fennel provides
+an even shorter form of functions. Hash functions are anonymous
+functions of one form, with implicitly named arguments. All
+of the below functions are functionally equivalent.
+
+```
+(fn [a b] (+ a b))
+```
+
+```
+(hashfn (+ $1 $2))
+```
+
+```
+#(+ $1 $2)
+```
+
+This style of anonymous function is useful as a parameter to
+higher order functions, such as those provided by Lua libraries
+like lume and luafun.
+
+The current implementation only allows for functions of up to
+9 arguments, each named `$1` through `$9`.
+
+Hash functions are defined with the `hashfn` macro, which wraps
+it's single argument in a function literal. For example, `#$3`
+is a function that returns it's third argument. `#[$1 $2 $3]` is
+a function that returns a table from the first 3 arguments. And
+so on.
+
 ### `partial` partial application
 
 Returns a new function which works like its first argument, but fills
@@ -241,7 +273,7 @@ All values other than nil or false are treated as true.
 ### `when` single side-effecting conditional
 
 Takes a single condition and evaluates the rest as a body if it's not
-nil or false. As it always returns nil; this is intended for side-effects.
+nil or false. This is intended for side-effects.
 
 Example:
 
@@ -445,38 +477,6 @@ Note that these have nothing to do with "threads" used for
 concurrency; they are named after the thread which is used in
 sewing. This is similar to the way that `|>` works in OCaml and Elixir.
 
-### Hash Function Literals
-
-It's pretty easy to create function literals, but Fennel provides
-an even shorter form of functions. Hash functions are anonymous
-functions of one form, with implicitly named arguments. All
-of the below functions are functionally equivalent.
-
-```
-(fn sum [a b] (+ a b))
-```
-
-```
-(hashfn (+ $1 $2))
-```
-
-```
-#(+ $1 $2)
-```
-
-This style of anonymous function is useful as a parameter to
-higher order functions, such as those provided by Lua libraries
-like lume and luafun.
-
-The current implementation only allows for functions of up to
-9 arguments, each named `$1` through `$9`.
-
-Hash functions are defined with the `hashfn` macro, which wraps
-it's single argument in a function literal. For example, `#$3`
-is a function that returns it's third argument. `#[$1 $2 $3]` is
-a function that returns a table from the first 3 arguments. And
-so on.
-
 ### `doto`
 
 Similarly, the `doto` macro splices the first value into subsequent
@@ -506,14 +506,16 @@ Requires a module at compile-time and binds its fields locally as macros.
 Macros currently must be defined in separate modules. A macro module
 exports any number of functions which take code forms as arguments at
 compile time and emit lists which are fed back into the compiler. For
-instance, here is a macro function which implements `when` in terms of
+instance, here is a macro function which implements `when2` in terms of
 `if` and `do`:
 
 ```
-(fn [condition body1 ...]
+(fn when2 [condition body1 ...]
   (assert body1 "expected body")
   `(if ,condition
      (do ,body1 ,...)))
+
+{:when2 when2}
 ```
 
 A full explanation of how macros work is out of scope for this document,
@@ -521,15 +523,18 @@ but you can think of it as a compile-time template function. The backtick
 on the third line creates a template for the code emitted by the macro. The
 `,` serves as "unquote" which splices values into the template.
 
-In effect it turns this input:
+Assuming the code above is in the file "my-macros.fnl" then it turns this input:
 
 ```
-(when (= 3 (+ 2 a)) 
+(require-macros :my-macros)
+
+(when2 (= 3 (+ 2 a))
   (print "yes")
   (finish-calculation))
 ```
 
-and transforms it into this code at compile time:
+and transforms it into this code at compile time by splicing the arguments
+into the backtick template:
 
 ```
 (if (= 3 (+ 2 a))
@@ -544,43 +549,71 @@ inside compiler scope which macros run in.
 Note that the macro interface is still preliminary and is subject to
 change over time.
 
-### `defmacro`
+### `macros`
 
-Defines a single macro, local to the current fennel file. Note that inside the
-macro definition, you cannot access variables and bindings
-from the surrounding code. Each macro is essentially compiled in it's
-own compiler environment. Again, see the "Compiler API" section for more
-details about the macro interface.
-
-Defmacro is useful for one-off, quick macros, or even some more complicated
-macros, but be careful. It may be tempting to try and use some function
-you have previously defined,  but if you need such functionality, you
-should probably use `require-macros`.
-
-Good Example:
+Defines a table of macros local to the current fennel file. Note that
+inside the macro definitions, you cannot access variables and bindings
+from the surrounding code. The macros are essentially compiled in their
+own compiler environment. Again, see the "Compiler API" section for
+more details about the macro interface.
 
 ```
-(defmacro my-max
-  [x y]
-  (let [xx (gensym) yy (gensym)]
-    `(let [,xx ,x ,yy ,y] (if (< ,xx ,yy) ,yy ,xx))))
+(macros {:my-max (fn [x y]
+                   `(let [x# ,x y# ,y]
+                      (if (< x# y#) y# x#)))})
 
 (print (my-max 10 20))
 (print (my-max 20 10))
 (print (my-max 20 20))
 ```
 
-Bad Example - will not compile in strict mode!
-Even when it does compile, it will fail trying to
-call a global `my-fn`.
+### Macro gotchas
+
+It's easy to make macros which accidentally evaluate their arguments
+more than once. This is fine if they are passed literal values, but if
+they are passed a form which has side-effects, the result will be unexpected:
+
+```
+(var v 1)
+(macros {:my-max (fn [x y]
+                   `(if (< ,x ,y) ,y ,x))})
+
+(fn f [] (set v (+ v 1)) v)
+
+(print (my-max (f) 2)) ; -> 3 since (f) is called twice in the macro body above
+```
+
+In order to prevent accidental symbol capture[2], you may not bind a
+bare symbol inside a backtick as an identifier. Appending a `#` on
+the end of the identifier name as above invokes "auto gensym" which
+guarantees the local name is unique.
+
+```
+(macros {:my-max (fn [x y]
+                   `(let [x2 ,x y2 ,y]
+                      (if (< x2 y2) y2 x2)))})
+
+(print (my-max 10 20))
+; Compile error in 'x2' unknown:?: macro tried to bind x2 without gensym; try x2# instead
+```
+
+`macros` is useful for one-off, quick macros, or even some more complicated
+macros, but be careful. It may be tempting to try and use some function
+you have previously defined,  but if you need such functionality, you
+should probably use `require-macros`.
+
+For example, this will not compile in strict mode! Even when it does
+allow the macro to be called, it will fail trying to call a global
+`my-fn` when the code is run:
 
 ```
 (fn my-fn [] (print "hi!"))
-(defmacro my-max
-  [x y]
-  (my-fn)
-  (let [xx (gensym) yy (gensym)]
-    `(let [,xx ,x ,yy ,y] (if (< ,xx ,yy) ,yy ,xx))))
+
+(macros {:my-max (fn [x y]
+                   (my-fn)
+                   `(let [x# ,x y# ,y]
+                      (if (< x# y#) y# x#)))})
+; Compile error in 'my-max': attempt to call global '__fnl_global__my_2dfn' (a nil value)
 ```
 
 ### `eval-compiler`
@@ -598,7 +631,7 @@ Example:
 
 ### Compiler API
 
-Inside `eval-compiler`, `macros`, or `defmacro` blocks, as well as 
+Inside `eval-compiler`, `macros`, or `macro` blocks, as well as
 `require-macros` modules, these functions are visible to your code.
 
 Note that lists are compile-time concepts that don't exist at runtime; they
@@ -624,3 +657,4 @@ Note that other internals of the compiler exposed in compiler scope are
 subject to change.
 
 [1]: https://www.lua.org/manual/5.1/
+[2]: https://gist.github.com/nimaai/2f98cc421c9a51930e16#variable-capture

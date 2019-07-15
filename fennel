@@ -73,6 +73,9 @@ for i=#arg, 1, -1 do
         options.sourcemap = table.remove(arg, i+1)
         if options.sourcemap == "false" then options.sourcemap = false end
         table.remove(arg, i)
+    elseif arg[i] == "--correlate" then
+        options.correlate = true
+        table.remove(arg, i)
     elseif arg[i] == "--globals" then
         allowGlobals(table.remove(arg, i+1))
         for globalName in pairs(_G) do

@@ -45,19 +45,6 @@ local LIST_MT = { 'LIST',
     end
 }
 local SEQUENCE_MT = { 'SEQUENCE' }
-local METADATA_MT = {
-  __mode = 'k',
-  __index = {
-    get = function(self, tgt, key)
-      if self[tgt] then return self[tgt][key] end
-      return nil
-    end,
-    set = function(self, tgt, key, value)
-      self[tgt] = self[tgt] or {}
-      self[tgt][key] = value
-      return tgt
-    end
-  }}
 
 -- Load code with an environment in all recent Lua versions
 local function loadCode(code, environment, filename)
@@ -768,7 +755,18 @@ end
 -- module-wide state for metadata
 -- create metadata table with weakly-referenced keys
 local function makeMetadata()
-  return setmetatable({}, METADATA_MT)
+    return setmetatable({}, {
+        __mode = 'k',
+        __index = {
+            get = function(self, tgt, key)
+                if self[tgt] then return self[tgt][key] end
+            end,
+            set = function(self, tgt, key, value)
+                self[tgt] = self[tgt] or {}
+                self[tgt][key] = value
+                return tgt
+            end
+        }})
 end
 
 local metadata = makeMetadata()
@@ -2246,7 +2244,6 @@ module.makeSearcher = function(options)
 end
 
 -- Add metadata and docstrings to fennel module
-module.makeMetadata = makeMetadata
 module.metadata = metadata
 module.doc = doc
 

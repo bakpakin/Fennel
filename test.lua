@@ -610,7 +610,7 @@ for code, cond_msg in pairs(docstring_tests) do
   else
     if ok then
       fail = fail + 1
-      print(string.format("While testing %s,\n\tExpected %s to be %s", msg, expected, actual))
+      print(string.format("While testing %s,\n\tExpected %s to be %s", msg, actual, expected))
     else
       err = err + 1
       print(string.format("While testing %s, got error:\n\t%s", msg, actual))

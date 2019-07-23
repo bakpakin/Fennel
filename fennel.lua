@@ -818,13 +818,24 @@ local function makeMetadata()
                 self[tgt] = self[tgt] or {}
                 self[tgt][key] = value
                 return tgt
-            end
+            end,
+            setall = function(self, tgt, ...)
+                local kvLen, kvs = select('#', ...), {...}
+                if kvLen % 2 ~= 0 then error('metadata:setall() expected even numbero of k/v pairs') end
+                self[tgt] = self[tgt] or {}
+                for i = 1, kvLen, 2 do self[tgt][kvs[i]] = kvs[i + 1] end
+                return tgt
+            end,
         }})
 end
 
 local metadata = makeMetadata()
 local doc = function(tgt)
-  print(metadata:get(tgt, 'docstring'))
+    local fnName = metadata:get(tgt, 'fnl/fn-name')
+    local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or {}, ' ')
+    local docstring = (metadata:get(tgt, 'fnl/docstring') or ''):gsub('\n$', ''):gsub('\n', '\n  ')
+    print(string.format("(%s%s%s)\n  %s",
+        fnName, #arglist > 0 and ' ' or '', arglist, docstring))
 end
 -- Convert expressions to Lua string
 local function exprs1(exprs)
@@ -1313,17 +1324,8 @@ SPECIALS['fn'] = function(ast, scope, parent)
         end
     end
     if type(ast[index + 1]) == 'string' and index + 1 < #ast then
-      index = index + 1
-      docstring = ast[index]
-      if rootOptions.useMetadata then
-        docstring = docstring -- account for newlines and nested [[ ]] multiline strings
-                :gsub('\n', '\\n')
-                :gsub('[[](=*)[[]', '[=%1['):gsub('[]](=*)[]]', ']=%1]')
-        -- splice in argslist and format docstring contents
-        local argSep = #argNameList > 0 and ' ' or ''
-        local invokeStr = string.format("(%s%s%s)", fnName, argSep, table.concat(argNameList, ' '))
-        docstring = string.format("%s\n  %s", invokeStr, docstring)
-      end
+        index = index + 1
+        docstring = ast[index]
     end
     for i = index + 1, #ast do
         compile1(ast[i], fScope, fChunk, {
@@ -1342,10 +1344,19 @@ SPECIALS['fn'] = function(ast, scope, parent)
     emit(parent, fChunk, ast)
     emit(parent, 'end', ast)
 
-    if rootOptions.useMetadata and docstring then
-      local docSetter = string.format('require("fennel").metadata:set(%s, "docstring", [[%s]])',
-        fnName, docstring)
-      emit(parent, docSetter)
+    if rootOptions.useMetadata then
+        local arglist = {}
+        for i, v in ipairs(argNameList) do arglist[i] = string.format("'%s'", v:gsub("'", "\\'")) end
+        local metaFields = {
+            "'fnl/fn-name'", '"' .. fnName .. '"',
+            "'fnl/arglist'", '{' .. table.concat(arglist, ', ') .. '}',
+        }
+        if docstring then
+            metaFields[5] = "'fnl/docstring'"
+            metaFields[6] = "'" .. docstring:gsub('\n', '\\n'):gsub('"', '\\"') .. "'"
+        end
+        local metaStr = 'require("fennel").metadata' --:set(%s, %s, "%s"):set(%s, %s, %s)'
+        emit(parent, string.format('%s:setall(%s, %s)', metaStr, fnName, table.concat(metaFields, ', ')))
     end
 
     return expr(fnName, 'sym')

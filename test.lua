@@ -643,36 +643,48 @@ end
 
 ---- docstring tests ----
 
-print("Running tests for docstrings...")
+print("Running tests for metadata and docstrings...")
 local docstring_tests = {
-  ['(doc (fn [] :A 1))'] = {'(_0_)\\n  A', 'anonymous fn docstring mistmatch'},
-  ['(doc (λ [a] :B :ret-str))'] = {'(_0_ a)\\n  B', 'anonymous lambda docstring mistmatch'},
-  ['(doc (fn foo [a] :C 1))'] = {'(foo a)\\n  C', 'named fn docstring mismatch'},
-  ['(doc (λ foo [] :D 1))'] = {'(foo)\\n  D', 'anonymous lambda docstring mistmatch'},
-  ['(doc (fn [] "return str"))'] = {'<nil>', "do not confuse returned string for docstring in undocumented fn"},
+    ['(doc (fn [] :A 1))'] = {'(_0_)\\n  A', 'anonymous fn docstring mistmatch'},
+    ['(doc (λ [a] :B :ret-str))'] = {'(_0_ a)\\n  B', 'anonymous lambda docstring mistmatch'},
+    -- TODO: set correct fnName based on assigned var/prop name and use following test
+    -- ['(local foo (fn [a] :C 1)) (doc foo)'] = {'(foo a)\\n  C', 'named/non-local fn docstring mismatch'},
+    ['(doc (fn foo [a] :C 1))'] = {'(foo a)\\n  C', 'named fn docstring mismatch'},
+    ['(doc (λ foo [] :D 1))'] = {'(foo)\\n  D', 'anonymous lambda docstring mistmatch'},
+    ['(doc (fn [] "return str"))'] = {
+        '(_0_)\\n  <nil>', "do not confuse returned string for docstring in undocumented fn"
+    },
+    ['(doc (fn ml [] "a\nmultiline\ndocstring" :result))'] = {
+        '(ml)\\n  a\\nmultiline\\ndocstring', 'multiline docstrings'
+    },
 }
 
 local doc_env = {}
 for k, v in pairs(_ENV or _G) do doc_env[k] = v end
-doc_env.doc = function(fn) return fennel.metadata:get(fn, 'docstring') end
+doc_env.doc = function(fn)
+    local fnName = fennel.metadata:get(fn, 'fnl/fn-name')
+    local arglist = table.concat(fennel.metadata:get(fn, 'fnl/arglist') or '')
+    local docstring = fennel.metadata:get(fn, 'fnl/docstring') or '<nil>'
+    return string.format('(%s%s%s)\n  %s', fnName, #arglist > 0 and ' ' or '', arglist, docstring)
+end
 doc_env.require = function(tgt)
-  if tgt == "fennel" then return fennel else return require(tgt) end
+    if tgt == "fennel" then return fennel else return require(tgt) end
 end
 for code, cond_msg in pairs(docstring_tests) do
-  local expected, msg = (unpack or table.unpack)(cond_msg)
-  local ok, actual = pcall(fennel.eval, code, { useMetadata = true, env = doc_env })
-  actual = string.gsub(actual or '<nil>', '\n', '\\n')
-  if ok and expected == actual then
-    pass = pass + 1
-  else
-    if ok then
-      fail = fail + 1
-      print(string.format("While testing %s,\n\tExpected %s to be %s", msg, actual, expected))
+    local expected, msg = (unpack or table.unpack)(cond_msg)
+    local ok, actual = pcall(fennel.eval, code, { useMetadata = true, env = doc_env })
+    actual = string.gsub(actual or '<nil>', '\n', '\\n')
+    if ok and expected == actual then
+        pass = pass + 1
     else
-      err = err + 1
-      print(string.format("While testing %s, got error:\n\t%s", msg, actual))
+        if ok then
+            fail = fail + 1
+            print(string.format("While testing %s,\n\tExpected %s to be %s", msg, actual, expected))
+        else
+            err = err + 1
+            print(string.format("While testing %s, got error:\n\t%s", msg, actual))
+        end
     end
-  end
 end
 
 ---- misc one-off tests ----

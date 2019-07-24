@@ -1277,14 +1277,15 @@ SPECIALS['fn'] = function(ast, scope, parent)
 
     if rootOptions.useMetadata then
         local arglist = {}
-        for i, v in ipairs(argNameList) do arglist[i] = string.format("'%s'", v:gsub("'", "\\'")) end
+        for i, v in ipairs(argNameList) do arglist[i] = string.format('"%s"', v:gsub('"', '\\"')) end
         local metaFields = {
-            "'fnl/fn-name'", '"' .. fnName .. '"',
-            "'fnl/arglist'", '{' .. table.concat(arglist, ', ') .. '}',
+            '"fnl/fn-name"', '"' .. fnName .. '"',
+            '"fnl/arglist"', '{' .. table.concat(arglist, ', ') .. '}',
         }
         if docstring then
-            metaFields[5] = "'fnl/docstring'"
-            metaFields[6] = "'" .. docstring:gsub('\n', '\\n'):gsub('"', '\\"') .. "'"
+            metaFields[5] = '"fnl/docstring"'
+            metaFields[6] = '"' .. docstring:gsub('%s+$', '')
+                :gsub('\\', '\\\\'):gsub('\n', '\\n'):gsub('"', '\\"') .. '"'
         end
         local metaStr = 'require("fennel").metadata' --:set(%s, %s, "%s"):set(%s, %s, %s)'
         emit(parent, string.format('%s:setall(%s, %s)', metaStr, fnName, table.concat(metaFields, ', ')))

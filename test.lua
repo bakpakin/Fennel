@@ -645,17 +645,24 @@ end
 
 print("Running tests for metadata and docstrings...")
 local docstring_tests = {
-    ['(doc (fn [] :A 1))'] = {'(_0_)\\n  A', 'anonymous fn docstring mistmatch'},
-    ['(doc (λ [a] :B :ret-str))'] = {'(_0_ a)\\n  B', 'anonymous lambda docstring mistmatch'},
+    ['(doc (fn [] :A 1))'] = {'(_0_)\\n  A', 'no anonymous fn docstring mistmatch'},
+    ['(doc (λ [a] :B :ret-str))'] = {'(_0_ a)\\n  B', 'no anonymous lambda docstring mistmatch'},
     -- TODO: set correct fnName based on assigned var/prop name and use following test
     -- ['(local foo (fn [a] :C 1)) (doc foo)'] = {'(foo a)\\n  C', 'named/non-local fn docstring mismatch'},
-    ['(doc (fn foo [a] :C 1))'] = {'(foo a)\\n  C', 'named fn docstring mismatch'},
-    ['(doc (λ foo [] :D 1))'] = {'(foo)\\n  D', 'anonymous lambda docstring mistmatch'},
+    ['(doc (fn foo [a] :C 1))'] = {'(foo a)\\n  C', 'no named fn docstring mismatch'},
+    ['(doc (λ foo [] :D 1))'] = {'(foo)\\n  D', 'no anonymous lambda docstring mistmatch'},
     ['(doc (fn [] "return str"))'] = {
         '(_0_)\\n  <nil>', "do not confuse returned string for docstring in undocumented fn"
     },
     ['(doc (fn ml [] "a\nmultiline\ndocstring" :result))'] = {
         '(ml)\\n  a\\nmultiline\\ndocstring', 'multiline docstrings'
+    },
+    [ '(doc (fn ew [] "so \\"gross\\" \\\\\\\"I\\\\\\\" can\'t even" 1))' ] = {
+        '(ew)\\n  so "gross" \\"I\\" can\'t even', 'docstring escaping'
+    },
+    ['(doc (fn foo! [-kebab- {:x x}] 1))'] = {
+        "(foo_21 _kebab_ _0_0)\\n  <nil>",
+        "fn-name and args mangling",
     },
 }
 
@@ -663,7 +670,7 @@ local doc_env = {}
 for k, v in pairs(_ENV or _G) do doc_env[k] = v end
 doc_env.doc = function(fn)
     local fnName = fennel.metadata:get(fn, 'fnl/fn-name')
-    local arglist = table.concat(fennel.metadata:get(fn, 'fnl/arglist') or '')
+    local arglist = table.concat(fennel.metadata:get(fn, 'fnl/arglist') or '', ' ')
     local docstring = fennel.metadata:get(fn, 'fnl/docstring') or '<nil>'
     return string.format('(%s%s%s)\n  %s', fnName, #arglist > 0 and ' ' or '', arglist, docstring)
 end
@@ -679,10 +686,10 @@ for code, cond_msg in pairs(docstring_tests) do
     else
         if ok then
             fail = fail + 1
-            print(string.format("While testing %s,\n\tExpected %s to be %s", msg, actual, expected))
+            print(string.format('While testing %s,\n\tExpected "%s" to be "%s"', msg, actual, expected))
         else
             err = err + 1
-            print(string.format("While testing %s, got error:\n\t%s", msg, actual))
+            print(string.format('While testing %s, got error:\n\t%s', msg, actual))
         end
     end
 end

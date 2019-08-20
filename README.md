@@ -78,6 +78,24 @@ See the [API documentation](api.md) for how to embed Fennel in your program.
 
 (Obviously not all these apply to every lisp you could compare Fennel to.)
 
+## Why not Fennel?
+
+Fennel inherits the limitations of the Lua runtime, which does not offer
+pre-emptive multitasking or OS-level threads. Libraries for Lua work
+great with Fennel, but the selection of libraries is not as extensive
+as it is with more popular languages. While LuaJIT has excellent
+overall performance, purely-functional algorithms will not be as
+efficient as they would be on a VM with generational garbage collection.
+
+Even for cases where the Lua runtime is a good fit, Fennel might not
+be a good fit when end-users are expected to write their own code to
+extend the program, because the available documentation for learning
+Lua is much more readily-available than it is for Fennel.
+
+Editor support is currently somewhat limited outside Emacs/Vim, but
+unsupported editors can be used with syntax highlighting for Clojure
+reasonably well.
+
 ## Resources
 
 * [Mailing list][5]

@@ -579,11 +579,9 @@ Here is an example of embedding the Fennel compiler inside a
 
 ```lua
 local fennel = require("fennel")
-local f = io.open("mycode.fnl", "rb")
 -- mycode.fnl ends in a line like this:
 -- {:draw (fn [] ...) :update (fn [dt] ...)}
 local mycode = fennel.dofile("mycode.fnl")
-f:close()
 
 love.update = function(dt)
   mycode.update(dt)

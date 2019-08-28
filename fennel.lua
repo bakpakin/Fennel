@@ -384,6 +384,9 @@ local function parser(getbyte, filename)
                             parseError('could not read token "' .. rawstr .. '"')
                     else
                         x = tonumber(numberWithStrippedUnderscores) or
+                            (rawstr:match("%.[0-9]") and
+                                 parseError("can't start multisym segment " ..
+                                                "with digit: ".. rawstr)) or
                             sym(rawstr, nil, { line = line,
                                                filename = filename,
                                                bytestart = bytestart,
@@ -498,11 +501,11 @@ local function isMultiSym(str)
         parts[#parts + 1] = part
     end
     return #parts > 0 and
-    str:match('%.') and
-    (not str:match('%.%.')) and
-    str:byte() ~= string.byte '.' and
-    str:byte(-1) ~= string.byte '.' and
-    parts
+        str:match('%.') and
+        (not str:match('%.%.')) and
+        str:byte() ~= string.byte '.' and
+        str:byte(-1) ~= string.byte '.' and
+        parts
 end
 
 local function isQuoted(symbol) return symbol.quoted end
@@ -1088,7 +1091,7 @@ local function destructure(to, from, ast, scope, parent, opts)
                 destructure1(pair[1], {pair[2]}, left)
             end
         else
-            assertCompile(false, 'unable to destructure ' .. tostring(left), up1)
+            assertCompile(false, 'unable to bind ' .. tostring(left), up1)
         end
         if top then return {returned = true} end
     end
@@ -1297,7 +1300,8 @@ end
 
 SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
-    if allowedGlobals then
+    -- globals tracking doesn't currently work with multi-values/destructuring
+    if allowedGlobals and isSym(ast[2]) then
         for _,global in ipairs(isList(ast[2]) and ast[2] or {ast[2]}) do
             table.insert(allowedGlobals, deref(global))
         end

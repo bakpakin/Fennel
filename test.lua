@@ -457,9 +457,6 @@ local compile_failures = {
     ["(lambda [x])"]="missing body",
     ["(let [x 1])"]="missing body",
     ["(let [x 1 y] 8)"]="expected even number of name/value bindings",
-    ["(let [:x 1] 1)"]="unable to destructure",
-    ["(let [false 1] 9)"]="unable to destructure false",
-    ["(let [nil 1] 9)"]="unable to destructure nil",
     ["(let [[a & c d] [1 2]] c)"]="rest argument in final position",
     ["(set a 19)"]="error in 'set' unknown:1: expected local var a",
     ["(set [a b c] [1 2 3]) (+ a b c)"]="expected local var",
@@ -499,6 +496,14 @@ local compile_failures = {
         "tried to bind xabc without gensym",
     ["(macros {:m (fn [t] `(each [mykey (pairs ,t)] (print mykey)))}) (m [])"]=
         "tried to bind mykey without gensym",
+    -- legal identifier rules
+    ["(let [:x 1] 1)"]="unable to bind",
+    ["(let [false 1] 9)"]="unable to bind false",
+    ["(let [nil 1] 9)"]="unable to bind nil",
+    ["(local 47 :forty-seven)"]="unable to bind 47",
+    ["(global 48 :forty-eight)"]="unable to bind 48",
+    ["(let [t []] (set t.47 :forty-seven))"]=
+        "can't start multisym segment with digit: t.47",
     -- other
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
     ["(x(y))"]="expected whitespace before opening delimiter %(",

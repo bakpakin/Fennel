@@ -2478,6 +2478,7 @@ local stdmacros = [===[
     ;; of vals) or we're not, in which case we only care about the first one.
     (let [[val] vals]
       (if (or (and (sym? pattern) ; unification with outer locals (or nil)
+                   (not= :_ (tostring pattern)) ; never unify _
                    (or (in-scope? pattern)
                        (= :nil (tostring pattern))))
               (and (multi-sym? pattern)

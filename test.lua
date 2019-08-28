@@ -367,6 +367,8 @@ local cases = {
         ["(match [1] [a & b] (length b))"]=0,
         -- multisym
         ["(let [x {:y :z}] (match :z x.y 1 _ 0))"]=1,
+        -- never unify underscore
+        ["(let [_ :bar] (match :foo _ :should-match :foo :no))"]="should-match",
     }
 }
 

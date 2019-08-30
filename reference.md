@@ -487,6 +487,20 @@ Looks up a function in a table and calls it with the table as its
 first argument. This is a common idiom in many Lua APIs, including
 some built-in ones.
 
+Just like Lua, you can perform a method call by using a symbol where
+`:` separating the table variable and method name.
+
+Example:
+
+```
+(let [f (assert (io.open "hello" "w"))]
+  (f:write "world")
+  (f:close))
+```
+
+If the name of the method isn't known at compile time, you can use `:`
+followed by the table and then the method's name as a string.
+
 Example:
 
 ```fennel
@@ -495,7 +509,7 @@ Example:
   (: f :close))
 ```
 
-Equivalent to:
+Both of these examples are equivalent to the following:
 
 ```fennel
 (let [f (assert (io.open "hello" "w"))]

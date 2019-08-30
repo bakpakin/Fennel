@@ -21,6 +21,7 @@
 * Add `hashfn` and `#` reader macro for shorthand functions like `#(+ $1 $2)`
 * Add `macro` to make defining a single macro easier
 * Add `(comment)` special which emits a Lua comment in the generated source
+* Allow lua-style method calls like `(foo:bar baz)`. **Disallow** `:` in symbols.
 
 ## 0.2.1 / 2019-01-22
 

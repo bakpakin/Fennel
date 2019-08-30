@@ -306,6 +306,12 @@ local cases = {
         -- Mixed $ types
         ["(let [f #(+ $ $1 $2)] (f 1 2))"]=4,
     },
+    methodcalls = {
+        -- multisym method call
+        ["(let [x {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}] (x:foo :quux))"]="bazquux",
+        -- multisym method call on property
+        ["(let [x {:y {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}}] (x.y:foo :quux))"]="bazquux",
+    },
     match = {
         -- basic literal
         ["(match (+ 1 6) 7 8)"]=8,
@@ -506,10 +512,15 @@ local compile_failures = {
     ["(global 48 :forty-eight)"]="unable to bind 48",
     ["(let [t []] (set t.47 :forty-seven))"]=
         "can't start multisym segment with digit: t.47",
+    ["(let [t []] (set t.:x :y))"]="malformed multisym: t.:x",
+    ["(let [t []] (set t:.x :y))"]="malformed multisym: t:.x",
+    ["(let [t []] (set t::x :y))"]="malformed multisym: t.:x",
     -- other
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
     ["(x(y))"]="expected whitespace before opening delimiter %(",
     ["(x[1 2])"]="expected whitespace before opening delimiter %[",
+    ["(let [x {:foo (fn [self] self.bar) :bar :baz}] x:foo)"]="multisym method calls may only be in call position",
+    ["(let [x {:y {:foo (fn [self] self.bar) :bar :baz}}] x:y:foo)"]="method call must be last component of multisym: x:y:foo",
 }
 
 print("Running tests for compile errors...")

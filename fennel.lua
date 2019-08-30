@@ -387,6 +387,14 @@ local function parser(getbyte, filename)
                             (rawstr:match("%.[0-9]") and
                                  parseError("can't start multisym segment " ..
                                                 "with digit: ".. rawstr)) or
+                            ((rawstr:match(":%.") or
+                                  rawstr:match("%.:") or
+                                  rawstr:match("::") or
+                                  (rawstr:match("%.%.") and rawstr ~= "..")) and
+                                    parseError("malformed multisym: " .. rawstr)) or
+                            (rawstr:match(":.+:") and
+                                 parseError("method call must be last component " ..
+                                                "of multisym: " .. rawstr)) or
                             sym(rawstr, nil, { line = line,
                                                filename = filename,
                                                bytestart = bytestart,
@@ -497,11 +505,19 @@ local function isMultiSym(str)
     end
     if type(str) ~= 'string' then return end
     local parts = {}
-    for part in str:gmatch('[^%.]+') do
-        parts[#parts + 1] = part
+    for part in str:gmatch('[^%.%:]+[%.%:]?') do
+        local lastChar = part:sub(-1)
+        if lastChar == ":" then
+            parts.multiSymMethodCall = true
+        end
+        if lastChar == ":" or lastChar == "." then
+            parts[#parts + 1] = part:sub(1, -2)
+        else
+            parts[#parts + 1] = part
+        end
     end
     return #parts > 0 and
-        str:match('%.') and
+        (str:match('%.') or str:match(':')) and
         (not str:match('%.%.')) and
         str:byte() ~= string.byte '.' and
         str:byte(-1) ~= string.byte '.' and
@@ -571,7 +587,11 @@ local function combineParts(parts, scope)
     local ret = scope.manglings[parts[1]] or globalMangling(parts[1])
     for i = 2, #parts do
         if isValidLuaIdentifier(parts[i]) then
-            ret = ret .. '.' .. parts[i]
+            if parts.multiSymMethodCall and i == #parts then
+                ret = ret .. ':' .. parts[i]
+            else
+                ret = ret .. '.' .. parts[i]
+            end
         else
             ret = ret .. '[' .. serializeString(parts[i]) .. ']'
         end
@@ -640,7 +660,7 @@ local function symbolToExpression(symbol, scope, isReference)
     local name = symbol[1]
     if scope.hashfn and name == '$' then name = '$1' end
     local parts = isMultiSym(name) or {name}
-    local etype = (#parts > 1) and "expression" or "sym"
+    local etype = (#parts > 1) and 'expression' or "sym"
     local isLocal = scope.manglings[parts[1]]
     if isLocal and scope.symmeta[name] then scope.symmeta[name].used = true end
     -- if it's a reference and not a symbol which introduces a new binding
@@ -866,6 +886,7 @@ local function compile1(ast, scope, parent, opts)
         if isSym(first) then -- Resolve symbol
             first = first[1]
         end
+        local multiSymParts = isMultiSym(first)
         local special = scope.specials[first]
         if special and isSym(ast[1]) then
             -- Special form
@@ -883,6 +904,17 @@ local function compile1(ast, scope, parent, opts)
             end
             exprs.returned = true
             return exprs
+        elseif multiSymParts and multiSymParts.multiSymMethodCall then
+            local tableWithMethod = table.concat({
+                    unpack(multiSymParts, 1, #multiSymParts - 1)
+                                                 }, '.')
+            local methodToCall = multiSymParts[#multiSymParts]
+            local newAST = list(sym(':', scope), sym(tableWithMethod, scope), methodToCall)
+            for i = 2, len do
+                newAST[#newAST + 1] = ast[i]
+            end
+            local compiled = compile1(newAST, scope, parent, opts)
+            exprs = compiled
         else
             -- Function call
             local fargs = {}
@@ -915,6 +947,9 @@ local function compile1(ast, scope, parent, opts)
         exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts, ast)
     elseif isSym(ast) then
         local e
+        local multiSymParts = isMultiSym(ast)
+        assertCompile(not (multiSymParts and multiSymParts.multiSymMethodCall),
+                      "multisym method calls may only be in call position", ast)
         -- Handle nil as special symbol - it resolves to the nil literal rather than
         -- being unmangled. Alternatively, we could remove it from the lua keywords table.
         if ast[1] == 'nil' then

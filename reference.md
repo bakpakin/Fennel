@@ -15,7 +15,12 @@ brackets. Will accept any number of arguments; ones in excess of the
 declared ones are ignored, and if not enough arguments are supplied to
 cover the declared ones, the remaining ones are `nil`.
 
-Example: `(fn pxy [x y] (print (+ x y)))`
+Example:
+
+```fennel
+(fn pxy [x y] (print (+ x y)))
+```
+
 
 Giving it a name is optional; if one is provided it will be bound to
 it as a local. Even if you don't use it as an anonymous function,
@@ -28,7 +33,12 @@ to be inserted in a table instead of bound as a local.
 Creates a function like `fn` does, but throws an error at runtime if
 any of the listed arguments are nil, unless its identifier begins with `?`.
 
-Example: `(lambda [x ?y z] (print (- x (* (or ?y 1) z))))`
+Example:
+
+```fennel
+(lambda [x ?y z] (print (- x (* (or ?y 1) z))))
+```
+
 
 The `λ` form is an alias for `lambda` and behaves identically.
 
@@ -39,15 +49,15 @@ an even shorter form of functions. Hash functions are anonymous
 functions of one form, with implicitly named arguments. All
 of the below functions are functionally equivalent.
 
-```
+```fennel
 (fn [a b] (+ a b))
 ```
 
-```
+```fennel
 (hashfn (+ $1 $2))
 ```
 
-```
+```fennel
 #(+ $1 $2)
 ```
 
@@ -71,7 +81,12 @@ the first few arguments in place with the given ones. This is related
 to currying but different because calling it will call the underlying
 function instead of waiting till it has the "correct" number of args.
 
-Example: `(partial (fn [x y] (print (+ x y))) 2)`
+Example:
+
+```fennel
+(partial (fn [x y] (print (+ x y))) 2)
+```
+
 
 This example returns a function which will print a number that is 2
 greater than the argument it is passed.
@@ -82,7 +97,11 @@ greater than the argument it is passed.
 
 Introduces a new scope in which a given set of local bindings are used.
 
-Example: `(let [x 89] (print (+ x 12))` -> 101
+Example:
+
+```fennel
+(let [x 89] (print (+ x 12)) ; => 101
+```
 
 These locals cannot be changed with `set` but they can be shadowed by
 an inner `let` or `local`. Outside the body of the `let`, the bindings
@@ -91,11 +110,26 @@ it introduces are no longer visible.
 Any time you bind a local, you can destructure it if the value is a
 table or a function call which returns multiple values:
 
-Example: `(let [[a b c] [1 2 3]] (+ a b c))` -> `6`
+Example:
 
-Example: `(let [(x y z) (unpack [10 9 8])] (+ x y z))` -> `27`
+```fennel
+(let [[a b c] [1 2 3]] (+ a b c)) ; => 6
+```
 
-Example: `(let [{:msg message : val} (returns-a-table)] (print message) val)`
+
+Example:
+
+```fennel
+(let [(x y z) (unpack [10 9 8])] (+ x y z)) ; => 27
+```
+
+
+Example:
+
+```fennel
+(let [{:msg message : val} (returns-a-table)] (print message) val)
+```
+
 
 ### `local` declare local
 
@@ -103,7 +137,12 @@ Introduces a new local inside an existing scope. Similar to `let` but
 without a body argument. Recommended for use at the top-level of a
 file for locals which will be used throughout the file.
 
-Example: `(local lume (require "lume"))`
+Example:
+
+```fennel
+(local lume (require "lume"))
+```
+
 
 Supports destructuring and multiple-value binding.
 
@@ -116,7 +155,7 @@ of as a combination of destructuring and conditionals.
 
 Example:
 
-```lisp
+```fennel
 (match mytable
   59      :will-never-match-hopefully
   [9 q 5] (print :q q)
@@ -142,7 +181,7 @@ have at least as many elements as the pattern. (To allow an element to
 be nil, use a symbol like `?this`.) Tables will never fail to match
 due to having too many elements.
 
-```lisp
+```fennel
 (match mytable
   {:subtable [a b ?c] :depth depth} (* b depth)
   _ :unknown)
@@ -152,7 +191,7 @@ You can also match against multiple return values using
 parentheses. (These cannot be nested, but they can contain tables.)
 This can be useful for error checking.
 
-```lisp
+```fennel
 (match (io.open "/some/file")
   (nil msg) (report-error msg)
   f (read-file f))
@@ -162,7 +201,7 @@ Pattern matching performs unification, meaning that if `x` has an
 existing binding, clauses which attempt to bind it to a different
 value will not match:
 
-```lisp
+```fennel
 (let [x 95]
  (match [52 85 95] 
    [b a a] :no ; because a=85 and a=95
@@ -176,7 +215,7 @@ a wildcard. If no clause matches, it returns nil.
 Sometimes you need to match on something more general than a structure
 or specific value. In these cases you can use guard clauses:
 
-```lisp
+```fennel
 (match [91 12 53]
   ([a b c] ? (= 5 a)) :will-not-match
   ([a b c] ? (= 0 (math.fmod (+ a b c) 2)) (= 91 a)) c) ; -> 53
@@ -197,7 +236,12 @@ Sets a global variable to a new value. Note that there is no
 distinction between introducing a new global and changing the value of
 an existing one.
 
-Example: `(global prettyprint (fn [x] (print (view x))))`
+Example:
+
+```fennel
+(global prettyprint (fn [x] (print (view x))))
+```
+
 
 Supports destructuring and multiple-value binding.
 
@@ -207,7 +251,12 @@ Introduces a new local inside an existing scope which may have its
 value changed. Identical to `local` apart from allowing `set` to work
 on it.
 
-Example: `(var x 83)`
+Example:
+
+```fennel
+(var x 83)
+```
+
 
 Supports destructuring and multiple-value binding.
 
@@ -218,9 +267,19 @@ on globals or `let`/`local`-bound locals. Can also be used to change a
 field of a table, even if the table is bound with `let` or `local`,
 provided the field is given at compile-time.
 
-Example: `(set x (+ x 91))`
+Example:
 
-Example: `(let [t {:a 4 :b 8}] (set t.a 2) t)` -> `{:a 2 :b 8}`
+```fennel
+(set x (+ x 91))
+```
+
+
+Example:
+
+```fennel
+(let [t {:a 4 :b 8}] (set t.a 2) t) ; => {:a 2 :b 8}
+```
+
 
 Supports destructuring and multiple-value binding.
 
@@ -230,7 +289,12 @@ Set the field of a given table to a new value. The field name does not
 need to be known at compile-time. Works on any table, even those bound
 with `local` and `let`.
 
-Example: `(let [tbl {:d 32} field :d] (tset tbl field 19) tbl)` -> `{:d 19}`
+Example:
+
+```fennel
+(let [tbl {:d 32} field :d] (tset tbl field 19) tbl) ; => {:d 19}
+```
+
 
 You can provide multiple successive field names to perform nested sets.
 
@@ -240,13 +304,29 @@ In any of the above contexts where you can make a new binding, you
 can use multiple value binding. Otherwise you will only capture the first
 value.
 
-Example: `(let [x (values 1 2 3)] x)` => 1
+Example:
 
-Example: `(let [(file-handle message code) (io.open "foo.blah")] message)` => "foo.blah: No such file or directory"
+```fennel
+(let [x (values 1 2 3)] x) ; => 1
+```
 
-Example: `(global (x-m x-e) (math.frexp 21)), {:m x-m :e m-e}` => {:e 5 :m 0.65625}
+Example:
 
-Example: `(do (local (_ _ z) (unpack [:a :b :c :d :e])), z)` => c
+```fennel
+(let [(file-handle message code) (io.open "foo.blah")] message) ; => "foo.blah: No such file or directory"
+```
+
+Example:
+
+```fennel
+(global (x-m x-e) (math.frexp 21)), {:m x-m :e m-e} ;  => {:e 5 :m 0.65625}
+```
+
+Example:
+
+```fennel
+(do (local (_ _ z) (unpack [:a :b :c :d :e])), z)  => c
+```
 
 ## Flow Control
 
@@ -259,7 +339,7 @@ given, the last value is treated as a catch-all "else". Similar to
 
 Example:
 
-```
+```fennel
 (let [x (math.random 64)]
   (if (= 0 (% x 10))
       "multiple of ten"
@@ -277,7 +357,7 @@ nil or false. This is intended for side-effects.
 
 Example:
 
-```
+```fennel
 (when launch-missiles?
   (power-on)
   (open-doors)
@@ -292,7 +372,7 @@ in undefined order) but can be used with any iterator.
 
 Example:
 
-```
+```fennel
 (each [key value (pairs mytbl)]
   (print key (f value)))
 ```
@@ -306,7 +386,7 @@ body once for each value. Accepts an optional step.
 
 Example:
 
-```
+```fennel
 (for [i 1 10 2]
   (print i))
 ```
@@ -321,7 +401,7 @@ a form which accepts only a single value, such as in a body of an `if`
 when multiple clauses make it so you can't use `when`. Some lisps call
 this `begin` or `progn`.
 
-```
+```fennel
 (if launch-missiles?
     (do
       (power-on)
@@ -355,7 +435,12 @@ higher-order functions.
 Concatenates its arguments into one string. Will coerce numbers into
 strings, but not other types.
 
-Example: `(.. "Hello" " " "world" 7 "!!!")` -> `"Hello world7!!!"`
+Example:
+
+```fennel
+(.. "Hello" " " "world" 7 "!!!") ; => "Hello world7!!!"
+```
+
 
 ### `length` string or table length
 
@@ -367,16 +452,31 @@ consecutive numeric index starting at 1, you must calculate it
 yourself with `ipairs`; if you want to know the maximum numeric key in
 a table with nils, you can use `table.maxn`.
 
-Example: `(+ (length [1 2 3 nil 8]) (length "abc"))` -> `6` or `8`
+Example:
+
+```fennel
+(+ (length [1 2 3 nil 8]) (length "abc")) ; => 6 or 8
+```
+
 
 ### `.` table lookup
 
 Looks up a given key in a table. Multiple arguments will perform
 nested lookup.
 
-Example: `(. mytbl myfield)`
+Example:
 
-Example: `(let [t {:a [2 3 4]}] (. t :a 2))` -> `3`
+```fennel
+(. mytbl myfield)
+```
+
+
+Example:
+
+```fennel
+(let [t {:a [2 3 4]}] (. t :a 2)) ; => 3
+```
+
 
 Note that if the field name is known at compile time, you don't need
 this and can just use `mytbl.field`.
@@ -389,7 +489,7 @@ some built-in ones.
 
 Example:
 
-```
+```fennel
 (let [f (assert (io.open "hello" "w"))]
   (: f :write "world")
   (: f :close))
@@ -397,7 +497,7 @@ Example:
 
 Equivalent to:
 
-```
+```fennel
 (let [f (assert (io.open "hello" "w"))]
   (f.write f "world")
   (f.close f))
@@ -410,7 +510,7 @@ failure by returning nil followed by a message.
 
 Example:
 
-```
+```fennel
 (fn [filename]
   (if (valid-file-name? filename)
       (open-file filename)
@@ -424,7 +524,7 @@ Lua while loop, so is preferable to a lambda function and tail recursion.
 
 Example:
 
-```
+```fennel
 (do
   (var done? false)
   (while (not done?)
@@ -443,7 +543,7 @@ gets spliced into the first argument of the third form, and so on.
 
 Example:
 
-```
+```fennel
 (-> 52
     (+ 91 2) ; (+ 52 91 2)
     (- 8)    ; (- (+ 52 91 2) 8)
@@ -462,7 +562,7 @@ like `->`, and `-?>>` splices it into the last position, like `->>`.
 This example shows how to use them to avoid accidentally indexing a
 nil value:
 
-```
+```fennel
 (-?> {:a {:b {:c 42}}}
      (. :a)
      (. :missing)
@@ -484,7 +584,7 @@ forms. However, it keeps the same value and continually splices the
 same thing in rather than using the value from the previous form for
 the next form.
 
-```
+```fennel
 (doto (io.open "/tmp/err.log)
   (: :write contents)
   (: :close))
@@ -509,7 +609,7 @@ compile time and emit lists which are fed back into the compiler. For
 instance, here is a macro function which implements `when2` in terms of
 `if` and `do`:
 
-```
+```fennel
 (fn when2 [condition body1 ...]
   (assert body1 "expected body")
   `(if ,condition
@@ -525,7 +625,7 @@ on the third line creates a template for the code emitted by the macro. The
 
 Assuming the code above is in the file "my-macros.fnl" then it turns this input:
 
-```
+```fennel
 (require-macros :my-macros)
 
 (when2 (= 3 (+ 2 a))
@@ -536,7 +636,7 @@ Assuming the code above is in the file "my-macros.fnl" then it turns this input:
 and transforms it into this code at compile time by splicing the arguments
 into the backtick template:
 
-```
+```fennel
 (if (= 3 (+ 2 a))
   (do
     (print "yes")
@@ -557,7 +657,7 @@ from the surrounding code. The macros are essentially compiled in their
 own compiler environment. Again, see the "Compiler API" section for
 more details about the macro interface.
 
-```
+```fennel
 (macros {:my-max (fn [x y]
                    `(let [x# ,x y# ,y]
                       (if (< x# y#) y# x#)))})
@@ -573,7 +673,7 @@ It's easy to make macros which accidentally evaluate their arguments
 more than once. This is fine if they are passed literal values, but if
 they are passed a form which has side-effects, the result will be unexpected:
 
-```
+```fennel
 (var v 1)
 (macros {:my-max (fn [x y]
                    `(if (< ,x ,y) ,y ,x))})
@@ -588,7 +688,7 @@ bare symbol inside a backtick as an identifier. Appending a `#` on
 the end of the identifier name as above invokes "auto gensym" which
 guarantees the local name is unique.
 
-```
+```fennel
 (macros {:my-max (fn [x y]
                    `(let [x2 ,x y2 ,y]
                       (if (< x2 y2) y2 x2)))})
@@ -606,7 +706,7 @@ For example, this will not compile in strict mode! Even when it does
 allow the macro to be called, it will fail trying to call a global
 `my-fn` when the code is run:
 
-```
+```fennel
 (fn my-fn [] (print "hi!"))
 
 (macros {:my-max (fn [x y]
@@ -624,7 +724,7 @@ macros, but you should use macros if you can.
 
 Example:
 
-```
+```fennel
 (eval-compiler
   (tset _SPECIALS "local" (. _SPECIALS "global")))
 ```

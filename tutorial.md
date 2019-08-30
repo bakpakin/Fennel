@@ -24,7 +24,7 @@ final value is returned.
 the function or macro being called goes *inside* the parens, not
 outside.)
 
-```lisp
+```fennel
 (fn print-and-add [a b c]
   (print a)
   (+ b c))
@@ -37,21 +37,21 @@ an error.) For safer code you can use `lambda` which ensures you will
 get at least as many arguments as you define, unless you signify that
 one may be omitted by beginning its name with a `?`:
 
-```lisp
+```fennel
 (lambda print-calculation [x ?y z] (print (- x (* (or ?y 1) z))))
 (print-calculation 5) ; -> error: Missing argument z
 ```
 
 Note that the second argument `?y` is allowed to be `nil`, but `z` is not:
 
-```lisp
+```fennel
 (print-calculation 5 nil 3) ; -> 2
 ```
 
 Locals are introduced using `let` with the names and values wrapped in
 a single set of square brackets:
 
-```lisp
+```fennel
 (let [x (+ 89 5.2)
       f (fn [abc] (print (* 2 abc)))]
   (f x))
@@ -65,14 +65,14 @@ You can also introduce locals with `local`, which is nice when they'll
 be used across the whole file, but in general `let` is preferred because
 it's clearer at a glance where the value is used:
 
-```lisp
+```fennel
 (local lume (require "lume"))
 ```
 
 Locals set this way cannot be given new values, but you *can*
 introduce new locals that shadow the outer names:
 
-```lisp
+```fennel
 (let [x 19]
   ;; (set x 88) <- not allowed!
   (let [x 88]
@@ -84,7 +84,7 @@ If you need to change the value of a local, you can use `var` which
 works like `local` except it allows `set` to work on it. There is no
 nested `let`-like equivalent of `var`.
 
-```lisp
+```fennel
 (var x 19)
 (set x (+ x 8))
 (print x) ; -> 27
@@ -100,7 +100,7 @@ introduced integers. On 5.3 and up, integer division uses `//`.
 You may also use underscores to separate sections of long numbers. The
 underscores have no effect on the output.
 
-```lisp
+```fennel
 (let [x (+ 1 99)
       y (- x 12)
       z 100_000]
@@ -110,7 +110,7 @@ underscores have no effect on the output.
 Strings are essentially immutable byte arrays. UTF-8 support is
 provided from a [3rd-party library][4]. Strings are concatenated with `..`:
 
-```lisp
+```fennel
 (.. "hello" " world")
 ```
 
@@ -119,7 +119,7 @@ provided from a [3rd-party library][4]. Strings are concatenated with `..`:
 In Lua (and thus in Fennel), tables are the only data structure. The
 main syntax for tables uses curly braces with key/value pairs in them:
 
-```lisp
+```fennel
 {"key" value
  "number" 531
  "f" (fn [x] (+ x 2))}
@@ -127,7 +127,7 @@ main syntax for tables uses curly braces with key/value pairs in them:
 
 You can use `.` to get values out of tables:
 
-```lisp
+```fennel
 (let [tbl (function-which-returns-a-table)
       key "a certain key"]
   (. tbl key))
@@ -135,7 +135,7 @@ You can use `.` to get values out of tables:
 
 And `tset` to put them in:
 
-```lisp
+```fennel
 (let [tbl {}
       key1 "a long string"
       key2 12]
@@ -153,7 +153,7 @@ Some tables are used to store data that's used sequentially; the keys
 in this case are just numbers starting with 1 and going up. Fennel
 provides alternate syntax for these tables with square brackets:
 
-```lisp
+```fennel
 ["abc" "def" "xyz"] ; equivalent to {1 "abc" 2 "def" 3 "xyz"}
 ```
 
@@ -166,7 +166,7 @@ The `table.remove` function works similarly; it takes a table and an index
 (which defaults to the end of the table) and removes the value at that
 index, returning it.
 
-```lisp
+```fennel
 (local ltrs ["a" "b" "c" "d"])
 
 (table.remove ltrs)       ; Removes "d"
@@ -180,7 +180,7 @@ index, returning it.
 
 The `length` form returns the length of sequential tables and strings:
 
-```lisp
+```fennel
 (let [tbl ["abc" "def" "xyz"]]
   (+ (length tbl)
      (length (. tbl 1)))) ; -> 6
@@ -200,7 +200,7 @@ finding the index in a table given a value is done by `lume.find` in the
 Looping over table elements is done with `each` and an iterator like
 `pairs` (used for general tables) or `ipairs` (for sequential tables):
 
-```lisp
+```fennel
 (each [key value (pairs {:key1 52 :key2 99})]
   (print key value))
 
@@ -216,7 +216,7 @@ over numeric keys starting with 1 until it hits a `nil`.
 You can use any [Lua iterator][6] with `each`, but these are the most
 common. Here's an example that walks through [matches in a string][7]:
 
-```lisp
+```fennel
 (var sum 0)
 (each [digits (string.gmatch "244 127 163" "%d+")]
   (set sum (+ sum (tonumber digits))))
@@ -225,7 +225,7 @@ common. Here's an example that walks through [matches in a string][7]:
 The other iteration construct is `for` which iterates numerically from
 the provided start value to the inclusive finish value:
 
-```lisp
+```fennel
 (for [i 1 10]
   (print i))
 ```
@@ -233,7 +233,7 @@ the provided start value to the inclusive finish value:
 You can specify an optional step value; this loop will only print odd
 numbers under ten:
 
-```lisp
+```fennel
 (for [i 1 10 2]
   (print i))
 ```
@@ -244,7 +244,7 @@ Finally we have conditionals. The `if` form in Fennel can be used the
 same way as in other lisp languages, but it can also be used as `cond`
 for multiple conditions compiling into `elseif` branches:
 
-```lisp
+```fennel
 (let [x (math.random 64)]
   (if (= 0 (% x 2))
       "even"
@@ -260,7 +260,7 @@ construct precarious chains of `and`/`or` just to get a value!
 The other conditional is `when`, which is used for an arbitrary number
 of side-effects and has no else clause:
 
-```lisp
+```fennel
 (when (currently-raining?)
   (wear "boots")
   (deploy-umbrella))
@@ -271,21 +271,21 @@ of side-effects and has no else clause:
 Strings that don't have spaces in them can use the `:keyword` syntax
 instead, which is often used for table keys:
 
-```lisp
+```fennel
 {:key value :number 531}
 ```
 
 If a table has string keys like this, you can pull values out of it
 easily if the keys are known up front:
 
-```lisp
+```fennel
 (let [tbl {:x 52 :y 91}]
   (+ tbl.x tbl.y)) ; -> 143
 ```
 
 You can also use this syntax with `set`:
 
-```lisp
+```fennel
 (let [tbl {}]
   (set tbl.one 1)
   (set tbl.two 2)
@@ -295,7 +295,7 @@ You can also use this syntax with `set`:
 If a table key has the same name as the variable you're setting it to,
 you can omit the key name and use `:` instead:
 
-```lisp
+```fennel
 (let [one 1 two 2
       tbl {: one : two}]
   tbl) ; -> {:one 1 :two 2}
@@ -305,7 +305,7 @@ Finally, `let` can destructure a table into multiple locals.
 
 There is positional destructuring:
 
-```lisp
+```fennel
 (let [data [1 2 3]
       [fst snd thrd] data]
   (print fst snd thrd)) ; -> 1       2       3
@@ -313,7 +313,7 @@ There is positional destructuring:
 
 And destructuring of tables via key:
 
-```lisp
+```fennel
 (let [pos {:x 23 :y 42}
       {:x x-pos :y y-pos} pos]
   (print x-pos y-pos)) ; -> 23      42
@@ -322,7 +322,7 @@ And destructuring of tables via key:
 As above, if a table key has the same name as the variable you're
 destructuring it to, you can omit the key name and use `:` instead:
 
-```lisp
+```fennel
 (let [pos {:x 23 :y 42}
       {: x : y} pos]
   (print x y)) ; -> 23      42
@@ -330,7 +330,7 @@ destructuring it to, you can omit the key name and use `:` instead:
 
 This can mix and match:
 
-```lisp
+```fennel
 (let [f (fn [] ["abc" "def" {:x "xyz" :y "abc"}])
       [a d {:x x : y}] (f)]
   (print a)
@@ -354,7 +354,7 @@ failure by using two return values: `nil` followed by a failure
 message string. You can interact with this style of function in Fennel
 by destructuring with parens instead of square brackets:
 
-```lisp
+```fennel
 (let [(f msg) (io.open "file" "rb")]
   ;; when io.open succeeds, f will be a file, but if it fails f will be
   ;; nil and msg will be the failure string
@@ -366,7 +366,7 @@ by destructuring with parens instead of square brackets:
 
 You can write your own function which returns multiple values with `values`:
 
-```lisp
+```fennel
 (fn use-file [filename]
   (if (valid-file-name? filename)
       (open-file filename)
@@ -379,7 +379,7 @@ terminate the whole process unless it's within a protected call,
 similar to the way throwing an exception works in many languages. You
 can make a protected call with `pcall`:
 
-```lisp
+```fennel
 (let [(ok val-or-msg) (pcall potentially-disastrous-call filename)]
   (if ok
       (print "Got value" val-or-msg)
@@ -399,7 +399,7 @@ The `assert` function takes a value and an error message; it calls
 used to turn multiple-value failures into errors (kind of the inverse
 of `pcall` which turns `error`s into multiple-value failures):
 
-```lisp
+```fennel
 (let [f (assert (io.open filename))
       contents (f.read f "*all")]
   (f.close f)
@@ -422,7 +422,7 @@ literal (`[...]`) and index like a normal table, or use the `select` function
 from Lua's core library. Often, the vararg can be passed directly to another
 function such as `print` without needing to bind it to a single table.
 
-```lisp
+```fennel
 (fn print-each [...]
  (each [i v (ipairs [...])]
   (print (.. "Argument " i " is " v))))
@@ -430,7 +430,7 @@ function such as `print` without needing to bind it to a single table.
 (print-each :a :b :c)
 ```
 
-```lisp
+```fennel
 (fn myprint [prefix ...]
  (io.write prefix)
  (io.write (.. (select "#" ...) " arguments given: "))
@@ -444,7 +444,7 @@ accessible to the function in which they are created. This means that the
 following code wil NOT work, as the varargs in the inner function are out of
 scope.
 
-```lisp
+```fennel
 (fn badcode [...]
  (fn []
   (print ...)))
@@ -458,7 +458,7 @@ unlike most forms, with `global` there is no distinction between
 creating a new global and giving an existing global a new
 value.
 
-```lisp
+```fennel
 (global add (fn [x y] (+ x y)))
 (add 32 12) ; -> 44
 ```
@@ -521,7 +521,7 @@ code just the same as they would be from Lua.
 
 You can use the `require` function to load code from Lua files.
 
-```lisp
+```fennel
 (let [lume (require "lume")
       tbl [52 99 412 654]
       plus (fn [x y] (+ x y))]
@@ -551,7 +551,7 @@ local mylib = require("mylib") -- will compile and load code in mylib.fnl
 
 Or if you're doing it from Fennel code:
 
-```lisp
+```fennel
 (local fennel (require :fennel))
 (table.insert (or package.loaders package.searchers) fennel.searcher)
 (local mylib (require :mylib))

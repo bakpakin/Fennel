@@ -1588,16 +1588,16 @@ SPECIALS[':'] = function(ast, scope, parent)
         end
     end
     local fstring
-    if methodident then
-        fstring = objectexpr.type == 'literal'
-            and '(%s):%s(%s)'
-            or '%s:%s(%s)'
-    else
+    if not methodident then
         -- Make object first argument
         table.insert(args, 1, tostring(objectexpr))
         fstring = objectexpr.type == 'sym'
             and '%s[%s](%s)'
             or '(%s)[%s](%s)'
+    elseif(objectexpr.type == 'literal' or objectexpr.type == 'expression') then
+        fstring = '(%s):%s(%s)'
+    else
+        fstring = '%s:%s(%s)'
     end
     return expr(fstring:format(
         tostring(objectexpr),

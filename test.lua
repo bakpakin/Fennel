@@ -161,6 +161,8 @@ local cases = {
         ["(do (tset {} :a 1) 1)"]=1,
         -- # is valid symbol constituent character
         ["(local x#x# 90) x#x#"]=90,
+        -- : works on literal tables
+        ["(: {:foo (fn [self] (.. self.bar 2)) :bar :baz} :foo)"]="baz2",
     },
 
     ifforms = {

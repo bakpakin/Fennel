@@ -56,6 +56,7 @@ local cases = {
         ["(>= 22 (+ 21 1))"]=true,
         ["(<= 88 32)"]=false,
         ["(not= 33 1)"]=true,
+        ["(~= 33 1)"]=true, -- undocumented alias for backwards-compatibility
         ["(= 1 1 2 2)"]=false,
         ["(not= 6 6 9)"]=true,
         ["(let [f (fn [] (tset tbl :dbl (+ 1 (or (. tbl :dbl) 0))) 1)]\

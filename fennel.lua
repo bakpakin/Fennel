@@ -361,7 +361,7 @@ local function parser(getbyte, filename)
                     end
                 end
                 ungetb(nextb)
-            elseif issymbolchar(b) then -- Try symbol
+            elseif issymbolchar(b) or b == string.byte("~") then -- Try symbol
                 local chars = {}
                 local bytestart = byteindex
                 repeat
@@ -375,6 +375,10 @@ local function parser(getbyte, filename)
                 elseif rawstr == '...' then dispatch(VARARG)
                 elseif rawstr:match('^:.+$') then -- keyword style strings
                     dispatch(rawstr:sub(2))
+                elseif rawstr:match("^~") and rawstr ~= "~=" then
+                    -- for backwards-compatibility, special-case allowance of ~=
+                    -- but all other uses of ~ are disallowed
+                    parseError("illegal character: ~")
                 else
                     local forceNumber = rawstr:match('^%d')
                     local numberWithStrippedUnderscores = rawstr:gsub("_", "")
@@ -1709,6 +1713,7 @@ defineComparatorSpecial('>=')
 defineComparatorSpecial('<=')
 defineComparatorSpecial('=', '==')
 defineComparatorSpecial('not=', '~=', 'or')
+SPECIALS["~="] = SPECIALS["not="] -- backwards-compatibility alias
 
 local function defineUnarySpecial(op, realop)
     SPECIALS[op] = function(ast, scope, parent)

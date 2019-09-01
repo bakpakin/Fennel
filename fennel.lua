@@ -361,7 +361,7 @@ local function parser(getbyte, filename)
                     end
                 end
                 ungetb(nextb)
-            else -- Try symbol
+            elseif issymbolchar(b) then -- Try symbol
                 local chars = {}
                 local bytestart = byteindex
                 repeat
@@ -394,6 +394,8 @@ local function parser(getbyte, filename)
                     end
                     dispatch(x)
                 end
+            else
+                parseError("illegal character: " .. string.char(b))
             end
         until done
         return true, retval

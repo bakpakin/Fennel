@@ -506,6 +506,8 @@ local compile_failures = {
     ["(global 48 :forty-eight)"]="unable to bind 48",
     ["(let [t []] (set t.47 :forty-seven))"]=
         "can't start multisym segment with digit: t.47",
+    ["(local a~b 3)"]="illegal character: ~",
+    ["(print @)"]="illegal character: @",
     -- other
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
     ["(x(y))"]="expected whitespace before opening delimiter %(",

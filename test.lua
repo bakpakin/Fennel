@@ -535,6 +535,8 @@ for code, expected_msg in pairs(compile_failures) do
         fail = fail + 1
         print(" Expected " .. expected_msg .. " when compiling " .. code ..
                   " but got " .. msg)
+    else
+        pass = pass + 1
     end
 end
 
@@ -624,22 +626,30 @@ end
 if pcall(fennel.eval, "(->1 1 (+ 4))", {allowedGlobals = false}) then
     fail = fail + 1
     print(" Expected require-macros not leak into next evaluation.")
+else
+    pass = pass + 1
 end
 
 if pcall(fennel.eval, "`(hey)", {allowedGlobals = false}) then
     fail = fail + 1
     print(" Expected quoting lists to fail at runtime.")
+else
+    pass = pass + 1
 end
 
 if pcall(fennel.eval, "`[hey]", {allowedGlobals = false}) then
     fail = fail + 1
     print(" Expected quoting syms to fail at runtime.")
+else
+    pass = pass + 1
 end
 
 if not pcall(fennel.eval, "(.. hello-world :w)",
              {env = {["hello-world"] = "hi"}}) then
     fail = fail + 1
     print(" Expected global mangling to work.")
+else
+    pass = pass + 1
 end
 
 local g = {["hello-world"] = "hi", tbl = _G.tbl,
@@ -658,6 +668,8 @@ if(not pcall(fennel.eval, "(each [k (pairs _G)] (tset tbl k true))", {env = g})
    or not _G.tbl["hello-world"]) then
     fail = fail + 1
     print(" Expected wrapped _G to support env iteration.")
+else
+    pass = pass + 1
 end
 
 do
@@ -666,6 +678,8 @@ do
         or not pcall(fennel.eval, "x-x", {env = e})) then
         fail = fail + 1
         print(" Expected mangled globals to be accessible across eval invocations.")
+    else
+        pass = pass + 1
     end
 end
 

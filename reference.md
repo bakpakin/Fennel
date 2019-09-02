@@ -65,14 +65,19 @@ This style of anonymous function is useful as a parameter to
 higher order functions, such as those provided by Lua libraries
 like lume and luafun.
 
-The current implementation only allows for functions of up to
-9 arguments, each named `$1` through `$9`.
+The current implementation only allows for functions of up to 9
+arguments, each named `$1` through `$9`. A lone `$` in a hash function
+is treated as an alias for `$1`.
 
 Hash functions are defined with the `hashfn` macro, which wraps
 it's single argument in a function literal. For example, `#$3`
 is a function that returns it's third argument. `#[$1 $2 $3]` is
 a function that returns a table from the first 3 arguments. And
 so on.
+
+Hash arguments can also be used as parts of multisyms. For instance,
+`#$.foo` is a function which will return the value of the "foo" key in
+its first argument.
 
 ### `partial` partial application
 

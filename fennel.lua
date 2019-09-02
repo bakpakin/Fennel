@@ -658,11 +658,20 @@ end
 -- if they have already been declared via declareLocal
 local function symbolToExpression(symbol, scope, isReference)
     local name = symbol[1]
-    if scope.hashfn and name == '$' then name = '$1' end
-    local parts = isMultiSym(name) or {name}
-    local etype = (#parts > 1) and 'expression' or "sym"
+    local multiSymParts = isMultiSym(name)
+    if scope.hashfn then
+       if name == '$' then name = '$1' end
+       if multiSymParts then
+          if multiSymParts[1] == "$" then
+             multiSymParts[1] = "$1"
+             name = table.concat(multiSymParts, ".")
+          end
+       end
+    end
+    local parts = multiSymParts or {name}
+    local etype = (#parts > 1) and "expression" or "sym"
     local isLocal = scope.manglings[parts[1]]
-    if isLocal and scope.symmeta[name] then scope.symmeta[name].used = true end
+    if isLocal and scope.symmeta[parts[1]] then scope.symmeta[parts[1]].used = true end
     -- if it's a reference and not a symbol which introduces a new binding
     -- then we need to check for allowed globals
     assertCompile(not isReference or isLocal or globalAllowed(parts[1]),

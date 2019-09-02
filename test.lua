@@ -297,6 +297,8 @@ local cases = {
         ["(#(+ $3 $4) 1 1 3 4)"]=7,
         -- One argument
         ["(#(+ $1 45) 1)"]=46,
+        -- Immediately returned argument
+        ["(+ (#$ 1) (#$2 2 3))"]=4,
         -- With let
         ["(let [f #(+ $1 45)] (f 1))"]=46,
         -- Complex body
@@ -305,6 +307,9 @@ local cases = {
         ["(#(+ $ 2) 3)"]=5,
         -- Mixed $ types
         ["(let [f #(+ $ $1 $2)] (f 1 2))"]=4,
+        -- Multisyms containing $ arguments
+        ["(#$.foo {:foo :bar})"]="bar",
+        ["(#$2.foo.bar.baz nil {:foo {:bar {:baz :quux}}})"]="quux",
     },
     methodcalls = {
         -- multisym method call

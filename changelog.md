@@ -22,6 +22,7 @@ syntax and the requirement of auto-gensym for identifiers in backtick.
 * Replace `@` (unquote) with `,`; comma is **no longer** whitespace
 * **Disallow** `~` in symbols other than `~=`
 * Add `hashfn` and `#` reader macro for shorthand functions like `#(+ $1 $2)`
+* Allow hashfn arguments to be used in multisyms
 * Add `macro` to make defining a single macro easier
 * Add `(comment)` special which emits a Lua comment in the generated source
 * Allow lua-style method calls like `(foo:bar baz)`. **Disallow** `:` in symbols.

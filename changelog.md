@@ -2,8 +2,12 @@
 
 ## 0.3.0 / ??
 
-* **Disallow** non-gensym identifiers in backtick/macros.
-* Support `x#` syntax for auto-gensym inside backtick.
+This release introduces several new features to the macro system as
+well as some breaking changes; the most significant being the new unquote
+syntax and the requirement of auto-gensym for identifiers in backtick.
+
+* **Disallow** non-gensym identifiers in backtick/macros
+* Support `x#` syntax for auto-gensym inside backtick
 * Fix a bug in `lambda` arity checks when using destructuring
 * Support `:one-line` output in fennelview
 * Add `--eval` argument to command-line launcher
@@ -16,8 +20,7 @@
 * Improve code generation for `if` expressions in many situations
 * Alias `#` special with `length`
 * Replace `@` (unquote) with `,`; comma is **no longer** whitespace
-* **Disallow** `~` in symbols
-* **Remove** `~=` special; use `not=` instead
+* **Disallow** `~` in symbols other than `~=`
 * Add `hashfn` and `#` reader macro for shorthand functions like `#(+ $1 $2)`
 * Add `macro` to make defining a single macro easier
 * Add `(comment)` special which emits a Lua comment in the generated source
@@ -25,12 +28,18 @@
 
 ## 0.2.1 / 2019-01-22
 
+This release mostly contains small bug fixes.
+
 * Add `not=` as an alias for `~=`
 * Fix a bug with `in-scope?` which caused `match` outer unification to fail
 * Fix a bug with variadic `~=` comparisons
 * Improve error reporting for mismatched delimiters
 
 ## 0.2.0 / 2019-01-17
+
+The second minor release introduces backtick, making macro authoring
+much more streamlined. Macros may now be defined in the same file, and
+pattern matching is added.
 
 * Prevent creation of bindings that collide with special forms and macros.
 * Make parens around steps optional in arrow macros for single-arg calls
@@ -46,11 +55,18 @@
 
 ## 0.1.1 / 2018-12-05
 
+This release contains a few small bug fixes.
+
 * Fix luarocks packaging so repl includes fennelview
 * Fix bug in the repl where locals-saving would fail for certain input
 * Fix launcher to write errors to stderr, not stdout
 
 ## 0.1.0 / 2018-11-29
+
+The first real release sees the addition of several "creature comfort"
+improvements such as comments, iterator support, line number tracking,
+accidental global protection, pretty printing, and repl locals. It
+also introduces the name "Fennel".
 
 * Save locals in between chunks in the repl
 * Allow destructuring in more places
@@ -84,4 +100,5 @@
 
 ## 0.0.1 / 2016-08-14
 
-* Initial version (named "fnl") created in 2 weeks
+The initial version (named "fnl") was created in 8 days and then
+set aside for several years.

@@ -492,7 +492,7 @@ name where `:` separates the table variable and method name.
 
 Example:
 
-```
+```fennel
 (let [f (assert (io.open "hello" "w"))]
   (f:write "world")
   (f:close))

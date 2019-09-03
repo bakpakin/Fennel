@@ -118,6 +118,9 @@ local cases = {
         ["(var a 884) (when nil (set a 192)) a"]=884,
         -- when body does not run on false
         ["(when (= 12 88) (os.exit 1)) false"]=false,
+        -- make sure bad code isn't emitted when an always-true
+        -- condition exists in the middle of an if
+        ["(if false :y true :x :trailing :condition)"]="x",
     },
 
     core = {

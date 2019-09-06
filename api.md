@@ -1,8 +1,8 @@
-## Fennel's Lua API
+# Fennel's Lua API
 
 The `fennel` module provides the following functions.
 
-### Start a configurable repl
+## Start a configurable repl
 
 ```lua
 fennel.repl([options])
@@ -32,7 +32,7 @@ If you don't provide `allowedGlobals` then it defaults to being all
 the globals in the environment under which the code will run. Passing
 in `false` here will disable global checking entirely.
 
-### Evaulate a string of Fennel
+## Evaulate a string of Fennel
 
 ```lua
 local result = fennel.eval(str[, options[, ...]])
@@ -47,7 +47,7 @@ The `options` table may contain:
 Additional arguments beyond `options` are passed to the code and
 available as `...`.
 
-### Evaluate a file of Fennel
+## Evaluate a file of Fennel
 
 ```lua
 local result = fennel.dofile(filename[, options[, ...]])
@@ -56,7 +56,7 @@ local result = fennel.dofile(filename[, options[, ...]])
 The `env` key in `options` and the additional arguments after it work
 the same as with `eval` above.
 
-### Use Lua's built-in require function
+## Use Lua's built-in require function
 
 ```lua
 table.insert(package.loaders or package.searchers, fennel.searcher)
@@ -77,7 +77,7 @@ If you install Fennel into `package.loaders` then you can use the
 3rd-party [lume.hotswap][1] function to reload modules that have been
 loaded with `require`.
 
-### Compile a string into Lua (can throw errors)
+## Compile a string into Lua (can throw errors)
 
 ```lua
 local lua = fennel.compileString(str[, options])
@@ -89,7 +89,7 @@ provided. Unlike the other functions, the `compile` functions default
 to performing no global checks, though you can pass in an `allowedGlobals`
 table in `options` to enable it.
 
-### Compile an iterator of bytes into a string of Lua (can throw errors)
+## Compile an iterator of bytes into a string of Lua (can throw errors)
 
 ```lua
 local lua = fennel.compileStream(strm[, options])
@@ -97,7 +97,7 @@ local lua = fennel.compileStream(strm[, options])
 
 Accepts `indent` in `options` as per above.
 
-### Compile a data structure (AST) into Lua source code (can throw errors)
+## Compile a data structure (AST) into Lua source code (can throw errors)
 
 The code can be loaded via dostring or other methods. Will error on bad input.
 
@@ -107,13 +107,13 @@ local lua = fennel.compile(ast[, options])
 
 Accepts `indent` in `options` as per above.
 
-### Get an iterator over the bytes in a string
+## Get an iterator over the bytes in a string
 
 ```lua
 local stream = fennel.stringStream(str)
 ```
     
-### Converts an iterator for strings into an iterator over their bytes
+## Converts an iterator for strings into an iterator over their bytes
 
 Useful for the REPL or reading files in chunks. This will NOT insert
 newlines or other whitespace between chunks, so be careful when using
@@ -125,7 +125,7 @@ a repl.
 local bytestream, clearstream = fennel.granulate(chunks)
 ```
     
-### Converts a stream of bytes to a stream of values
+## Converts a stream of bytes to a stream of values
 
 Valuestream gets the next top level value parsed.
 Returns true in the first return value if a value was read, and

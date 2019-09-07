@@ -386,7 +386,14 @@ local cases = {
         ["(let [x {:y :z}] (match :z x.y 1 _ 0))"]=1,
         -- never unify underscore
         ["(let [_ :bar] (match :foo _ :should-match :foo :no))"]="should-match",
-    }
+    },
+    fennelview = { -- generative fennelview tests are also below
+        ["((require :fennelview) {:a 1 :b 52})"]="{\n  :a 1\n  :b 52\n}",
+        ["((require :fennelview) {:a 1 :b 5} {:one-line true})"]="{:a 1 :b 5}",
+        ["((require :fennelview) (let [t {}] [t t]))"]="[ {} #<table 2> ]",
+        ["((require :fennelview) (let [t {}] [t t]) {:detect-cycles? false})"]=
+            "[ {} {} ]",
+    },
 }
 
 for name, tests in pairs(cases) do

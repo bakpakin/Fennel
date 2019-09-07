@@ -6,6 +6,7 @@ This release introduces several new features to the macro system as
 well as some breaking changes; the most significant being the new unquote
 syntax and the requirement of auto-gensym for identifiers in backtick.
 
+* Support `:detect-cycles? false` in fennelview to turn off "#<table 1>" output
 * **Disallow** non-gensym identifiers in backtick/macros
 * Support `x#` syntax for auto-gensym inside backtick
 * Fix a bug in `lambda` arity checks when using destructuring
@@ -25,7 +26,7 @@ syntax and the requirement of auto-gensym for identifiers in backtick.
 * Allow hashfn arguments to be used in multisyms
 * Add `macro` to make defining a single macro easier
 * Add `(comment)` special which emits a Lua comment in the generated source
-* Allow lua-style method calls like `(foo:bar baz)`. **Disallow** `:` in symbols.
+* Allow lua-style method calls like `(foo:bar baz)`; **disallow** `:` in symbols
 
 ## 0.2.1 / 2019-01-22
 

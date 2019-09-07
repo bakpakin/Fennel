@@ -124,7 +124,7 @@
   (puts self "}"))
 
 (fn put-table [self t]
-  (if (already-visited? self t)
+  (if (and (already-visited? self t) self.detect-cycles?)
       (puts self "#<table " (get-id self t) ">")
       (>= self.level self.depth)
       (puts self "{...}")
@@ -134,8 +134,8 @@
         ;; fancy metatable stuff can result in self.appearances not including a
         ;; table, so if it's not found, assume we haven't seen it; we can't do
         ;; cycle detection in that case.
-        (if (and (. self.appearances t) (> (. self.appearances t) 1))
-            (puts self "#<" id ">")
+        (if (and (< 1 (or (. self.appearances t) 0)) self.detect-cycles?)
+            (puts self "#<table" id ">")
             (and (= (length non-seq-keys) 0) (= (length t) 0))
             (puts self "{}")
             (= (length non-seq-keys) 0)
@@ -170,7 +170,8 @@
         inspector {:appearances (count-table-appearances root {})
                    :depth (or options.depth 128)
                    :level 0 :buffer {} :ids {} :max-ids {}
-                   :indent (or options.indent (if options.one-line "" "  "))}]
+                   :indent (or options.indent (if options.one-line "" "  "))
+                   :detect-cycles? (not (= false options.detect-cycles?))}]
     (put-value inspector root)
     (let [str (table.concat inspector.buffer)]
       (if options.one-line (one-line str) str))))

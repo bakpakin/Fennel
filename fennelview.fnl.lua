@@ -84,7 +84,7 @@ local function puts(self, ...)
   return nil
 end
 local function tabify(self)
-  return puts(self, "\n", self.indent:rep(self.level))
+  return puts(self, "\n", (self.indent):rep(self.level))
 end
 local function already_visited_3f(self, v)
   return (self.ids[v] ~= nil)
@@ -136,15 +136,15 @@ local function put_kv_table(self, t, ordered_keys)
   return puts(self, "}")
 end
 local function put_table(self, t)
-  if already_visited_3f(self, t) then
+  if (already_visited_3f(self, t) and self["detect-cycles?"]) then
     return puts(self, "#<table ", get_id(self, t), ">")
   elseif (self.level >= self.depth) then
     return puts(self, "{...}")
   elseif "else" then
     local non_seq_keys, len = get_nonsequential_keys(t)
     local id = get_id(self, t)
-    if (self.appearances[t] and (self.appearances[t] > 1)) then
-      return puts(self, "#<", id, ">")
+    if ((1 < (self.appearances[t] or 0)) and self["detect-cycles?"]) then
+      return puts(self, "#<table", id, ">")
     elseif ((#non_seq_keys == 0) and (#t == 0)) then
       return puts(self, "{}")
     elseif (#non_seq_keys == 0) then
@@ -181,7 +181,7 @@ local function fennelview(root, options)
       return "  "
     end
   end
-  inspector = {["max-ids"] = {}, appearances = count_table_appearances(root, {}), buffer = {}, depth = (options.depth or 128), ids = {}, indent = (options.indent or _1_()), level = 0}
+  inspector = {["detect-cycles?"] = not (false == options["detect-cycles?"]), ["max-ids"] = {}, appearances = count_table_appearances(root, {}), buffer = {}, depth = (options.depth or 128), ids = {}, indent = (options.indent or _1_()), level = 0}
   put_value(inspector, root)
   do
     local str = table.concat(inspector.buffer)

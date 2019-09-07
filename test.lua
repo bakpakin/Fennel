@@ -246,7 +246,9 @@ local cases = {
         -- Values special in array literal
         ["(length [(values 1 2 3 4 5)])"]=5,
         ["(let [x (if 3 4 5)] x)"]=4,
-        ["(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) (xyz (if (and c1 c2) true false) 52))"]=52
+        ["(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) (xyz (if (and c1 c2) true false) 52))"]=52,
+        -- Ambiguous Lua syntax generated
+        ["(let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil)"]=nil
     },
 
     macros = {

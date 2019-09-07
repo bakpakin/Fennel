@@ -825,7 +825,8 @@ local function keepSideEffects(exprs, chunk, start, ast)
         if se.type == 'expression' and se[1] ~= 'nil' then
             emit(chunk, ('do local _ = %s end'):format(tostring(se)), ast)
         elseif se.type == 'statement' then
-            emit(chunk, tostring(se), ast)
+            local code = tostring(se)
+            emit(chunk, code:byte() == 40 and (";" .. code) or code , ast)
         end
     end
 end

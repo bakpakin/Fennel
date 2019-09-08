@@ -645,23 +645,32 @@ end
 
 print("Running tests for metadata and docstrings...")
 local docstring_tests = {
-    ['(doc (fn [] :A 1))'] = {'(_0_)\\n  A', 'no anonymous fn docstring mistmatch'},
-    ['(doc (λ [a] :B :ret-str))'] = {'(_0_ a)\\n  B', 'no anonymous lambda docstring mistmatch'},
+    ['(doc (fn foo [a] :C 1))'] = {'(foo a)\\n  C',
+      'for named functions, (doc fnname) shows name, args invocation, docstring'
+    },
+    ['(doc (λ foo [] :D 1))'] = {'(foo)\\n  D',
+      '(doc fnname) for named lambdas appear like named functions'
+    },
+    ['(doc (fn [] :A 1))'] = {'(<fn:anonymous>)\\n  A',
+      'anonymous functions show fn name in doc as <fn:anonymous>'
+    },
+    ['(doc (λ [a] :B :ret-str))'] = {'(<fn:anonymous> a)\\n  B',
+      'anonymous lambdas show fn name in doc as <fn:anonymous>'
+    },
     -- TODO: set correct fnName based on assigned var/prop name and use following test
     -- ['(local foo (fn [a] :C 1)) (doc foo)'] = {'(foo a)\\n  C', 'named/non-local fn docstring mismatch'},
-    ['(doc (fn foo [a] :C 1))'] = {'(foo a)\\n  C', 'no named fn docstring mismatch'},
-    ['(doc (λ foo [] :D 1))'] = {'(foo)\\n  D', 'no anonymous lambda docstring mistmatch'},
-    ['(doc (fn [] "return str"))'] = {
-        '(_0_)\\n  <nil>', "do not confuse returned string for docstring in undocumented fn"
+    ['(doc (fn [] "return str"))'] = {'(<fn:anonymous>)\\n  <docstring:nil>',
+      "should not confuse returned string for docstring in undocumented fn"
     },
-    ['(doc (fn ml [] "a\nmultiline\ndocstring" :result))'] = {
-        '(ml)\\n  a\\nmultiline\\ndocstring', 'multiline docstrings'
+    ['(doc (fn ml [] "a\nmultiline\ndocstring" :result))'] = {'(ml)\\n  a\\nmultiline\\ndocstring',
+        'multiline docstrings work correctly'
     },
     [ '(doc (fn ew [] "so \\"gross\\" \\\\\\\"I\\\\\\\" can\'t even" 1))' ] = {
-        '(ew)\\n  so "gross" \\"I\\" can\'t even', 'docstring escaping'
+        '(ew)\\n  so "gross" \\"I\\" can\'t even',
+        'docstrings should be auto-escaped'
     },
     ['(doc (fn foo! [-kebab- {:x x}] 1))'] = {
-        "(foo_21 _kebab_ _0_0)\\n  <nil>",
+        "(foo! -kebab- <table>)\\n  <docstring:nil>",
         "fn-name and args mangling",
     },
 }
@@ -671,8 +680,8 @@ for k, v in pairs(_ENV or _G) do doc_env[k] = v end
 doc_env.doc = function(fn)
     local fnName = fennel.metadata:get(fn, 'fnl/fn-name')
     local arglist = table.concat(fennel.metadata:get(fn, 'fnl/arglist') or '', ' ')
-    local docstring = fennel.metadata:get(fn, 'fnl/docstring') or '<nil>'
-    return string.format('(%s%s%s)\n  %s', fnName, #arglist > 0 and ' ' or '', arglist, docstring)
+    local docstring = fennel.metadata:get(fn, 'fnl/docstring') or '<docstring:nil>'
+    return string.format('(%s%s%s)\n  %s', fnName or '<fn:anonymous>', #arglist > 0 and ' ' or '', arglist, docstring)
 end
 doc_env.require = function(tgt)
     if tgt == "fennel" then return fennel else return require(tgt) end

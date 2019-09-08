@@ -831,10 +831,10 @@ end
 
 local metadata = makeMetadata()
 local doc = function(tgt)
-    local fnName = metadata:get(tgt, 'fnl/fn-name')
+    local fnName = metadata:get(tgt, 'fnl/fn-name') or '<fn:anonymous>'
     local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or {}, ' ')
-    local docstring = (metadata:get(tgt, 'fnl/docstring') or ''):gsub('\n$', ''):gsub('\n', '\n  ')
-    print(string.format("(%s%s%s)\n  %s",
+    local docstring = (metadata:get(tgt, 'fnl/docstring') or '<docstring:nil>'):gsub('\n$', ''):gsub('\n', '\n  ')
+    print(string.format("(%s%s%s)\n  %s\n",
         fnName, #arglist > 0 and ' ' or '', arglist, docstring))
 end
 -- Convert expressions to Lua string
@@ -1290,6 +1290,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local fnName = isSym(ast[index])
     local isLocalFn
     local docstring
+    local fnNameString = fnName and tostring(fnName) or nil
     fScope.vararg = false
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not isMultiSym(fnName[1])
@@ -1345,11 +1346,14 @@ SPECIALS['fn'] = function(ast, scope, parent)
     emit(parent, 'end', ast)
 
     if rootOptions.useMetadata then
-        local arglist = {}
-        for i, v in ipairs(argNameList) do arglist[i] = string.format('"%s"', v:gsub('"', '\\"')) end
+        local args = {}
+        for i, v in ipairs(argList) do
+          args[i] =  isTable(argList[i]) and '"<table>"' or string.format('"%s"', tostring(argList[i]))
+        end
+
         local metaFields = {
-            '"fnl/fn-name"', '"' .. fnName .. '"',
-            '"fnl/arglist"', '{' .. table.concat(arglist, ', ') .. '}',
+            '"fnl/fn-name"', fnNameString and '"' .. fnNameString .. '"' or 'nil',
+            '"fnl/arglist"', '{' .. table.concat(args, ', ') .. '}',
         }
         if docstring then
             metaFields[5] = '"fnl/docstring"'

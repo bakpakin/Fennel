@@ -1348,7 +1348,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
     if rootOptions.useMetadata then
         local args = {}
         for i, v in ipairs(argList) do
-          args[i] =  isTable(argList[i]) and '"<table>"' or string.format('"%s"', tostring(argList[i]))
+          args[i] =  isTable(v) and '"<table>"' or string.format('"%s"', tostring(v))
         end
 
         local metaFields = {

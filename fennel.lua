@@ -1357,7 +1357,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
         local args = {}
         for i, v in ipairs(argList) do
             -- TODO: show destructured args properly instead of replacing
-            args[i] =  isTable(v) and '"<table>"' or string.format('"%s"', tostring(v))
+            args[i] =  isTable(v) and '"#<table>"' or string.format('"%s"', tostring(v))
         end
 
         local metaFields = {

@@ -676,7 +676,7 @@ local docstring_tests = {
         'docstrings should be auto-escaped'
     },
     ['(doc (fn foo! [-kebab- {:x x}] 1))'] = {
-        "(foo! -kebab- <table>)\\n  <docstring:nil>",
+        "(foo! -kebab- #<table>)\\n  <docstring:nil>",
         "fn-name and args mangling",
     },
 }

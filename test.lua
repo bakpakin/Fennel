@@ -1,6 +1,7 @@
 -- don't use require; that will pick up luarocks-installed module, not checkout
 local fennel = dofile("fennel.lua")
 table.insert(package.loaders or package.searchers, fennel.searcher)
+package.loaded.fennel = fennel
 local generate = fennel.dofile("generate.fnl")
 local view = fennel.dofile("fennelview.fnl")
 
@@ -680,9 +681,9 @@ local docstring_tests = {
     },
 }
 
-local doc_env = {}
-for k, v in pairs(_ENV or _G) do doc_env[k] = v end
-doc_env.doc = function(fn)
+-- TODO: use real fennel.doc here and replace print so it saves off the output
+-- to check against
+local mockdoc = function(fn)
     local fnName = fennel.metadata:get(fn, 'fnl/fn-name')
     local arglist = table.concat(fennel.metadata:get(fn, 'fnl/arglist') or '', ' ')
     local docstring = fennel.metadata:get(fn, 'fnl/docstring') or '<docstring:nil>'
@@ -690,24 +691,22 @@ doc_env.doc = function(fn)
                          #arglist > 0 and ' ' or '',
                          arglist, docstring)
 end
-doc_env.require = function(tgt)
-    if tgt == "fennel" then return fennel else return require(tgt) end
-end
+
+local doc_env = setmetatable({ doc = mockdoc }, { __index = _G })
+
 for code, cond_msg in pairs(docstring_tests) do
     local expected, msg = (unpack or table.unpack)(cond_msg)
     local ok, actual = pcall(fennel.eval, code, { useMetadata = true, env = doc_env })
     actual = string.gsub(actual or '<nil>', '\n', '\\n')
     if ok and expected == actual then
         pass = pass + 1
+    elseif ok then
+        fail = fail + 1
+        print(string.format('While testing %s,\n\tExpected "%s" to be "%s"',
+                            msg, actual, expected))
     else
-        if ok then
-            fail = fail + 1
-            print(string.format('While testing %s,\n\tExpected "%s" to be "%s"',
-                                msg, actual, expected))
-        else
-            err = err + 1
-            print(string.format('While testing %s, got error:\n\t%s', msg, actual))
-        end
+        err = err + 1
+        print(string.format('While testing %s, got error:\n\t%s', msg, actual))
     end
 end
 

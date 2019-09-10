@@ -285,7 +285,8 @@ local function parser(getbyte, filename)
                 until not b or b == 10 -- newline
             elseif type(delims[b]) == 'number' then -- Opening delimiter
                 if not whitespaceSinceDispatch then
-                    parseError('expected whitespace before opening delimiter ' .. string.char(b))
+                    parseError('expected whitespace before opening delimiter '
+                                   .. string.char(b))
                 end
                 table.insert(stack, setmetatable({
                     closer = delims[b],
@@ -294,7 +295,8 @@ local function parser(getbyte, filename)
                     bytestart = byteindex
                 }, LIST_MT))
             elseif delims[b] then -- Closing delimiter
-                if #stack == 0 then parseError('unexpected closing delimiter ' .. string.char(b)) end
+                if #stack == 0 then parseError('unexpected closing delimiter '
+                                                   .. string.char(b)) end
                 local last = stack[#stack]
                 local val
                 if last.closer ~= b then
@@ -347,7 +349,8 @@ local function parser(getbyte, filename)
                 local formatted = raw:gsub("[\1-\31]", function (c) return '\\' .. c:byte() end)
                 local loadFn = loadCode(('return %s'):format(formatted), nil, filename)
                 dispatch(loadFn())
-            elseif prefixes[b] then -- expand prefix byte into wrapping form eg. '`a' into '(quote a)'
+            elseif prefixes[b] then
+                -- expand prefix byte into wrapping form eg. '`a' into '(quote a)'
                 table.insert(stack, {
                     prefix = prefixes[b]
                 })
@@ -821,7 +824,9 @@ local function makeMetadata()
             end,
             setall = function(self, tgt, ...)
                 local kvLen, kvs = select('#', ...), {...}
-                if kvLen % 2 ~= 0 then error('metadata:setall() expected even numbero of k/v pairs') end
+                if kvLen % 2 ~= 0 then
+                    error('metadata:setall() expected even number of k/v pairs')
+                end
                 self[tgt] = self[tgt] or {}
                 for i = 1, kvLen, 2 do self[tgt][kvs[i]] = kvs[i + 1] end
                 return tgt
@@ -833,7 +838,8 @@ local metadata = makeMetadata()
 local doc = function(tgt)
     local fnName = metadata:get(tgt, 'fnl/fn-name') or '<fn:anonymous>'
     local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or {}, ' ')
-    local docstring = (metadata:get(tgt, 'fnl/docstring') or '<docstring:nil>'):gsub('\n$', ''):gsub('\n', '\n  ')
+    local docstring = (metadata:get(tgt, 'fnl/docstring') or
+                           '<docstring:nil>'):gsub('\n$', ''):gsub('\n', '\n  ')
     print(string.format("(%s%s%s)\n  %s\n",
         fnName, #arglist > 0 and ' ' or '', arglist, docstring))
 end
@@ -943,8 +949,9 @@ local function compile1(ast, scope, parent, opts)
             -- as well as lists or expressions
             if type(exprs) == 'string' then exprs = expr(exprs, 'expression') end
             if getmetatable(exprs) == EXPR_MT then exprs = {exprs} end
-            -- Unless the special form explicitly handles the target, tail, and nval properties,
-            -- (indicated via the 'returned' flag), handle these options.
+            -- Unless the special form explicitly handles the target, tail, and
+            -- nval properties, (indicated via the 'returned' flag), handle
+            -- these options.
             if not exprs.returned then
                 exprs = handleCompileOpts(exprs, parent, opts, ast)
             elseif opts.tail or opts.target then
@@ -1117,7 +1124,8 @@ local function destructure(to, from, ast, scope, parent, opts)
                 -- A single leaf emitted means an simple assignment a = x was emitted
                 parent[#parent].leaf = 'local ' .. parent[#parent].leaf
             else
-                table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue .. ' = ' .. init, ast = ast})
+                table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue ..
+                                                     ' = ' .. init, ast = ast})
             end
         end
         return ret
@@ -1360,8 +1368,9 @@ SPECIALS['fn'] = function(ast, scope, parent)
             metaFields[6] = '"' .. docstring:gsub('%s+$', '')
                 :gsub('\\', '\\\\'):gsub('\n', '\\n'):gsub('"', '\\"') .. '"'
         end
-        local metaStr = 'require("fennel").metadata' --:set(%s, %s, "%s"):set(%s, %s, %s)'
-        emit(parent, string.format('%s:setall(%s, %s)', metaStr, fnName, table.concat(metaFields, ', ')))
+        local metaStr = 'require("fennel").metadata'
+        emit(parent, string.format('%s:setall(%s, %s)', metaStr,
+                                   fnName, table.concat(metaFields, ', ')))
     end
 
     return expr(fnName, 'sym')
@@ -1742,7 +1751,8 @@ SPECIALS['hashfn'] = function(ast, scope, parent)
     compile1(ast[2], fScope, fChunk, {tail = true})
     local maxUsed = 0
     for i = 1, 9 do if fScope.symmeta['$' .. i].used then maxUsed = i end end
-    emit(parent, ('local function %s(%s)'):format(name, table.concat(args, ', ', 1, maxUsed)), ast)
+    local argStr = table.concat(args, ', ', 1, maxUsed)
+    emit(parent, ('local function %s(%s)'):format(name, argStr), ast)
     emit(parent, fChunk, ast)
     emit(parent, 'end', ast)
     return expr(name, 'sym')
@@ -2229,8 +2239,10 @@ local function repl(options)
         -- adds any matching keys from the provided generator/iterator to matches
         local function addMatchesFromGen(next, param, state)
           for k in next, param, state do
-            if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming output
-            elseif inputFragment == k:sub(0, #inputFragment):lower() then table.insert(matches, k) end
+            if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming
+            elseif inputFragment == k:sub(0, #inputFragment):lower() then
+                table.insert(matches, k)
+            end
           end
         end
         addMatchesFromGen(pairs(env._ENV or env._G or {}))

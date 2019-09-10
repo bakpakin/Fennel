@@ -20,13 +20,16 @@ Run fennel, a lisp programming language for the Lua runtime.
   --globals G1[,G2...]    : Allow these globals in addition to standard ones
   --globals-only G1[,G2]  : Same as above, but exclude standard ones
   --require-as-include    : Inline required modules in the output
-  --metadata              : Enable function metadata, even in compiled output (not recommended in production)
+  --metadata              : Enable function metadata, even in compiled output
   --no-metadata           : Disable function metadata, even in REPL
 
   --eval SOURCE (-e)      : Evaluate source code and print the result
 
   --help (-h)             : Display this text
   --version (-v)          : Show version
+
+  Metadata is typically considered a development feature and is not recommended
+  for production.
 
   When not given a flag, runs the file given as the first argument.
   When given neither flag nor file, launches a repl.

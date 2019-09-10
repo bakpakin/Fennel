@@ -246,9 +246,10 @@ local cases = {
         -- Values special in array literal
         ["(length [(values 1 2 3 4 5)])"]=5,
         ["(let [x (if 3 4 5)] x)"]=4,
-        ["(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) (xyz (if (and c1 c2) true false) 52))"]=52,
         -- Ambiguous Lua syntax generated
-        ["(let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil)"]=nil
+        ["(let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil)"]=nil,
+        ["(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) " ..
+         "(xyz (if (and c1 c2) true false) 52))"]=52
     },
 
     macros = {
@@ -319,9 +320,11 @@ local cases = {
     },
     methodcalls = {
         -- multisym method call
-        ["(let [x {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}] (x:foo :quux))"]="bazquux",
+        ["(let [x {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}] (x:foo :quux))"]=
+            "bazquux",
         -- multisym method call on property
-        ["(let [x {:y {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}}] (x.y:foo :quux))"]="bazquux",
+        ["(let [x {:y {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}}] (x.y:foo :quux))"]=
+            "bazquux",
     },
     match = {
         -- basic literal
@@ -658,11 +661,13 @@ local docstring_tests = {
       'anonymous lambdas show fn name in doc as <fn:anonymous>'
     },
     -- TODO: set correct fnName based on assigned var/prop name and use following test
-    -- ['(local foo (fn [a] :C 1)) (doc foo)'] = {'(foo a)\\n  C', 'named/non-local fn docstring mismatch'},
+    -- ['(local foo (fn [a] :C 1)) (doc foo)'] = {'(foo a)\\n  C',
+    -- 'named/non-local fn docstring mismatch'},
     ['(doc (fn [] "return str"))'] = {'(<fn:anonymous>)\\n  <docstring:nil>',
       "should not confuse returned string for docstring in undocumented fn"
     },
-    ['(doc (fn ml [] "a\nmultiline\ndocstring" :result))'] = {'(ml)\\n  a\\nmultiline\\ndocstring',
+    ['(doc (fn ml [] "a\nmultiline\ndocstring" :result))'] =
+        {'(ml)\\n  a\\nmultiline\\ndocstring',
         'multiline docstrings work correctly'
     },
     [ '(doc (fn ew [] "so \\"gross\\" \\\\\\\"I\\\\\\\" can\'t even" 1))' ] = {
@@ -681,7 +686,9 @@ doc_env.doc = function(fn)
     local fnName = fennel.metadata:get(fn, 'fnl/fn-name')
     local arglist = table.concat(fennel.metadata:get(fn, 'fnl/arglist') or '', ' ')
     local docstring = fennel.metadata:get(fn, 'fnl/docstring') or '<docstring:nil>'
-    return string.format('(%s%s%s)\n  %s', fnName or '<fn:anonymous>', #arglist > 0 and ' ' or '', arglist, docstring)
+    return string.format('(%s%s%s)\n  %s', fnName or '<fn:anonymous>',
+                         #arglist > 0 and ' ' or '',
+                         arglist, docstring)
 end
 doc_env.require = function(tgt)
     if tgt == "fennel" then return fennel else return require(tgt) end
@@ -695,7 +702,8 @@ for code, cond_msg in pairs(docstring_tests) do
     else
         if ok then
             fail = fail + 1
-            print(string.format('While testing %s,\n\tExpected "%s" to be "%s"', msg, actual, expected))
+            print(string.format('While testing %s,\n\tExpected "%s" to be "%s"',
+                                msg, actual, expected))
         else
             err = err + 1
             print(string.format('While testing %s, got error:\n\t%s', msg, actual))

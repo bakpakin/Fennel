@@ -826,7 +826,7 @@ local function keepSideEffects(exprs, chunk, start, ast)
             emit(chunk, ('do local _ = %s end'):format(tostring(se)), ast)
         elseif se.type == 'statement' then
             local code = tostring(se)
-            emit(chunk, code:byte() == 40 and (";" .. code) or code , ast)
+            emit(chunk, code:byte() == 40 and ("do end " .. code) or code , ast)
         end
     end
 end
@@ -1423,7 +1423,8 @@ SPECIALS['tset'] = function(ast, scope, parent)
     end
     local value = compile1(ast[#ast], scope, parent, {nval = 1})[1]
     local rootstr = tostring(root)
-    local fmtstr = (rootstr:match('^{')) and '(%s)[%s] = %s' or '%s[%s] = %s'
+    -- Prefix 'do end ' so parens are not ambiguous (grouping or function call?)
+    local fmtstr = (rootstr:match('^{')) and 'do end (%s)[%s] = %s' or '%s[%s] = %s'
     emit(parent, fmtstr:format(tostring(root),
                                table.concat(keys, ']['),
                                tostring(value)), ast)

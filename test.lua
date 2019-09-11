@@ -1,6 +1,7 @@
 -- don't use require; that will pick up luarocks-installed module, not checkout
 local fennel = dofile("fennel.lua")
 table.insert(package.loaders or package.searchers, fennel.searcher)
+package.loaded.fennel = fennel
 local generate = fennel.dofile("generate.fnl")
 local view = fennel.dofile("fennelview.fnl")
 
@@ -246,9 +247,10 @@ local cases = {
         -- Values special in array literal
         ["(length [(values 1 2 3 4 5)])"]=5,
         ["(let [x (if 3 4 5)] x)"]=4,
-        ["(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) (xyz (if (and c1 c2) true false) 52))"]=52,
         -- Ambiguous Lua syntax generated
-        ["(let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil)"]=nil
+        ["(let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil)"]=nil,
+        ["(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) " ..
+         "(xyz (if (and c1 c2) true false) 52))"]=52
     },
 
     macros = {
@@ -319,9 +321,11 @@ local cases = {
     },
     methodcalls = {
         -- multisym method call
-        ["(let [x {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}] (x:foo :quux))"]="bazquux",
+        ["(let [x {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}] (x:foo :quux))"]=
+            "bazquux",
         -- multisym method call on property
-        ["(let [x {:y {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}}] (x.y:foo :quux))"]="bazquux",
+        ["(let [x {:y {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}}] (x.y:foo :quux))"]=
+            "bazquux",
     },
     match = {
         -- basic literal
@@ -638,6 +642,71 @@ for k, v in pairs(quoting_tests) do
     else
         print(errorformat:format(message, k, ans, compiled))
         fail = fail + 1
+    end
+end
+
+---- docstring tests ----
+
+print("Running tests for metadata and docstrings...")
+local docstring_tests = {
+    ['(doc (fn foo [a] :C 1))'] = {'(foo a)\\n  C',
+      'for named functions, (doc fnname) shows name, args invocation, docstring'
+    },
+    ['(doc (λ foo [] :D 1))'] = {'(foo)\\n  D',
+      '(doc fnname) for named lambdas appear like named functions'
+    },
+    ['(doc (fn [] :A 1))'] = {'(<fn:anonymous>)\\n  A',
+      'anonymous functions show fn name in doc as <fn:anonymous>'
+    },
+    ['(doc (λ [a] :B :ret-str))'] = {'(<fn:anonymous> a)\\n  B',
+      'anonymous lambdas show fn name in doc as <fn:anonymous>'
+    },
+    -- TODO: set correct fnName based on assigned var/prop name and use following test
+    -- ['(local foo (fn [a] :C 1)) (doc foo)'] = {'(foo a)\\n  C',
+    -- 'named/non-local fn docstring mismatch'},
+    ['(doc (fn [] "return str"))'] = {'(<fn:anonymous>)\\n  <docstring:nil>',
+      "should not confuse returned string for docstring in undocumented fn"
+    },
+    ['(doc (fn ml [] "a\nmultiline\ndocstring" :result))'] =
+        {'(ml)\\n  a\\nmultiline\\ndocstring',
+        'multiline docstrings work correctly'
+    },
+    [ '(doc (fn ew [] "so \\"gross\\" \\\\\\\"I\\\\\\\" can\'t even" 1))' ] = {
+        '(ew)\\n  so "gross" \\"I\\" can\'t even',
+        'docstrings should be auto-escaped'
+    },
+    ['(doc (fn foo! [-kebab- {:x x}] 1))'] = {
+        "(foo! -kebab- #<table>)\\n  <docstring:nil>",
+        "fn-name and args mangling",
+    },
+}
+
+-- TODO: use real fennel.doc here and replace print so it saves off the output
+-- to check against
+local mockdoc = function(fn)
+    local fnName = fennel.metadata:get(fn, 'fnl/fn-name')
+    local arglist = table.concat(fennel.metadata:get(fn, 'fnl/arglist') or '', ' ')
+    local docstring = fennel.metadata:get(fn, 'fnl/docstring') or '<docstring:nil>'
+    return string.format('(%s%s%s)\n  %s', fnName or '<fn:anonymous>',
+                         #arglist > 0 and ' ' or '',
+                         arglist, docstring)
+end
+
+local doc_env = setmetatable({ doc = mockdoc }, { __index = _G })
+
+for code, cond_msg in pairs(docstring_tests) do
+    local expected, msg = (unpack or table.unpack)(cond_msg)
+    local ok, actual = pcall(fennel.eval, code, { useMetadata = true, env = doc_env })
+    actual = string.gsub(actual or '<nil>', '\n', '\\n')
+    if ok and expected == actual then
+        pass = pass + 1
+    elseif ok then
+        fail = fail + 1
+        print(string.format('While testing %s,\n\tExpected "%s" to be "%s"',
+                            msg, actual, expected))
+    else
+        err = err + 1
+        print(string.format('While testing %s, got error:\n\t%s', msg, actual))
     end
 end
 

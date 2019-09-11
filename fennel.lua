@@ -285,7 +285,8 @@ local function parser(getbyte, filename)
                 until not b or b == 10 -- newline
             elseif type(delims[b]) == 'number' then -- Opening delimiter
                 if not whitespaceSinceDispatch then
-                    parseError('expected whitespace before opening delimiter ' .. string.char(b))
+                    parseError('expected whitespace before opening delimiter '
+                                   .. string.char(b))
                 end
                 table.insert(stack, setmetatable({
                     closer = delims[b],
@@ -294,7 +295,8 @@ local function parser(getbyte, filename)
                     bytestart = byteindex
                 }, LIST_MT))
             elseif delims[b] then -- Closing delimiter
-                if #stack == 0 then parseError('unexpected closing delimiter ' .. string.char(b)) end
+                if #stack == 0 then parseError('unexpected closing delimiter '
+                                                   .. string.char(b)) end
                 local last = stack[#stack]
                 local val
                 if last.closer ~= b then
@@ -347,7 +349,8 @@ local function parser(getbyte, filename)
                 local formatted = raw:gsub("[\1-\31]", function (c) return '\\' .. c:byte() end)
                 local loadFn = loadCode(('return %s'):format(formatted), nil, filename)
                 dispatch(loadFn())
-            elseif prefixes[b] then -- expand prefix byte into wrapping form eg. '`a' into '(quote a)'
+            elseif prefixes[b] then
+                -- expand prefix byte into wrapping form eg. '`a' into '(quote a)'
                 table.insert(stack, {
                     prefix = prefixes[b]
                 })
@@ -805,6 +808,41 @@ local function flatten(chunk, options)
     end
 end
 
+-- module-wide state for metadata
+-- create metadata table with weakly-referenced keys
+local function makeMetadata()
+    return setmetatable({}, {
+        __mode = 'k',
+        __index = {
+            get = function(self, tgt, key)
+                if self[tgt] then return self[tgt][key] end
+            end,
+            set = function(self, tgt, key, value)
+                self[tgt] = self[tgt] or {}
+                self[tgt][key] = value
+                return tgt
+            end,
+            setall = function(self, tgt, ...)
+                local kvLen, kvs = select('#', ...), {...}
+                if kvLen % 2 ~= 0 then
+                    error('metadata:setall() expected even number of k/v pairs')
+                end
+                self[tgt] = self[tgt] or {}
+                for i = 1, kvLen, 2 do self[tgt][kvs[i]] = kvs[i + 1] end
+                return tgt
+            end,
+        }})
+end
+
+local metadata = makeMetadata()
+local doc = function(tgt)
+    local fnName = metadata:get(tgt, 'fnl/fn-name') or '<fn:anonymous>'
+    local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or {}, ' ')
+    local docstring = (metadata:get(tgt, 'fnl/docstring') or
+                           '<docstring:nil>'):gsub('\n$', ''):gsub('\n', '\n  ')
+    print(string.format("(%s%s%s)\n  %s\n",
+        fnName, #arglist > 0 and ' ' or '', arglist, docstring))
+end
 -- Convert expressions to Lua string
 local function exprs1(exprs)
     local t = {}
@@ -911,8 +949,9 @@ local function compile1(ast, scope, parent, opts)
             -- as well as lists or expressions
             if type(exprs) == 'string' then exprs = expr(exprs, 'expression') end
             if getmetatable(exprs) == EXPR_MT then exprs = {exprs} end
-            -- Unless the special form explicitly handles the target, tail, and nval properties,
-            -- (indicated via the 'returned' flag), handle these options.
+            -- Unless the special form explicitly handles the target, tail, and
+            -- nval properties, (indicated via the 'returned' flag), handle
+            -- these options.
             if not exprs.returned then
                 exprs = handleCompileOpts(exprs, parent, opts, ast)
             elseif opts.tail or opts.target then
@@ -1085,7 +1124,8 @@ local function destructure(to, from, ast, scope, parent, opts)
                 -- A single leaf emitted means an simple assignment a = x was emitted
                 parent[#parent].leaf = 'local ' .. parent[#parent].leaf
             else
-                table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue .. ' = ' .. init, ast = ast})
+                table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue ..
+                                                     ' = ' .. init, ast = ast})
             end
         end
         return ret
@@ -1257,6 +1297,8 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local index = 2
     local fnName = isSym(ast[index])
     local isLocalFn
+    local docstring
+    local fnNameString = fnName and tostring(fnName) or nil
     fScope.vararg = false
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not isMultiSym(fnName[1])
@@ -1290,10 +1332,14 @@ SPECIALS['fn'] = function(ast, scope, parent)
             assertCompile(false, 'expected symbol for function parameter', ast)
         end
     end
+    if type(ast[index + 1]) == 'string' and index + 1 < #ast then
+        index = index + 1
+        docstring = ast[index]
+    end
     for i = index + 1, #ast do
         compile1(ast[i], fScope, fChunk, {
             tail = i == #ast,
-            nval = i ~= #ast and 0 or nil
+            nval = i ~= #ast and 0 or nil,
         })
     end
     if isLocalFn then
@@ -1303,8 +1349,31 @@ SPECIALS['fn'] = function(ast, scope, parent)
         emit(parent, ('%s = function(%s)')
                  :format(fnName, table.concat(argNameList, ', ')), ast)
     end
+
     emit(parent, fChunk, ast)
     emit(parent, 'end', ast)
+
+    if rootOptions.useMetadata then
+        local args = {}
+        for i, v in ipairs(argList) do
+            -- TODO: show destructured args properly instead of replacing
+            args[i] =  isTable(v) and '"#<table>"' or string.format('"%s"', tostring(v))
+        end
+
+        local metaFields = {
+            '"fnl/fn-name"', fnNameString and '"' .. fnNameString .. '"' or 'nil',
+            '"fnl/arglist"', '{' .. table.concat(args, ', ') .. '}',
+        }
+        if docstring then
+            metaFields[5] = '"fnl/docstring"'
+            metaFields[6] = '"' .. docstring:gsub('%s+$', '')
+                :gsub('\\', '\\\\'):gsub('\n', '\\n'):gsub('"', '\\"') .. '"'
+        end
+        local metaStr = 'require("fennel").metadata'
+        emit(parent, string.format('%s:setall(%s, %s)', metaStr,
+                                   fnName, table.concat(metaFields, ', ')))
+    end
+
     return expr(fnName, 'sym')
 end
 
@@ -1483,7 +1552,6 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         local condchunk = {}
         local res = compile1(ast[i], doScope, condchunk, {nval = 1})
         local cond = res[1]
-        --print(ast[i], res, cond)
         local branch = compileBody(i + 1)
         branch.cond = cond
         branch.condchunk = condchunk
@@ -1666,7 +1734,6 @@ SPECIALS['comment'] = function(ast, _, parent)
         els[#els + 1] = tostring(ast[i]):gsub('\n', ' ')
     end
     emit(parent, '-- ' .. table.concat(els, ' '), ast)
-    return nil
 end
 
 SPECIALS['hashfn'] = function(ast, scope, parent)
@@ -1684,7 +1751,8 @@ SPECIALS['hashfn'] = function(ast, scope, parent)
     compile1(ast[2], fScope, fChunk, {tail = true})
     local maxUsed = 0
     for i = 1, 9 do if fScope.symmeta['$' .. i].used then maxUsed = i end end
-    emit(parent, ('local function %s(%s)'):format(name, table.concat(args, ', ', 1, maxUsed)), ast)
+    local argStr = table.concat(args, ', ', 1, maxUsed)
+    emit(parent, ('local function %s(%s)'):format(name, argStr), ast)
     emit(parent, fChunk, ast)
     emit(parent, 'end', ast)
     return expr(name, 'sym')
@@ -1928,7 +1996,7 @@ local function compileStream(strm, options)
     rootOptions = options
     for i = 1, #vals do
         local exprs = compile1(vals[i], scope, chunk, {
-            tail = i == #vals
+            tail = i == #vals,
         })
         keepSideEffects(exprs, chunk, nil, vals[i])
     end
@@ -2076,6 +2144,10 @@ local function repl(options)
         opts.allowedGlobals = currentGlobalNames(opts.env)
     end
 
+    if opts.useMetadata == nil then
+      opts.useMetadata = true
+    end
+
     local env = opts.env and wrapEnv(opts.env) or setmetatable({}, {
         __index = _ENV or _G
     })
@@ -2119,11 +2191,14 @@ local function repl(options)
                " ___i___ = ___i___ + 1",
                " else break end end"}, "\n")
 
-    local spliceSaveLocals = function(luaSource)
-        -- we do some source munging in order to save off locals from each chunk
-        -- and reintroduce them to the beginning of the next chunk, allowing
-        -- locals to work in the repl the way you'd expect them to.
-        env.___replLocals___ = env.___replLocals___ or {}
+    -- we do some source munging in order to save off locals from each chunk
+    -- and reintroduce them to the beginning of the next chunk, allowing
+    -- locals to work in the repl the way you'd expect them to.
+       local spliceSaveLocals = function(luaSource)
+        -- need to require fennel here since storing metadata comes from require
+        -- fennel, and we need to make sure we have the same module.
+        local replDoc = opts.useMetadata and require("fennel").doc
+        env.___replLocals___ = env.___replLocals___ or { doc = replDoc }
         local splicedSource = {}
         for line in luaSource:gmatch("([^\n]+)\n?") do
             table.insert(splicedSource, line)
@@ -2166,8 +2241,10 @@ local function repl(options)
         -- adds any matching keys from the provided generator/iterator to matches
         local function addMatchesFromGen(next, param, state)
           for k in next, param, state do
-            if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming output
-            elseif inputFragment == k:sub(0, #inputFragment):lower() then table.insert(matches, k) end
+            if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming
+            elseif inputFragment == k:sub(0, #inputFragment):lower() then
+                table.insert(matches, k)
+            end
           end
         end
         addMatchesFromGen(pairs(env._ENV or env._G or {}))
@@ -2193,6 +2270,7 @@ local function repl(options)
                 sourcemap = opts.sourcemap,
                 source = srcstring,
                 scope = scope,
+                useMetadata = opts.useMetadata,
             })
             if not compileOk then
                 clearstream()
@@ -2272,6 +2350,10 @@ module.makeSearcher = function(options)
       end
    end
 end
+
+-- Add metadata and docstrings to fennel module
+module.metadata = metadata
+module.doc = doc
 
 -- This will allow regular `require` to work with Fennel:
 -- table.insert(package.loaders, fennel.searcher)
@@ -2505,7 +2587,10 @@ local stdmacros = [===[
            (let [args [...]
                  has-internal-name? (sym? (. args 1))
                  arglist (if has-internal-name? (. args 2) (. args 1))
-                 arity-check-position (if has-internal-name? 3 2)]
+                 docstring-position (if has-internal-name? 3 2)
+                 has-docstring? (and (> (# args) docstring-position)
+                                     (= :string (type (. args docstring-position))))
+                 arity-check-position (- 4 (if has-internal-name? 0 1) (if has-docstring? 0 1))]
              (fn check! [a]
                (if (table? a)
                    (each [_ a (pairs a)]

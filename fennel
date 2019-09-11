@@ -20,11 +20,16 @@ Run fennel, a lisp programming language for the Lua runtime.
   --globals G1[,G2...]    : Allow these globals in addition to standard ones
   --globals-only G1[,G2]  : Same as above, but exclude standard ones
   --require-as-include    : Inline required modules in the output
+  --metadata              : Enable function metadata, even in compiled output
+  --no-metadata           : Disable function metadata, even in REPL
 
   --eval SOURCE (-e)      : Evaluate source code and print the result
 
   --help (-h)             : Display this text
   --version (-v)          : Show version
+
+  Metadata is typically considered a development feature and is not recommended
+  for production.
 
   When not given a flag, runs the file given as the first argument.
   When given neither flag nor file, launches a repl.
@@ -88,6 +93,12 @@ for i=#arg, 1, -1 do
     elseif arg[i] == "--require-as-include" then
         options.requireAsInclude = true
         table.remove(arg, i)
+    elseif arg[i] == "--metadata" then
+        options.useMetadata = true
+        table.remove(arg, i)
+    elseif arg[i] == "--no-metadata" then
+        options.useMetadata = false
+        table.remove(arg, i)
     end
 end
 
@@ -143,7 +154,8 @@ if arg[1] == "--repl" or #arg == 0 then
         -- pass in options so fennerlrc can make changes to it
         dosafe(initFilename, options, options)
     end
-    print("Fennel " .. fennel.version .. " - Welcome to Fennel!")
+    print("Welcome to Fennel " .. fennel.version .. "!\n" ..
+              "Use (doc something) to view documentation.")
     fennel.repl(options)
 elseif arg[1] == "--compile" then
     for i = 2, #arg do

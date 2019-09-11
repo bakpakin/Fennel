@@ -2,9 +2,10 @@
 
 ## 0.3.0 / ??
 
-This release introduces several new features to the macro system as
-well as some breaking changes; the most significant being the new unquote
-syntax and the requirement of auto-gensym for identifiers in backtick.
+This release introduces docstrings as well as several new features to
+the macro system and some breaking changes; the most significant being
+the new unquote syntax and the requirement of auto-gensym for
+identifiers in backtick.
 
 * Add support for docstrings and `doc` for displaying them in repl
 * Support `:detect-cycles? false` in fennelview to turn off "#<table 1>" output
@@ -12,6 +13,7 @@ syntax and the requirement of auto-gensym for identifiers in backtick.
 * Support `x#` syntax for auto-gensym inside backtick
 * Fix a bug in `lambda` arity checks when using destructuring
 * Support `:one-line` output in fennelview
+* Add `--require-as-include` to inline required modules in compiled output
 * Add `--eval` argument to command-line launcher
 * Fix a few bugs in `match`
 * **Remove** undocumented support for single-quoted strings

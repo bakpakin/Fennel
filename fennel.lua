@@ -1551,7 +1551,6 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         local condchunk = {}
         local res = compile1(ast[i], doScope, condchunk, {nval = 1})
         local cond = res[1]
-        --print(ast[i], res, cond)
         local branch = compileBody(i + 1)
         branch.cond = cond
         branch.condchunk = condchunk
@@ -1734,7 +1733,6 @@ SPECIALS['comment'] = function(ast, _, parent)
         els[#els + 1] = tostring(ast[i]):gsub('\n', ' ')
     end
     emit(parent, '-- ' .. table.concat(els, ' '), ast)
-    return nil
 end
 
 SPECIALS['hashfn'] = function(ast, scope, parent)
@@ -2192,11 +2190,13 @@ local function repl(options)
                " ___i___ = ___i___ + 1",
                " else break end end"}, "\n")
 
-    local spliceSaveLocals = function(luaSource)
-        -- we do some source munging in order to save off locals from each chunk
-        -- and reintroduce them to the beginning of the next chunk, allowing
-        -- locals to work in the repl the way you'd expect them to.
-        local replDoc = opts.useMetadata and require("fennel").doc or nil
+    -- we do some source munging in order to save off locals from each chunk
+    -- and reintroduce them to the beginning of the next chunk, allowing
+    -- locals to work in the repl the way you'd expect them to.
+       local spliceSaveLocals = function(luaSource)
+        -- need to require fennel here since storing metadata comes from require
+        -- fennel, and we need to make sure we have the same module.
+        local replDoc = opts.useMetadata and require("fennel").doc
         env.___replLocals___ = env.___replLocals___ or { doc = replDoc }
         local splicedSource = {}
         for line in luaSource:gmatch("([^\n]+)\n?") do

@@ -649,25 +649,25 @@ end
 
 print("Running tests for metadata and docstrings...")
 local docstring_tests = {
-    ['(fn foo [a] :C 1) (doc foo)'] = {'(foo a)\n  C\n',
+    ['(fn foo [a] :C 1) (doc foo)'] = {'(foo a)\n  C',
       'for named functions, (doc fnname) shows name, args invocation, docstring'},
-    ['(λ foo [] :D 1) (doc foo)'] = {'(foo)\n  D\n',
+    ['(λ foo [] :D 1) (doc foo)'] = {'(foo)\n  D',
       '(doc fnname) for named lambdas appear like named functions'},
     ['(fn ml [] "a\nmultiline\ndocstring" :result) (doc ml)'] =
-        {'(ml)\n  a\n  multiline\n  docstring\n',
+        {'(ml)\n  a\n  multiline\n  docstring',
         'multiline docstrings work correctly'},
     [ '(fn ew [] "so \\"gross\\" \\\\\\\"I\\\\\\\" can\'t even" 1) (doc ew)'] =
-        {'(ew)\n  so "gross" \\"I\\" can\'t even\n',
+        {'(ew)\n  so "gross" \\"I\\" can\'t even',
          'docstrings should be auto-escaped'},
     ['(fn foo! [-kebab- {:x x}] 1) (doc foo!)'] =
-        { "(foo! -kebab- #<table>)\n  <docstring:nil>\n",
+        { "(foo! -kebab- #<table>)\n  <docstring:nil>",
           "fn-name and args mangling" },
     ['(doc doto)'] =
         {"(doto val ...)\n  Evaluates val and splices it into the " ..
-             "first argument of subsequent forms.\n",
+             "first argument of subsequent forms.",
          "docstrings for built-in macros"},
     ['(doc doc)'] =
-        {"(doc x)\n  Print the docstring and arglist for a function, macro, or special.\n",
+        {"(doc x)\n  Print the docstring and arglist for a function, macro, or special.",
          "docstrings for special forms"},
 }
 

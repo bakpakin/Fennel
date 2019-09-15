@@ -2713,6 +2713,8 @@ local stdmacros = [===[
  }
 ]===]
 do
+    local moduleName = "fennel" .. math.random(9999999)
+    package.preload[moduleName] = function() return module end
     local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
     for name, fn in pairs(eval(stdmacros, {
         env = env,
@@ -2722,9 +2724,12 @@ do
         -- where _G is an empty table with an __index metamethod. (openresty)
         allowedGlobals = false,
         filename = "built-ins",
+        useMetadata = true,
+        moduleName = moduleName,
     })) do
         SPECIALS[name] = macroToSpecial(fn)
     end
+    package.preload[moduleName] = nil
 end
 SPECIALS['λ'] = SPECIALS['lambda']
 

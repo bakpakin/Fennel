@@ -1369,7 +1369,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
             metaFields[6] = '"' .. docstring:gsub('%s+$', '')
                 :gsub('\\', '\\\\'):gsub('\n', '\\n'):gsub('"', '\\"') .. '"'
         end
-        local metaStr = 'require("fennel").metadata'
+        local metaStr = ('require("%s").metadata'):format(rootOptions.moduleName or "fennel")
         emit(parent, string.format('%s:setall(%s, %s)', metaStr,
                                    fnName, table.concat(metaFields, ', ')))
     end
@@ -2197,7 +2197,7 @@ local function repl(options)
        local spliceSaveLocals = function(luaSource)
         -- need to require fennel here since storing metadata comes from require
         -- fennel, and we need to make sure we have the same module.
-        local replDoc = opts.useMetadata and require("fennel").doc
+        local replDoc = opts.useMetadata and require(opts.moduleName or "fennel").doc
         env.___replLocals___ = env.___replLocals___ or { doc = replDoc }
         local splicedSource = {}
         for line in luaSource:gmatch("([^\n]+)\n?") do

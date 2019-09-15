@@ -37,7 +37,8 @@ Run fennel, a lisp programming language for the Lua runtime.
   If ~/.fennelrc exists, loads it before launching a repl.]]
 
 local options = {
-    sourcemap = true
+    sourcemap = true,
+    moduleName = "fennel",
 }
 
 local function dosafe(filename, opts, args)

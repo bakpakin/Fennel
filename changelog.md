@@ -15,6 +15,7 @@ identifiers in backtick.
 * Support `:one-line` output in fennelview
 * Add `--require-as-include` to inline required modules in compiled output
 * Add `--eval` argument to command-line launcher
+* Add environment variable `FENNEL_PATH` to `path`.
 * Fix a few bugs in `match`
 * **Remove** undocumented support for single-quoted strings
 * Add support for guard clauses with `?` in pattern matching

@@ -2302,6 +2302,12 @@ end
 
 local macroLoaded = {}
 
+local pathTable = {"./?.fnl", "./?/init.fnl"}
+local osPath = os.getenv("FENNEL_PATH")
+if osPath then
+    table.insert(pathTable, osPath)
+end
+
 local module = {
     parser = parser,
     granulate = granulate,
@@ -2321,7 +2327,7 @@ local module = {
     repl = repl,
     dofile = dofileFennel,
     macroLoaded = macroLoaded,
-    path = "./?.fnl;./?/init.fnl",
+    path = table.concat(pathTable, ";"),
     traceback = traceback,
     version = "0.3.0",
 }

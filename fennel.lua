@@ -843,6 +843,12 @@ local doc = function(tgt, name)
     return string.format("(%s%s%s)\n  %s", name, #arglist > 0 and ' ' or '',
                          arglist, docstring)
 end
+
+local function docSpecial(name, arglist, docstring)
+    metadata[SPECIALS[name]] =
+        { ['fnl/docstring'] = docstring, ['fnl/arglist'] = arglist }
+end
+
 -- Convert expressions to Lua string
 local function exprs1(exprs)
     local t = {}
@@ -1286,7 +1292,11 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
 end
 
 SPECIALS['do'] = doImpl
+docSpecial('do', {'...'}, 'Evaluate multiple forms; return last value.')
+
 SPECIALS['values'] = values
+docSpecial('values', {'...'},
+           'Return multiple values from a function.  Must be in tail position.')
 
 -- The fn special declares a function. Syntax is similar to other lisps;
 -- (fn optional-name [arg ...] (body))
@@ -1375,6 +1385,11 @@ SPECIALS['fn'] = function(ast, scope, parent)
 
     return expr(fnName, 'sym')
 end
+docSpecial('fn', {'name?', 'args', 'docstring?', '...'},
+           'Function syntax. May optionally include a name and docstring.'
+               ..'\nIf a name is provided, the function will be bound in the current scope.'
+               ..'\nWhen called with the wrong number of args, excess args will be discarded'
+               ..'\nand lacking args will be nil; use lambda for arity-checked functions.')
 
 -- (lua "print('hello!')") -> prints hello, evaluates to nil
 -- (lua "print 'hello!'" "10") -> prints hello, evaluates to the number 10
@@ -1395,7 +1410,7 @@ SPECIALS['doc'] = function(ast, scope)
     assertCompile(#ast == 2, "expected one argument", ast)
     local target = deref(assertCompile(#ast == 2 and isSym(ast[2]),
                                        "expected one symbol", ast))
-    local special = SPECIALS[target]
+    local special = scope.specials[target]
     if special then
         return ("print([[%s]])"):format(doc(special, target))
     else
@@ -1406,12 +1421,10 @@ SPECIALS['doc'] = function(ast, scope)
             :format(rootOptions.moduleName or "fennel", scope.manglings[target], target)
     end
 end
-metadata[SPECIALS['doc']] = {
-    ['fnl/docstring'] = 'Print the docstring and arglist for a function, macro, or special.',
-    ['fnl/arglist'] = {'x'},
-}
+docSpecial('doc', {'x'},
+           'Print the docstring and arglist for a function, macro, or special form.')
 
--- Wrapper for table access
+-- Table lookup
 SPECIALS['.'] = function(ast, scope, parent)
     local len = #ast
     assertCompile(len > 1, "expected table argument", ast)
@@ -1437,6 +1450,8 @@ SPECIALS['.'] = function(ast, scope, parent)
         end
     end
 end
+docSpecial('.', {'tbl', 'key1', '...'},
+           'Look up key1 in tbl table. If more args are provided, do a nested lookup.')
 
 SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
@@ -1451,6 +1466,7 @@ SPECIALS['global'] = function(ast, scope, parent)
         forceglobal = true
     })
 end
+docSpecial('global', {'name', 'val'}, 'Set name as a global with val.')
 
 SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
@@ -1458,6 +1474,8 @@ SPECIALS['set'] = function(ast, scope, parent)
         noundef = true
     })
 end
+docSpecial('set', {'name', 'val'},
+           'Set a local variable to a new value. Only works on locals using var.')
 
 SPECIALS['set-forcibly!'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
@@ -1473,6 +1491,8 @@ SPECIALS['local'] = function(ast, scope, parent)
         nomulti = true
     })
 end
+docSpecial('local', {'name', 'val'},
+           'Introduce new top-level immutable local.')
 
 SPECIALS['var'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
@@ -1482,6 +1502,8 @@ SPECIALS['var'] = function(ast, scope, parent)
         isvar = true
     })
 end
+docSpecial('var', {'name', 'val'},
+           'Introduce new mutable local.')
 
 SPECIALS['let'] = function(ast, scope, parent, opts)
     local bindings = ast[2]
@@ -1500,6 +1522,8 @@ SPECIALS['let'] = function(ast, scope, parent, opts)
     end
     return doImpl(ast, scope, parent, opts, 3, subChunk, subScope)
 end
+docSpecial('let', {'[name1 val1 ... nameN valN]', '...'},
+           'Introduces a new scope in which a given set of local bindings are used.')
 
 -- For setting items in a table
 SPECIALS['tset'] = function(ast, scope, parent)
@@ -1518,6 +1542,8 @@ SPECIALS['tset'] = function(ast, scope, parent)
                                table.concat(keys, ']['),
                                tostring(value)), ast)
 end
+docSpecial('tset', {'tbl', 'key1', 'val1', '...', 'keyN', 'valN'},
+           'Set the fields of a table to new values. Takes 1 or more key/value pairs.')
 
 -- The if special form behaves like the cond form in
 -- many languages
@@ -1634,6 +1660,10 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         return targetExprs
     end
 end
+docSpecial('if', {'cond1', 'body1', '...', 'condN', 'bodyN'},
+           'Conditional form.\n' ..
+               'Takes any number of condition/body pairs and evaluates the first body where'
+               .. '\nthe condition evaluates to truthy. Similar to cond in other lisps.')
 
 -- (each [k v (pairs t)] body...) => []
 SPECIALS['each'] = function(ast, scope, parent)
@@ -1664,6 +1694,10 @@ SPECIALS['each'] = function(ast, scope, parent)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end
+docSpecial('each', {'[key value (iterator)]', '...'},
+           'Runs the body once for each set of values provided by the given iterator.'
+           ..'\nMost commonly used with ipairs for sequential tables or pairs for'
+               ..' undefined\norder, but can be used with any iterator.')
 
 -- (while condition body...) => []
 SPECIALS['while'] = function(ast, scope, parent)
@@ -1688,6 +1722,8 @@ SPECIALS['while'] = function(ast, scope, parent)
     emit(parent, subChunk, ast)
     emit(parent, 'end', ast)
 end
+docSpecial('while', {'condition', '...'},
+           'The classic while loop. Evaluates body until a condition is non-truthy.')
 
 SPECIALS['for'] = function(ast, scope, parent)
     local ranges = assertCompile(isTable(ast[2]), 'expected binding table', ast)
@@ -1705,6 +1741,8 @@ SPECIALS['for'] = function(ast, scope, parent)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end
+docSpecial('for', {'[index start stop step?]', '...'}, 'Numeric loop construct.' ..
+               '\nEvaluates body once for each value between start and stop (inclusive).')
 
 SPECIALS[':'] = function(ast, scope, parent)
     assertCompile(#ast >= 3, 'expected at least 3 arguments', ast)
@@ -1747,14 +1785,19 @@ SPECIALS[':'] = function(ast, scope, parent)
         methodstring,
         table.concat(args, ', ')), 'statement')
 end
+docSpecial(':', {'tbl', 'method-name', '...'},
+           'Call the named method on tbl with the provided args.'..
+           '\nMethod name doesn\'t have to be known at compile-time; if it is, use'
+               ..'\n(tbl:method-name ...) instead.')
 
 SPECIALS['comment'] = function(ast, _, parent)
     local els = {}
     for i = 2, #ast do
         els[#els + 1] = tostring(ast[i]):gsub('\n', ' ')
     end
-    emit(parent, '-- ' .. table.concat(els, ' '), ast)
+    emit(parent, '              -- ' .. table.concat(els, ' '), ast)
 end
+docSpecial('comment', {'...'}, 'Comment which will be emitted in Lua output.')
 
 SPECIALS['hashfn'] = function(ast, scope, parent)
     assertCompile(#ast == 2, "expected one argument", ast)
@@ -1777,6 +1820,7 @@ SPECIALS['hashfn'] = function(ast, scope, parent)
     emit(parent, 'end', ast)
     return expr(name, 'sym')
 end
+docSpecial('hashfn', {'...'}, 'Function literal shorthand; args are $1, $2, etc.')
 
 local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
@@ -1806,6 +1850,8 @@ local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
             end
         end
     end
+    docSpecial(name, {'a', 'b', '...'},
+               'Arithmetic operator; works the same as Lua but accepts more arguments.')
 end
 
 defineArithmeticSpecial('+', '0')
@@ -1818,6 +1864,13 @@ defineArithmeticSpecial('/', nil, '1')
 defineArithmeticSpecial('//', nil, '1')
 defineArithmeticSpecial('or', 'false')
 defineArithmeticSpecial('and', 'true')
+
+docSpecial('and', {'a', 'b', '...'},
+           'Boolean operator; works the same as Lua but accepts more arguments.')
+docSpecial('or', {'a', 'b', '...'},
+           'Boolean operator; works the same as Lua but accepts more arguments.')
+docSpecial('..', {'a', 'b', '...'},
+           'String concatenation operator; works the same as Lua but accepts more arguments.')
 
 local function defineComparatorSpecial(name, realop, chainOp)
     local op = realop or name
@@ -1842,6 +1895,8 @@ local function defineComparatorSpecial(name, realop, chainOp)
         end
         return out
     end
+    docSpecial(name, {name, 'a', 'b', '...'},
+               'Comparison operator; works the same as Lua but accepts more arguments.')
 end
 
 defineComparatorSpecial('>')
@@ -1861,7 +1916,10 @@ local function defineUnarySpecial(op, realop)
 end
 
 defineUnarySpecial('not', 'not ')
+docSpecial('not', {'x'}, 'Boolean operator; works the same as Lua.')
+
 defineUnarySpecial('length', '#')
+docSpecial('length', {'x'}, 'Returns the length of a table or string.')
 SPECIALS['#'] = SPECIALS['length']
 
 -- Save current macro scope
@@ -1999,6 +2057,7 @@ SPECIALS['quote'] = function(ast, scope, parent)
     end
     return doQuote(ast[2], scope, parent, runtime)
 end
+docSpecial('quote', {'x'}, 'Quasiquote the following form. Only works in macro/compiler scope.')
 
 local function compileStream(strm, options)
     options = options or {}
@@ -2439,6 +2498,7 @@ local function loadMacros(modname, ast, scope, parent)
     local env = makeCompilerEnv(ast, scope, parent)
     local globals = macroGlobals(env, currentGlobalNames())
     return dofileFennel(filename, { env = env, allowedGlobals = globals,
+                                    useMetadata = rootOptions.useMetadata,
                                     scope = COMPILER_SCOPE })
 end
 
@@ -2450,6 +2510,9 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
     end
     addMacros(macroLoaded[modname], ast, scope, parent)
 end
+docSpecial('require-macros', {'macro-module-name'},
+           'Load given module and use its contents as macro definitions in current scope.'
+               ..'\nMacro module should return a table of macro functions with string keys.')
 
 SPECIALS['include'] = function(ast, scope, parent, opts)
     assertCompile(#ast == 2, 'expected one argument', ast)
@@ -2530,7 +2593,8 @@ requireSpecial = function (ast, scope, parent, opts)
 end
 
 local function evalCompiler(ast, scope, parent)
-    local luaSource = compile(ast, { scope = makeScope(COMPILER_SCOPE) })
+    local luaSource = compile(ast, { scope = makeScope(COMPILER_SCOPE),
+                                     useMetadata = rootOptions.useMetadata })
     local loader = loadCode(luaSource, wrapEnv(makeCompilerEnv(ast, scope, parent)))
     return loader()
 end
@@ -2540,6 +2604,8 @@ SPECIALS['macros'] = function(ast, scope, parent)
     local macros = evalCompiler(ast[2], scope, parent)
     addMacros(macros, ast, scope, parent)
 end
+docSpecial('macros', {'{:macro-name-1 (fn [...] ...) ... :macro-name-N macro-body-N}'},
+           'Define all functions in the given table as macros local to the current scope.')
 
 SPECIALS['eval-compiler'] = function(ast, scope, parent)
     local oldFirst = ast[1]
@@ -2548,10 +2614,15 @@ SPECIALS['eval-compiler'] = function(ast, scope, parent)
     ast[1] = oldFirst
     return val
 end
+docSpecial('eval-compiler', {'...'}, 'Evaluate the body at compile-time.'
+               .. ' Use the macro system instead if possible.')
 
 -- Load standard macros
 local stdmacros = [===[
 {"->" (fn [val ...]
+        "Thread-first macro.
+Take the first value and splice it into the second form as its first argument.
+The value of the second form is spliced into the first arg of the third, etc."
         (var x val)
         (each [_ e (ipairs [...])]
           (let [elt (if (list? e) e (list e))]
@@ -2559,6 +2630,9 @@ local stdmacros = [===[
             (set x elt)))
         x)
  "->>" (fn [val ...]
+         "Thread-last macro.
+Same as ->, except splices the value into the last position of each form
+rather than the first."
          (var x val)
          (each [_ e (pairs [...])]
            (let [elt (if (list? e) e (list e))]
@@ -2566,6 +2640,8 @@ local stdmacros = [===[
              (set x elt)))
          x)
  "-?>" (fn [val ...]
+         "Nil-safe thread-first macro.
+Same as -> except will short-circuit with nil when it encounters a nil value."
          (if (= 0 (select "#" ...))
              val
              (let [els [...]
@@ -2578,6 +2654,8 @@ local stdmacros = [===[
                       (-?> ,el ,(unpack els))
                       ,tmp)))))
  "-?>>" (fn [val ...]
+         "Nil-safe thread-last macro.
+Same as ->> except will short-circuit with nil when it encounters a nil value."
           (if (= 0 (select "#" ...))
               val
               (let [els [...]
@@ -2599,14 +2677,19 @@ local stdmacros = [===[
            (table.insert form name)
            form))
  :when (fn [condition body1 ...]
+         "Evaluate body for side-effects only when condition is truthy."
          (assert body1 "expected body")
          `(if ,condition
               (do ,body1 ,...)))
  :partial (fn [f ...]
+            "Returns a function with all arguments partially applied to f."
             (let [body (list f ...)]
               (table.insert body _VARARG)
               `(fn [,_VARARG] ,body)))
  :lambda (fn [...]
+           "Function literal with arity checking.
+Will throw an exception if a declared argument is passed in as nil, unless
+that argument name begins with ?."
            (let [args [...]
                  has-internal-name? (sym? (. args 1))
                  arglist (if has-internal-name? (. args 2) (. args 1))
@@ -2632,11 +2715,13 @@ local stdmacros = [===[
                (check! a))
              `(fn ,(unpack args))))
  :macro (fn macro [name ...]
+          "Define a single macro."
           (assert (sym? name) "expected symbol for macro name")
           (local args [...])
           `(macros { ,(tostring name) (fn ,name ,(unpack args))}))
  :match
 (fn match [val ...]
+  "Perform pattern matching on val. See reference for details."
   ;; this function takes the AST of values and a single pattern and returns a
   ;; condition to determine if it matches as well as a list of bindings to
   ;; introduce for the duration of the body if it does match.

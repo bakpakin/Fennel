@@ -420,6 +420,8 @@ for name, tests in pairs(cases) do
     end
 end
 
+fennel.eval("(eval-compiler (set _SPECIALS.reverse-it nil))") -- clean up
+
 ---- fennelview tests ----
 
 local function count(t)
@@ -667,8 +669,11 @@ local docstring_tests = {
              "first argument of subsequent forms.",
          "docstrings for built-in macros"},
     ['(doc doc)'] =
-        {"(doc x)\n  Print the docstring and arglist for a function, macro, or special.",
+        {"(doc x)\n  Print the docstring and arglist for a function, macro, or special form.",
          "docstrings for special forms"},
+    ['(macro abc [x y z] "this is a macro." :123) (doc abc)'] =
+        {"(abc x y z)\n  this is a macro.",
+         "docstrings for user-defined macros"},
 }
 
 local docEnv = setmetatable({ print = function(x) return x end }, { __index=_G })
@@ -687,6 +692,19 @@ for code, cond_msg in pairs(docstring_tests) do
         print(string.format('While testing %s, got error:\n\t%s', msg, actual))
     end
 end
+
+-- we don't need to mention these forms...
+local undocumentedOk = {["lua"]=true, ["set-forcibly!"]=true, include=true }
+fennel.eval("(eval-compiler (set fennel._SPECIALS _SPECIALS))")
+for name in pairs(fennel._SPECIALS) do
+    if((not undocumentedOk[name]) and (fennel.eval(("(doc %s )"):format(name),
+                                           { useMetadata = true, env = docEnv })
+                                       :find("docstring:nil"))) then
+        fail = fail + 1
+        print("Missing docstring for " .. name)
+    end
+end
+
 
 ---- misc one-off tests ----
 

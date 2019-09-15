@@ -29,7 +29,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --version (-v)          : Show version
 
   Metadata is typically considered a development feature and is not recommended
-  for production.
+  for production. It is used for docstrings and enabled by default in the REPL.
 
   When not given a flag, runs the file given as the first argument.
   When given neither flag nor file, launches a repl.

@@ -835,13 +835,13 @@ local function makeMetadata()
 end
 
 local metadata = makeMetadata()
-local doc = function(tgt)
-    local fnName = metadata:get(tgt, 'fnl/fn-name') or '<fn:anonymous>'
+local doc = function(tgt, name)
+    assert(tgt, name .. " not found")
     local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or {}, ' ')
     local docstring = (metadata:get(tgt, 'fnl/docstring') or
                            '<docstring:nil>'):gsub('\n$', ''):gsub('\n', '\n  ')
-    print(string.format("(%s%s%s)\n  %s\n",
-        fnName, #arglist > 0 and ' ' or '', arglist, docstring))
+    return string.format("(%s%s%s)\n  %s\n", name, #arglist > 0 and ' ' or '',
+                         arglist, docstring)
 end
 -- Convert expressions to Lua string
 local function exprs1(exprs)
@@ -1298,7 +1298,6 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local fnName = isSym(ast[index])
     local isLocalFn
     local docstring
-    local fnNameString = fnName and tostring(fnName) or nil
     fScope.vararg = false
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not isMultiSym(fnName[1])
@@ -1361,13 +1360,13 @@ SPECIALS['fn'] = function(ast, scope, parent)
         end
 
         local metaFields = {
-            '"fnl/fn-name"', fnNameString and '"' .. fnNameString .. '"' or 'nil',
             '"fnl/arglist"', '{' .. table.concat(args, ', ') .. '}',
         }
         if docstring then
-            metaFields[5] = '"fnl/docstring"'
-            metaFields[6] = '"' .. docstring:gsub('%s+$', '')
-                :gsub('\\', '\\\\'):gsub('\n', '\\n'):gsub('"', '\\"') .. '"'
+            table.insert(metaFields, '"fnl/docstring"')
+            table.insert(metaFields, '"' .. docstring:gsub('%s+$', '')
+                             :gsub('\\', '\\\\'):gsub('\n', '\\n')
+                             :gsub('"', '\\"') .. '"')
         end
         local metaStr = ('require("%s").metadata'):format(rootOptions.moduleName or "fennel")
         emit(parent, string.format('%s:setall(%s, %s)', metaStr,
@@ -1390,6 +1389,27 @@ SPECIALS['lua'] = function(ast, _, parent)
         return tostring(ast[3])
     end
 end
+
+SPECIALS['doc'] = function(ast, scope)
+    assert(rootOptions.useMetadata, "can't look up doc with metadata disabled.")
+    assertCompile(#ast == 2, "expected one argument", ast)
+    local target = deref(assertCompile(#ast == 2 and isSym(ast[2]),
+                                       "expected one symbol", ast))
+    local special = SPECIALS[target]
+    if special then
+        return ("print([[%s]])"):format(doc(special, target))
+    else
+        -- need to require here since the metadata is stored in the module
+        -- and we need to make sure we look it up in the same module it was
+        -- declared from.
+        return ("print(require('%s').doc(%s, '%s'))")
+            :format(rootOptions.moduleName or "fennel", scope.manglings[target], target)
+    end
+end
+metadata[SPECIALS['doc']] = {
+    ['fnl/docstring'] = 'Print the docstring and arglist for a function, macro, or special.',
+    ['fnl/arglist'] = {'x'},
+}
 
 -- Wrapper for table access
 SPECIALS['.'] = function(ast, scope, parent)
@@ -1849,7 +1869,7 @@ local macroCurrentScope = GLOBAL_SCOPE
 
 -- Covert a macro function to a special form
 local function macroToSpecial(mac)
-    return function(ast, scope, parent, opts)
+    local special = function(ast, scope, parent, opts)
         local oldScope = macroCurrentScope
         macroCurrentScope = scope
         local ok, transformed = pcall(mac, unpack(ast, 2))
@@ -1858,6 +1878,11 @@ local function macroToSpecial(mac)
         local result = compile1(transformed, scope, parent, opts)
         return result
     end
+    if metadata[mac] then
+        -- copy metadata from original function to special form function
+        metadata[mac], metadata[special] = nil, metadata[mac]
+    end
+    return special
 end
 
 local requireSpecial
@@ -2195,10 +2220,7 @@ local function repl(options)
     -- and reintroduce them to the beginning of the next chunk, allowing
     -- locals to work in the repl the way you'd expect them to.
        local spliceSaveLocals = function(luaSource)
-        -- need to require fennel here since storing metadata comes from require
-        -- fennel, and we need to make sure we have the same module.
-        local replDoc = opts.useMetadata and require(opts.moduleName or "fennel").doc
-        env.___replLocals___ = env.___replLocals___ or { doc = replDoc }
+        env.___replLocals___ = env.___replLocals___ or {}
         local splicedSource = {}
         for line in luaSource:gmatch("([^\n]+)\n?") do
             table.insert(splicedSource, line)
@@ -2568,6 +2590,7 @@ local stdmacros = [===[
                        (-?>> ,el ,(unpack els))
                        ,tmp)))))
  :doto (fn [val ...]
+         "Evaluates val and splices it into the first argument of subsequent forms."
          (let [name (gensym)
                form `(let [,name ,val])]
            (each [_ elt (pairs [...])]
@@ -2713,6 +2736,10 @@ local stdmacros = [===[
  }
 ]===]
 do
+    -- docstrings rely on having a place to "put" metadata; we use the module
+    -- system for that. but if you try to require the module while it's being
+    -- loaded, you get a stack overflow. so we fake out the module for the
+    -- purposes of boostrapping the built-in macros here.
     local moduleName = "fennel" .. math.random(9999999)
     package.preload[moduleName] = function() return module end
     local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
@@ -2723,11 +2750,11 @@ do
         -- otherwise this can be problematic when loading fennel in contexts
         -- where _G is an empty table with an __index metamethod. (openresty)
         allowedGlobals = false,
-        filename = "built-ins",
         useMetadata = true,
+        filename = "built-ins",
         moduleName = moduleName,
     })) do
-        SPECIALS[name] = macroToSpecial(fn)
+        SPECIALS[name] = macroToSpecial(fn, name)
     end
     package.preload[moduleName] = nil
 end

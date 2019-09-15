@@ -649,55 +649,33 @@ end
 
 print("Running tests for metadata and docstrings...")
 local docstring_tests = {
-    ['(doc (fn foo [a] :C 1))'] = {'(foo a)\\n  C',
-      'for named functions, (doc fnname) shows name, args invocation, docstring'
-    },
-    ['(doc (λ foo [] :D 1))'] = {'(foo)\\n  D',
-      '(doc fnname) for named lambdas appear like named functions'
-    },
-    ['(doc (fn [] :A 1))'] = {'(<fn:anonymous>)\\n  A',
-      'anonymous functions show fn name in doc as <fn:anonymous>'
-    },
-    ['(doc (λ [a] :B :ret-str))'] = {'(<fn:anonymous> a)\\n  B',
-      'anonymous lambdas show fn name in doc as <fn:anonymous>'
-    },
-    -- TODO: set correct fnName based on assigned var/prop name and use following test
-    -- ['(local foo (fn [a] :C 1)) (doc foo)'] = {'(foo a)\\n  C',
-    -- 'named/non-local fn docstring mismatch'},
-    ['(doc (fn [] "return str"))'] = {'(<fn:anonymous>)\\n  <docstring:nil>',
-      "should not confuse returned string for docstring in undocumented fn"
-    },
-    ['(doc (fn ml [] "a\nmultiline\ndocstring" :result))'] =
-        {'(ml)\\n  a\\nmultiline\\ndocstring',
-        'multiline docstrings work correctly'
-    },
-    [ '(doc (fn ew [] "so \\"gross\\" \\\\\\\"I\\\\\\\" can\'t even" 1))' ] = {
-        '(ew)\\n  so "gross" \\"I\\" can\'t even',
-        'docstrings should be auto-escaped'
-    },
-    ['(doc (fn foo! [-kebab- {:x x}] 1))'] = {
-        "(foo! -kebab- #<table>)\\n  <docstring:nil>",
-        "fn-name and args mangling",
-    },
+    ['(fn foo [a] :C 1) (doc foo)'] = {'(foo a)\n  C\n',
+      'for named functions, (doc fnname) shows name, args invocation, docstring'},
+    ['(λ foo [] :D 1) (doc foo)'] = {'(foo)\n  D\n',
+      '(doc fnname) for named lambdas appear like named functions'},
+    ['(fn ml [] "a\nmultiline\ndocstring" :result) (doc ml)'] =
+        {'(ml)\n  a\n  multiline\n  docstring\n',
+        'multiline docstrings work correctly'},
+    [ '(fn ew [] "so \\"gross\\" \\\\\\\"I\\\\\\\" can\'t even" 1) (doc ew)'] =
+        {'(ew)\n  so "gross" \\"I\\" can\'t even\n',
+         'docstrings should be auto-escaped'},
+    ['(fn foo! [-kebab- {:x x}] 1) (doc foo!)'] =
+        { "(foo! -kebab- #<table>)\n  <docstring:nil>\n",
+          "fn-name and args mangling" },
+    ['(doc doto)'] =
+        {"(doto val ...)\n  Evaluates val and splices it into the " ..
+             "first argument of subsequent forms.\n",
+         "docstrings for built-in macros"},
+    ['(doc doc)'] =
+        {"(doc x)\n  Print the docstring and arglist for a function, macro, or special.\n",
+         "docstrings for special forms"},
 }
 
--- TODO: use real fennel.doc here and replace print so it saves off the output
--- to check against
-local mockdoc = function(fn)
-    local fnName = fennel.metadata:get(fn, 'fnl/fn-name')
-    local arglist = table.concat(fennel.metadata:get(fn, 'fnl/arglist') or '', ' ')
-    local docstring = fennel.metadata:get(fn, 'fnl/docstring') or '<docstring:nil>'
-    return string.format('(%s%s%s)\n  %s', fnName or '<fn:anonymous>',
-                         #arglist > 0 and ' ' or '',
-                         arglist, docstring)
-end
-
-local doc_env = setmetatable({ doc = mockdoc }, { __index = _G })
+local docEnv = setmetatable({ print = function(x) return x end }, { __index=_G })
 
 for code, cond_msg in pairs(docstring_tests) do
     local expected, msg = (unpack or table.unpack)(cond_msg)
-    local ok, actual = pcall(fennel.eval, code, { useMetadata = true, env = doc_env })
-    actual = string.gsub(actual or '<nil>', '\n', '\\n')
+    local ok, actual = pcall(fennel.eval, code, { useMetadata = true, env = docEnv })
     if ok and expected == actual then
         pass = pass + 1
     elseif ok then

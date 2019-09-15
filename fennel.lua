@@ -2825,7 +2825,7 @@ do
     -- system for that. but if you try to require the module while it's being
     -- loaded, you get a stack overflow. so we fake out the module for the
     -- purposes of boostrapping the built-in macros here.
-    local moduleName = "fennel" .. math.random(9999999)
+    local moduleName = "__fennel-bootstrap__"
     package.preload[moduleName] = function() return module end
     local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
     for name, fn in pairs(eval(stdmacros, {

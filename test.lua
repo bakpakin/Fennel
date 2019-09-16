@@ -679,7 +679,10 @@ local docstring_tests = {
          "docstrings for built-in Lua functions"},
     ['(let [x-tbl []] (fn x-tbl.y! [d] "why" 123) (doc x-tbl.y!))'] =
         {"(x-tbl.y! d)\n  why",
-         "docstrings for mangled multisyms"}
+         "docstrings for mangled multisyms"},
+    ['(let [f (fn [] "f" :f) g (fn [] f)] (doc (g)))'] =
+        {"((g))\n  f",
+         "doc on expression"},
 }
 
 local docEnv = setmetatable({ print = function(x) return x end }, { __index=_G })

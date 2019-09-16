@@ -1410,21 +1410,21 @@ SPECIALS['lua'] = function(ast, _, parent)
     end
 end
 
-SPECIALS['doc'] = function(ast, scope)
+SPECIALS['doc'] = function(ast, scope, parent)
     assert(rootOptions.useMetadata, "can't look up doc with metadata disabled.")
     assertCompile(#ast == 2, "expected one argument", ast)
-    local target = deref(assertCompile(#ast == 2 and isSym(ast[2]),
-                                       "expected one symbol", ast))
+
+    local target = deref(ast[2])
     local special = scope.specials[target]
     if special then
         return ("print([[%s]])"):format(doc(special, target))
     else
-        local mangled = combineParts(isMultiSym(ast[2]) or {target}, scope)
+        local value = tostring(compile1(ast[2], scope, parent, {nval = 1})[1])
         -- need to require here since the metadata is stored in the module
         -- and we need to make sure we look it up in the same module it was
         -- declared from.
         return ("print(require('%s').doc(%s, '%s'))")
-            :format(rootOptions.moduleName or "fennel", mangled, target)
+            :format(rootOptions.moduleName or "fennel", value, tostring(ast[2]))
     end
 end
 docSpecial('doc', {'x'},

@@ -38,7 +38,6 @@ Run fennel, a lisp programming language for the Lua runtime.
 
 local options = {
     sourcemap = true,
-    moduleName = "fennel",
 }
 
 local function dosafe(filename, opts, args)
@@ -104,8 +103,9 @@ for i=#arg, 1, -1 do
 end
 
 if not options.no_searcher then
-    table.insert((package.loaders or package.searchers),
-        fennel.make_searcher({correlate = true}))
+    local opts = {correlate = true}
+    for k,v in pairs(options) do opts[k] = v end
+    table.insert((package.loaders or package.searchers), fennel.make_searcher(opts))
 end
 
 -- Try to load readline library

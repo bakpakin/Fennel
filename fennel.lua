@@ -41,7 +41,7 @@ local LIST_MT = { 'LIST',
         for _, s in ipairs(self) do
             table.insert(strs, tostring(s))
         end
-        return '(' .. table.concat(strs, ', ', 1, #self) .. ')'
+        return '(' .. table.concat(strs, ' ', 1, #self) .. ')'
     end
 }
 local SEQUENCE_MT = { 'SEQUENCE' }
@@ -835,14 +835,25 @@ local function makeMetadata()
 end
 
 local metadata = makeMetadata()
-local doc = function(tgt)
-    local fnName = metadata:get(tgt, 'fnl/fn-name') or '<fn:anonymous>'
-    local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or {}, ' ')
+local doc = function(tgt, name)
+    if(not tgt) then return print(name .. " not found") end
     local docstring = (metadata:get(tgt, 'fnl/docstring') or
-                           '<docstring:nil>'):gsub('\n$', ''):gsub('\n', '\n  ')
-    print(string.format("(%s%s%s)\n  %s\n",
-        fnName, #arglist > 0 and ' ' or '', arglist, docstring))
+                           '#<undocumented>'):gsub('\n$', ''):gsub('\n', '\n  ')
+    if type(tgt) == "function" then
+        local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or
+                                         {'#<unknown-arguments>'}, ' ')
+        return string.format("(%s%s%s)\n  %s", name, #arglist > 0 and ' ' or '',
+                             arglist, docstring)
+    else
+        return string.format("%s\n  %s", name, docstring)
+    end
 end
+
+local function docSpecial(name, arglist, docstring)
+    metadata[SPECIALS[name]] =
+        { ['fnl/docstring'] = docstring, ['fnl/arglist'] = arglist }
+end
+
 -- Convert expressions to Lua string
 local function exprs1(exprs)
     local t = {}
@@ -1286,7 +1297,11 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
 end
 
 SPECIALS['do'] = doImpl
+docSpecial('do', {'...'}, 'Evaluate multiple forms; return last value.')
+
 SPECIALS['values'] = values
+docSpecial('values', {'...'},
+           'Return multiple values from a function.  Must be in tail position.')
 
 -- The fn special declares a function. Syntax is similar to other lisps;
 -- (fn optional-name [arg ...] (body))
@@ -1298,7 +1313,6 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local fnName = isSym(ast[index])
     local isLocalFn
     local docstring
-    local fnNameString = fnName and tostring(fnName) or nil
     fScope.vararg = false
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not isMultiSym(fnName[1])
@@ -1361,21 +1375,26 @@ SPECIALS['fn'] = function(ast, scope, parent)
         end
 
         local metaFields = {
-            '"fnl/fn-name"', fnNameString and '"' .. fnNameString .. '"' or 'nil',
             '"fnl/arglist"', '{' .. table.concat(args, ', ') .. '}',
         }
         if docstring then
-            metaFields[5] = '"fnl/docstring"'
-            metaFields[6] = '"' .. docstring:gsub('%s+$', '')
-                :gsub('\\', '\\\\'):gsub('\n', '\\n'):gsub('"', '\\"') .. '"'
+            table.insert(metaFields, '"fnl/docstring"')
+            table.insert(metaFields, '"' .. docstring:gsub('%s+$', '')
+                             :gsub('\\', '\\\\'):gsub('\n', '\\n')
+                             :gsub('"', '\\"') .. '"')
         end
-        local metaStr = 'require("fennel").metadata'
+        local metaStr = ('require("%s").metadata'):format(rootOptions.moduleName or "fennel")
         emit(parent, string.format('%s:setall(%s, %s)', metaStr,
                                    fnName, table.concat(metaFields, ', ')))
     end
 
     return expr(fnName, 'sym')
 end
+docSpecial('fn', {'name?', 'args', 'docstring?', '...'},
+           'Function syntax. May optionally include a name and docstring.'
+               ..'\nIf a name is provided, the function will be bound in the current scope.'
+               ..'\nWhen called with the wrong number of args, excess args will be discarded'
+               ..'\nand lacking args will be nil; use lambda for arity-checked functions.')
 
 -- (lua "print('hello!')") -> prints hello, evaluates to nil
 -- (lua "print 'hello!'" "10") -> prints hello, evaluates to the number 10
@@ -1391,7 +1410,27 @@ SPECIALS['lua'] = function(ast, _, parent)
     end
 end
 
--- Wrapper for table access
+SPECIALS['doc'] = function(ast, scope, parent)
+    assert(rootOptions.useMetadata, "can't look up doc with metadata disabled.")
+    assertCompile(#ast == 2, "expected one argument", ast)
+
+    local target = deref(ast[2])
+    local special = scope.specials[target]
+    if special then
+        return ("print([[%s]])"):format(doc(special, target))
+    else
+        local value = tostring(compile1(ast[2], scope, parent, {nval = 1})[1])
+        -- need to require here since the metadata is stored in the module
+        -- and we need to make sure we look it up in the same module it was
+        -- declared from.
+        return ("print(require('%s').doc(%s, '%s'))")
+            :format(rootOptions.moduleName or "fennel", value, tostring(ast[2]))
+    end
+end
+docSpecial('doc', {'x'},
+           'Print the docstring and arglist for a function, macro, or special form.')
+
+-- Table lookup
 SPECIALS['.'] = function(ast, scope, parent)
     local len = #ast
     assertCompile(len > 1, "expected table argument", ast)
@@ -1417,6 +1456,8 @@ SPECIALS['.'] = function(ast, scope, parent)
         end
     end
 end
+docSpecial('.', {'tbl', 'key1', '...'},
+           'Look up key1 in tbl table. If more args are provided, do a nested lookup.')
 
 SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
@@ -1431,6 +1472,7 @@ SPECIALS['global'] = function(ast, scope, parent)
         forceglobal = true
     })
 end
+docSpecial('global', {'name', 'val'}, 'Set name as a global with val.')
 
 SPECIALS['set'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
@@ -1438,6 +1480,8 @@ SPECIALS['set'] = function(ast, scope, parent)
         noundef = true
     })
 end
+docSpecial('set', {'name', 'val'},
+           'Set a local variable to a new value. Only works on locals using var.')
 
 SPECIALS['set-forcibly!'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
@@ -1453,6 +1497,8 @@ SPECIALS['local'] = function(ast, scope, parent)
         nomulti = true
     })
 end
+docSpecial('local', {'name', 'val'},
+           'Introduce new top-level immutable local.')
 
 SPECIALS['var'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
@@ -1462,6 +1508,8 @@ SPECIALS['var'] = function(ast, scope, parent)
         isvar = true
     })
 end
+docSpecial('var', {'name', 'val'},
+           'Introduce new mutable local.')
 
 SPECIALS['let'] = function(ast, scope, parent, opts)
     local bindings = ast[2]
@@ -1480,6 +1528,8 @@ SPECIALS['let'] = function(ast, scope, parent, opts)
     end
     return doImpl(ast, scope, parent, opts, 3, subChunk, subScope)
 end
+docSpecial('let', {'[name1 val1 ... nameN valN]', '...'},
+           'Introduces a new scope in which a given set of local bindings are used.')
 
 -- For setting items in a table
 SPECIALS['tset'] = function(ast, scope, parent)
@@ -1498,6 +1548,8 @@ SPECIALS['tset'] = function(ast, scope, parent)
                                table.concat(keys, ']['),
                                tostring(value)), ast)
 end
+docSpecial('tset', {'tbl', 'key1', 'val1', '...', 'keyN', 'valN'},
+           'Set the fields of a table to new values. Takes 1 or more key/value pairs.')
 
 -- The if special form behaves like the cond form in
 -- many languages
@@ -1614,6 +1666,10 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         return targetExprs
     end
 end
+docSpecial('if', {'cond1', 'body1', '...', 'condN', 'bodyN'},
+           'Conditional form.\n' ..
+               'Takes any number of condition/body pairs and evaluates the first body where'
+               .. '\nthe condition evaluates to truthy. Similar to cond in other lisps.')
 
 -- (each [k v (pairs t)] body...) => []
 SPECIALS['each'] = function(ast, scope, parent)
@@ -1644,6 +1700,10 @@ SPECIALS['each'] = function(ast, scope, parent)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end
+docSpecial('each', {'[key value (iterator)]', '...'},
+           'Runs the body once for each set of values provided by the given iterator.'
+           ..'\nMost commonly used with ipairs for sequential tables or pairs for'
+               ..' undefined\norder, but can be used with any iterator.')
 
 -- (while condition body...) => []
 SPECIALS['while'] = function(ast, scope, parent)
@@ -1668,6 +1728,8 @@ SPECIALS['while'] = function(ast, scope, parent)
     emit(parent, subChunk, ast)
     emit(parent, 'end', ast)
 end
+docSpecial('while', {'condition', '...'},
+           'The classic while loop. Evaluates body until a condition is non-truthy.')
 
 SPECIALS['for'] = function(ast, scope, parent)
     local ranges = assertCompile(isTable(ast[2]), 'expected binding table', ast)
@@ -1685,6 +1747,8 @@ SPECIALS['for'] = function(ast, scope, parent)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end
+docSpecial('for', {'[index start stop step?]', '...'}, 'Numeric loop construct.' ..
+               '\nEvaluates body once for each value between start and stop (inclusive).')
 
 SPECIALS[':'] = function(ast, scope, parent)
     assertCompile(#ast >= 3, 'expected at least 3 arguments', ast)
@@ -1727,14 +1791,19 @@ SPECIALS[':'] = function(ast, scope, parent)
         methodstring,
         table.concat(args, ', ')), 'statement')
 end
+docSpecial(':', {'tbl', 'method-name', '...'},
+           'Call the named method on tbl with the provided args.'..
+           '\nMethod name doesn\'t have to be known at compile-time; if it is, use'
+               ..'\n(tbl:method-name ...) instead.')
 
 SPECIALS['comment'] = function(ast, _, parent)
     local els = {}
     for i = 2, #ast do
         els[#els + 1] = tostring(ast[i]):gsub('\n', ' ')
     end
-    emit(parent, '-- ' .. table.concat(els, ' '), ast)
+    emit(parent, '              -- ' .. table.concat(els, ' '), ast)
 end
+docSpecial('comment', {'...'}, 'Comment which will be emitted in Lua output.')
 
 SPECIALS['hashfn'] = function(ast, scope, parent)
     assertCompile(#ast == 2, "expected one argument", ast)
@@ -1757,6 +1826,7 @@ SPECIALS['hashfn'] = function(ast, scope, parent)
     emit(parent, 'end', ast)
     return expr(name, 'sym')
 end
+docSpecial('hashfn', {'...'}, 'Function literal shorthand; args are $1, $2, etc.')
 
 local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
@@ -1786,6 +1856,8 @@ local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
             end
         end
     end
+    docSpecial(name, {'a', 'b', '...'},
+               'Arithmetic operator; works the same as Lua but accepts more arguments.')
 end
 
 defineArithmeticSpecial('+', '0')
@@ -1798,6 +1870,13 @@ defineArithmeticSpecial('/', nil, '1')
 defineArithmeticSpecial('//', nil, '1')
 defineArithmeticSpecial('or', 'false')
 defineArithmeticSpecial('and', 'true')
+
+docSpecial('and', {'a', 'b', '...'},
+           'Boolean operator; works the same as Lua but accepts more arguments.')
+docSpecial('or', {'a', 'b', '...'},
+           'Boolean operator; works the same as Lua but accepts more arguments.')
+docSpecial('..', {'a', 'b', '...'},
+           'String concatenation operator; works the same as Lua but accepts more arguments.')
 
 local function defineComparatorSpecial(name, realop, chainOp)
     local op = realop or name
@@ -1822,6 +1901,8 @@ local function defineComparatorSpecial(name, realop, chainOp)
         end
         return out
     end
+    docSpecial(name, {name, 'a', 'b', '...'},
+               'Comparison operator; works the same as Lua but accepts more arguments.')
 end
 
 defineComparatorSpecial('>')
@@ -1841,7 +1922,10 @@ local function defineUnarySpecial(op, realop)
 end
 
 defineUnarySpecial('not', 'not ')
+docSpecial('not', {'x'}, 'Boolean operator; works the same as Lua.')
+
 defineUnarySpecial('length', '#')
+docSpecial('length', {'x'}, 'Returns the length of a table or string.')
 SPECIALS['#'] = SPECIALS['length']
 
 -- Save current macro scope
@@ -1849,7 +1933,7 @@ local macroCurrentScope = GLOBAL_SCOPE
 
 -- Covert a macro function to a special form
 local function macroToSpecial(mac)
-    return function(ast, scope, parent, opts)
+    local special = function(ast, scope, parent, opts)
         local oldScope = macroCurrentScope
         macroCurrentScope = scope
         local ok, transformed = pcall(mac, unpack(ast, 2))
@@ -1858,6 +1942,11 @@ local function macroToSpecial(mac)
         local result = compile1(transformed, scope, parent, opts)
         return result
     end
+    if metadata[mac] then
+        -- copy metadata from original function to special form function
+        metadata[mac], metadata[special] = nil, metadata[mac]
+    end
+    return special
 end
 
 local requireSpecial
@@ -1974,6 +2063,7 @@ SPECIALS['quote'] = function(ast, scope, parent)
     end
     return doQuote(ast[2], scope, parent, runtime)
 end
+docSpecial('quote', {'x'}, 'Quasiquote the following form. Only works in macro/compiler scope.')
 
 local function compileStream(strm, options)
     options = options or {}
@@ -2144,9 +2234,9 @@ local function repl(options)
         opts.allowedGlobals = currentGlobalNames(opts.env)
     end
 
-    if opts.useMetadata == nil then
-      opts.useMetadata = true
-    end
+    opts.useMetadata = options.useMetadata ~= false
+    opts.moduleName = options.moduleName
+    rootOptions = opts
 
     local env = opts.env and wrapEnv(opts.env) or setmetatable({}, {
         __index = _ENV or _G
@@ -2195,10 +2285,7 @@ local function repl(options)
     -- and reintroduce them to the beginning of the next chunk, allowing
     -- locals to work in the repl the way you'd expect them to.
        local spliceSaveLocals = function(luaSource)
-        -- need to require fennel here since storing metadata comes from require
-        -- fennel, and we need to make sure we have the same module.
-        local replDoc = opts.useMetadata and require("fennel").doc
-        env.___replLocals___ = env.___replLocals___ or { doc = replDoc }
+        env.___replLocals___ = env.___replLocals___ or {}
         local splicedSource = {}
         for line in luaSource:gmatch("([^\n]+)\n?") do
             table.insert(splicedSource, line)
@@ -2271,6 +2358,7 @@ local function repl(options)
                 source = srcstring,
                 scope = scope,
                 useMetadata = opts.useMetadata,
+                moduleName = opts.moduleName,
             })
             if not compileOk then
                 clearstream()
@@ -2345,8 +2433,12 @@ local function searchModule(modulename, pathstring)
 end
 
 module.makeSearcher = function(options)
-   return function(modulename)
+    return function(modulename)
+      -- this will propagate options from the repl but not from eval, because
+      -- eval unsets rootOptions after compiling but before running the actual
+      -- calls to require.
       local opts = {}
+      for k,v in pairs(rootOptions or {}) do opts[k] = v end
       for k,v in pairs(options or {}) do opts[k] = v end
       local filename = searchModule(modulename)
       if filename then
@@ -2423,6 +2515,7 @@ local function loadMacros(modname, ast, scope, parent)
     local env = makeCompilerEnv(ast, scope, parent)
     local globals = macroGlobals(env, currentGlobalNames())
     return dofileFennel(filename, { env = env, allowedGlobals = globals,
+                                    useMetadata = rootOptions.useMetadata,
                                     scope = COMPILER_SCOPE })
 end
 
@@ -2434,6 +2527,9 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
     end
     addMacros(macroLoaded[modname], ast, scope, parent)
 end
+docSpecial('require-macros', {'macro-module-name'},
+           'Load given module and use its contents as macro definitions in current scope.'
+               ..'\nMacro module should return a table of macro functions with string keys.')
 
 SPECIALS['include'] = function(ast, scope, parent, opts)
     assertCompile(#ast == 2, 'expected one argument', ast)
@@ -2514,7 +2610,8 @@ requireSpecial = function (ast, scope, parent, opts)
 end
 
 local function evalCompiler(ast, scope, parent)
-    local luaSource = compile(ast, { scope = makeScope(COMPILER_SCOPE) })
+    local luaSource = compile(ast, { scope = makeScope(COMPILER_SCOPE),
+                                     useMetadata = rootOptions.useMetadata })
     local loader = loadCode(luaSource, wrapEnv(makeCompilerEnv(ast, scope, parent)))
     return loader()
 end
@@ -2524,6 +2621,8 @@ SPECIALS['macros'] = function(ast, scope, parent)
     local macros = evalCompiler(ast[2], scope, parent)
     addMacros(macros, ast, scope, parent)
 end
+docSpecial('macros', {'{:macro-name-1 (fn [...] ...) ... :macro-name-N macro-body-N}'},
+           'Define all functions in the given table as macros local to the current scope.')
 
 SPECIALS['eval-compiler'] = function(ast, scope, parent)
     local oldFirst = ast[1]
@@ -2532,10 +2631,15 @@ SPECIALS['eval-compiler'] = function(ast, scope, parent)
     ast[1] = oldFirst
     return val
 end
+docSpecial('eval-compiler', {'...'}, 'Evaluate the body at compile-time.'
+               .. ' Use the macro system instead if possible.')
 
 -- Load standard macros
 local stdmacros = [===[
 {"->" (fn [val ...]
+        "Thread-first macro.
+Take the first value and splice it into the second form as its first argument.
+The value of the second form is spliced into the first arg of the third, etc."
         (var x val)
         (each [_ e (ipairs [...])]
           (let [elt (if (list? e) e (list e))]
@@ -2543,6 +2647,9 @@ local stdmacros = [===[
             (set x elt)))
         x)
  "->>" (fn [val ...]
+         "Thread-last macro.
+Same as ->, except splices the value into the last position of each form
+rather than the first."
          (var x val)
          (each [_ e (pairs [...])]
            (let [elt (if (list? e) e (list e))]
@@ -2550,6 +2657,8 @@ local stdmacros = [===[
              (set x elt)))
          x)
  "-?>" (fn [val ...]
+         "Nil-safe thread-first macro.
+Same as -> except will short-circuit with nil when it encounters a nil value."
          (if (= 0 (select "#" ...))
              val
              (let [els [...]
@@ -2562,6 +2671,8 @@ local stdmacros = [===[
                       (-?> ,el ,(unpack els))
                       ,tmp)))))
  "-?>>" (fn [val ...]
+         "Nil-safe thread-last macro.
+Same as ->> except will short-circuit with nil when it encounters a nil value."
           (if (= 0 (select "#" ...))
               val
               (let [els [...]
@@ -2574,6 +2685,7 @@ local stdmacros = [===[
                        (-?>> ,el ,(unpack els))
                        ,tmp)))))
  :doto (fn [val ...]
+         "Evaluates val and splices it into the first argument of subsequent forms."
          (let [name (gensym)
                form `(let [,name ,val])]
            (each [_ elt (pairs [...])]
@@ -2582,14 +2694,19 @@ local stdmacros = [===[
            (table.insert form name)
            form))
  :when (fn [condition body1 ...]
+         "Evaluate body for side-effects only when condition is truthy."
          (assert body1 "expected body")
          `(if ,condition
               (do ,body1 ,...)))
  :partial (fn [f ...]
+            "Returns a function with all arguments partially applied to f."
             (let [body (list f ...)]
               (table.insert body _VARARG)
               `(fn [,_VARARG] ,body)))
  :lambda (fn [...]
+           "Function literal with arity checking.
+Will throw an exception if a declared argument is passed in as nil, unless
+that argument name begins with ?."
            (let [args [...]
                  has-internal-name? (sym? (. args 1))
                  arglist (if has-internal-name? (. args 2) (. args 1))
@@ -2615,11 +2732,13 @@ local stdmacros = [===[
                (check! a))
              `(fn ,(unpack args))))
  :macro (fn macro [name ...]
+          "Define a single macro."
           (assert (sym? name) "expected symbol for macro name")
           (local args [...])
           `(macros { ,(tostring name) (fn ,name ,(unpack args))}))
  :match
 (fn match [val ...]
+  "Perform pattern matching on val. See reference for details."
   ;; this function takes the AST of values and a single pattern and returns a
   ;; condition to determine if it matches as well as a list of bindings to
   ;; introduce for the duration of the body if it does match.
@@ -2719,6 +2838,12 @@ local stdmacros = [===[
  }
 ]===]
 do
+    -- docstrings rely on having a place to "put" metadata; we use the module
+    -- system for that. but if you try to require the module while it's being
+    -- loaded, you get a stack overflow. so we fake out the module for the
+    -- purposes of boostrapping the built-in macros here.
+    local moduleName = "__fennel-bootstrap__"
+    package.preload[moduleName] = function() return module end
     local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
     for name, fn in pairs(eval(stdmacros, {
         env = env,
@@ -2727,10 +2852,13 @@ do
         -- otherwise this can be problematic when loading fennel in contexts
         -- where _G is an empty table with an __index metamethod. (openresty)
         allowedGlobals = false,
+        useMetadata = true,
         filename = "built-ins",
+        moduleName = moduleName,
     })) do
-        SPECIALS[name] = macroToSpecial(fn)
+        SPECIALS[name] = macroToSpecial(fn, name)
     end
+    package.preload[moduleName] = nil
 end
 SPECIALS['λ'] = SPECIALS['lambda']
 

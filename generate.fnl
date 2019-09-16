@@ -42,6 +42,7 @@
 
 (set generate
      (fn [table-chance]
+       "Generate a random piece of data."
        (local table-chance (or table-chance 0.5))
        (if (> (math.random) 0.5) (generators.number)
            (> (math.random) 0.5) (generators.string)

@@ -29,7 +29,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --version (-v)          : Show version
 
   Metadata is typically considered a development feature and is not recommended
-  for production.
+  for production. It is used for docstrings and enabled by default in the REPL.
 
   When not given a flag, runs the file given as the first argument.
   When given neither flag nor file, launches a repl.
@@ -37,7 +37,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   If ~/.fennelrc exists, loads it before launching a repl.]]
 
 local options = {
-    sourcemap = true
+    sourcemap = true,
 }
 
 local function dosafe(filename, opts, args)
@@ -103,8 +103,9 @@ for i=#arg, 1, -1 do
 end
 
 if not options.no_searcher then
-    table.insert((package.loaders or package.searchers),
-        fennel.make_searcher({correlate = true}))
+    local opts = {correlate = true}
+    for k,v in pairs(options) do opts[k] = v end
+    table.insert((package.loaders or package.searchers), fennel.make_searcher(opts))
 end
 
 -- Try to load readline library
@@ -154,8 +155,10 @@ if arg[1] == "--repl" or #arg == 0 then
         -- pass in options so fennerlrc can make changes to it
         dosafe(initFilename, options, options)
     end
-    print("Welcome to Fennel " .. fennel.version .. "!\n" ..
-              "Use (doc something) to view documentation.")
+    print("Welcome to Fennel " .. fennel.version .. "!")
+    if options.useMetadata ~= false then
+        print("Use (doc something) to view documentation.")
+    end
     fennel.repl(options)
 elseif arg[1] == "--compile" then
     for i = 2, #arg do

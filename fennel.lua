@@ -836,13 +836,17 @@ end
 
 local metadata = makeMetadata()
 local doc = function(tgt, name)
-    assert(tgt, name .. " not found")
-    local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or
-                                     {'#<unknown-arguments>'}, ' ')
+    if(not tgt) then return print(name .. " not found") end
     local docstring = (metadata:get(tgt, 'fnl/docstring') or
                            '#<undocumented>'):gsub('\n$', ''):gsub('\n', '\n  ')
-    return string.format("(%s%s%s)\n  %s", name, #arglist > 0 and ' ' or '',
-                         arglist, docstring)
+    if type(tgt) == "function" then
+        local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or
+                                         {'#<unknown-arguments>'}, ' ')
+        return string.format("(%s%s%s)\n  %s", name, #arglist > 0 and ' ' or '',
+                             arglist, docstring)
+    else
+        return string.format("%s\n  %s", name, docstring)
+    end
 end
 
 local function docSpecial(name, arglist, docstring)

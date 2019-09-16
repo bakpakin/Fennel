@@ -662,7 +662,7 @@ local docstring_tests = {
         {'(ew)\n  so "gross" \\"I\\" can\'t even',
          'docstrings should be auto-escaped'},
     ['(fn foo! [-kebab- {:x x}] 1) (doc foo!)'] =
-        { "(foo! -kebab- #<table>)\n  <docstring:nil>",
+        { "(foo! -kebab- #<table>)\n  #<undocumented>",
           "fn-name and args mangling" },
     ['(doc doto)'] =
         {"(doto val ...)\n  Evaluates val and splices it into the " ..
@@ -675,7 +675,7 @@ local docstring_tests = {
         {"(abc x y z)\n  this is a macro.",
          "docstrings for user-defined macros"},
     ['(doc table.concat)'] =
-        {"(table.concat #<unknown-arguments>)\n  <docstring:nil>",
+        {"(table.concat #<unknown-arguments>)\n  #<undocumented>",
          "docstrings for built-in Lua functions"},
     ['(let [x-tbl []] (fn x-tbl.y! [d] "why" 123) (doc x-tbl.y!))'] =
         {"(x-tbl.y! d)\n  why",
@@ -705,7 +705,7 @@ fennel.eval("(eval-compiler (set fennel._SPECIALS _SPECIALS))")
 for name in pairs(fennel._SPECIALS) do
     if((not undocumentedOk[name]) and (fennel.eval(("(doc %s )"):format(name),
                                            { useMetadata = true, env = docEnv })
-                                       :find("docstring:nil"))) then
+                                       :find("undocumented"))) then
         fail = fail + 1
         print("Missing docstring for " .. name)
     end

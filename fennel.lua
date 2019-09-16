@@ -840,7 +840,7 @@ local doc = function(tgt, name)
     local arglist = table.concat(metadata:get(tgt, 'fnl/arglist') or
                                      {'#<unknown-arguments>'}, ' ')
     local docstring = (metadata:get(tgt, 'fnl/docstring') or
-                           '<docstring:nil>'):gsub('\n$', ''):gsub('\n', '\n  ')
+                           '#<undocumented>'):gsub('\n$', ''):gsub('\n', '\n  ')
     return string.format("(%s%s%s)\n  %s", name, #arglist > 0 and ' ' or '',
                          arglist, docstring)
 end

@@ -165,13 +165,14 @@
                 (: :gsub "%( " "(") (: :gsub " %)" ")"))]
     ret))
 
-(fn fennelview [root options]
+(fn fennelview [x options]
+  "Return a string representation of x."
   (let [options (or options {})
-        inspector {:appearances (count-table-appearances root {})
+        inspector {:appearances (count-table-appearances x {})
                    :depth (or options.depth 128)
                    :level 0 :buffer {} :ids {} :max-ids {}
                    :indent (or options.indent (if options.one-line "" "  "))
                    :detect-cycles? (not (= false options.detect-cycles?))}]
-    (put-value inspector root)
+    (put-value inspector x)
     (let [str (table.concat inspector.buffer)]
       (if options.one-line (one-line str) str))))

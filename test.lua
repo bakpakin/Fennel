@@ -683,9 +683,13 @@ local docstring_tests = {
     ['(let [f (fn [] "f" :f) g (fn [] f)] (doc (g)))'] =
         {"((g))\n  f",
          "doc on expression"},
+    ['(local generate (fennel.dofile "generate.fnl" {:useMetadata true})) (doc generate)'] =
+        {"(generate table-chance)\n  Generate a random piece of data.",
+         "docstrings from required module."}
 }
 
-local docEnv = setmetatable({ print = function(x) return x end }, { __index=_G })
+local docEnv = setmetatable({ print = function(x) return x end, fennel = fennel},
+    { __index=_G })
 
 for code, cond_msg in pairs(docstring_tests) do
     local expected, msg = (unpack or table.unpack)(cond_msg)

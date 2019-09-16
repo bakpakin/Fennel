@@ -2234,9 +2234,8 @@ local function repl(options)
         opts.allowedGlobals = currentGlobalNames(opts.env)
     end
 
-    if opts.useMetadata == nil then
-      opts.useMetadata = true
-    end
+    opts.useMetadata = options.useMetadata ~= false
+    rootOptions = opts
 
     local env = opts.env and wrapEnv(opts.env) or setmetatable({}, {
         __index = _ENV or _G
@@ -2426,8 +2425,11 @@ local function searchModule(modulename, pathstring)
 end
 
 module.makeSearcher = function(options)
-   return function(modulename)
-      local opts = {}
+    return function(modulename)
+      -- this will propagate options from the repl but not from eval, because
+      -- eval unsets rootOptions after compiling but before running the actual
+      -- calls to require.
+      local opts = { useMetadata = rootOptions and rootOptions.useMetadata }
       for k,v in pairs(options or {}) do opts[k] = v end
       local filename = searchModule(modulename)
       if filename then

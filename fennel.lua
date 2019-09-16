@@ -1415,11 +1415,12 @@ SPECIALS['doc'] = function(ast, scope)
     if special then
         return ("print([[%s]])"):format(doc(special, target))
     else
+        local mangled = combineParts(isMultiSym(ast[2]) or {target}, scope)
         -- need to require here since the metadata is stored in the module
         -- and we need to make sure we look it up in the same module it was
         -- declared from.
         return ("print(require('%s').doc(%s, '%s'))")
-            :format(rootOptions.moduleName or "fennel", scope.manglings[target], target)
+            :format(rootOptions.moduleName or "fennel", mangled, target)
     end
 end
 docSpecial('doc', {'x'},

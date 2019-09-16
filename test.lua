@@ -674,6 +674,12 @@ local docstring_tests = {
     ['(macro abc [x y z] "this is a macro." :123) (doc abc)'] =
         {"(abc x y z)\n  this is a macro.",
          "docstrings for user-defined macros"},
+    ['(doc table.concat)'] =
+        {"(table.concat #<unknown-arguments>)\n  <docstring:nil>",
+         "docstrings for built-in Lua functions"},
+    ['(let [x-tbl []] (fn x-tbl.y! [d] "why" 123) (doc x-tbl.y!))'] =
+        {"(x-tbl.y! d)\n  why",
+         "docstrings for mangled multisyms"}
 }
 
 local docEnv = setmetatable({ print = function(x) return x end }, { __index=_G })

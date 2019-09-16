@@ -2235,6 +2235,7 @@ local function repl(options)
     end
 
     opts.useMetadata = options.useMetadata ~= false
+    opts.moduleName = options.moduleName
     rootOptions = opts
 
     local env = opts.env and wrapEnv(opts.env) or setmetatable({}, {
@@ -2357,6 +2358,7 @@ local function repl(options)
                 source = srcstring,
                 scope = scope,
                 useMetadata = opts.useMetadata,
+                moduleName = opts.moduleName,
             })
             if not compileOk then
                 clearstream()
@@ -2429,7 +2431,8 @@ module.makeSearcher = function(options)
       -- this will propagate options from the repl but not from eval, because
       -- eval unsets rootOptions after compiling but before running the actual
       -- calls to require.
-      local opts = { useMetadata = rootOptions and rootOptions.useMetadata }
+      local opts = {}
+      for k,v in pairs(rootOptions or {}) do opts[k] = v end
       for k,v in pairs(options or {}) do opts[k] = v end
       local filename = searchModule(modulename)
       if filename then

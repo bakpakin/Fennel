@@ -287,7 +287,7 @@ local cases = {
            (reverse-it 1 2 3 4 5 6)]]]=1,
         -- nesting quote can only happen in the compiler
         ["(eval-compiler (set tbl.nest ``nest))\
-          (tostring tbl.nest)"]="(quote, nest)",
+          (tostring tbl.nest)"]="(quote nest)",
         -- inline macros
         ["(macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)"]=18,
         -- Vararg in quasiquote

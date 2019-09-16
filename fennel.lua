@@ -41,7 +41,7 @@ local LIST_MT = { 'LIST',
         for _, s in ipairs(self) do
             table.insert(strs, tostring(s))
         end
-        return '(' .. table.concat(strs, ', ', 1, #self) .. ')'
+        return '(' .. table.concat(strs, ' ', 1, #self) .. ')'
     end
 }
 local SEQUENCE_MT = { 'SEQUENCE' }

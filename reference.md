@@ -42,6 +42,33 @@ Example:
 
 The `λ` form is an alias for `lambda` and behaves identically.
 
+### Docstrings
+
+Both the `fn` and `lambda`/`λ` forms of function definition accept an optional
+docstring.
+
+```fennel
+(fn pxy [x y] "Print the sum of x and y" (print (+ x y)))
+(λ pxyz [x ?y z]
+  "Print the sum of x, y, and z. If y is not provided, defaults to 0."
+  (print (+ x (or ?y 0) z)))
+```
+
+These are ignored by default outside of the REPL, unless metadata
+is enabled from the CLI (`---metadata`) or compiler options `{useMetadata=true}`,
+in which case they are stored in a metadata table along with the arglist,
+enabling easy of function docs via the `doc` macro.
+
+```
+>> (doc pxy)
+(pxy x y)
+  Print the sum of x and y
+```
+
+All function metadata will be garbage collected along with the function itself.
+Docstrings and other metadata can also be accessed via functions on the fennel
+API (see api reference).
+
 ### Hash function literal shorthand
 
 It's pretty easy to create function literals, but Fennel provides

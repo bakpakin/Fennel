@@ -15,6 +15,8 @@ closures. The [Lua reference manual][3] is a fine place to look for details.
 
 ## OK, so how do you do things?
 
+### Functions and lambdas
+
 Use `fn` to make functions. If you provide an optional name, the
 function will be bound to that name in local scope; otherwise it is
 simply a value. The argument list is provided in square brackets. The
@@ -28,6 +30,23 @@ outside.)
 (fn print-and-add [a b c]
   (print a)
   (+ b c))
+```
+
+Functions can take an optional docstring in the form of a string that
+immediately follows the arglist. Under normal compilation, this
+is removed from the emitted Lua, but in the REPL, or when compiling with
+metadata enabled (`fennel --metadata <tgt-files>`), the docstring and
+function usage can be viewed with the [`doc` macro](reference.md#docstrings):
+
+*Note: Enabling metadata is [only recommended for development purposes](api.md#metadata-performance-note).*
+
+```fennel
+(fn print-sep [sep ...]
+  "Prints args as a string, delimited by sep"
+  (print (table.concat [...] sep)))
+(doc print-sep) ; -> outputs:
+; (print-sep sep ...)
+;   Prints args as a string, delimited by sep
 ```
 
 Functions defined with `fn` are fast; they have no runtime overhead
@@ -47,6 +66,10 @@ Note that the second argument `?y` is allowed to be `nil`, but `z` is not:
 ```fennel
 (print-calculation 5 nil 3) ; -> 2
 ```
+
+Like `fn`, lambdas accept an optional docstring after the arglist.
+
+### Locals and variables
 
 Locals are introduced using `let` with the names and values wrapped in
 a single set of square brackets:

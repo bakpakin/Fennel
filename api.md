@@ -185,8 +185,8 @@ fennel.eval("(doc greet)", { useMetadata = true })
 
 fennel.metadata:set(greet, "fnl/docstring", "Say hello!!!")
 fennel.doc(greet, "greet!")
--- (greet! name)
---   Say hello!!!
+--> (greet! name)
+-->   Say hello!!!
 ```
 
 ### Metadata performance note

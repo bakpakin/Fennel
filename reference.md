@@ -57,7 +57,7 @@ docstring.
 These are ignored by default outside of the REPL, unless metadata
 is enabled from the CLI (`---metadata`) or compiler options `{useMetadata=true}`,
 in which case they are stored in a metadata table along with the arglist,
-enabling easy of function docs via the `doc` macro.
+enabling viewing function docs via the `doc` macro.
 
 ```
 >> (doc pxy)
@@ -66,8 +66,8 @@ enabling easy of function docs via the `doc` macro.
 ```
 
 All function metadata will be garbage collected along with the function itself.
-Docstrings and other metadata can also be accessed via functions on the fennel
-API (see api reference).
+Docstrings and other metadata can also be accessed via functions on the [fennel
+API](api.md#work-with-docstrings-and-metadata).
 
 ### Hash function literal shorthand
 

@@ -21,6 +21,10 @@ Takes these additional options:
   is the source of the generated lua code.
 * `allowedGlobals`: a sequential table of strings of the names of globals which
   the compiler will allow references to.
+* `useMetadata`: Defaults to true for REPL only. Enables or disables
+  [metadata](#work-with-docstrings-and-metadata) from the REPL, allowing
+  use of the [doc macro](reference.md#docstrings). Intended for development purposes
+  (see [performance note](#metadata-performance-note))
 
 The pretty-printer defaults to loading `fennelview.fnl` if present and
 falls back to `tostring` otherwise. `fennelview.fnl` will produce
@@ -31,6 +35,9 @@ produces output in Lua format if you prefer.
 If you don't provide `allowedGlobals` then it defaults to being all
 the globals in the environment under which the code will run. Passing
 in `false` here will disable global checking entirely.
+
+By default, metadata will be enabled and you can view function signatures and
+docstrings with the `doc` macro from the REPL.
 
 ## Evaulate a string of Fennel
 
@@ -43,6 +50,7 @@ The `options` table may contain:
 * `env`: same as above.
 * `allowedGlobals`: same as above.
 * `filename`: override the filename that Lua thinks the code came from.
+* `useMetadata`: Enables [metadata](#work-with-docstrings-and-metadata)
 
 Additional arguments beyond `options` are passed to the code and
 available as `...`.
@@ -141,5 +149,56 @@ for ok, value in valuestream do
     print(ok, value)
 end
 ```
+
+## Work with docstrings and metadata
+
+When running a REPL or using compile/eval with metadata enabled, each function
+declared with `fn` or `λ/lambda` will use the created function as a key on
+`fennel.metadata` to store the function's arglist and (if provided) docstring.
+The metadata table is weakly-referenced by key, so each function's metadata will
+be garbage collected along with the function itself.
+
+You can work with the API to view or modify this metadata yourself, or use the [`doc`
+macro](reference.md#docstrings) from fennel to view function documentation.
+
+In addition to direct access to the metadata tables, you can use the following methods:
+
+* `fennel.metadata:get(func, key)`: get a value from a function's metadata
+* `fennel.metadata:set(func, key, val)`:  set a metadata value
+* `fennel.metadata:setall(func, key1, val1, key2, val2, ...)`: set pairs
+* `fennel.doc(func, fnName)`: print formatted documentation for function using name.
+  Utilized by the `doc` macro, name is whatever symbol you operate on that's bound to
+  the function.
+
+```lua
+greet = fennel.eval([[
+(λ greet [name] "Say hello" (print (string.format "Hello, %s!" name)))
+]], {useMetadata = true})
+
+-- fennel.metadata[greet]
+-- > {"fnl/docstring" = "Say hello", "fnl/arglist" = ["name"]}
+
+-- works because greet was set globally above for example purposes only
+fennel.eval("(doc greet)", { useMetadata = true })
+-- > (greet name)
+-- >   Say hello
+
+fennel.metadata:set(greet, "fnl/docstring", "Say hello!!!")
+fennel.doc(greet, "greet!")
+-- (greet! name)
+--   Say hello!!!
+```
+
+### Metadata performance note
+
+Enabling metadata in the compiler/eval/REPL will cause every function to store a new
+table containing the function's arglist and docstring in the metadata table, weakly
+referenced by the function itself as a key.
+
+This may have a performance impact in some applications due to the extra
+allocations and garbage collection associated with dynamic function creation.
+The impact hasn't been benchmarked, and may be minimal particularly in luajit,
+but enabling metadata is currently recommended for development purposes only
+to minimize overhead.
 
 [1]: https://github.com/rxi/lume#lumehotswapmodname

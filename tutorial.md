@@ -89,7 +89,7 @@ be used across the whole file, but in general `let` is preferred because
 it's clearer at a glance where the value is used:
 
 ```fennel
-(local lume (require "lume"))
+(local tau-approx 6.28318)
 ```
 
 Locals set this way cannot be given new values, but you *can*
@@ -545,7 +545,7 @@ code just the same as they would be from Lua.
 You can use the `require` function to load code from Lua files.
 
 ```fennel
-(let [lume (require "lume")
+(let [lume (require :lume)
       tbl [52 99 412 654]
       plus (fn [x y] (+ x y))]
   (lume.map tbl (partial plus 2))) ; -> [54 101 414 656]
@@ -553,8 +553,7 @@ You can use the `require` function to load code from Lua files.
 
 Modules in Lua are simply tables which contain functions and other values.
 The last value in a Fennel file will be used as the value of the
-module. This is typically a table containing functions, though it
-can be any value, like a function.
+module. (Technically this can be any value, not just a table.)
 
 By default, modules are looked up by looking thru all the directories on
 `package.path`. To require a module that's in a subdirectory, take the file

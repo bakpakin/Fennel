@@ -172,7 +172,7 @@ file for locals which will be used throughout the file.
 Example:
 
 ```fennel
-(local lume (require "lume"))
+(local tau-approx 6.28318)
 ```
 
 

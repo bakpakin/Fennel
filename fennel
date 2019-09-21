@@ -22,6 +22,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --require-as-include    : Inline required modules in the output
   --metadata              : Enable function metadata, even in compiled output
   --no-metadata           : Disable function metadata, even in REPL
+  --correlate             : Make Lua output line numbers match Fennel input
 
   --eval SOURCE (-e)      : Evaluate source code and print the result
 
@@ -36,9 +37,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
   If ~/.fennelrc exists, loads it before launching a repl.]]
 
-local options = {
-    sourcemap = true,
-}
+local options = {}
 
 local function dosafe(filename, opts, args)
     local ok, val = xpcall(function()
@@ -74,10 +73,6 @@ for i=#arg, 1, -1 do
         local entry = table.remove(arg, i+1)
         fennel.path = entry .. ";" .. fennel.path
         table.remove(arg, i)
-    elseif arg[i] == "--sourcemap" then
-        options.sourcemap = table.remove(arg, i+1)
-        if options.sourcemap == "false" then options.sourcemap = false end
-        table.remove(arg, i)
     elseif arg[i] == "--correlate" then
         options.correlate = true
         table.remove(arg, i)
@@ -103,7 +98,7 @@ for i=#arg, 1, -1 do
 end
 
 if not options.no_searcher then
-    local opts = {correlate = true}
+    local opts = {}
     for k,v in pairs(options) do opts[k] = v end
     table.insert((package.loaders or package.searchers), fennel.make_searcher(opts))
 end

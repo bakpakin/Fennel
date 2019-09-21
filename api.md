@@ -2,6 +2,20 @@
 
 The `fennel` module provides the following functions.
 
+Any time a function takes an `options` table argument, that table will
+usually accept these fields:
+
+* `allowedGlobals`: a sequential table of strings of the names of globals which
+  the compiler will allow references to.
+* `correlate`: when this is truthy, Fennel attempts to emit Lua where the line
+  numbers match up with the Fennel input code; useful for situation where code
+  that isn't under your control will print the stack traces.
+* `useMetadata`: enables or disables [metadata](#work-with-docstrings-and-metadata),
+  allowing use of the doc macro. Intended for development purposes
+  (see [performance note](#metadata-performance-note)); defaults to
+  true for REPL only.
+* `env`: an environment table in which to run the code; see the Lua manual.
+
 ## Start a configurable repl
 
 ```lua
@@ -13,18 +27,11 @@ Takes these additional options:
 * `readChunk()`: a function that when called, returns a string of source code.
   The empty is string is used as the end of source marker.
 * `pp`: a pretty-printer function to apply on values.
-* `env`: an environment table in which to run the code; see the Lua manual.
 * `onValues(values)`: a function that will be called on all returned top level values.
 * `onError(errType, err, luaSource)`: a function that will be called on each error.
   `errType` is a string with the type of error, can be either, 'parse',
   'compile', 'runtime',  or 'lua'. `err` is the error message, and `luaSource`
   is the source of the generated lua code.
-* `allowedGlobals`: a sequential table of strings of the names of globals which
-  the compiler will allow references to.
-* `useMetadata`: Defaults to true for REPL only. Enables or disables
-  [metadata](#work-with-docstrings-and-metadata) from the REPL, allowing
-  use of the [doc macro](reference.md#docstrings). Intended for development purposes
-  (see [performance note](#metadata-performance-note))
 
 The pretty-printer defaults to loading `fennelview.fnl` if present and
 falls back to `tostring` otherwise. `fennelview.fnl` will produce
@@ -45,12 +52,9 @@ docstrings with the `doc` macro from the REPL.
 local result = fennel.eval(str[, options[, ...]])
 ```
 
-The `options` table may contain:
+The `options` table may also contain:
 
-* `env`: same as above.
-* `allowedGlobals`: same as above.
 * `filename`: override the filename that Lua thinks the code came from.
-* `useMetadata`: Enables [metadata](#work-with-docstrings-and-metadata)
 
 Additional arguments beyond `options` are passed to the code and
 available as `...`.
@@ -61,9 +65,6 @@ available as `...`.
 local result = fennel.dofile(filename[, options[, ...]])
 ```
 
-The `env` key in `options` and the additional arguments after it work
-the same as with `eval` above.
-
 ## Use Lua's built-in require function
 
 ```lua
@@ -72,8 +73,11 @@ local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
 Normally Lua's `require` function only loads modules written in Lua,
-but you can install `fennel.searcher` into `package.loaders` (or in
-Lua 5.3+ `package.searchers`) to teach it how to load Fennel code.
+but you can install `fennel.searcher` into `package.searchers` (or in
+Lua 5.1 `package.loaders`) to teach it how to load Fennel code.
+
+If you would rather change some of the `options` you can use
+`fennel.makeSearcher` to override `env`, `correlate`, etc.
 
 The `require` function is different from `fennel.dofile` in that it
 searches the directories in `fennel.path` for `.fnl` files matching
@@ -81,7 +85,7 @@ the module name, and also in that it caches the loaded value to return
 on subsequent calls, while `fennel.dofile` will reload each time. The
 behavior of `fennel.path` mirrors that of Lua's `package.path`.
 
-If you install Fennel into `package.loaders` then you can use the
+If you install Fennel into `package.searchers` then you can use the
 3rd-party [lume.hotswap][1] function to reload modules that have been
 loaded with `require`.
 

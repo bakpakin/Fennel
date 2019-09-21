@@ -785,11 +785,11 @@ end
 
 -- Return Lua source and source map table
 local function flatten(chunk, options)
-    local sm = options.sourcemap and {}
     chunk = peephole(chunk)
     if(options.correlate) then
         return flattenChunkCorrelated(chunk), {}
     else
+        local sm = {}
         local ret = flattenChunk(sm, chunk, options.indent, 0)
         if sm then
             local key, short_src
@@ -2214,7 +2214,7 @@ local function eval(str, options, ...)
 end
 
 local function dofileFennel(filename, options, ...)
-    options = options or {sourcemap = true}
+    options = options or {}
     if options.allowedGlobals == nil then
         options.allowedGlobals = currentGlobalNames(options.env)
     end
@@ -2355,7 +2355,7 @@ local function repl(options)
         else
             if not parseok then break end -- eof
             local compileOk, luaSource = pcall(compile, x, {
-                sourcemap = opts.sourcemap,
+                correlate = opts.correlate,
                 source = srcstring,
                 scope = scope,
                 useMetadata = opts.useMetadata,

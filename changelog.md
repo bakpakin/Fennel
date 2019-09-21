@@ -7,6 +7,7 @@ the macro system and some breaking changes; the most significant being
 the new unquote syntax and the requirement of auto-gensym for
 identifiers in backtick.
 
+* Fix a bug where errors would show incorrect line numbers
 * Add support for docstrings and `doc` for displaying them in repl
 * Support `:detect-cycles? false` in fennelview to turn off "#<table 1>" output
 * **Disallow** non-gensym identifiers in backtick/macros

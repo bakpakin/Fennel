@@ -836,7 +836,7 @@ end
 
 local metadata = makeMetadata()
 local doc = function(tgt, name)
-    if(not tgt) then return print(name .. " not found") end
+    if(not tgt) then return name .. " not found" end
     local docstring = (metadata:get(tgt, 'fnl/docstring') or
                            '#<undocumented>'):gsub('\n$', ''):gsub('\n', '\n  ')
     if type(tgt) == "function" then
@@ -2324,13 +2324,13 @@ local function repl(options)
 
     local replCompleter = function(text, from, to)
         local matches = {}
-        local inputFragment = string.lower(text):sub(from, to):gsub("[%s)(]*(.+)", "%1")
+        local inputFragment = text:sub(from, to):gsub("[%s)(]*(.+)", "%1")
 
         -- adds any matching keys from the provided generator/iterator to matches
         local function addMatchesFromGen(next, param, state)
           for k in next, param, state do
             if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming
-            elseif inputFragment == k:sub(0, #inputFragment):lower() then
+            elseif inputFragment == k:sub(0, #inputFragment) then
                 table.insert(matches, k)
             end
           end

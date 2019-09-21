@@ -2322,9 +2322,9 @@ local function repl(options)
 
     local scope = makeScope(GLOBAL_SCOPE)
 
-    local replCompleter = function(text, from, to)
+    local replCompleter = function(text)
         local matches = {}
-        local inputFragment = text:sub(from, to):gsub("[%s)(]*(.+)", "%1")
+        local inputFragment = text:gsub("[%s)(]*(.+)", "%1")
 
         -- adds any matching keys from the provided generator/iterator to matches
         local function addMatchesFromGen(next, param, state)

@@ -124,7 +124,7 @@ local function tryReadline(opts)
           completer = replCompleter
         end
         local function replCompleter(text, from, to)
-          if completer then return completer(text, from, to) else return {} end
+          if completer then return completer(text:sub(from, to)) else return {} end
         end
         readline.set_complete_function(replCompleter)
       end

@@ -162,8 +162,8 @@ declared with `fn` or `λ/lambda` will use the created function as a key on
 The metadata table is weakly-referenced by key, so each function's metadata will
 be garbage collected along with the function itself.
 
-You can work with the API to view or modify this metadata yourself, or use the [`doc`
-macro](reference.md#docstrings) from fennel to view function documentation.
+You can work with the API to view or modify this metadata yourself, or use the `doc`
+macro from fennel to view function documentation.
 
 In addition to direct access to the metadata tables, you can use the following methods:
 

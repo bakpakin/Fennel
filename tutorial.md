@@ -36,9 +36,9 @@ Functions can take an optional docstring in the form of a string that
 immediately follows the arglist. Under normal compilation, this
 is removed from the emitted Lua, but in the REPL, or when compiling with
 metadata enabled (`fennel --metadata <tgt-files>`), the docstring and
-function usage can be viewed with the [`doc` macro](reference.md#docstrings):
+function usage can be viewed with the `doc` macro:
 
-*Note: Enabling metadata is [only recommended for development purposes](api.md#metadata-performance-note).*
+*Note: Enabling metadata is only recommended for development purposes.*
 
 ```fennel
 (fn print-sep [sep ...]

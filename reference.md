@@ -66,8 +66,8 @@ enabling viewing function docs via the `doc` macro.
 ```
 
 All function metadata will be garbage collected along with the function itself.
-Docstrings and other metadata can also be accessed via functions on the [fennel
-API](api.md#work-with-docstrings-and-metadata).
+Docstrings and other metadata can also be accessed via functions on the fennel
+API with `fennel.metadata`.
 
 ### Hash function literal shorthand
 

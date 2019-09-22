@@ -1,5 +1,9 @@
 # Summary of user-visible changes
 
+## 0.4.0 / ???
+
+* ???
+
 ## 0.3.0 / 2019-09-22
 
 This release introduces docstrings as well as several new features to

@@ -2392,7 +2392,7 @@ end
 local macroLoaded = {}
 
 local pathTable = {"./?.fnl", "./?/init.fnl"}
-local osPath = os.getenv("FENNEL_PATH")
+local osPath = os and os.getenv and os.getenv("FENNEL_PATH")
 if osPath then
     table.insert(pathTable, osPath)
 end

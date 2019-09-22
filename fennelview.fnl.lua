@@ -171,7 +171,7 @@ local function one_line(str)
   local ret = str:gsub("\n", " "):gsub("%[ ", "["):gsub(" %]", "]"):gsub("%{ ", "{"):gsub(" %}", "}"):gsub("%( ", "("):gsub(" %)", ")")
   return ret
 end
-local function fennelview(root, options)
+local function fennelview(x, options)
   local options = (options or {})
   local inspector = inspector
   local function _1_()
@@ -181,8 +181,8 @@ local function fennelview(root, options)
       return "  "
     end
   end
-  inspector = {["detect-cycles?"] = not (false == options["detect-cycles?"]), ["max-ids"] = {}, appearances = count_table_appearances(root, {}), buffer = {}, depth = (options.depth or 128), ids = {}, indent = (options.indent or _1_()), level = 0}
-  put_value(inspector, root)
+  inspector = {["detect-cycles?"] = not (false == options["detect-cycles?"]), ["max-ids"] = {}, appearances = count_table_appearances(x, {}), buffer = {}, depth = (options.depth or 128), ids = {}, indent = (options.indent or _1_()), level = 0}
+  put_value(inspector, x)
   do
     local str = table.concat(inspector.buffer)
     if options["one-line"] then

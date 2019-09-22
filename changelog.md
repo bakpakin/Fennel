@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.3.0 / ??
+## 0.3.0 / 2019-09-22
 
 This release introduces docstrings as well as several new features to
 the macro system and some breaking changes; the most significant being

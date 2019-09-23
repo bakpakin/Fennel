@@ -2237,7 +2237,7 @@ local function repl(options)
 
     opts.useMetadata = options.useMetadata ~= false
     opts.moduleName = options.moduleName
-    rootOptions = opts
+    local oldRootOptions = rootOptions
 
     local env = opts.env and wrapEnv(opts.env) or setmetatable({}, {
         __index = _ENV or _G
@@ -2353,6 +2353,7 @@ local function repl(options)
             clearstream()
             reset()
         else
+            rootOptions = opts
             if not parseok then break end -- eof
             local compileOk, luaSource = pcall(compile, x, {
                 correlate = opts.correlate,
@@ -2385,6 +2386,7 @@ local function repl(options)
                     end
                 end
             end
+            rootOptions = oldRootOptions
         end
     end
 end

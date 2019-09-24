@@ -1901,7 +1901,7 @@ local function defineComparatorSpecial(name, realop, chainOp)
         end
         return out
     end
-    docSpecial(name, {name, 'a', 'b', '...'},
+    docSpecial(name, {'a', 'b', '...'},
                'Comparison operator; works the same as Lua but accepts more arguments.')
 end
 

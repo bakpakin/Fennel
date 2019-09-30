@@ -44,6 +44,8 @@ The `λ` form is an alias for `lambda` and behaves identically.
 
 ### Docstrings
 
+*(Since 0.3.0)*
+
 Both the `fn` and `lambda`/`λ` forms of function definition accept an optional
 docstring.
 
@@ -70,6 +72,8 @@ Docstrings and other metadata can also be accessed via functions on the fennel
 API with `fennel.metadata`.
 
 ### Hash function literal shorthand
+
+*(Since 0.3.0)*
 
 It's pretty easy to create function literals, but Fennel provides
 an even shorter form of functions. Hash functions are anonymous
@@ -476,6 +480,8 @@ Example:
 
 ### `length` string or table length
 
+*(Changed in 0.3.0: the function was called `#` before.)*
+
 Returns the length of a string or table. Note that the length of a
 table with gaps in it is undefined; it can return a number
 corresponding to any of the table's "boundary" positions between nil
@@ -519,7 +525,7 @@ Looks up a function in a table and calls it with the table as its
 first argument. This is a common idiom in many Lua APIs, including
 some built-in ones.
 
-Just like Lua, you can perform a method call by calling a function
+*(Since 0.3.0)* Just like Lua, you can perform a method call by calling a function
 name where `:` separates the table variable and method name.
 
 Example:
@@ -669,7 +675,8 @@ instance, here is a macro function which implements `when2` in terms of
 A full explanation of how macros work is out of scope for this document,
 but you can think of it as a compile-time template function. The backtick
 on the third line creates a template for the code emitted by the macro. The
-`,` serves as "unquote" which splices values into the template.
+`,` serves as "unquote" which splices values into the template. *(Changed
+in 0.3.0: `@` was used instead of `,` before.)*
 
 Assuming the code above is in the file "my-macros.fnl" then it turns this input:
 
@@ -698,6 +705,8 @@ Note that the macro interface is still preliminary and is subject to
 change over time.
 
 ### `macros`
+
+*(Since 0.3.0)*
 
 Defines a table of macros local to the current fennel file. Note that
 inside the macro definitions, you cannot access variables and bindings
@@ -731,7 +740,7 @@ they are passed a form which has side-effects, the result will be unexpected:
 (print (my-max (f) 2)) ; -> 3 since (f) is called twice in the macro body above
 ```
 
-In order to prevent accidental symbol capture[2], you may not bind a
+*(Since 0.3.0)* In order to prevent accidental symbol capture[2], you may not bind a
 bare symbol inside a backtick as an identifier. Appending a `#` on
 the end of the identifier name as above invokes "auto gensym" which
 guarantees the local name is unique.

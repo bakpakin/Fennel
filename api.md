@@ -10,7 +10,7 @@ usually accept these fields:
 * `correlate`: when this is truthy, Fennel attempts to emit Lua where the line
   numbers match up with the Fennel input code; useful for situation where code
   that isn't under your control will print the stack traces.
-* `useMetadata`: enables or disables [metadata](#work-with-docstrings-and-metadata),
+* `useMetadata` *(since 0.3.0)*: enables or disables [metadata](#work-with-docstrings-and-metadata),
   allowing use of the doc macro. Intended for development purposes
   (see [performance note](#metadata-performance-note)); defaults to
   true for REPL only.
@@ -155,6 +155,8 @@ end
 ```
 
 ## Work with docstrings and metadata
+
+*(Since 0.3.0)*
 
 When running a REPL or using compile/eval with metadata enabled, each function
 declared with `fn` or `λ/lambda` will use the created function as a key on

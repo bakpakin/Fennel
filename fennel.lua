@@ -1548,8 +1548,9 @@ SPECIALS['tset'] = function(ast, scope, parent)
                                table.concat(keys, ']['),
                                tostring(value)), ast)
 end
-docSpecial('tset', {'tbl', 'key1', 'val1', '...', 'keyN', 'valN'},
-           'Set the fields of a table to new values. Takes 1 or more key/value pairs.')
+docSpecial('tset', {'tbl', 'key1', '...', 'keyN', 'val'},
+           'Set the value of a table field. Can take additional keys to set'
+        .. 'nested values,\nbut all parents must contain an existing table.')
 
 -- The if special form behaves like the cond form in
 -- many languages

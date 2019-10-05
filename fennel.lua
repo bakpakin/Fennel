@@ -2339,14 +2339,13 @@ local function repl(options)
         -- adds matches to the match list traversing
         local function addMatches(input, tbl, prefix)
           prefix = prefix and prefix .. "." or ""
+          if not string.find(input, "%.") then -- no (more) dots, so add matches
+            return addPartials(input, tbl, prefix)
+          end
+          local head, tail = string.match(input, "^([^.]+)%.(.*)")
           -- check for table access field.child, and if field is a table, recur
-          if string.find(input, "%.") then
-            local head, tail = string.match(input, "^([^.]+)%.(.*)")
-            if type(tbl[head]) == "table" then
-              return addMatches(tail, tbl[head], prefix .. head)
-            end
-          else
-            addPartials(input, tbl, prefix)
+          if type(tbl[head]) == "table" then
+            return addMatches(tail, tbl[head], prefix .. head)
           end
         end
 

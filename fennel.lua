@@ -2336,7 +2336,7 @@ local function repl(options)
             end
           end
         end
-        -- adds matches to the match list traversing
+        -- adds matches to the match list, descending into table fields
         local function addMatches(input, tbl, prefix)
           prefix = prefix and prefix .. "." or ""
           if not string.find(input, "%.") then -- no (more) dots, so add matches

@@ -2325,21 +2325,34 @@ local function repl(options)
 
     local replCompleter = function(text)
         local matches = {}
-        local inputFragment = text:gsub("[%s)(]*(.+)", "%1")
+        local inputFragment = text:gsub(".*[%s)(]+", "")
 
-        -- adds any matching keys from the provided generator/iterator to matches
-        local function addMatchesFromGen(next, param, state)
-          for k in next, param, state do
+        -- adds partial key matches in tbl to the match list
+        local function addPartials(input, tbl, prefix)
+          for k in pairs(tbl) do
             if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming
-            elseif inputFragment == k:sub(0, #inputFragment) then
-                table.insert(matches, k)
+            elseif input == k:sub(0, #input) then
+              table.insert(matches, prefix .. k)
             end
           end
         end
-        addMatchesFromGen(pairs(env._ENV or env._G or {}))
-        addMatchesFromGen(pairs(env.___replLocals___ or {}))
-        addMatchesFromGen(pairs(SPECIALS or {}))
-        addMatchesFromGen(pairs(scope.specials or {}))
+        -- adds matches to the match list, descending into table fields
+        local function addMatches(input, tbl, prefix)
+          prefix = prefix and prefix .. "." or ""
+          if not string.find(input, "%.") then -- no (more) dots, so add matches
+            return addPartials(input, tbl, prefix)
+          end
+          local head, tail = string.match(input, "^([^.]+)%.(.*)")
+          -- check for table access field.child, and if field is a table, recur
+          if type(tbl[head]) == "table" then
+            return addMatches(tail, tbl[head], prefix .. head)
+          end
+        end
+
+        addMatches(inputFragment, env._ENV or env._G or {})
+        addMatches(inputFragment, env.___replLocals___ or {})
+        addMatches(inputFragment, SPECIALS or {})
+        addMatches(inputFragment, scope.specials or {})
         return matches
     end
     if opts.registerCompleter then opts.registerCompleter(replCompleter) end

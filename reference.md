@@ -775,8 +775,10 @@ allow the macro to be called, it will fail trying to call a global
 
 ### `include`
 
+*(since 0.3.0)*
+
 ```fennel
-(include my.embedded.module)
+(include :my.embedded.module)
 ```
 Load Fennel/Lua module code at compile time and embed it, along with any modules *it*
 requires, etc., in the compiled output. The module name must be a string literal

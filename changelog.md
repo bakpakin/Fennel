@@ -20,6 +20,7 @@ identifiers in backtick.
 * Support `x#` syntax for auto-gensym inside backtick
 * Fix a bug in `lambda` arity checks when using destructuring
 * Support `:one-line` output in fennelview
+* Add `include` special form to selectively inline modules in compiled output
 * Add `--require-as-include` to inline required modules in compiled output
 * Add `--eval` argument to command-line launcher
 * Add environment variable `FENNEL_PATH` to `path`.

@@ -773,6 +773,19 @@ allow the macro to be called, it will fail trying to call a global
 ; Compile error in 'my-max': attempt to call global '__fnl_global__my_2dfn' (a nil value)
 ```
 
+### `include`
+
+```fennel
+(include my.embedded.module)
+```
+Load Fennel/Lua module code at compile time and embed it, along with any modules *it*,
+requires, etc., in the compiled output. The module name must be a string literal
+that can be resolved to a module during compilation. The bundled code will be wrapped
+in a function invocation in the emitted Lua.
+
+See also: the `requireAsInclude` option in the API documentation and the `--require-as-include`
+CLI flag (`fennel --help`)
+
 ### `eval-compiler`
 
 Evaluate a block of code during compile-time with access to compiler

@@ -14,6 +14,10 @@ usually accept these fields:
   allowing use of the doc macro. Intended for development purposes
   (see [performance note](#metadata-performance-note)); defaults to
   true for REPL only.
+* `requireAsInclude` *(since 0.3.0)*: Alias any static `require` calls to the `include` special,
+  embedding the module code inline in the compiled output. If the module name isn't a string
+  literal or resolvable at compile time, falls back to `require` at runtime. Can be used to
+  embed both fennel and Lua modules.
 * `env`: an environment table in which to run the code; see the Lua manual.
 
 ## Start a configurable repl

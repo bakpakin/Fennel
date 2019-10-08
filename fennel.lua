@@ -2615,6 +2615,9 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
     rootScope.includes[mod] = ret
     return ret
 end
+docSpecial('include', {'module-name-literal'},
+           'Like require, but load the target module during compilation and embed it in the\n'
+        .. 'Lua output. The module must be a string literal and resolvable at compile time.')
 
 local function requireFallback(e)
     local code = ('require(%s)'):format(tostring(e))

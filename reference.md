@@ -778,9 +778,9 @@ allow the macro to be called, it will fail trying to call a global
 ```fennel
 (include my.embedded.module)
 ```
-Load Fennel/Lua module code at compile time and embed it, along with any modules *it*,
+Load Fennel/Lua module code at compile time and embed it, along with any modules *it*
 requires, etc., in the compiled output. The module name must be a string literal
-that can be resolved to a module during compilation. The bundled code will be wrapped
+that can resolve to a module during compilation. The bundled code will be wrapped
 in a function invocation in the emitted Lua.
 
 See also: the `requireAsInclude` option in the API documentation and the `--require-as-include`

@@ -2328,33 +2328,36 @@ local function repl(options)
         local inputFragment = text:gsub(".*[%s)(]+", "")
 
         -- adds partial key matches in tbl to the match list
-        local function addPartials(input, tbl, prefix, unmangle)
+        local function addPartials(input, tbl, prefix)
             for k in pairs(tbl) do
-                local rawKey = unmangle and unmangle[k] or k
+                if tbl == env or tbl == env.___replLocals___ then
+                    k = scope.unmanglings[k] or k
+                end
                 if #matches >= 40 then break -- cap completions at 40
-                elseif input == rawKey:sub(0, #input) then
-                    table.insert(matches, prefix .. rawKey)
+                elseif input == k:sub(0, #input) then
+                    table.insert(matches, prefix .. k)
                 end
             end
         end
         -- adds matches to the match list, descending into table fields
-        local function addMatches(input, tbl, prefix, unmangle)
+        local function addMatches(input, tbl, prefix)
             prefix = prefix and prefix .. "." or ""
             if not string.find(input, "%.") then -- no (more) dots, so add matches
-                return addPartials(input, tbl, prefix, unmangle)
+                return addPartials(input, tbl, prefix)
             end
             -- check for table access field.child, and if field is a table, recur
             local head, tail = string.match(input, "^([^.]+)%.(.*)")
-            local rawHead = unmangle and unmangle[head] or head -- check mangling
+            local rawHead = tbl == env or tbl == env.___replLocals___
+                and scope.manglings[head] or head -- check mangling
             if type(tbl[rawHead]) == "table" then
-                return addMatches(tail, tbl[rawHead], prefix .. rawHead)
+                return addMatches(tail, tbl[rawHead], prefix .. head)
             end
         end
 
         addMatches(inputFragment, scope.specials or {})
         addMatches(inputFragment, SPECIALS or {})
-        addMatches(inputFragment, env.___replLocals___ or {}, nil, scope.unmanglings)
-        addMatches(inputFragment, env, nil, scope.unmanglings)
+        addMatches(inputFragment, env.___replLocals___ or {}, nil)
+        addMatches(inputFragment, env, nil)
         addMatches(inputFragment, env._ENV or env._G or {})
         return matches
     end

@@ -2334,7 +2334,7 @@ local function repl(options)
                     k = scope.unmanglings[k] or k
                 end
                 if #matches >= 40 then break -- cap completions at 40
-                elseif input == k:sub(0, #input) then
+                elseif type(k) == 'string' and input == k:sub(0, #input) then
                     table.insert(matches, prefix .. k)
                 end
             end

@@ -2356,8 +2356,8 @@ local function repl(options)
 
         addMatches(inputFragment, scope.specials or {})
         addMatches(inputFragment, SPECIALS or {})
-        addMatches(inputFragment, env.___replLocals___ or {}, nil)
-        addMatches(inputFragment, env, nil)
+        addMatches(inputFragment, env.___replLocals___ or {})
+        addMatches(inputFragment, env)
         addMatches(inputFragment, env._ENV or env._G or {})
         return matches
     end

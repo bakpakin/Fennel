@@ -1,2 +1,2 @@
 @echo off
-lua fennel %*
+lua %~dp0fennel %*

@@ -111,7 +111,7 @@ local cases = {
         -- else branch works
         ["(if false \"yep\" \"nope\")"]="nope",
         -- else branch runs on nil
-        ["(if non-existent 1 (* 3 9))"]=27,
+        ["(if _G.non-existent 1 (* 3 9))"]=27,
         -- else works with temporaries
         ["(let [x {:y 2}] (if false \"yep\" (< 1 x.y 3) \"uh-huh\" \"nope\"))"]="uh-huh",
         -- when is for side-effects
@@ -171,6 +171,8 @@ local cases = {
         -- line numbers correlated with input
         ["(fn b [] (each [e {}] (e))) (let [(_ e) (pcall b)] (e:match \":1.*\"))"]=
             ":1: attempt to call a table value",
+        -- mangling avoids global names
+        ["(global a_b :global) (local a-b :local) a_b"]="global",
     },
 
     ifforms = {
@@ -241,7 +243,7 @@ local cases = {
         ["(let [(a b c d e f g) (if (= (+ 1 1) 2) (values 1 2 3 4 5 6 7))] (+ a b c d e f g))"]=28,
         -- IIFE in if statement required v2
         ["(let [(a b c d e f g) (if (= (+ 1 1) 3) nil\
-                                       ((or unpack table.unpack) [1 2 3 4 5 6 7]))]\
+                                       ((or _G.unpack table.unpack) [1 2 3 4 5 6 7]))]\
             (+ a b c d e f g))"]=28,
         -- IIFE if test v3
         ["(length [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))])"]=5,
@@ -274,10 +276,6 @@ local cases = {
         -- macros with mangled names
         ["(require-macros \"test-macros\")\
           (->1 9 (+ 2) (* 11))"]=121,
-        -- macros loaded in function scope shouldn't leak to other functions
-        ["((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))\
-          (pcall (fn [] (global x1 (->1 23 (+ 1)))))\
-          x1"]=130,
         -- special form
         [ [[(eval-compiler
              (tset _SPECIALS "reverse-it" (fn [ast scope parent opts]
@@ -408,8 +406,7 @@ local cases = {
 for name, tests in pairs(cases) do
     print("Running tests for " .. name .. "...")
     for code, expected in pairs(tests) do
-        local ok, res = pcall(fennel.eval, code, {allowedGlobals = false,
-                                                  correlate = true})
+        local ok, res = pcall(fennel.eval, code, {correlate = true})
         if not ok then
             err = err + 1
             print(" Error: " .. res .. " in: ".. fennel.compile(code))
@@ -545,6 +542,12 @@ local compile_failures = {
     ["(let [t []] (set t::x :y))"]="malformed multisym: t.:x",
     ["(local a~b 3)"]="illegal character: ~",
     ["(print @)"]="illegal character: @",
+    -- unmangled globals shouldn't conflict with mangled locals
+    ["(local a-b 1) (global a_b 2)"]="global a_b conflicts with local",
+    ["(local a-b 1) (global [a_b] [2])"]="global a_b conflicts with local",
+    -- macros loaded in function scope shouldn't leak to other functions
+    ["((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))\
+      (->1 23 (+ 1))"]="unknown global in strict mode",
     -- other
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
     ["(x(y))"]="expected whitespace before opening delimiter %(",

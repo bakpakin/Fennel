@@ -123,6 +123,7 @@ local cases = {
         -- make sure bad code isn't emitted when an always-true
         -- condition exists in the middle of an if
         ["(if false :y true :x :trailing :condition)"]="x",
+        ["(let [b :original b (if false :not-this)] (or b :nil))"]="nil",
     },
 
     core = {

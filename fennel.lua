@@ -1636,6 +1636,9 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
             if hasElse then
                 emit(lastBuffer, 'else', ast)
                 emit(lastBuffer, elseBranch.chunk, ast)
+            elseif(innerTarget) then
+                emit(lastBuffer, 'else', ast)
+                emit(lastBuffer, ("%s = nil"):format(innerTarget), ast)
             end
             emit(lastBuffer, 'end', ast)
         elseif not branches[i + 1].nested then

@@ -168,6 +168,9 @@ local cases = {
         ["(local x#x# 90) x#x#"]=90,
         -- : works on literal tables
         ["(: {:foo (fn [self] (.. self.bar 2)) :bar :baz} :foo)"]="baz2",
+        -- line numbers correlated with input
+        ["(fn b [] (each [e {}] (e))) (let [(_ e) (pcall b)] (e:match \":1.*\"))"]=
+            ":1: attempt to call a table value",
     },
 
     ifforms = {
@@ -405,7 +408,8 @@ local cases = {
 for name, tests in pairs(cases) do
     print("Running tests for " .. name .. "...")
     for code, expected in pairs(tests) do
-        local ok, res = pcall(fennel.eval, code, {allowedGlobals = false})
+        local ok, res = pcall(fennel.eval, code, {allowedGlobals = false,
+                                                  correlate = true})
         if not ok then
             err = err + 1
             print(" Error: " .. res .. " in: ".. fennel.compile(code))

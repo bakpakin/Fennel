@@ -4,7 +4,7 @@
 
 * allow REPL readline completion to descend into table fields when using dot
 accessor in identifier (#192)
-* ???
+* correct REPL completer to correctly handle symbol mangling (#195)
 
 ## 0.3.0 / 2019-09-22
 

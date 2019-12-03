@@ -786,6 +786,59 @@ do
     end
 end
 
+---- REPL tests ----
+print("Running tests for REPL completion...")
+local wrapRepl = function()
+    local replComplete
+    local replSend = coroutine.wrap(function()
+        local output = {}
+        fennel.repl({
+            readChunk = function()
+                local chunk = coroutine.yield(output)
+                output = {}
+                return chunk and chunk .. '\n' or nil
+            end,
+            onValues = function(xs)
+                table.insert(output, xs)
+            end,
+            registerCompleter = function(completer)
+                replComplete = completer
+            end,
+            pp = function(x) return x end,
+        })
+    end) replSend()
+    return replSend, replComplete
+end
+
+-- Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine bug
+if _VERSION ~= 'Lua 5.1' or type(jit) == 'table' then
+    local send, comp = wrapRepl()
+    send('(local [foo foo-bar* moe-larry] [1 2 {:*curly* "Why soitenly!"}])')
+    send('(local [!x-y !x_y] [1 2])')
+    local testCases = {
+        {comp'foo',  {'foo', 'foo-bar*'},
+            'local completion works & accounts for mangling'},
+        {comp'moe-larry.', { 'moe-larry.*curly*' },
+            'completion traverses tables without mangling keys when input is "tbl-var."'},
+        {send'(values !x-y !x_y)', {{1, 2}},
+            'mangled locals do not collide'},
+        {comp'!x', {'!x-y', '!x_y'},
+            'completions on mangled locals do not collide'},
+    }
+    for _, results in ipairs(testCases) do
+        local a, b, msg = (unpack or table.unpack)(results)
+        if deep_equal(a, b) then
+            pass = pass + 1
+        else
+            fail = fail + 1
+            print(string.format('Expected: %s to be %s:\n\t%s', a, b, msg))
+        end
+    end
+    send()
+else
+    print('Skipping REPL tests in (non-LuaJIT) Lua 5.1')
+end
+
 
 print(string.format("\n%s passes, %s failures, %s errors.", pass, fail, err))
 if(fail > 0 or err > 0) then os.exit(1) end

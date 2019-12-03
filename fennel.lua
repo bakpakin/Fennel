@@ -2332,30 +2332,36 @@ local function repl(options)
 
         -- adds partial key matches in tbl to the match list
         local function addPartials(input, tbl, prefix)
-          for k in pairs(tbl) do
-            if #matches >= 40 then break -- cap completions at 40 to avoid overwhelming
-            elseif input == k:sub(0, #input) then
-              table.insert(matches, prefix .. k)
+            for k in pairs(tbl) do
+                if tbl == env or tbl == env.___replLocals___ then
+                    k = scope.unmanglings[k] or k
+                end
+                if #matches >= 40 then break -- cap completions at 40
+                elseif type(k) == 'string' and input == k:sub(0, #input) then
+                    table.insert(matches, prefix .. k)
+                end
             end
-          end
         end
         -- adds matches to the match list, descending into table fields
         local function addMatches(input, tbl, prefix)
-          prefix = prefix and prefix .. "." or ""
-          if not string.find(input, "%.") then -- no (more) dots, so add matches
-            return addPartials(input, tbl, prefix)
-          end
-          local head, tail = string.match(input, "^([^.]+)%.(.*)")
-          -- check for table access field.child, and if field is a table, recur
-          if type(tbl[head]) == "table" then
-            return addMatches(tail, tbl[head], prefix .. head)
-          end
+            prefix = prefix and prefix .. "." or ""
+            if not string.find(input, "%.") then -- no (more) dots, so add matches
+                return addPartials(input, tbl, prefix)
+            end
+            -- check for table access field.child, and if field is a table, recur
+            local head, tail = string.match(input, "^([^.]+)%.(.*)")
+            local rawHead = tbl == env or tbl == env.___replLocals___
+                and scope.manglings[head] or head -- check mangling
+            if type(tbl[rawHead]) == "table" then
+                return addMatches(tail, tbl[rawHead], prefix .. head)
+            end
         end
 
-        addMatches(inputFragment, env._ENV or env._G or {})
-        addMatches(inputFragment, env.___replLocals___ or {})
-        addMatches(inputFragment, SPECIALS or {})
         addMatches(inputFragment, scope.specials or {})
+        addMatches(inputFragment, SPECIALS or {})
+        addMatches(inputFragment, env.___replLocals___ or {})
+        addMatches(inputFragment, env)
+        addMatches(inputFragment, env._ENV or env._G or {})
         return matches
     end
     if opts.registerCompleter then opts.registerCompleter(replCompleter) end

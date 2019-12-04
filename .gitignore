@@ -42,4 +42,9 @@ luac.out
 *.x86_64
 *.hex
 
+# Tooling + transient metadata
+*.swp
+tags
+
+# Misc
 /wiki

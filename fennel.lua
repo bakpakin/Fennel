@@ -561,6 +561,18 @@ local function globalUnmangling(identifier)
     end
 end
 
+-- If there's a provided list of allowed globals, don't let references thru that
+-- aren't on the list. This list is set at the compiler entry points of compile
+-- and compileStream.
+local allowedGlobals
+
+local function globalAllowed(name)
+    if not allowedGlobals then return true end
+    for _, g in ipairs(allowedGlobals) do
+        if g == name then return true end
+    end
+end
+
 -- Creates a symbol from a string by mangling it.
 -- ensures that the generated symbol is unique
 -- if the input string is unique in the scope.
@@ -649,18 +661,6 @@ local function declareLocal(symbol, meta, scope, ast)
     local mangling = localMangling(name, scope, ast)
     scope.symmeta[name] = meta
     return mangling
-end
-
--- If there's a provided list of allowed globals, don't let references
--- thru that aren't on the list. This list is set at the compiler
--- entry points of compile and compileStream.
-local allowedGlobals
-
-local function globalAllowed(name)
-    if not allowedGlobals then return true end
-    for _, g in ipairs(allowedGlobals) do
-        if g == name then return true end
-    end
 end
 
 -- Convert symbol to Lua code. Will only work for local symbols
@@ -1114,6 +1114,16 @@ local function destructure(to, from, ast, scope, parent, opts)
                 assertCompile(not (meta and not meta.var),
                     'expected local var', up1)
             end
+            if forceglobal then
+                assertCompile(not scope.unmanglings[raw],
+                              "global " .. raw .. " conflicts with local", ast)
+                scope.manglings[raw] = globalMangling(raw)
+                scope.unmanglings[globalMangling(raw)] = raw
+                if allowedGlobals then
+                    table.insert(allowedGlobals, raw)
+                end
+            end
+
             return symbolToExpression(symbol, scope)[1]
         end
     end
@@ -1461,12 +1471,6 @@ docSpecial('.', {'tbl', 'key1', '...'},
 
 SPECIALS['global'] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
-    -- globals tracking doesn't currently work with multi-values/destructuring
-    if allowedGlobals and isSym(ast[2]) then
-        for _,global in ipairs(isList(ast[2]) and ast[2] or {ast[2]}) do
-            table.insert(allowedGlobals, deref(global))
-        end
-    end
     destructure(ast[2], ast[3], ast, scope, parent, {
         nomulti = true,
         forceglobal = true
@@ -2823,7 +2827,7 @@ that argument name begins with ?."
                   (do (assert (not (. pattern (+ k 2)))
                               "expected rest argument in final position")
                       (table.insert bindings (. pattern (+ k 1)))
-                      (table.insert bindings [`(select ,k ((or unpack table.unpack)
+                      (table.insert bindings [`(select ,k ((or _G.unpack table.unpack)
                                                            ,val))]))
                   (and (= :number (type k))
                        (= "&" (tostring (. pattern (- k 1)))))

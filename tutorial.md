@@ -291,7 +291,7 @@ of side-effects and has no else clause:
 
 ## Back to tables just for a bit
 
-Strings that don't have spaces in them can use the `:keyword` syntax
+Strings that don't have spaces in them can use the `:shorthand` syntax
 instead, which is often used for table keys:
 
 ```fennel

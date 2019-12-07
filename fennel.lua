@@ -2155,8 +2155,11 @@ local function traceback(msg, start)
     local level = start or 2 -- Can be used to skip some frames
     local lines = {}
     if msg then
-        local stripped = msg:gsub('^[^:]*:%d+:%s+', 'runtime error: ')
-        table.insert(lines, stripped)
+        if msg:find("^Compile error") then
+            table.insert(lines, msg)
+        else
+            table.insert(lines, msg:gsub('^[^:]*:%d+:%s+', 'runtime error: '))
+        end
     end
     table.insert(lines, 'stack traceback:')
     while true do

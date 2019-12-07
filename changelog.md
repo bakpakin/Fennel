@@ -2,9 +2,9 @@
 
 ## 0.4.0 / ???
 
-* allow REPL readline completion to descend into table fields when using dot
-accessor in identifier (#192)
-* correct REPL completer to correctly handle symbol mangling (#195)
+* Optionally check for unused locals with `--check-unused-locals`
+* Make repl completion descend into nested table fields (#192)
+* Fix repl completer to correctly handle symbol mangling (#195)
 
 ## 0.3.0 / 2019-09-22
 
@@ -23,7 +23,7 @@ identifiers in backtick.
 * Add `include` special form to selectively inline modules in compiled output
 * Add `--require-as-include` to inline required modules in compiled output
 * Add `--eval` argument to command-line launcher
-* Add environment variable `FENNEL_PATH` to `path`.
+* Add environment variable `FENNEL_PATH` to `path`
 * Fix a few bugs in `match`
 * **Remove** undocumented support for single-quoted strings
 * Add support for guard clauses with `?` in pattern matching
@@ -55,7 +55,7 @@ The second minor release introduces backtick, making macro authoring
 much more streamlined. Macros may now be defined in the same file, and
 pattern matching is added.
 
-* Prevent creation of bindings that collide with special forms and macros.
+* Prevent creation of bindings that collide with special forms and macros
 * Make parens around steps optional in arrow macros for single-arg calls
 * Allow macros to be defined inline with `macros`
 * Add `--add-package-path` and `--add-fennel-path` to launcher script

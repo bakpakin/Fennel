@@ -1244,6 +1244,15 @@ local function compileDo(ast, scope, parent, start)
     end
 end
 
+-- Raises compile error if unused locals are found and we're checking for them.
+local function checkUnused(scope, ast)
+    if not rootOptions.checkUnusedLocals then return end
+    for symName in pairs(scope.symmeta) do
+        assertCompile(scope.symmeta[symName].used or symName:find("^_"),
+                      ("unused local %s"):format(symName), ast)
+    end
+end
+
 -- Implements a do statement, starting at the 'start' element. By default, start is 2.
 local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     start = start or 2
@@ -1303,6 +1312,7 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     end
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
+    checkUnused(subScope, ast)
     return retexprs
 end
 
@@ -1398,6 +1408,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
                                    fnName, table.concat(metaFields, ', ')))
     end
 
+    checkUnused(fScope, ast)
     return expr(fnName, 'sym')
 end
 docSpecial('fn', {'name?', 'args', 'docstring?', '...'},

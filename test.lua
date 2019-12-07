@@ -543,6 +543,10 @@ local compile_failures = {
     ["(let [t []] (set t::x :y))"]="malformed multisym: t.:x",
     ["(local a~b 3)"]="illegal character: ~",
     ["(print @)"]="illegal character: @",
+    -- unused locals checking
+    ["(let [x 1 y 2] y)"]="unused local x",
+    ["(fn [xx y] y)"]="unused local xx",
+    ["(fn [_x y z] y)"]="unused local z",
     -- unmangled globals shouldn't conflict with mangled locals
     ["(local a-b 1) (global a_b 2)"]="global a_b conflicts with local",
     ["(local a-b 1) (global [a_b] [2])"]="global a_b conflicts with local",
@@ -561,7 +565,8 @@ local compile_failures = {
 
 print("Running tests for compile errors...")
 for code, expected_msg in pairs(compile_failures) do
-    local ok, msg = pcall(fennel.compileString, code, {allowedGlobals = {"pairs"}})
+    local ok, msg = pcall(fennel.compileString, code,
+                          {allowedGlobals = {"pairs"}, checkUnusedLocals = true})
     if(ok) then
         fail = fail + 1
         print(" Expected failure when compiling " .. code .. ": " .. msg)

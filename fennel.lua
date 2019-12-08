@@ -2158,7 +2158,8 @@ local function traceback(msg, start)
         if msg:find("^Compile error") then
             table.insert(lines, msg)
         else
-            table.insert(lines, msg:gsub('^[^:]*:%d+:%s+', 'runtime error: '))
+            local newmsg = msg:gsub('^[^:]*:%d+:%s+', 'runtime error: ')
+            table.insert(lines, newmsg)
         end
     end
     table.insert(lines, 'stack traceback:')

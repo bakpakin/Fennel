@@ -10,8 +10,8 @@ Usage: fennel [FLAG] [FILE]
 
 Run fennel, a lisp programming language for the Lua runtime.
 
-  --repl                  : Launch an interactive repl session
-  --compile FILES         : Compile files and write their Lua to stdout
+  --repl                  : Command to launch an interactive repl session
+  --compile FILES         : Command to compile files and write Lua to stdout
 
   --no-searcher           : Skip installing package.searchers entry
   --indent VAL            : Indent compiler output with VAL
@@ -32,8 +32,8 @@ Run fennel, a lisp programming language for the Lua runtime.
   Metadata is typically considered a development feature and is not recommended
   for production. It is used for docstrings and enabled by default in the REPL.
 
-  When not given a flag, runs the file given as the first argument.
-  When given neither flag nor file, launches a repl.
+  When not given a command, runs the file given as the first argument.
+  When given neither command nor file, launches a repl.
 
   If ~/.fennelrc exists, loads it before launching a repl.]]
 

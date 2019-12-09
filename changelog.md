@@ -2,6 +2,7 @@
 
 ## 0.4.0 / ???
 
+* Fix `each` to work with raw iterator values (#201)
 * Optionally check for unused locals with `--check-unused-locals`
 * Make repl completion descend into nested table fields (#192)
 * Fix repl completer to correctly handle symbol mangling (#195)

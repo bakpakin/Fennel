@@ -1707,9 +1707,11 @@ SPECIALS['each'] = function(ast, scope, parent)
             table.insert(bindVars, declareLocal(raw, {}, scope, ast))
         end
     end
-    emit(parent, ('for %s in %s do'):format(
-             table.concat(bindVars, ', '),
-             tostring(compile1(iter, scope, parent, {nval = 1})[1])), ast)
+    local vals, valNames = compile1(iter, scope, parent), {}
+    for _,v in ipairs(vals) do table.insert(valNames, tostring(v)) end
+
+    emit(parent, ('for %s in %s do'):format(table.concat(bindVars, ', '),
+                                            table.concat(valNames, ", ")), ast)
     local chunk = {}
     for raw, args in pairs(destructures) do
         destructure(args, raw, ast, scope, chunk,

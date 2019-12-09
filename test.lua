@@ -237,6 +237,11 @@ local cases = {
                (each [k v (pairs t)]\
                (tset t2 k v))\
             (+ t2.a t2.b))"]=3,
+        -- indirect iterators
+        ["(var t 0) (local (f s v) (pairs [1 2 3])) \
+          (each [_ x (values f s v)] (set t (+ t x))) t"]=6,
+        ["(var t 0) (local (f s v) (pairs [1 2 3])) \
+          (each [_ x (values f (doto s (table.remove 1)))] (set t (+ t x))) t"]=5,
     },
 
     edge = {

@@ -213,10 +213,10 @@ Note that the length of a table with gaps in it is undefined; it can
 return a number corresponding to any of the table's "boundary"
 positions between nil and non-nil values.
 
-Lua's standard library is very small, and thus several functions you might
-expect to be included are only found in 3rd-party libraries. For instance,
-finding the index in a table given a value is done by `lume.find` in the
-[Lume][5] library.
+Lua's standard library is very small, and thus several functions you
+might expect to be included, such `map`, `reduce`, and `filter` are
+absent. It's recommended to pull in a 3rd-party library like [Lume][5]
+or [luafun][9] for those.
 
 ### Iteration
 
@@ -520,10 +520,6 @@ runtime overhead over Lua.
   define a printer function which calls `fennelview` on its argument
   before printing it: `(local view (require :fennelview))
   (global pp (fn [x] (print (view x))))`
-
-* Lua's standard library is quite small, and so common functions like
-  `map`, `reduce`, and `filter` are absent. It's recommended to pull
-  in something like [Lume][5] or [luafun][9] for those.
 
 * Lua programmers should note Fennel functions cannot do early returns.
 

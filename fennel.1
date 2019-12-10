@@ -6,6 +6,7 @@ fennel \- a lisp programming language that runs on Lua
 .B fennel
 [\fB--repl\fR] | 
 [\fB--compile \fIfilename\fR] | 
+[\fB--eval \fIsource\fR] | 
 [\fIfilename\fP] [\fIargs ...\fR]
 
 .SH DESCRIPTION
@@ -33,6 +34,9 @@ Start an interactive repl session.
 .B \-\-compile \fIfilename\fP
 Perform ahead-of-time compilation on the provided file and write the
 Lua output to stdout.
+.TP
+.B \-\-eval \fIsource\fP
+Evaluate a piece of source code and print the result.
 .TP
 .B \-\-no-searcher
 When running a repl or a file,
@@ -64,6 +68,17 @@ compilation where it otherwise would be disabled.
 .TP
 .B \-\-globals-only \fIVAR1[,VAR2...]\fP
 Same as above, but without the addition of the standard set of globals.
+.TP
+.B \-\-check-unused-locals
+Raise an error when compiling code with unused locals.
+.TP
+.B \-\-require-as-include
+Instead of loading required modules at runtime, compile them inline
+into the main file being compiled. Only useful during ahead-of-time
+compilation.
+.TP
+.B \-\-load \fIFILE\fP
+Load the specified file before any command is run.
 .TP
 .B \-h, \-\-help
 Print a help message and exit

@@ -12,6 +12,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
   --repl                  : Command to launch an interactive repl session
   --compile FILES         : Command to compile files and write Lua to stdout
+  --eval SOURCE (-e)      : Command to evaluate source code and print the result
 
   --no-searcher           : Skip installing package.searchers entry
   --indent VAL            : Indent compiler output with VAL
@@ -24,8 +25,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --metadata              : Enable function metadata, even in compiled output
   --no-metadata           : Disable function metadata, even in REPL
   --correlate             : Make Lua output line numbers match Fennel input
-
-  --eval SOURCE (-e)      : Evaluate source code and print the result
+  --load FILE (-l)        : Load the specified FILE before executing the command
 
   --help (-h)             : Display this text
   --version (-v)          : Show version
@@ -73,6 +73,10 @@ for i=#arg, 1, -1 do
     elseif arg[i] == "--add-fennel-path" then
         local entry = table.remove(arg, i+1)
         fennel.path = entry .. ";" .. fennel.path
+        table.remove(arg, i)
+    elseif arg[i] == "--load" or arg[i] == "-l" then
+        local file = table.remove(arg, i+1)
+        dosafe(file, options, {})
         table.remove(arg, i)
     elseif arg[i] == "--correlate" then
         options.correlate = true

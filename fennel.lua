@@ -30,6 +30,17 @@ local unpack = unpack or table.unpack
 -- Main Types and support functions
 --
 
+-- Map function f over sequential table t, removing values where f returns nil.
+local function map(t, f)
+    local out = {}
+    if type(f) ~= "function" then local s = f f = function(x) return x[s] end end
+    for i,x in ipairs(t) do
+        local v = f(x, i)
+        if v then table.insert(out, v) end
+    end
+    return out
+end
+
 local function deref(self) return self[1] end
 
 local SYMBOL_MT = { 'SYMBOL', __tostring = deref }
@@ -37,11 +48,7 @@ local EXPR_MT = { 'EXPR', __tostring = deref }
 local VARARG = setmetatable({ '...' }, { 'VARARG', __tostring = deref })
 local LIST_MT = { 'LIST',
     __tostring = function (self)
-        local strs = {}
-        for _, s in ipairs(self) do
-            table.insert(strs, tostring(s))
-        end
-        return '(' .. table.concat(strs, ' ', 1, #self) .. ')'
+        return '(' .. table.concat(map(self, tostring), ' ', 1, #self) .. ')'
     end
 }
 local SEQUENCE_MT = { 'SEQUENCE' }
@@ -71,10 +78,8 @@ end
 -- line, etc that they came from.
 local function sym(str, scope, meta)
     local s = {str, scope = scope}
-    if meta then
-        for k, v in pairs(meta) do
-            if type(k) == 'string' then s[k] = v end
-        end
+    for k, v in pairs(meta or {}) do
+        if type(k) == 'string' then s[k] = v end
     end
     return setmetatable(s, SYMBOL_MT)
 end
@@ -261,10 +266,7 @@ local function parser(getbyte, filename)
         -- Throw nice error when we expect more characters
         -- but reach end of stream.
         local function badend()
-            local accum = {}
-            for _, item in ipairs(stack) do
-                accum[#accum + 1] = item.closer
-            end
+            local accum = map(stack, "closer")
             parseError(('expected closing delimiter%s %s'):format(
                 #stack == 1 and "" or "s",
                 string.char(unpack(accum))))
@@ -487,9 +489,8 @@ local luaKeywords = {
     'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true',
     'until', 'while'
 }
-for i, v in ipairs(luaKeywords) do
-    luaKeywords[v] = i
-end
+
+map(luaKeywords, function(v, i) luaKeywords[v] = i end)
 
 local function isValidLuaIdentifier(str)
     return (str:match('^[%a_][%w_]*$') and not luaKeywords[str])
@@ -717,10 +718,7 @@ local function peephole(chunk)
         return peephole(chunk[2])
     end
     -- Recurse
-    for i, v in ipairs(chunk) do
-        chunk[i] = peephole(v)
-    end
-    return chunk
+    return map(chunk, peephole)
 end
 
 -- correlate line numbers in input with line numbers in output
@@ -761,15 +759,13 @@ local function flattenChunk(sm, chunk, tab, depth)
         if sm then sm[#sm + 1] = info and info.line or -1 end
         return code
     else
-        local parts = {}
-        for i = 1, #chunk do
-            -- Ignore empty chunks
-            if chunk[i].leaf or #(chunk[i]) > 0 then
-                local sub = flattenChunk(sm, chunk[i], tab, depth + 1)
+        local parts = map(chunk, function(c)
+            if c.leaf or #c > 0 then -- Ignore empty chunks
+                local sub = flattenChunk(sm, c, tab, depth + 1)
                 if depth > 0 then sub = tab .. sub:gsub('\n', '\n' .. tab) end
-                table.insert(parts, sub)
+                return sub
             end
-        end
+        end)
         return table.concat(parts, '\n')
     end
 end
@@ -864,11 +860,7 @@ end
 
 -- Convert expressions to Lua string
 local function exprs1(exprs)
-    local t = {}
-    for _, e in ipairs(exprs) do
-        t[#t + 1] = e[1]
-    end
-    return table.concat(t, ', ')
+    return table.concat(map(exprs, 1), ', ')
 end
 
 -- Compile side effects for a chunk
@@ -1041,11 +1033,10 @@ local function compile1(ast, scope, parent, opts)
         local s = serializeString(ast)
         exprs = handleCompileOpts({expr(s, 'literal')}, parent, opts)
     elseif type(ast) == 'table' then
-        local buffer = {}
-        for i = 1, #ast do -- Write numeric keyed values.
-            local nval = i ~= #ast and 1
-            buffer[#buffer + 1] = exprs1(compile1(ast[i], scope, parent, {nval = nval}))
+        local function writeNumericValues(x, i)
+            return exprs1(compile1(x, scope, parent, {nval = i ~= #ast and 1}))
         end
+        local buffer = map(ast, writeNumericValues)
         local keys = {}
         for k, _ in pairs(ast) do -- Write other keys.
             if type(k) ~= 'number' or math.floor(k) ~= k or k < 1 or k > #ast then
@@ -1059,7 +1050,7 @@ local function compile1(ast, scope, parent, opts)
             end
         end
         table.sort(keys, function (a, b) return a[1] < b[1] end)
-        for _, k in ipairs(keys) do
+        for _, k in ipairs(keys) do -- mapinto
             local v = ast[k[2]]
             buffer[#buffer + 1] = ('%s = %s'):format(
                 k[1], tostring(compile1(v, scope, parent, {nval = 1})[1]))
@@ -1139,10 +1130,8 @@ local function destructure(to, from, ast, scope, parent, opts)
     -- Compile the outer most form. We can generate better Lua in this case.
     local function compileTopTarget(lvalues)
         -- Calculate initial rvalue
-        local inits = {}
-        for _, x in ipairs(lvalues) do
-            table.insert(inits, scope.manglings[x] and x or 'nil')
-        end
+        local inits = map(lvalues, function(x)
+                              return scope.manglings[x] and x or 'nil' end)
         local init = table.concat(inits, ', ')
         local lvalue = table.concat(lvalues, ', ')
 
@@ -1190,17 +1179,17 @@ local function destructure(to, from, ast, scope, parent, opts)
                 end
             end
         elseif isList(left) then -- values destructuring
-            local leftNames, tables = {}, {}
-            for i, name in ipairs(left) do
-                local symname
+            local tables = {}
+            local function getName(name, i)
                 if isSym(name) then -- binding directly to a name
-                    symname = getname(name, up1)
+                    return getname(name, up1)
                 else -- further destructuring of tables inside values
-                    symname = gensym(scope)
+                    local symname = gensym(scope)
                     tables[i] = {name, expr(symname, 'sym')}
+                    return symname
                 end
-                table.insert(leftNames, symname)
             end
+            local leftNames = map(left, getName)
             if top then
                 compileTopTarget(leftNames)
             else
@@ -1356,24 +1345,25 @@ SPECIALS['fn'] = function(ast, scope, parent)
     end
     local argList = assertCompile(isTable(ast[index]),
                                   'expected vector arg list [a b ...]', ast)
-    local argNameList = {}
-    for i = 1, #argList do
-        if isVarg(argList[i]) then
+      local function getArgName(name, i)
+        if isVarg(name) then
             assertCompile(i == #argList, "expected vararg in last parameter position", ast)
-            argNameList[i] = '...'
             fScope.vararg = true
-        elseif(isSym(argList[i]) and argList[i][1] ~= "nil"
-               and not isMultiSym(argList[i][1])) then
-            argNameList[i] = declareLocal(argList[i], {}, fScope, ast)
-        elseif isTable(argList[i]) then
+            return "..."
+        elseif(isSym(name) and deref(name) ~= "nil"
+               and not isMultiSym(deref(name))) then
+            return declareLocal(name, {}, fScope, ast)
+        elseif isTable(name) then
             local raw = sym(gensym(scope))
-            argNameList[i] = declareLocal(raw, {}, fScope, ast)
-            destructure(argList[i], raw, ast, fScope, fChunk,
+            local declared = declareLocal(raw, {}, fScope, ast)
+            destructure(name, raw, ast, fScope, fChunk,
                         { declaration = true, nomulti = true })
+            return declared
         else
             assertCompile(false, 'expected symbol for function parameter', ast)
         end
     end
+    local argNameList = map(argList, getArgName)
     if type(ast[index + 1]) == 'string' and index + 1 < #ast then
         index = index + 1
         docstring = ast[index]
@@ -1396,11 +1386,10 @@ SPECIALS['fn'] = function(ast, scope, parent)
     emit(parent, 'end', ast)
 
     if rootOptions.useMetadata then
-        local args = {}
-        for i, v in ipairs(argList) do
+        local args = map(argList, function(v)
             -- TODO: show destructured args properly instead of replacing
-            args[i] =  isTable(v) and '"#<table>"' or string.format('"%s"', tostring(v))
-        end
+            return isTable(v) and '"#<table>"' or string.format('"%s"', tostring(v))
+        end)
 
         local metaFields = {
             '"fnl/arglist"', '{' .. table.concat(args, ', ') .. '}',
@@ -1702,21 +1691,20 @@ docSpecial('if', {'cond1', 'body1', '...', 'condN', 'bodyN'},
 SPECIALS['each'] = function(ast, scope, parent)
     local binding = assertCompile(isTable(ast[2]), 'expected binding table', ast)
     local iter = table.remove(binding, #binding) -- last item is iterator call
-    local bindVars = {}
     local destructures = {}
-    for _, v in ipairs(binding) do
-        assertCompile(isSym(v) or isTable(v),
-                      'expected iterator symbol or table', ast)
+    local function destructureBinding(v)
+        assertCompile(isSym(v) or isTable(v), 'expected iterator symbol or table', ast)
         if(isSym(v)) then
-            table.insert(bindVars, declareLocal(v, {}, scope, ast))
+            return declareLocal(v, {}, scope, ast)
         else
             local raw = sym(gensym(scope))
             destructures[raw] = v
-            table.insert(bindVars, declareLocal(raw, {}, scope, ast))
+            return declareLocal(raw, {}, scope, ast)
         end
     end
-    local vals, valNames = compile1(iter, scope, parent), {}
-    for _,v in ipairs(vals) do table.insert(valNames, tostring(v)) end
+    local bindVars = map(binding, destructureBinding)
+    local vals = compile1(iter, scope, parent)
+    local valNames = map(vals, tostring)
 
     emit(parent, ('for %s in %s do'):format(table.concat(bindVars, ', '),
                                             table.concat(valNames, ", ")), ast)
@@ -1799,7 +1787,7 @@ SPECIALS[':'] = function(ast, scope, parent)
         local subexprs = compile1(ast[i], scope, parent, {
             nval = i ~= #ast and 1 or nil
         })
-        for j = 1, #subexprs do
+        for j = 1, #subexprs do -- mapinto
             args[#args + 1] = tostring(subexprs[j])
         end
     end
@@ -1870,7 +1858,7 @@ local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
                 local subexprs = compile1(ast[i], scope, parent, {
                     nval = (i == 1 and 1 or nil)
                 })
-                for j = 1, #subexprs do
+                for j = 1, #subexprs do -- mapinto
                     operands[#operands + 1] = tostring(subexprs[j])
                 end
             end
@@ -2031,12 +2019,10 @@ local function no() end
 local function mixedConcat(t, joiner)
     local ret = ""
     local s = ""
-    local seen = {}
-    for k,v in ipairs(t) do
-        table.insert(seen, k)
-        ret = ret .. s .. v
-        s = joiner
-    end
+    local seen = map(t, function(v, i)
+        ret, s = ret .. s .. v, joiner
+        return i
+    end)
     for k,v in pairs(t) do
         if not(seen[k]) then
             ret = ret .. s .. '[' .. k .. ']' .. '=' .. v
@@ -2326,7 +2312,7 @@ local function repl(options)
         end
         -- reintroduce locals from the previous time around
         local bind = "local %s = ___replLocals___['%s']"
-        for name in pairs(env.___replLocals___) do
+        for name in pairs(env.___replLocals___) do -- mapinto
             table.insert(splicedSource, 1, bind:format(name, name))
         end
         -- save off new locals at the end - if safe to do so (i.e. last line is a return)
@@ -2433,8 +2419,7 @@ local function repl(options)
                     if loadok then
                         env._ = ret[1]
                         env.__ = ret
-                        for i = 1, #ret do ret[i] = pp(ret[i]) end
-                        onValues(ret)
+                        onValues(map(ret, pp))
                     end
                 end
             end

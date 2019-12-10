@@ -58,12 +58,17 @@ local function loadCode(code, environment, filename)
     end
 end
 
--- Create a new list
+-- Create a new list. Lists are a compile-time construct in Fennel; they are
+-- represented as tables with a special marker metatable. They only come from
+-- the parser, and they represent code which comes from reading a paren form;
+-- they are specifically not cons cells.
 local function list(...)
     return setmetatable({...}, LIST_MT)
 end
 
--- Create a new symbol
+-- Create a new symbol. Symbols are a compile-time construct in Fennel and are
+-- not exposed outside the compiler. Symbols have metadata describing what file,
+-- line, etc that they came from.
 local function sym(str, scope, meta)
     local s = {str, scope = scope}
     if meta then
@@ -74,7 +79,9 @@ local function sym(str, scope, meta)
     return setmetatable(s, SYMBOL_MT)
 end
 
--- Create a new sequence
+-- Create a new sequence. Sequences are tables that come from the parser when
+-- it encounters a form with square brackets. They are treated as regular tables
+-- except when certain macros need to look for binding forms, etc specifically.
 local function sequence(...)
    return setmetatable({...}, SEQUENCE_MT)
 end
@@ -428,10 +435,11 @@ local rootChunk
 local rootScope
 local rootOptions
 
--- Create a new Scope, optionally under a parent scope. Scopes are compile time constructs
--- that are responsible for keeping track of local variables, name mangling, and macros.
--- They are accessible to user code via the '*compiler' special form (may change). They
--- use metatables to implement nesting via inheritance.
+-- Create a new Scope, optionally under a parent scope. Scopes are compile time
+-- constructs that are responsible for keeping track of local variables, name
+-- mangling, and macros.  They are accessible to user code via the
+-- 'eval-compiler' special form (may change). They use metatables to implement
+-- nesting via metatables.
 local function makeScope(parent)
     return {
         unmanglings = setmetatable({}, {

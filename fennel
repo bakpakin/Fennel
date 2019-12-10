@@ -158,7 +158,7 @@ if arg[1] == "--repl" or #arg == 0 then
     if init then
         init:close()
         -- pass in options so fennerlrc can make changes to it
-        dosafe(initFilename, options, options)
+        dosafe(initFilename, options, {options})
     end
     print("Welcome to Fennel " .. fennel.version .. "!")
     if options.useMetadata ~= false then

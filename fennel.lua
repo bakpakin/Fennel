@@ -41,6 +41,20 @@ local function map(t, f)
     return out
 end
 
+-- Map function f over key/value table t, similar to above, but it can
+-- return a sequential table (if f returns a single value) or a k/v
+-- table if f returns two values.
+local function kvmap(t, f)
+    local out = {}
+    if type(f) ~= "function" then local s = f f = function(x) return x[s] end end
+    for k,x in pairs(t) do
+        local korv, v = f(k, x)
+        if korv and not v then table.insert(out, korv) end
+        if korv and v then out[korv] = v end
+    end
+    return out
+end
+
 local function deref(self) return self[1] end
 
 local SYMBOL_MT = { 'SYMBOL', __tostring = deref }
@@ -562,9 +576,10 @@ end
 local function globalUnmangling(identifier)
     local rest = identifier:match('^__fnl_global__(.*)$')
     if rest then
-        return rest:gsub('_[%da-f][%da-f]', function (code)
+        local r = rest:gsub('_[%da-f][%da-f]', function (code)
             return string.char(tonumber(code:sub(2), 16))
         end)
+        return r -- don't return multiple values
     else
         return identifier
     end
@@ -1034,22 +1049,22 @@ local function compile1(ast, scope, parent, opts)
         exprs = handleCompileOpts({expr(s, 'literal')}, parent, opts)
     elseif type(ast) == 'table' then
         local buffer = {}
-        for i = 1, #ast do -- Write numeric keyed values. kvmap
+        for i = 1, #ast do -- Write numeric keyed values.
             local nval = i ~= #ast and 1
             buffer[#buffer + 1] = exprs1(compile1(ast[i], scope, parent, {nval = nval}))
         end
-        local keys = {}
-        for k, _ in pairs(ast) do -- Write other keys, kvmap
+        local function writeOtherValues(k)
             if type(k) ~= 'number' or math.floor(k) ~= k or k < 1 or k > #ast then
-                local kstr
                 if type(k) == 'string' and isValidLuaIdentifier(k) then
-                    kstr = k
+                    return {k, k}
                 else
-                    kstr = '[' .. tostring(compile1(k, scope, parent, {nval = 1})[1]) .. ']'
+                    local kstr = '[' .. tostring(compile1(k, scope, parent,
+                                                          {nval = 1})[1]) .. ']'
+                    return { kstr, k }
                 end
-                table.insert(keys, { kstr, k })
             end
         end
+        local keys = kvmap(ast, writeOtherValues)
         table.sort(keys, function (a, b) return a[1] < b[1] end)
         for _, k in ipairs(keys) do -- mapinto
             local v = ast[k[2]]
@@ -1346,24 +1361,25 @@ SPECIALS['fn'] = function(ast, scope, parent)
     end
     local argList = assertCompile(isTable(ast[index]),
                                   'expected vector arg list [a b ...]', ast)
-    local argNameList = {}
-    for i = 1, #argList do
-        if isVarg(argList[i]) then
-            assertCompile(i == #argList, "expected vararg in last parameter position", ast)
-            argNameList[i] = '...'
+    local function getArgName(i, name)
+        if isVarg(name) then
+            assertCompile(i == #argList, "expected vararg as last parameter", ast)
             fScope.vararg = true
-        elseif(isSym(argList[i]) and argList[i][1] ~= "nil"
-               and not isMultiSym(argList[i][1])) then
-            argNameList[i] = declareLocal(argList[i], {}, fScope, ast)
-        elseif isTable(argList[i]) then
+            return "..."
+        elseif(isSym(name) and deref(name) ~= "nil"
+               and not isMultiSym(deref(name))) then
+            return declareLocal(name, {}, fScope, ast)
+        elseif isTable(name) then
             local raw = sym(gensym(scope))
-            argNameList[i] = declareLocal(raw, {}, fScope, ast)
-            destructure(argList[i], raw, ast, fScope, fChunk,
+            local declared = declareLocal(raw, {}, fScope, ast)
+            destructure(name, raw, ast, fScope, fChunk,
                         { declaration = true, nomulti = true })
+            return declared
         else
             assertCompile(false, 'expected symbol for function parameter', ast)
         end
     end
+    local argNameList = kvmap(argList, getArgName)
     if type(ast[index + 1]) == 'string' and index + 1 < #ast then
         index = index + 1
         docstring = ast[index]
@@ -1990,18 +2006,6 @@ local function compile(ast, options)
     return flatten(chunk, options)
 end
 
--- map a function across all pairs in a table
-local function quoteTmap(f, t)
-    local res = {}
-    for k,v in pairs(t) do
-        local nk, nv = f(k, v)
-        if nk then
-            res[nk] = nv
-        end
-    end
-    return res
-end
-
 -- make a transformer for key / value table pairs, preserving all numeric keys
 local function entryTransform(fk,fv)
     return function(k, v)
@@ -2057,11 +2061,11 @@ local function doQuote (form, scope, parent, runtime)
     -- list
     elseif isList(form) then
         assertCompile(not runtime, "lists may only be used at compile time", form)
-        local mapped = quoteTmap(entryTransform(no, q), form)
+        local mapped = kvmap(form, entryTransform(no, q))
         return 'list(' .. mixedConcat(mapped, ", ") .. ')'
     -- table
     elseif type(form) == 'table' then
-        local mapped = quoteTmap(entryTransform(q, q), form)
+        local mapped = kvmap(form, entryTransform(q, q))
         return '{' .. mixedConcat(mapped, ", ") .. '}'
     -- string
     elseif type(form) == 'string' then
@@ -2144,14 +2148,10 @@ local function wrapEnv(env)
         -- checking the __pairs metamethod won't work automatically in Lua 5.1
         -- sadly, but it's important for 5.2+ and can be done manually in 5.1
         __pairs = function()
-            local pt = {}
-            for key, value in pairs(env) do -- kvmap
-                if type(key) == 'string' then
-                    pt[globalUnmangling(key)] = value
-                else
-                    pt[key] = value
-                end
+            local function putenv(k, v)
+                return type(k) == 'string' and globalUnmangling(k) or k, v
             end
+            local pt = kvmap(env, putenv)
             return next, pt, nil
         end,
     })
@@ -2208,12 +2208,7 @@ local function traceback(msg, start)
 end
 
 local function currentGlobalNames(env)
-    local names = {}
-    for k in pairs(env or _G) do -- kvmap
-        k = globalUnmangling(k)
-        table.insert(names, k)
-    end
-    return names
+    return kvmap(env or _G, globalUnmangling)
 end
 
 local function eval(str, options, ...)
@@ -2531,13 +2526,9 @@ local function makeCompilerEnv(ast, scope, parent)
 end
 
 local function macroGlobals(env, globals)
-    local allowed = {}
-    for k in pairs(env) do -- kvmap
-        local g = globalUnmangling(k)
-        table.insert(allowed, g)
-    end
+    local allowed = currentGlobalNames(env)
     if globals then
-        for _, k in pairs(globals) do -- kvmap
+        for _, k in pairs(globals) do -- kvmap mapinto
             table.insert(allowed, k)
         end
     end

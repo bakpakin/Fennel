@@ -31,8 +31,9 @@ local unpack = unpack or table.unpack
 --
 
 -- Map function f over sequential table t, removing values where f returns nil.
-local function map(t, f)
-    local out = {}
+-- Optionally takes a target table to insert the mapped values into.
+local function map(t, f, out)
+    out = out or {}
     if type(f) ~= "function" then local s = f f = function(x) return x[s] end end
     for _,x in ipairs(t) do
         local v = f(x)
@@ -41,11 +42,11 @@ local function map(t, f)
     return out
 end
 
--- Map function f over key/value table t, similar to above, but it can
--- return a sequential table (if f returns a single value) or a k/v
--- table if f returns two values.
-local function kvmap(t, f)
-    local out = {}
+-- Map function f over key/value table t, similar to above, but it can return a
+-- sequential table if f returns a single value or a k/v table if f returns two.
+-- Optionally takes a target table to insert the mapped values into.
+local function kvmap(t, f, out)
+    out = out or {}
     if type(f) ~= "function" then local s = f f = function(x) return x[s] end end
     for k,x in pairs(t) do
         local korv, v = f(k, x)
@@ -1066,11 +1067,10 @@ local function compile1(ast, scope, parent, opts)
         end
         local keys = kvmap(ast, writeOtherValues)
         table.sort(keys, function (a, b) return a[1] < b[1] end)
-        for _, k in ipairs(keys) do -- mapinto
-            local v = ast[k[2]]
-            buffer[#buffer + 1] = ('%s = %s'):format(
-                k[1], tostring(compile1(v, scope, parent, {nval = 1})[1]))
-        end
+        map(keys, function(k)
+                local v = tostring(compile1(ast[k[2]], scope, parent, {nval = 1})[1])
+                return ('%s = %s'):format(k[1], v) end,
+            buffer)
         local tbl = '{' .. table.concat(buffer, ', ') ..'}'
         exprs = handleCompileOpts({expr(tbl, 'expression')}, parent, opts, ast)
     else
@@ -1803,9 +1803,7 @@ SPECIALS[':'] = function(ast, scope, parent)
         local subexprs = compile1(ast[i], scope, parent, {
             nval = i ~= #ast and 1 or nil
         })
-        for j = 1, #subexprs do -- mapinto
-            args[#args + 1] = tostring(subexprs[j])
-        end
+        map(subexprs, tostring, args)
     end
     local fstring
     if not methodident then
@@ -1874,9 +1872,7 @@ local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
                 local subexprs = compile1(ast[i], scope, parent, {
                     nval = (i == 1 and 1 or nil)
                 })
-                for j = 1, #subexprs do -- mapinto
-                    operands[#operands + 1] = tostring(subexprs[j])
-                end
+                map(subexprs, tostring, operands)
             end
             if #operands == 1 then
                 if unaryPrefix then
@@ -2309,7 +2305,7 @@ local function repl(options)
         end
         -- reintroduce locals from the previous time around
         local bind = "local %s = ___replLocals___['%s']"
-        for name in pairs(env.___replLocals___) do -- mapinto
+        for name in pairs(env.___replLocals___) do
             table.insert(splicedSource, 1, bind:format(name, name))
         end
         -- save off new locals at the end - if safe to do so (i.e. last line is a return)
@@ -2527,19 +2523,13 @@ end
 
 local function macroGlobals(env, globals)
     local allowed = currentGlobalNames(env)
-    if globals then
-        for _, k in pairs(globals) do -- kvmap mapinto
-            table.insert(allowed, k)
-        end
-    end
+    for _, k in pairs(globals or {}) do table.insert(allowed, k) end
     return allowed
 end
 
 local function addMacros(macros, ast, scope)
     assertCompile(isTable(macros), 'expected macros to be table', ast)
-    for k, v in pairs(macros) do -- kvmap mapinto
-        scope.specials[k] = macroToSpecial(v)
-    end
+    kvmap(macros, function(k, v) return k, macroToSpecial(v) end, scope.specials)
 end
 
 local function loadMacros(modname, ast, scope, parent)
@@ -2881,19 +2871,21 @@ do
     local moduleName = "__fennel-bootstrap__"
     package.preload[moduleName] = function() return module end
     local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
-    for name, fn in pairs(eval(stdmacros, { -- kvmap mapinto
-        env = env,
-        scope = makeScope(COMPILER_SCOPE),
-        -- assume the code to load globals doesn't have any mistaken globals,
-        -- otherwise this can be problematic when loading fennel in contexts
-        -- where _G is an empty table with an __index metamethod. (openresty)
-        allowedGlobals = false,
-        useMetadata = true,
-        filename = "built-ins",
-        moduleName = moduleName,
-    })) do
-        SPECIALS[name] = macroToSpecial(fn, name)
-    end
+    local macros = eval(stdmacros, {
+                            env = env,
+                            scope = makeScope(COMPILER_SCOPE),
+                            -- assume the code to load globals doesn't have any
+                            -- mistaken globals, otherwise this can be
+                            -- problematic when loading fennel in contexts
+                            -- where _G is an empty table with an __index
+                            -- metamethod. (openresty)
+                            allowedGlobals = false,
+                            useMetadata = true,
+                            filename = "built-ins",
+                            moduleName = moduleName })
+    kvmap(macros,
+          function(name, fn) return name, macroToSpecial(fn, name) end,
+          SPECIALS)
     package.preload[moduleName] = nil
 end
 SPECIALS['λ'] = SPECIALS['lambda']

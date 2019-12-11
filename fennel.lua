@@ -34,8 +34,8 @@ local unpack = unpack or table.unpack
 local function map(t, f)
     local out = {}
     if type(f) ~= "function" then local s = f f = function(x) return x[s] end end
-    for i,x in ipairs(t) do
-        local v = f(x, i)
+    for _,x in ipairs(t) do
+        local v = f(x)
         if v then table.insert(out, v) end
     end
     return out
@@ -490,7 +490,7 @@ local luaKeywords = {
     'until', 'while'
 }
 
-map(luaKeywords, function(v, i) luaKeywords[v] = i end)
+for i, v in ipairs(luaKeywords) do luaKeywords[v] = i end
 
 local function isValidLuaIdentifier(str)
     return (str:match('^[%a_][%w_]*$') and not luaKeywords[str])
@@ -1033,12 +1033,13 @@ local function compile1(ast, scope, parent, opts)
         local s = serializeString(ast)
         exprs = handleCompileOpts({expr(s, 'literal')}, parent, opts)
     elseif type(ast) == 'table' then
-        local function writeNumericValues(x, i)
-            return exprs1(compile1(x, scope, parent, {nval = i ~= #ast and 1}))
+        local buffer = {}
+        for i = 1, #ast do -- Write numeric keyed values. kvmap
+            local nval = i ~= #ast and 1
+            buffer[#buffer + 1] = exprs1(compile1(ast[i], scope, parent, {nval = nval}))
         end
-        local buffer = map(ast, writeNumericValues)
         local keys = {}
-        for k, _ in pairs(ast) do -- Write other keys.
+        for k, _ in pairs(ast) do -- Write other keys, kvmap
             if type(k) ~= 'number' or math.floor(k) ~= k or k < 1 or k > #ast then
                 local kstr
                 if type(k) == 'string' and isValidLuaIdentifier(k) then
@@ -1179,17 +1180,17 @@ local function destructure(to, from, ast, scope, parent, opts)
                 end
             end
         elseif isList(left) then -- values destructuring
-            local tables = {}
-            local function getName(name, i)
+            local leftNames, tables = {}, {}
+            for i, name in ipairs(left) do
+                local symname
                 if isSym(name) then -- binding directly to a name
-                    return getname(name, up1)
+                    symname = getname(name, up1)
                 else -- further destructuring of tables inside values
-                    local symname = gensym(scope)
+                    symname = gensym(scope)
                     tables[i] = {name, expr(symname, 'sym')}
-                    return symname
                 end
+                table.insert(leftNames, symname)
             end
-            local leftNames = map(left, getName)
             if top then
                 compileTopTarget(leftNames)
             else
@@ -1345,25 +1346,24 @@ SPECIALS['fn'] = function(ast, scope, parent)
     end
     local argList = assertCompile(isTable(ast[index]),
                                   'expected vector arg list [a b ...]', ast)
-      local function getArgName(name, i)
-        if isVarg(name) then
+    local argNameList = {}
+    for i = 1, #argList do
+        if isVarg(argList[i]) then
             assertCompile(i == #argList, "expected vararg in last parameter position", ast)
+            argNameList[i] = '...'
             fScope.vararg = true
-            return "..."
-        elseif(isSym(name) and deref(name) ~= "nil"
-               and not isMultiSym(deref(name))) then
-            return declareLocal(name, {}, fScope, ast)
-        elseif isTable(name) then
+        elseif(isSym(argList[i]) and argList[i][1] ~= "nil"
+               and not isMultiSym(argList[i][1])) then
+            argNameList[i] = declareLocal(argList[i], {}, fScope, ast)
+        elseif isTable(argList[i]) then
             local raw = sym(gensym(scope))
-            local declared = declareLocal(raw, {}, fScope, ast)
-            destructure(name, raw, ast, fScope, fChunk,
+            argNameList[i] = declareLocal(raw, {}, fScope, ast)
+            destructure(argList[i], raw, ast, fScope, fChunk,
                         { declaration = true, nomulti = true })
-            return declared
         else
             assertCompile(false, 'expected symbol for function parameter', ast)
         end
     end
-    local argNameList = map(argList, getArgName)
     if type(ast[index + 1]) == 'string' and index + 1 < #ast then
         index = index + 1
         docstring = ast[index]
@@ -2019,10 +2019,12 @@ local function no() end
 local function mixedConcat(t, joiner)
     local ret = ""
     local s = ""
-    local seen = map(t, function(v, i)
-        ret, s = ret .. s .. v, joiner
-        return i
-    end)
+    local seen = {}
+    for k,v in ipairs(t) do
+        table.insert(seen, k)
+        ret = ret .. s .. v
+        s = joiner
+    end
     for k,v in pairs(t) do
         if not(seen[k]) then
             ret = ret .. s .. '[' .. k .. ']' .. '=' .. v
@@ -2143,7 +2145,7 @@ local function wrapEnv(env)
         -- sadly, but it's important for 5.2+ and can be done manually in 5.1
         __pairs = function()
             local pt = {}
-            for key, value in pairs(env) do
+            for key, value in pairs(env) do -- kvmap
                 if type(key) == 'string' then
                     pt[globalUnmangling(key)] = value
                 else
@@ -2207,9 +2209,9 @@ end
 
 local function currentGlobalNames(env)
     local names = {}
-    for k in pairs(env or _G) do
-       k = globalUnmangling(k)
-       table.insert(names, k)
+    for k in pairs(env or _G) do -- kvmap
+        k = globalUnmangling(k)
+        table.insert(names, k)
     end
     return names
 end
@@ -2530,12 +2532,12 @@ end
 
 local function macroGlobals(env, globals)
     local allowed = {}
-    for k in pairs(env) do
+    for k in pairs(env) do -- kvmap
         local g = globalUnmangling(k)
         table.insert(allowed, g)
     end
     if globals then
-        for _, k in pairs(globals) do
+        for _, k in pairs(globals) do -- kvmap
             table.insert(allowed, k)
         end
     end
@@ -2544,7 +2546,7 @@ end
 
 local function addMacros(macros, ast, scope)
     assertCompile(isTable(macros), 'expected macros to be table', ast)
-    for k, v in pairs(macros) do
+    for k, v in pairs(macros) do -- kvmap mapinto
         scope.specials[k] = macroToSpecial(v)
     end
 end
@@ -2888,7 +2890,7 @@ do
     local moduleName = "__fennel-bootstrap__"
     package.preload[moduleName] = function() return module end
     local env = makeCompilerEnv(nil, COMPILER_SCOPE, {})
-    for name, fn in pairs(eval(stdmacros, {
+    for name, fn in pairs(eval(stdmacros, { -- kvmap mapinto
         env = env,
         scope = makeScope(COMPILER_SCOPE),
         -- assume the code to load globals doesn't have any mistaken globals,

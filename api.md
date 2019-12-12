@@ -1,6 +1,9 @@
 # Fennel's Lua API
 
-The `fennel` module provides the following functions.
+The `fennel` module provides the following functions for use when
+embedding Fennel in a Lua program. If you're writing a pure Fennel
+program or working on a system that already has Fennel support, you
+probably don't need this.
 
 Any time a function takes an `options` table argument, that table will
 usually accept these fields:

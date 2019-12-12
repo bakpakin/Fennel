@@ -1,9 +1,16 @@
 # Lua Primer
 
-While the [Lua reference manual][1] is indispensable, here are the
+While you're learning, it's a good idea to keep the
+[Lua reference manual][1] open in a tab to refer to; it is
+indispensable. However, if you want the short version, here are the
 most important parts of Lua you'll need to get started. This is meant
 to give a very brief overview and let you know where in the manual to
 look for further details, not to teach Lua.
+
+Note that this is a complete list of all globals in standard Lua,
+though it doesn't explain all the functions inside every top-level
+module. Other Lua runtimes or embedded contexts usually introduce
+things that aren't covered here.
 
 ## Important functions
 
@@ -16,7 +23,7 @@ look for further details, not to teach Lua.
 * `assert`: raises an error if a condition is nil/false, otherwise returns it
 * `ipairs`: iterates over sequential tables
 * `pairs`: iterates over any table, sequential or not, in undefined order
-* `unpack`: turns a sequential table into multiple values
+* `unpack`: turns a sequential table into multiple values (table.unpack in 5.2+)
 * `require`: loads and returns a given module
 
 Note that `tostring` on tables will give unsatisfactory results; simply
@@ -24,21 +31,82 @@ evaluating the table in the REPL will invoke `fennelview` for you and
 show a human-readable view of the table (or you can invoke `fennelview`
 explicitly in your code).
 
-## Important modules
+## The io module
 
-You can explore a module by evaluating it in the REPL (which will
-use `fennelview` to display all the functions and values it contains.
+This module contains functions for operating on the filesystem. Note
+that directory listing is absent; you need the luafilesystem library
+for that.
 
-* `math`: all your standard math things including trig and `random`
-* `table`: `concat`, `insert`, `remove`, and `sort` are the main things
+To open a file you use `io.open`, which returns a file descriptor upon
+success, or nil and a message upon failure. This failure behavior
+makes it well-suited for wrapping with `assert` to turn failure into
+an error. You can call methods on the file descriptor, concluding with
+`f:close`.
+
+```fennel
+(let [f (assert (io.open "path/to/file"))]
+  (print (f:read)) ; reads a single line by default
+  (print (f:read "*a")) ; you can read the whole file
+  (f:close))
+```
+
+You can also call `io.open` with `:w` as its second argument to open
+the file in write mode and then call `f:write` and `f:flush` on the
+file descriptor.
+
+The other important function in this module is the `io.lines`
+function, which returns an iterator over all the file's lines.
+
+```fennel
+(each [line (io.lines "path/to/file")]
+  (process-line line))
+```
+
+It will automatically close the file once it detects the end of the
+file. You can also call `f:lines` on a file descriptor that you got
+using `io.open`.
+
+## The table module
+
+This contains some basic table manipulation functions. All these
+functions operate on sequential tables, not general key/value tables.
+The most important ones are described below:
+
+The `table.insert` function takes a table, an optional position, and
+an element, and it will insert the element into the table at that
+position. The position defaults to being the end of the
+table. Similarly `table.remove` takes a table and an optional
+position, removes the element at that position, and returns it. The
+position defaults to the last element in the table. To remove
+something from a non-sequential table, simply set its key to nil.
+
+The `table.concat` function returns a string that has all the elements
+concatenated together with an optional separator.
+
+```fennel
+(let [t [1 2 3]]
+  (table.insert t 2 "a") ; t is now [1 "a" 2 3]
+  (table.insert t "last") ; now [1 "a" 2 3 "last"]
+  (print (table.remove t)) ; prints "last"
+  (table.remove t 1) ; t is now ["a" 2 3]
+  (print (table.concat t ", "))) prints "a, 2, 3"
+```
+
+The `table.sort` function a table in-place, as a side-effect. It
+takes an optional comparator function which should return true when
+its first argument is less than the second.
+
+The `table.unpack` function returns all the elements in the table as
+multiple values. Note that `table.unpack` is just `unpack` in Lua 5.1.
+
+## Other important modules
+
+You can explore a module by evaluating it in the REPL to display all
+the functions and values it contains.
+
+* `math`: all your standard math functions including trig and `random`
 * `string`: all common string operations (except `split` which is absent)
-* `io`: mostly filesystem functions (directory listing is notably absent)
 * `os`: operating system functions like `exit`, `time`, `getenv`, etc
-
-In particular `table.insert` and `table.remove` are intended for
-sequential tables; they will shift over the indices of every element
-after the specified index. To remove something from a non-sequential
-table simply set the field to `nil`.
 
 Note that Lua does not implement regular expressions but its own more
 limited [pattern][2] language for `string.find`, `string.match`, etc.
@@ -64,7 +132,6 @@ limited [pattern][2] language for `string.find`, `string.match`, etc.
 These are used for loading Lua code. The `load*` functions return a
 "chunk" function which must be called before the code gets run, but
 `dofile` executes immediately.
-
 
 * `dofile`
 * `load`

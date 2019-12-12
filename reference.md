@@ -2,7 +2,12 @@
 
 These are all the special forms recognized by the Fennel compiler. It
 does not include built-in Lua functions; see the
-[Lua reference manual][1] for that.
+[Lua reference manual][1] or the [Lua primer][3] for that.
+
+Remember that Fennel relies completely on Lua for its runtime.
+Everything Fennel does happens at compile-time, so you will need to
+familiarize yourself with Lua's standard library functions. Thankfully
+it's much smaller than almost any other language.
 
 Fennel source code should be UTF-8-encoded text.
 
@@ -830,3 +835,4 @@ subject to change.
 
 [1]: https://www.lua.org/manual/5.1/
 [2]: https://gist.github.com/nimaai/2f98cc421c9a51930e16#variable-capture
+[3]: https://fennel-lang.org/lua-primer

@@ -26,6 +26,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --no-metadata           : Disable function metadata, even in REPL
   --correlate             : Make Lua output line numbers match Fennel input
   --load FILE (-l)        : Load the specified FILE before executing the command
+  --no-fennelrc           : Skip loading ~/.fennelrc when launching repl
 
   --help (-h)             : Display this text
   --version (-v)          : Show version
@@ -77,6 +78,9 @@ for i=#arg, 1, -1 do
     elseif arg[i] == "--load" or arg[i] == "-l" then
         local file = table.remove(arg, i+1)
         dosafe(file, options, {})
+        table.remove(arg, i)
+    elseif arg[i] == "--no-fennelrc" then
+        options.fennelrc = false
         table.remove(arg, i)
     elseif arg[i] == "--correlate" then
         options.correlate = true
@@ -154,16 +158,20 @@ if arg[1] == "--repl" or #arg == 0 then
             options.pp = pp
         end
     end
-    local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
-    local init = io.open(initFilename, "rb")
 
     tryReadline(options)
 
-    if init then
-        init:close()
-        -- pass in options so fennerlrc can make changes to it
-        dosafe(initFilename, options, {options})
+    if options.fennelrc ~= false then
+        local initFilename = (os.getenv("HOME") or "") .. "/.fennelrc"
+        local init = io.open(initFilename, "rb")
+
+        if init then
+            init:close()
+            -- pass in options so fennerlrc can make changes to it
+            dosafe(initFilename, options, {options})
+        end
     end
+
     print("Welcome to Fennel " .. fennel.version .. "!")
     if options.useMetadata ~= false then
         print("Use (doc something) to view documentation.")

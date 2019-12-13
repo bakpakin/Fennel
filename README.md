@@ -13,7 +13,7 @@ handwritten Lua.
 
 * The [tutorial](tutorial.md) is a great place to start
 * The [reference](reference.md) describes all Fennel special forms
-* The [API listing](api.md) shows how to integrate Fennel into your codebaes
+* The [API listing](api.md) shows how to integrate Fennel into your codebase
 * The [Lua primer](lua-primer.md) gives a very brief intro to Lua with
   pointers to further details
 * The [test suite](test.lua) has basic usage examples for most features.

@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.4.0 / ???
+## 0.3.1 / ???
 
 * Add support for `--load FILE` argument to command-line launcher
 * Fix `each` to work with raw iterator values (#201)

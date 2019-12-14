@@ -11,7 +11,8 @@ If you know Lua and a lisp already, you'll feel right at home in Fennel. Even
 if not, Lua is one of the simplest programming languages in existence, so if
 you've programmed before you should be able to pick it up without too much
 trouble, especially if you've used another dynamic imperative language with
-closures. The [Lua reference manual][3] is a fine place to look for details.
+closures. The [Lua reference manual][3] is a fine place to look for details,
+but Fennel's own [Lua Primer][14] is shorter and covers the highlights.
 
 ## OK, so how do you do things?
 
@@ -259,6 +260,15 @@ numbers under ten:
 ```fennel
 (for [i 1 10 2]
   (print i))
+```
+
+### Looping
+
+If you need to loop but don't know how many times, you can use `while`:
+
+```fennel
+(while (keep-looping?)
+  (do-something))
 ```
 
 ### Conditionals
@@ -642,3 +652,4 @@ string rendering of that table for debugging.
 [11]: http://leafo.net/posts/itchio-and-coroutines.html
 [12]: http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/
 [13]: https://love2d.org
+[14]: https://fennel-lang.org/lua-primer

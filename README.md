@@ -1,8 +1,7 @@
 # Fennel
 
-[Fennel][1] (formerly fnl) is a lisp that compiles to Lua. It aims to
-be easy to use, expressive, and has almost zero overhead compared to
-handwritten Lua.
+[Fennel][1] is a lisp that compiles to Lua. It aims to be easy to use,
+expressive, and has almost zero overhead compared to handwritten Lua.
 
 * *Full Lua compatibility* - You can use any function or library from Lua.
 * *Zero overhead* - Compiled code should be just as or more efficient than hand-written Lua.

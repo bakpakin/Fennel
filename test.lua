@@ -124,6 +124,9 @@ local cases = {
         -- condition exists in the middle of an if
         ["(if false :y true :x :trailing :condition)"]="x",
         ["(let [b :original b (if false :not-this)] (or b :nil))"]="nil",
+        -- Conditional of while
+        ["(while (let [f false] f) (lua :break))"]=nil,
+        ["(var i 0) (var s 0) (while (let [l 11] (< i l)) (set s (+ s i)) (set i (+ 1 i))) s"]=55
     },
 
     core = {

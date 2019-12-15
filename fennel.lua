@@ -1742,13 +1742,13 @@ SPECIALS['while'] = function(ast, scope, parent)
     local subChunk = {}
     if len1 ~= len2 then
         -- Compound condition
-        emit(parent, 'while true do', ast)
         -- Move new compilation to subchunk
         for i = len1 + 1, len2 do
             subChunk[#subChunk + 1] = parent[i]
             parent[i] = nil
         end
-        emit(parent, ('if %s then break end'):format(condition[1]), ast)
+        emit(parent, 'while true do', ast)
+        emit(subChunk, ('if not %s then break end'):format(condition[1]), ast)
     else
         -- Simple condition
         emit(parent, 'while ' .. tostring(condition) .. ' do', ast)

@@ -162,9 +162,14 @@ if arg[1] == "--repl" or #arg == 0 then
     tryReadline(options)
 
     if options.fennelrc ~= false then
-        local initFilename = (os.getenv("XDG_CONFIG_HOME") or "") .. "/.fennelrc"
-        local initFilename2 = (os.getenv("HOME") or "") .. "/.fennelrc"
-        local init = io.open(initFilename, "rb") or io.open(initFilename2, "rb")
+        local home = os.getenv("HOME")
+        local xdg_config_home = os.getenv("XDG_CONFIG_HOME") or home .. "/.config"
+        local xdg_initfile = xdg_config_home .. "/fennel/fennelrc"
+        local home_initfile = home .. "/.fennelrc"
+        local init, initFilename = io.open(xdg_initfile, "rb"), xdg_initfile
+        if not init then
+            init, initFilename = io.open(home_initfile, "rb"), home_initfile
+        end
 
         if init then
             init:close()

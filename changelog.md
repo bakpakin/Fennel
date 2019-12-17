@@ -2,6 +2,7 @@
 
 ## 0.3.1 / ???
 
+* Look for init file for repl in XDG config dirs as well as ~/.fennelrc
 * Add support for `--load FILE` argument to command-line launcher
 * Fix `each` to work with raw iterator values (#201)
 * Optionally check for unused locals with `--check-unused-locals`

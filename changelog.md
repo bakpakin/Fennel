@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.3.1 / ???
+## 0.3.1 / 2019-12-17
 
 * Look for init file for repl in XDG config dirs as well as ~/.fennelrc
 * Add support for `--load FILE` argument to command-line launcher

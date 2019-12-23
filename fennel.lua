@@ -147,6 +147,13 @@ local function isSequence(x)
    return type(x) == 'table' and getmetatable(x) == SEQUENCE_MT and x
 end
 
+-- Returns a shallow copy of its table argument. Returns an empty table on nil.
+local function copy(from)
+   local to = {}
+   for k, v in pairs(from or {}) do to[k] = v end
+   return to
+end
+
 --
 -- Parser
 --
@@ -1981,26 +1988,26 @@ end
 
 local requireSpecial
 local function compile(ast, options)
-    options = options or {}
+    local opts = copy(options)
     local oldGlobals = allowedGlobals
     local oldChunk = rootChunk
     local oldScope = rootScope
     local oldOptions = rootOptions
-    allowedGlobals = options.allowedGlobals
-    if options.indent == nil then options.indent = '  ' end
+    allowedGlobals = opts.allowedGlobals
+    if opts.indent == nil then opts.indent = '  ' end
     local chunk = {}
-    local scope = options.scope or makeScope(GLOBAL_SCOPE)
+    local scope = opts.scope or makeScope(GLOBAL_SCOPE)
     rootChunk = chunk
     rootScope = scope
-    rootOptions = options
-    if options.requireAsInclude then scope.specials.require = requireSpecial end
+    rootOptions = opts
+    if opts.requireAsInclude then scope.specials.require = requireSpecial end
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
     allowedGlobals = oldGlobals
     rootChunk = oldChunk
     rootScope = oldScope
     rootOptions = oldOptions
-    return flatten(chunk, options)
+    return flatten(chunk, opts)
 end
 
 -- make a transformer for key / value table pairs, preserving all numeric keys
@@ -2084,24 +2091,24 @@ end
 docSpecial('quote', {'x'}, 'Quasiquote the following form. Only works in macro/compiler scope.')
 
 local function compileStream(strm, options)
-    options = options or {}
+    local opts = copy(options)
     local oldGlobals = allowedGlobals
     local oldChunk = rootChunk
     local oldScope = rootScope
     local oldOptions = rootOptions
-    allowedGlobals = options.allowedGlobals
-    if options.indent == nil then options.indent = '  ' end
-    local scope = options.scope or makeScope(GLOBAL_SCOPE)
-    if options.requireAsInclude then scope.specials.require = requireSpecial end
+    allowedGlobals = opts.allowedGlobals
+    if opts.indent == nil then opts.indent = '  ' end
+    local scope = opts.scope or makeScope(GLOBAL_SCOPE)
+    if opts.requireAsInclude then scope.specials.require = requireSpecial end
     local vals = {}
-    for ok, val in parser(strm, options.filename) do
+    for ok, val in parser(strm, opts.filename) do
         if not ok then break end
         vals[#vals + 1] = val
     end
     local chunk = {}
     rootChunk = chunk
     rootScope = scope
-    rootOptions = options
+    rootOptions = opts
     for i = 1, #vals do
         local exprs = compile1(vals[i], scope, chunk, {
             tail = i == #vals,
@@ -2112,7 +2119,7 @@ local function compileStream(strm, options)
     rootChunk = oldChunk
     rootScope = oldScope
     rootOptions = oldOptions
-    return flatten(chunk, options)
+    return flatten(chunk, opts)
 end
 
 local function compileString(str, options)
@@ -2209,40 +2216,39 @@ local function currentGlobalNames(env)
 end
 
 local function eval(str, options, ...)
-    options = options or {}
+    local opts = copy(options)
     -- eval and dofile are considered "live" entry points, so we can assume
     -- that the globals available at compile time are a reasonable allowed list
     -- UNLESS there's a metatable on env, in which case we can't assume that
     -- pairs will return all the effective globals; for instance openresty
     -- sets up _G in such a way that all the globals are available thru
     -- the __index meta method, but as far as pairs is concerned it's empty.
-    if options.allowedGlobals == nil and not getmetatable(options.env) then
-        options.allowedGlobals = currentGlobalNames(options.env)
+    if opts.allowedGlobals == nil and not getmetatable(opts.env) then
+        opts.allowedGlobals = currentGlobalNames(opts.env)
     end
-    local env = options.env and wrapEnv(options.env)
-    local luaSource = compileString(str, options)
+    local env = opts.env and wrapEnv(opts.env)
+    local luaSource = compileString(str, opts)
     local loader = loadCode(luaSource, env,
-                            options.filename and ('@' .. options.filename) or str)
-    options.filename = nil
+                            opts.filename and ('@' .. opts.filename) or str)
+    opts.filename = nil
     return loader(...)
 end
 
 local function dofileFennel(filename, options, ...)
-    options = options or {}
-    if options.allowedGlobals == nil then
-        options.allowedGlobals = currentGlobalNames(options.env)
+    local opts = copy(options)
+    if opts.allowedGlobals == nil then
+        opts.allowedGlobals = currentGlobalNames(opts.env)
     end
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all"):gsub("^#![^\n]*\n", "")
     f:close()
-    options.filename = options.filename or filename
-    return eval(source, options, ...)
+    opts.filename = opts.filename or filename
+    return eval(source, opts, ...)
 end
 
 -- Implements a configurable repl
 local function repl(options)
-
-    local opts = options or {}
+    local opts = copy(options)
     -- This would get set for us when calling eval, but we want to seed it
     -- with a value that is persistent so it doesn't get reset on each eval.
     if opts.allowedGlobals == nil then
@@ -2472,8 +2478,7 @@ module.makeSearcher = function(options)
       -- this will propagate options from the repl but not from eval, because
       -- eval unsets rootOptions after compiling but before running the actual
       -- calls to require.
-      local opts = {}
-      for k,v in pairs(rootOptions or {}) do opts[k] = v end
+      local opts = copy(rootOptions)
       for k,v in pairs(options or {}) do opts[k] = v end
       local filename = searchModule(modulename)
       if filename then

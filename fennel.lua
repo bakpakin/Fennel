@@ -2222,7 +2222,8 @@ local function eval(str, options, ...)
     local env = options.env and wrapEnv(options.env)
     local luaSource = compileString(str, options)
     local loader = loadCode(luaSource, env,
-        options.filename and ('@' .. options.filename) or str)
+                            options.filename and ('@' .. options.filename) or str)
+    options.filename = nil
     return loader(...)
 end
 

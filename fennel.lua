@@ -1664,7 +1664,8 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
             if hasElse then
                 emit(lastBuffer, 'else', ast)
                 emit(lastBuffer, elseBranch.chunk, ast)
-            elseif(innerTarget) then
+            -- TODO: Consolidate use of condLine ~= "else" with hasElse
+            elseif(innerTarget and condLine ~= 'else') then
                 emit(lastBuffer, 'else', ast)
                 emit(lastBuffer, ("%s = nil"):format(innerTarget), ast)
             end

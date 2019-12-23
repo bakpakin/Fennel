@@ -1,5 +1,9 @@
 # Summary of user-visible changes
 
+## 0.3.2 / ???
+
+* Fix 0.3.1 bug #211 causing `else` to emit twice in some contexts (#212)
+
 ## 0.3.1 / 2019-12-17
 
 * Look for init file for repl in XDG config dirs as well as ~/.fennelrc

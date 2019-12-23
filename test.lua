@@ -124,6 +124,9 @@ local cases = {
         -- condition exists in the middle of an if
         ["(if false :y true :x :trailing :condition)"]="x",
         ["(let [b :original b (if false :not-this)] (or b :nil))"]="nil",
+        -- make sure nested/assigned conditionals always set the tgt,
+        -- and don't double-emit "else"
+        ["(let [x 3 res (if (= x 1) :ONE (= x 2) :TWO true :???)] res)"] = "???",
         -- Conditional of while
         ["(while (let [f false] f) (lua :break))"]=nil,
         ["(var i 0) (var s 0) (while (let [l 11] (< i l)) (set s (+ s i)) (set i (+ 1 i))) s"]=55
@@ -370,6 +373,7 @@ local cases = {
         ["(match (io.open \"/does/not/exist\") (nil msg) :err f f)"]="err",
         -- last clause becomes default
         ["(match [1 2 3] [3 2 1] :no [2 9 1] :NO :default)"]="default",
+        ["(let [x 3 res (match x 1 :ONE 2 :TWO _ :???)] res)"]="???",
         -- intra-pattern unification
         ["(match [1 2 3] [x y x] :no [x y z] :yes)"]="yes",
         ["(match [1 2 1] [x y x] :yes)"]="yes",

@@ -1137,7 +1137,7 @@ local function destructure(to, from, ast, scope, parent, opts)
                     'expected local var', up1)
             end
             if forceglobal then
-                assertCompile(not scope.unmanglings[raw],
+                assertCompile(not scope.symmeta[scope.unmanglings[raw]],
                               "global " .. raw .. " conflicts with local", ast)
                 scope.manglings[raw] = globalMangling(raw)
                 scope.unmanglings[globalMangling(raw)] = raw

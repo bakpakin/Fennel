@@ -180,6 +180,8 @@ local cases = {
             ":1: attempt to call a table value",
         -- mangling avoids global names
         ["(global a_b :global) (local a-b :local) a_b"]="global",
+        -- global definition doesn't count as local
+        ["(global x 1) (global x 284) x"]=284,
     },
 
     ifforms = {

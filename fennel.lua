@@ -144,14 +144,14 @@ end
 
 -- Checks if an object is a sequence (created with a [] literal)
 local function isSequence(x)
-   return type(x) == 'table' and getmetatable(x) == SEQUENCE_MT and x
+    return type(x) == 'table' and getmetatable(x) == SEQUENCE_MT and x
 end
 
 -- Returns a shallow copy of its table argument. Returns an empty table on nil.
 local function copy(from)
-   local to = {}
-   for k, v in pairs(from or {}) do to[k] = v end
-   return to
+    local to = {}
+    for k, v in pairs(from or {}) do to[k] = v end
+    return to
 end
 
 --
@@ -458,6 +458,9 @@ end
 local rootChunk
 local rootScope
 local rootOptions
+-- Weak container for storing internals relevant to compiler scope to store what
+-- we don't want to directly expose in the compiler/macro env
+local scopedInternals = setmetatable({}, {__mode = 'k'})
 
 -- Create a new Scope, optionally under a parent scope. Scopes are compile time
 -- constructs that are responsible for keeping track of local variables, name
@@ -1997,6 +2000,8 @@ local function compile(ast, options)
     if opts.indent == nil then opts.indent = '  ' end
     local chunk = {}
     local scope = opts.scope or makeScope(GLOBAL_SCOPE)
+    scopedInternals[scope] = scopedInternals[scope] or {}
+    scopedInternals[scope].options = opts
     rootChunk = chunk
     rootScope = scope
     rootOptions = opts
@@ -2099,6 +2104,8 @@ local function compileStream(strm, options)
     allowedGlobals = opts.allowedGlobals
     if opts.indent == nil then opts.indent = '  ' end
     local scope = opts.scope or makeScope(GLOBAL_SCOPE)
+    scopedInternals[scope] = scopedInternals[scope] or {}
+    scopedInternals[scope].options = opts
     if opts.requireAsInclude then scope.specials.require = requireSpecial end
     local vals = {}
     for ok, val in parser(strm, opts.filename) do
@@ -2525,6 +2532,10 @@ local function makeCompilerEnv(ast, scope, parent)
         ["sequence?"] = isSequence,
         ["varg?"] = isVarg,
         ["get-scope"] = function() return macroCurrentScope end,
+        ["get-option"] = function(tgtScope, key)
+            local value = scopedInternals[tgtScope].options[key]
+            return type(value) == 'table' and copy(value) or value
+        end,
         ["in-scope?"] = function(symbol)
             return macroCurrentScope.manglings[tostring(symbol)]
         end
@@ -2564,13 +2575,7 @@ docSpecial('require-macros', {'macro-module-name'},
            'Load given module and use its contents as macro definitions in current scope.'
                ..'\nMacro module should return a table of macro functions with string keys.')
 
-local function requireFallback(e)
-    local code = ('require(%s)'):format(tostring(e))
-    return expr(code, 'statement')
-end
-
 requireSpecial = function (ast, scope, parent, opts)
-    opts.fallback = requireFallback
     return SPECIALS['include'](ast, scope, parent, opts)
 end
 
@@ -2810,19 +2815,19 @@ Macro module should return a table of macro functions with string keys."
                                (if path [path true]
                                         [(searchpath $ package.path) false]))
          [mod-path fennel?] (resolve module-name)
-         fallback           (and _ROOT_OPTIONS _ROOT_OPTIONS.fallback)
-         compile            (if fennel? fennel.compileString #$)
-         code               (if (not (. _SCOPE.includes module-name))
-                              (: (io.open mod-path) :read :*a))
-         lua-code           (if code (compile code))
-         found              (or (. _SCOPE.includes module-name) lua-code)
-         includer           `(tset package.preload ,module-name
-                                   ((or loadstring load) ,lua-code))]
-     (assert (or found fallback) (.. "could not find module " module-name))
-     (local out (if _SCOPE.specials.require
-                    `(do (local require# require) (require# ,module-name))
-                    `(do (require ,module-name))))
-     (if lua-code (do (tset _SCOPE.includes module-name mod-path)
+         scope           (get-scope)
+         compile         (if fennel? fennel.compileString #$)
+         code            (if (and mod-path (not (. scope.includes module-name)))
+                         (: (io.open mod-path) :read :*a))
+         lua-code        (if code (compile code))
+         found           (or (. scope.includes module-name) lua-code)
+         includer        `(tset package.preload ,module-name
+                                ((or loadstring load) ,lua-code))]
+     ; if requireAsInclude is enabled when unresolvable, fallback to require
+     (assert (or found (get-option (get-scope) :requireAsInclude))
+             (.. "could not find module " module-name))
+     (local out `(do ((values require) ,module-name)))
+     (if lua-code (do (tset scope.includes module-name mod-path)
                       (table.insert out 2 includer)))
      out))
  }

@@ -2498,9 +2498,11 @@ module.doc = doc
 module.searcher = module.makeSearcher()
 module.make_searcher = module.makeSearcher -- oops backwards compatibility
 
+local compilerEnvRootOpts = rootOptions
 local function makeCompilerEnv(ast, scope, parent)
     return setmetatable({
         -- State of compiler if needed
+        _ROOT_OPTIONS = compilerEnvRootOpts,
         _SCOPE = scope,
         _CHUNK = parent,
         _AST = ast,
@@ -2511,6 +2513,7 @@ local function makeCompilerEnv(ast, scope, parent)
         fennel = module,
         -- Useful for macros and meta programming. All of Fennel can be accessed
         -- via fennel.myfun, for example (fennel.eval "(print 1)").
+        searchpath = searchModule, -- package.searchpath 5.1 fallback
         list = list,
         sym = sym,
         unpack = unpack,
@@ -2560,77 +2563,6 @@ end
 docSpecial('require-macros', {'macro-module-name'},
            'Load given module and use its contents as macro definitions in current scope.'
                ..'\nMacro module should return a table of macro functions with string keys.')
-
-SPECIALS['include'] = function(ast, scope, parent, opts)
-    assertCompile(#ast == 2, 'expected one argument', ast)
-
-    -- Compile mod argument
-    local modexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
-    if modexpr.type ~= 'literal' or modexpr[1]:byte() ~= 34 then
-        if opts.fallback then
-            return opts.fallback(modexpr)
-        else
-            assertCompile(false, 'module name must resolve to a string literal', ast)
-        end
-    end
-    local code = 'return ' .. modexpr[1]
-    local mod = loadCode(code)()
-
-    -- Check cache
-    local includeExpr = scope.includes[mod]
-    if includeExpr then
-        return includeExpr
-    end
-
-    -- Find path to source
-    local path = searchModule(mod)
-    local isFennel = true
-    if not path then
-        isFennel = false
-        path = searchModule(mod, package.path)
-        if not path then
-            if opts.fallback then
-                return opts.fallback(modexpr)
-            else
-                assertCompile(false, 'could not find module ' .. mod, ast)
-            end
-        end
-    end
-
-    -- Read source
-    local f = io.open(path)
-    local s = f:read('*all')
-    f:close()
-
-    -- splice in source and memoize it
-    -- so we can include it again without duplication
-    local target = gensym(scope)
-    local ret = expr(target, 'sym')
-    if isFennel then
-        local p = parser(stringStream(s), path)
-        local forms = list(sym('do'))
-        for _, val in p do table.insert(forms, val) end
-        local subscope = makeScope(rootScope.parent)
-        if rootOptions.requireAsInclude then
-            subscope.specials.require = requireSpecial
-        end
-        local subopts = {
-            nval = 1,
-            target = target
-        }
-        emit(rootChunk, 'local ' .. target, ast)
-        compile1(forms, subscope, rootChunk, subopts)
-    else
-        emit(rootChunk, 'local ' .. target .. ' = (function() ' .. s .. ' end)()', ast)
-    end
-
-    -- Put in cache and return
-    rootScope.includes[mod] = ret
-    return ret
-end
-docSpecial('include', {'module-name-literal'},
-           'Like require, but load the target module during compilation and embed it in the\n'
-        .. 'Lua output. The module must be a string literal and resolvable at compile time.')
 
 local function requireFallback(e)
     local code = ('require(%s)'):format(tostring(e))
@@ -2868,6 +2800,31 @@ that argument name begins with ?."
     ;; many values as we ever match against in the clauses.
     (list (sym :let) [vals val]
           (match-condition vals clauses))))
+ :include
+ (fn include [module-name]
+   "Load given module and use its contents as macro definitions in currentscope.
+Macro module should return a table of macro functions with string keys."
+   (assert (= :string (type module-name))
+           "module name must resolve to a string literal")
+   (let [resolve            #(let [path (searchpath $ fennel.path)]
+                               (if path [path true]
+                                        [(searchpath $ package.path) false]))
+         [mod-path fennel?] (resolve module-name)
+         fallback           (and _ROOT_OPTIONS _ROOT_OPTIONS.fallback)
+         compile            (if fennel? fennel.compileString #$)
+         code               (if (not (. _SCOPE.includes module-name))
+                              (: (io.open mod-path) :read :*a))
+         lua-code           (if code (compile code))
+         found              (or (. _SCOPE.includes module-name) lua-code)
+         includer           `(tset package.preload ,module-name
+                                   ((or loadstring load) ,lua-code))]
+     (assert (or found fallback) (.. "could not find module " module-name))
+     (local out (if _SCOPE.specials.require
+                    `(do (local require# require) (require# ,module-name))
+                    `(do (require ,module-name))))
+     (if lua-code (do (tset _SCOPE.includes module-name mod-path)
+                      (table.insert out 2 includer)))
+     out))
  }
 ]===]
 do

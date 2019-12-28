@@ -468,7 +468,7 @@ local scopedInternals = setmetatable({}, {__mode = 'k'})
 -- 'eval-compiler' special form (may change). They use metatables to implement
 -- nesting via metatables.
 local function makeScope(parent)
-    return {
+    local scope = {
         unmanglings = setmetatable({}, {
             __index = parent and parent.unmanglings
         }),
@@ -490,6 +490,8 @@ local function makeScope(parent)
         depth = parent and ((parent.depth or 0) + 1) or 0,
         hashfn = parent and parent.hashfn
     }
+    scopedInternals[scope] = scopedInternals[scope] or {}
+    return scope
 end
 
 -- Assert a condition and raise a compile error with line numbers. The ast arg
@@ -1989,7 +1991,6 @@ local function macroToSpecial(mac)
     return special
 end
 
-local requireSpecial
 local function compile(ast, options)
     local opts = copy(options)
     local oldGlobals = allowedGlobals
@@ -2000,12 +2001,13 @@ local function compile(ast, options)
     if opts.indent == nil then opts.indent = '  ' end
     local chunk = {}
     local scope = opts.scope or makeScope(GLOBAL_SCOPE)
-    scopedInternals[scope] = scopedInternals[scope] or {}
     scopedInternals[scope].options = opts
     rootChunk = chunk
     rootScope = scope
     rootOptions = opts
-    if opts.requireAsInclude then scope.specials.require = requireSpecial end
+    if opts.requireAsInclude then
+        scope.specials.require = scope.specials.include
+    end
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
     allowedGlobals = oldGlobals
@@ -2104,9 +2106,10 @@ local function compileStream(strm, options)
     allowedGlobals = opts.allowedGlobals
     if opts.indent == nil then opts.indent = '  ' end
     local scope = opts.scope or makeScope(GLOBAL_SCOPE)
-    scopedInternals[scope] = scopedInternals[scope] or {}
     scopedInternals[scope].options = opts
-    if opts.requireAsInclude then scope.specials.require = requireSpecial end
+    if opts.requireAsInclude then
+        scope.specials.require = scope.specials.include
+    end
     local vals = {}
     for ok, val in parser(strm, opts.filename) do
         if not ok then break end
@@ -2575,10 +2578,6 @@ docSpecial('require-macros', {'macro-module-name'},
            'Load given module and use its contents as macro definitions in current scope.'
                ..'\nMacro module should return a table of macro functions with string keys.')
 
-requireSpecial = function (ast, scope, parent, opts)
-    return SPECIALS['include'](ast, scope, parent, opts)
-end
-
 local function evalCompiler(ast, scope, parent)
     local luaSource = compile(ast, { scope = makeScope(COMPILER_SCOPE),
                                      useMetadata = rootOptions.useMetadata })
@@ -2826,7 +2825,7 @@ Macro module should return a table of macro functions with string keys."
                                 (tset package.preload ,module-name
                                       ((or loadstring load) ,lua-code)))]
      ; if requireAsInclude is enabled when unresolvable, fallback to require
-     (assert (or found (get-option (get-scope) :requireAsInclude))
+     (assert (or found (get-option scope :requireAsInclude))
              (.. "could not find module " module-name))
      (local out `(do ((values require) ,module-name)))
      (if lua-code (do (tset scope.includes module-name mod-path)

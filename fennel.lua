@@ -2818,11 +2818,13 @@ Macro module should return a table of macro functions with string keys."
          scope           (get-scope)
          compile         (if fennel? fennel.compileString #$)
          code            (if (and mod-path (not (. scope.includes module-name)))
-                         (: (io.open mod-path) :read :*a))
+                             (: (io.open mod-path) :read :*a))
          lua-code        (if code (compile code))
          found           (or (. scope.includes module-name) lua-code)
-         includer        `(tset package.preload ,module-name
-                                ((or loadstring load) ,lua-code))]
+         includer        `(when (and (not (. package.preload ,module-name))
+                                     (= nil (. package.loaded ,module-name)))
+                                (tset package.preload ,module-name
+                                      ((or loadstring load) ,lua-code)))]
      ; if requireAsInclude is enabled when unresolvable, fallback to require
      (assert (or found (get-option (get-scope) :requireAsInclude))
              (.. "could not find module " module-name))

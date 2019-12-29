@@ -2604,7 +2604,7 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
 
     -- splice in source and memoize it
     -- so we can include it again without duplication
-    local target = gensym(scope)
+    local target = gensym(rootScope, "module")
     local ret = expr(target, 'sym')
     if isFennel then
         local p = parser(stringStream(s), path)
@@ -2618,8 +2618,18 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
             nval = 1,
             target = target
         }
-        emit(rootChunk, 'local ' .. target, ast)
-        compile1(forms, subscope, rootChunk, subopts)
+        local subChunk = {}
+        local tempChunk = {}
+        emit(tempChunk, 'local ' .. target, ast)
+        emit(tempChunk, 'do', ast)
+        emit(tempChunk, subChunk, ast)
+        emit(tempChunk, 'end', ast)
+        -- Splice tempChunk to begining of rootChunk
+        for i, v in ipairs(tempChunk) do
+            table.insert(rootChunk, i, v)
+        end
+        -- Compile subChunk AFTER splicing into beginning of rootChunk.
+        compile1(forms, subscope, subChunk, subopts)
     else
         emit(rootChunk, 'local ' .. target .. ' = (function() ' .. s .. ' end)()', ast)
     end

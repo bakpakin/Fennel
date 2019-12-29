@@ -777,6 +777,48 @@ else
     pass = pass + 1
 end
 
+-- include test - writes file to file system
+do
+    local bazsrc = [[
+    [:BAZ 3]
+    ]]
+
+    local barsrc = [[
+    (local bar [:BAR 2])
+    (each [_ v (ipairs (include :baz))]
+    (table.insert bar v))
+    bar
+    ]]
+
+    local foosrc = [[
+    (local foo [:FOO 1])
+    (local bar (include :bar))
+    (.. "foo:" (table.concat foo "-") "bar:" (table.concat bar "-"))
+    ]]
+
+    local function spit(path, src)
+        local f = io.open(path, 'w')
+        f:write(src)
+        f:close()
+    end
+
+    -- Write files.
+    spit('bar.fnl', barsrc)
+    spit('baz.fnl', bazsrc)
+
+    local ok, result = pcall(fennel.eval, foosrc)
+    if ok and result == "foo:FOO-1bar:BAR-2-BAZ-3" then
+        pass = pass + 1
+    else
+        fail = fail + 1
+        print(" Expected include to work.")
+    end
+
+    -- Remove files
+    os.remove('bar.fnl')
+    os.remove('baz.fnl')
+end
+
 local g = {["hello-world"] = "hi", tbl = _G.tbl,
     -- tragically lua 5.1 does not have metatable-aware pairs so we fake it here
     pairs = function(t)

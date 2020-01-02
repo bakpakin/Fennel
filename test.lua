@@ -819,7 +819,7 @@ do
             print(" Expected include to have result: " .. expected)
         elseif out.quux ~= false then
             fail = fail + 1
-            print(" Expected include not to leak globals into Lua locals")
+            print(" Expected include not to leak upvalues into included modules")
         else
             pass = pass + 1
         end

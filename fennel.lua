@@ -2577,10 +2577,7 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
     local mod = loadCode(code)()
 
     -- Check cache
-    local includeExpr = scope.includes[mod]
-    if includeExpr then
-        return includeExpr
-    end
+    if scope.includes[mod] then return scope.includes[mod] end
 
     -- Find path to source
     local path = searchModule(mod)
@@ -2602,36 +2599,36 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
     local s = f:read('*all')
     f:close()
 
-    -- splice in source and memoize it
-    -- so we can include it again without duplication
-    local target = gensym(rootScope, "module")
-    local ret = expr(target, 'sym')
+    -- splice in source and memoize it in compiler AND package.preload
+    -- so we can include it again without duplication, even in runtime
+    local target = 'package.preload["' .. mod .. '"]'
+    local ret = expr('require("' .. mod .. '")', 'statement')
+
+    local subChunk, tempChunk = {}, {}
+    emit(tempChunk, subChunk, ast)
+    -- if lua, simply emit the setting of package.preload
+    if not isFennel then
+        emit(tempChunk, target .. ' = ' .. target .. ' or function()\n' .. s .. 'end', ast)
+    end
+    -- Splice tempChunk to begining of rootChunk
+    for i, v in ipairs(tempChunk) do
+        table.insert(rootChunk, i, v)
+    end
+
+    -- For fnl source, compile subChunk AFTER splicing into start of rootChunk.
     if isFennel then
-        local p = parser(stringStream(s), path)
-        local forms = list(sym('do'))
-        for _, val in p do table.insert(forms, val) end
+        local subopts = { nval = 1, target = target }
         local subscope = makeScope(rootScope.parent)
         if rootOptions.requireAsInclude then
             subscope.specials.require = requireSpecial
         end
-        local subopts = {
-            nval = 1,
-            target = target
-        }
-        local subChunk = {}
-        local tempChunk = {}
-        emit(tempChunk, 'local ' .. target, ast)
-        emit(tempChunk, 'do', ast)
-        emit(tempChunk, subChunk, ast)
-        emit(tempChunk, 'end', ast)
-        -- Splice tempChunk to begining of rootChunk
-        for i, v in ipairs(tempChunk) do
-            table.insert(rootChunk, i, v)
-        end
-        -- Compile subChunk AFTER splicing into beginning of rootChunk.
+        local targetForm = list(sym('.'), sym('package.preload'), mod)
+        -- splice "or" statement in so it uses existing package.preload[modname]
+        -- if it's been set by something else, allowing for overrides
+        local forms = list(sym('or'), targetForm, list(sym('fn'), sequence()))
+        local p = parser(stringStream(s), path)
+        for _, val in p do table.insert(forms[3], val) end
         compile1(forms, subscope, subChunk, subopts)
-    else
-        emit(rootChunk, 'local ' .. target .. ' = (function() ' .. s .. ' end)()', ast)
     end
 
     -- Put in cache and return

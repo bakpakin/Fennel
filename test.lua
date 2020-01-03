@@ -747,6 +747,7 @@ end
 
 
 ---- misc one-off tests ----
+print('Running tests for miscellaneous behaviors...')
 
 if pcall(fennel.eval, "(->1 1 (+ 4))", {allowedGlobals = false}) then
     fail = fail + 1
@@ -779,22 +780,21 @@ end
 
 -- include test - writes file to file system
 do
-    local bazsrc = [[
-    [:BAZ 3]
-    ]]
-
-    local barsrc = [[
+    local quuxsrc = 'return foo or false\n'
+    local bazsrc = '[:BAZ 3]\n'
+    local barsrc = ([[
     (local bar [:BAR 2])
     (each [_ v (ipairs (include :baz))]
-    (table.insert bar v))
+          (table.insert bar v))
     bar
-    ]]
+    ]]):gsub("(\n)%s+$", "%1")
 
-    local foosrc = [[
+    local foosrc = ([[
     (local foo [:FOO 1])
+    (local quux (include :quux))
     (local bar (include :bar))
-    (.. "foo:" (table.concat foo "-") "bar:" (table.concat bar "-"))
-    ]]
+    {:result (.. "foo:" (table.concat foo "-") "bar:" (table.concat bar "-")) : quux}
+    ]]):gsub("(\n)%s+$", "%1")
 
     local function spit(path, src)
         local f = io.open(path, 'w')
@@ -803,20 +803,32 @@ do
     end
 
     -- Write files.
-    spit('bar.fnl', barsrc)
+    spit('quux.lua', quuxsrc)
     spit('baz.fnl', bazsrc)
+    spit('bar.fnl', barsrc)
 
-    local ok, result = pcall(fennel.eval, foosrc)
-    if ok and result == "foo:FOO-1bar:BAR-2-BAZ-3" then
-        pass = pass + 1
-    else
+    local expected = "foo:FOO-1bar:BAR-2-BAZ-3"
+    local ok, out = pcall(fennel.eval, foosrc)
+    if not ok then
         fail = fail + 1
-        print(" Expected include to work.")
+        print(" Expected foo to work")
+    else
+        out = out or {}
+        if out.result ~= expected then
+            fail = fail + 1
+            print(" Expected include to have result: " .. expected)
+        elseif out.quux ~= false then
+            fail = fail + 1
+            print(" Expected include not to leak globals into Lua locals")
+        else
+            pass = pass + 1
+        end
     end
 
     -- Remove files
-    os.remove('bar.fnl')
+    os.remove('quux.lua')
     os.remove('baz.fnl')
+    os.remove('bar.fnl')
 end
 
 local g = {["hello-world"] = "hi", tbl = _G.tbl,

@@ -1279,7 +1279,7 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     subScope = subScope or makeScope(scope)
     chunk = chunk or {}
     local len = #ast
-    local outerTarget = opts.target
+    local outerTarget, finalTarget = opts.target
     local outerTail = opts.tail
     local retexprs = {returned = true}
 
@@ -1306,7 +1306,12 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
             outerTail = true
             outerTarget = nil
         end
-    else
+    else -- if outerTarget exists in subScope, generate intermediary
+        if outerTarget and subScope.manglings[outerTarget] then
+            finalTarget = outerTarget
+            outerTarget = gensym(scope)
+            emit(parent, ('local %s'):format(outerTarget), ast)
+        end
         emit(parent, 'do', ast)
     end
     -- Compile the body
@@ -1332,6 +1337,9 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     end
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
+    if finalTarget then -- if intermediary was generated, assign to outerTarget
+        emit(parent, ('%s = %s'):format(finalTarget, outerTarget), ast)
+    end
     checkUnused(subScope, ast)
     return retexprs
 end

@@ -231,6 +231,9 @@ local cases = {
         ["(let [{:a [x y z]} {:a [1 2 4]}] (+ x y z))"]=7,
         -- Local shadowing in let form
         ["(let [x 1 x (if (= x 1) 2 3)] x)"]=2,
+        -- do/let shadowing
+        ["(let [x (let [x 1] (* x 2))] x)"]=2,
+        ["(var x 1) (set x (do (local x (* x 2)) x)) x"]=2,
     },
 
     loops = {

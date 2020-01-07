@@ -1279,17 +1279,18 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     subScope = subScope or makeScope(scope)
     chunk = chunk or {}
     local len = #ast
-    local outerTarget, finalTarget = opts.target
-    local outerTail = opts.tail
+    local outerTarget = opts.target
+    local finalTarget, outerTail = outerTarget, opts.tail
     local retexprs = {returned = true}
 
-    -- See if we need special handling to get the return values
-    -- of the do block
-    if not outerTarget and opts.nval ~= 0 and not outerTail then
-        if opts.nval then
+    -- if subScope shadows outerTarget, generate an intermediary
+    local badTarget = outerTarget and subScope.manglings[outerTarget]
+    -- See if we need special handling to get the return values of the do block
+    if badTarget or not outerTarget and opts.nval ~= 0 and not outerTail then
+        if badTarget or opts.nval then
             -- Generate a local target
             local syms = {}
-            for i = 1, opts.nval do
+            for i = 1, opts.nval or badTarget and 1 do
                 local s = gensym(scope)
                 syms[i] = s
                 retexprs[i] = expr(s, 'sym')
@@ -1306,12 +1307,7 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
             outerTail = true
             outerTarget = nil
         end
-    else -- if outerTarget exists in subScope, generate intermediary
-        if outerTarget and subScope.manglings[outerTarget] then
-            finalTarget = outerTarget
-            outerTarget = gensym(scope)
-            emit(parent, ('local %s'):format(outerTarget), ast)
-        end
+    else
         emit(parent, 'do', ast)
     end
     -- Compile the body
@@ -1337,7 +1333,8 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     end
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
-    if finalTarget then -- if intermediary was generated, assign to outerTarget
+    -- if intermediary was generated, assign to outerTarget
+    if badTarget then
         emit(parent, ('%s = %s'):format(finalTarget, outerTarget), ast)
     end
     checkUnused(subScope, ast)

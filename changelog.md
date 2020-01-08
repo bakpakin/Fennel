@@ -2,7 +2,10 @@
 
 ## 0.3.2 / ???
 
-* Fix 0.3.1 bug #211 causing `else` to emit twice in some contexts (#212)
+* Fix a bug where `include` could not be nested without repetition.
+* Fix a bug where globals checking would mistakenly flag locals.
+* Fix a bug that would cause incorrect filenames in error messages.
+* Fix a bug causing `else` to emit twice in some contexts (#212)
 
 ## 0.3.1 / 2019-12-17
 

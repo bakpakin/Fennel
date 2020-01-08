@@ -182,6 +182,9 @@ local cases = {
         ["(global a_b :global) (local a-b :local) a_b"]="global",
         -- global definition doesn't count as local
         ["(global x 1) (global x 284) x"]=284,
+        -- do/let shadowing |TODO: activate these tests when a fix is implemented
+        -- ["(let [xx (let [xx 1] (* xx 2))] xx)"]=2,
+        -- ["(var [x y] [3 2]) (set (x y) (do (local [x y] [(* x 3) 0]) (values x y))) (+ x y)"]=9,
     },
 
     ifforms = {

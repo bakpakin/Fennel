@@ -609,10 +609,7 @@ end
 -- Creates a symbol from a string by mangling it.
 -- ensures that the generated symbol is unique
 -- if the input string is unique in the scope.
-local function localMangling(str, scope, ast)
-    if scope.manglings[str] then
-        return scope.manglings[str]
-    end
+local function localMangling(str, scope, ast, tempManglings)
     local append = 0
     local mangling = str
     assertCompile(not isMultiSym(str), 'did not expect multi symbol ' .. str, ast)
@@ -626,14 +623,26 @@ local function localMangling(str, scope, ast)
         return ('_%02x'):format(c:byte())
     end)
 
+    -- Prevent name collisions with existing symbols
     local raw = mangling
     while scope.unmanglings[mangling] do
         mangling = raw .. append
         append = append + 1
     end
+
     scope.unmanglings[mangling] = str
-    scope.manglings[str] = mangling
+    local manglings = tempManglings or scope.manglings
+    manglings[str] = mangling
     return mangling
+end
+
+-- Calling this function will mean that further
+-- compilation in scope will use these new manglings
+-- instead of the current manglings.
+local function applyManglings(scope, newManglings)
+    for raw, mangled in pairs(newManglings) do
+        scope.manglings[raw] = mangled
+    end
 end
 
 -- Combine parts of a symbol
@@ -687,11 +696,11 @@ local function checkBindingValid(symbol, scope, ast)
 end
 
 -- Declare a local symbol
-local function declareLocal(symbol, meta, scope, ast)
+local function declareLocal(symbol, meta, scope, ast, tempManglings)
     checkBindingValid(symbol, scope, ast)
     local name = symbol[1]
     assertCompile(not isMultiSym(name), "did not expect mutltisym", ast)
-    local mangling = localMangling(name, scope, ast)
+    local mangling = localMangling(name, scope, ast, tempManglings)
     scope.symmeta[name] = meta
     return mangling
 end
@@ -1119,13 +1128,15 @@ local function destructure(to, from, ast, scope, parent, opts)
     local forceset = opts.forceset
     local setter = declaration and "local %s = %s" or "%s = %s"
 
+    local newManglings = {}
+
     -- Get Lua source for symbol, and check for errors
     local function getname(symbol, up1)
         local raw = symbol[1]
         assertCompile(not (nomulti and isMultiSym(raw)),
             'did not expect multisym', up1)
         if declaration then
-            return declareLocal(symbol, {var = isvar}, scope, symbol)
+            return declareLocal(symbol, {var = isvar}, scope, symbol, newManglings)
         else
             local parts = isMultiSym(raw) or {raw}
             local meta = scope.symmeta[parts[1]]
@@ -1229,7 +1240,9 @@ local function destructure(to, from, ast, scope, parent, opts)
         if top then return {returned = true} end
     end
 
-    return destructure1(to, nil, ast, true)
+    local ret = destructure1(to, nil, ast, true)
+    applyManglings(scope, newManglings)
+    return ret
 end
 
 -- Unlike most expressions and specials, 'values' resolves with multiple
@@ -1717,10 +1730,11 @@ SPECIALS['each'] = function(ast, scope, parent)
     local binding = assertCompile(isTable(ast[2]), 'expected binding table', ast)
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local destructures = {}
+    local newManglings = {}
     local function destructureBinding(v)
         assertCompile(isSym(v) or isTable(v), 'expected iterator symbol or table', ast)
-        if(isSym(v)) then
-            return declareLocal(v, {}, scope, ast)
+        if isSym(v) then
+            return declareLocal(v, {}, scope, ast, newManglings)
         else
             local raw = sym(gensym(scope))
             destructures[raw] = v
@@ -1738,6 +1752,7 @@ SPECIALS['each'] = function(ast, scope, parent)
         destructure(args, raw, ast, scope, chunk,
                     { declaration = true, nomulti = true })
     end
+    applyManglings(scope, newManglings)
     compileDo(ast, scope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)

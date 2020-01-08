@@ -269,7 +269,9 @@ local cases = {
         -- Ambiguous Lua syntax generated
         ["(let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil)"]=nil,
         ["(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) " ..
-         "(xyz (if (and c1 c2) true false) 52))"]=52
+         "(xyz (if (and c1 c2) true false) 52))"]=52,
+        -- Aliasing issues
+        ["(. (let [t (let [t {} k :a] (tset t k 123) t) k :b] (tset t k 321) t) :a)"]=123
     },
 
     macros = {

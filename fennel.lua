@@ -970,6 +970,17 @@ end
 --   'tail' - boolean indicating tail position if set. If set, form will generate a return
 --   instruction.
 --   'nval' - The number of values to compile to if it is known to be a fixed value.
+
+-- In Lua, an expression can evaluate to 0 or more values via multiple
+-- returns. In many cases, Lua will drop extra values and convert a 0 value
+-- expression to nil. In other cases, Lua will use all of the values in an
+-- expression, such as in the last argument of a function call. Nval is an
+-- option passed to compile1 to say that the resulting expression should have
+-- at least n values. It lets us generate better code, because if we know we
+-- are only going to use 1 or 2 values from an expression, we can create 1 or 2
+-- locals to store intermediate results rather than turn the expression into a
+-- closure that is called immediately, which we have to do if we don't know.
+
 local function compile1(ast, scope, parent, opts)
     opts = opts or {}
     local exprs = {}

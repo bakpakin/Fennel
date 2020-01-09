@@ -572,6 +572,10 @@ local compile_failures = {
     -- macros loaded in function scope shouldn't leak to other functions
     ["((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))\
       (->1 23 (+ 1))"]="unknown global in strict mode",
+    -- Locals aliasing globals
+    ["(local ipairs #(ipairs $))"]="aliased by a local",
+    ["(let [next #(next $)] print)"]="aliased by a local",
+    ["(let [pairs #(pairs $)] pairs)"]="aliased by a local",
     -- other
     ["(match [1 2 3] [a & b c] nil)"]="rest argument in final position",
     ["(x(y))"]="expected whitespace before opening delimiter %(",
@@ -585,7 +589,7 @@ local compile_failures = {
 print("Running tests for compile errors...")
 for code, expected_msg in pairs(compile_failures) do
     local ok, msg = pcall(fennel.compileString, code,
-                          {allowedGlobals = {"pairs"}, checkUnusedLocals = true})
+                          {allowedGlobals = {"pairs", "next", "ipairs"}, checkUnusedLocals = true})
     if(ok) then
         fail = fail + 1
         print(" Expected failure when compiling " .. code .. ": " .. msg)

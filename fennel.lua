@@ -482,6 +482,9 @@ local function makeScope(parent)
         includes = setmetatable({}, {
             __index = parent and parent.includes
         }),
+        refedglobals = setmetatable({}, {
+            __index = parent and parent.refedglobals
+        }),
         autogensyms = {},
         parent = parent,
         vararg = parent and parent.vararg,
@@ -639,8 +642,10 @@ end
 -- Calling this function will mean that further
 -- compilation in scope will use these new manglings
 -- instead of the current manglings.
-local function applyManglings(scope, newManglings)
+local function applyManglings(scope, newManglings, ast)
     for raw, mangled in pairs(newManglings) do
+        assertCompile(not scope.refedglobals[mangled],
+        "use of global " .. raw .. " is aliased by a local", ast)
         scope.manglings[raw] = mangled
     end
 end
@@ -727,6 +732,9 @@ local function symbolToExpression(symbol, scope, isReference)
     -- then we need to check for allowed globals
     assertCompile(not isReference or isLocal or globalAllowed(parts[1]),
                   'unknown global in strict mode: ' .. parts[1], symbol)
+    if not isLocal then
+        rootScope.refedglobals[parts[1]] = true
+    end
     return expr(combineParts(parts, scope), etype)
 end
 
@@ -1241,7 +1249,7 @@ local function destructure(to, from, ast, scope, parent, opts)
     end
 
     local ret = destructure1(to, nil, ast, true)
-    applyManglings(scope, newManglings)
+    applyManglings(scope, newManglings, ast)
     return ret
 end
 
@@ -1752,7 +1760,7 @@ SPECIALS['each'] = function(ast, scope, parent)
         destructure(args, raw, ast, scope, chunk,
                     { declaration = true, nomulti = true })
     end
-    applyManglings(scope, newManglings)
+    applyManglings(scope, newManglings, ast)
     compileDo(ast, scope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)

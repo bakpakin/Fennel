@@ -2,12 +2,16 @@
 
 ## 0.3.2 / ???
 
-* Fix 0.3.1 bug #211 causing `else` to emit twice in some contexts (#212)
+* Fix a bug where `include` could not be nested without repetition (#214)
+* Fix a bug where globals checking would mistakenly flag locals (#213)
+* Fix a bug that would cause incorrect filenames in error messages (#208)
+* Fix a bug causing `else` to emit twice in some contexts (#212)
+* Dissallow naming a local the same as global in some contexts
 
 ## 0.3.1 / 2019-12-17
 
-* Look for init file for repl in XDG config dirs as well as ~/.fennelrc
-* Add support for `--load FILE` argument to command-line launcher
+* Look for init file for repl in XDG config dirs as well as ~/.fennelrc (#193)
+* Add support for `--load FILE` argument to command-line launcher (#193)
 * Fix `each` to work with raw iterator values (#201)
 * Optionally check for unused locals with `--check-unused-locals`
 * Make repl completion descend into nested table fields (#192)

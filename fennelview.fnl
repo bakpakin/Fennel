@@ -124,24 +124,27 @@
   (puts self "}"))
 
 (fn put-table [self t]
-  (if (and (already-visited? self t) self.detect-cycles?)
-      (puts self "#<table " (get-id self t) ">")
-      (>= self.level self.depth)
-      (puts self "{...}")
-      :else
-      (let [(non-seq-keys len) (get-nonsequential-keys t)
-            id (get-id self t)]
-        ;; fancy metatable stuff can result in self.appearances not including a
-        ;; table, so if it's not found, assume we haven't seen it; we can't do
-        ;; cycle detection in that case.
-        (if (and (< 1 (or (. self.appearances t) 0)) self.detect-cycles?)
-            (puts self "#<table" id ">")
-            (and (= (length non-seq-keys) 0) (= (length t) 0))
-            (puts self "{}")
-            (= (length non-seq-keys) 0)
-            (put-sequential-table self t len)
-            :else
-            (put-kv-table self t non-seq-keys)))))
+  (let [metamethod (-?> t getmetatable (. :__fennelview))]
+    (if (and (already-visited? self t) self.detect-cycles?)
+        (puts self "#<table " (get-id self t) ">")
+        (>= self.level self.depth)
+        (puts self "{...}")
+        metamethod
+        (puts self (metamethod t self.fennelview))
+        :else
+        (let [(non-seq-keys len) (get-nonsequential-keys t)
+              id (get-id self t)]
+          ;; fancy metatable stuff can result in self.appearances not including
+          ;; a table, so if it's not found, assume we haven't seen it; we can't
+          ;; do cycle detection in that case.
+          (if (and (< 1 (or (. self.appearances t) 0)) self.detect-cycles?)
+              (puts self "#<table" id ">")
+              (and (= (length non-seq-keys) 0) (= (length t) 0))
+              (puts self "{}")
+              (= (length non-seq-keys) 0)
+              (put-sequential-table self t len)
+              :else
+              (put-kv-table self t non-seq-keys))))))
 
 (set put-value (fn [self v]
                  (let [tv (type v)]
@@ -172,7 +175,8 @@
                    :depth (or options.depth 128)
                    :level 0 :buffer {} :ids {} :max-ids {}
                    :indent (or options.indent (if options.one-line "" "  "))
-                   :detect-cycles? (not (= false options.detect-cycles?))}]
+                   :detect-cycles? (not (= false options.detect-cycles?))
+                   :fennelview fennelview}]
     (put-value inspector x)
     (let [str (table.concat inspector.buffer)]
       (if options.one-line (one-line str) str))))

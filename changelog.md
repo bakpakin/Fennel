@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.3.2 / ???
+## 0.3.2 / 2020-01-14
 
 * Fix a bug where `include` could not be nested without repetition (#214)
 * Fix a bug where globals checking would mistakenly flag locals (#213)

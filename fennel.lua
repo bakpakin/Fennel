@@ -696,7 +696,7 @@ local function checkBindingValid(symbol, scope, ast)
     assertCompile(not scope.specials[name],
     ("symbol %s may be overshadowed by a special form or macro"):format(name), ast)
     assertCompile(not isQuoted(symbol), 'macro tried to bind ' .. name ..
-                      ' without gensym; try ' .. name .. '# instead', ast)
+                      " without gensym; try ' .. name .. '# instead", ast)
 
 end
 
@@ -896,7 +896,7 @@ end
 
 local function docSpecial(name, arglist, docstring)
     metadata[SPECIALS[name]] =
-        { ['fnl/docstring'] = docstring, ['fnl/arglist'] = arglist }
+        { ["fnl/docstring"] = docstring, ["fnl/arglist"] = arglist }
 end
 
 -- Convert expressions to Lua string
@@ -1369,17 +1369,17 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
     return retexprs
 end
 
-SPECIALS['do'] = doImpl
-docSpecial('do', {'...'}, 'Evaluate multiple forms; return last value.')
+SPECIALS["do"] = doImpl
+docSpecial("do", {"..."}, "Evaluate multiple forms; return last value.")
 
-SPECIALS['values'] = values
-docSpecial('values', {'...'},
-           'Return multiple values from a function.  Must be in tail position.')
+SPECIALS["values"] = values
+docSpecial("values", {"..."},
+           "Return multiple values from a function.  Must be in tail position.")
 
 -- The fn special declares a function. Syntax is similar to other lisps;
 -- (fn optional-name [arg ...] (body))
 -- Further decoration such as docstrings, meta info, and multibody functions a possibility.
-SPECIALS['fn'] = function(ast, scope, parent)
+SPECIALS["fn"] = function(ast, scope, parent)
     local fScope = makeScope(scope)
     local fChunk = {}
     local index = 2
@@ -1400,7 +1400,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
         fnName = gensym(scope)
     end
     local argList = assertCompile(isTable(ast[index]),
-                                  'expected vector arg list [a b ...]', ast)
+                                  "expected vector arg list [a b ...]", ast)
     local function getArgName(i, name)
         if isVarg(name) then
             assertCompile(i == #argList, "expected vararg as last parameter", ast)
@@ -1416,7 +1416,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
                         { declaration = true, nomulti = true })
             return declared
         else
-            assertCompile(false, 'expected symbol for function parameter', ast)
+            assertCompile(false, "expected symbol for function parameter", ast)
         end
     end
     local argNameList = kvmap(argList, getArgName)
@@ -1464,11 +1464,11 @@ SPECIALS['fn'] = function(ast, scope, parent)
     checkUnused(fScope, ast)
     return expr(fnName, 'sym')
 end
-docSpecial('fn', {'name?', 'args', 'docstring?', '...'},
-           'Function syntax. May optionally include a name and docstring.'
-               ..'\nIf a name is provided, the function will be bound in the current scope.'
-               ..'\nWhen called with the wrong number of args, excess args will be discarded'
-               ..'\nand lacking args will be nil; use lambda for arity-checked functions.')
+docSpecial("fn", {"name?", "args", "docstring?", "..."},
+           "Function syntax. May optionally include a name and docstring."
+               .."\nIf a name is provided, the function will be bound in the current scope."
+               .."\nWhen called with the wrong number of args, excess args will be discarded"
+               .."\nand lacking args will be nil, use lambda for arity-checked functions.")
 
 -- (lua "print('hello!')") -> prints hello, evaluates to nil
 -- (lua "print 'hello!'" "10") -> prints hello, evaluates to the number 10
@@ -1501,11 +1501,11 @@ SPECIALS['doc'] = function(ast, scope, parent)
             :format(rootOptions.moduleName or "fennel", value, tostring(ast[2]))
     end
 end
-docSpecial('doc', {'x'},
-           'Print the docstring and arglist for a function, macro, or special form.')
+docSpecial("doc", {"x"},
+           "Print the docstring and arglist for a function, macro, or special form.")
 
 -- Table lookup
-SPECIALS['.'] = function(ast, scope, parent)
+SPECIALS["."] = function(ast, scope, parent)
     local len = #ast
     assertCompile(len > 1, "expected table argument", ast)
     local lhs = compile1(ast[2], scope, parent, {nval = 1})
@@ -1530,45 +1530,45 @@ SPECIALS['.'] = function(ast, scope, parent)
         end
     end
 end
-docSpecial('.', {'tbl', 'key1', '...'},
-           'Look up key1 in tbl table. If more args are provided, do a nested lookup.')
+docSpecial(".", {"tbl", "key1", "..."},
+           "Look up key1 in tbl table. If more args are provided, do a nested lookup.")
 
-SPECIALS['global'] = function(ast, scope, parent)
+SPECIALS["global"] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
         nomulti = true,
         forceglobal = true
     })
 end
-docSpecial('global', {'name', 'val'}, 'Set name as a global with val.')
+docSpecial("global", {"name", "val"}, "Set name as a global with val.")
 
-SPECIALS['set'] = function(ast, scope, parent)
+SPECIALS["set"] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
         noundef = true
     })
 end
-docSpecial('set', {'name', 'val'},
-           'Set a local variable to a new value. Only works on locals using var.')
+docSpecial("set", {"name", "val"},
+           "Set a local variable to a new value. Only works on locals using var.")
 
-SPECIALS['set-forcibly!'] = function(ast, scope, parent)
+SPECIALS["set-forcibly!"] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
         forceset = true
     })
 end
 
-SPECIALS['local'] = function(ast, scope, parent)
+SPECIALS["local"] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
         declaration = true,
         nomulti = true
     })
 end
-docSpecial('local', {'name', 'val'},
-           'Introduce new top-level immutable local.')
+docSpecial("local", {"name", "val"},
+           "Introduce new top-level immutable local.")
 
-SPECIALS['var'] = function(ast, scope, parent)
+SPECIALS["var"] = function(ast, scope, parent)
     assertCompile(#ast == 3, "expected name and value", ast)
     destructure(ast[2], ast[3], ast, scope, parent, {
         declaration = true,
@@ -1576,16 +1576,16 @@ SPECIALS['var'] = function(ast, scope, parent)
         isvar = true
     })
 end
-docSpecial('var', {'name', 'val'},
-           'Introduce new mutable local.')
+docSpecial("var", {"name", "val"},
+           "Introduce new mutable local.")
 
-SPECIALS['let'] = function(ast, scope, parent, opts)
+SPECIALS["let"] = function(ast, scope, parent, opts)
     local bindings = ast[2]
     assertCompile(isList(bindings) or isTable(bindings),
-                  'expected table for destructuring', ast)
+                  "expected table for destructuring", ast)
     assertCompile(#bindings % 2 == 0,
-                  'expected even number of name/value bindings', ast)
-    assertCompile(#ast >= 3, 'missing body expression', ast)
+                  "expected even number of name/value bindings", ast)
+    assertCompile(#ast >= 3, "missing body expression", ast)
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, #bindings, 2 do
@@ -1596,12 +1596,12 @@ SPECIALS['let'] = function(ast, scope, parent, opts)
     end
     return doImpl(ast, scope, parent, opts, 3, subChunk, subScope)
 end
-docSpecial('let', {'[name1 val1 ... nameN valN]', '...'},
-           'Introduces a new scope in which a given set of local bindings are used.')
+docSpecial("let", {"[name1 val1 ... nameN valN]", "..."},
+           "Introduces a new scope in which a given set of local bindings are used.")
 
 -- For setting items in a table
-SPECIALS['tset'] = function(ast, scope, parent)
-    assertCompile(#ast > 3, ('tset form needs table, key, and value'), ast)
+SPECIALS["tset"] = function(ast, scope, parent)
+    assertCompile(#ast > 3, ("tset form needs table, key, and value"), ast)
     local root = compile1(ast[2], scope, parent, {nval = 1})[1]
     local keys = {}
     for i = 3, #ast - 1 do
@@ -1611,18 +1611,18 @@ SPECIALS['tset'] = function(ast, scope, parent)
     local value = compile1(ast[#ast], scope, parent, {nval = 1})[1]
     local rootstr = tostring(root)
     -- Prefix 'do end ' so parens are not ambiguous (grouping or function call?)
-    local fmtstr = (rootstr:match('^{')) and 'do end (%s)[%s] = %s' or '%s[%s] = %s'
+    local fmtstr = (rootstr:match("^{")) and "do end (%s)[%s] = %s" or "%s[%s] = %s"
     emit(parent, fmtstr:format(tostring(root),
                                table.concat(keys, ']['),
                                tostring(value)), ast)
 end
-docSpecial('tset', {'tbl', 'key1', '...', 'keyN', 'val'},
-           'Set the value of a table field. Can take additional keys to set'
-        .. 'nested values,\nbut all parents must contain an existing table.')
+docSpecial("tset", {"tbl", "key1", "...", "keyN", "val"},
+           "Set the value of a table field. Can take additional keys to set"
+        .. "nested values,\nbut all parents must contain an existing table.")
 
 -- The if special form behaves like the cond form in
 -- many languages
-SPECIALS['if'] = function(ast, scope, parent, opts)
+SPECIALS["if"] = function(ast, scope, parent, opts)
     local doScope = makeScope(scope)
     local branches = {}
     local elseBranch = nil
@@ -1739,19 +1739,19 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
         return targetExprs
     end
 end
-docSpecial('if', {'cond1', 'body1', '...', 'condN', 'bodyN'},
-           'Conditional form.\n' ..
-               'Takes any number of condition/body pairs and evaluates the first body where'
-               .. '\nthe condition evaluates to truthy. Similar to cond in other lisps.')
+docSpecial("if", {"cond1", "body1", "...", "condN", "bodyN"},
+           "Conditional form.\n" ..
+               "Takes any number of condition/body pairs and evaluates the first body where"
+               .. "\nthe condition evaluates to truthy. Similar to cond in other lisps.")
 
 -- (each [k v (pairs t)] body...) => []
-SPECIALS['each'] = function(ast, scope, parent)
-    local binding = assertCompile(isTable(ast[2]), 'expected binding table', ast)
+SPECIALS["each"] = function(ast, scope, parent)
+    local binding = assertCompile(isTable(ast[2]), "expected binding table", ast)
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local destructures = {}
     local newManglings = {}
     local function destructureBinding(v)
-        assertCompile(isSym(v) or isTable(v), 'expected iterator symbol or table', ast)
+        assertCompile(isSym(v) or isTable(v), "expected iterator symbol or table", ast)
         if isSym(v) then
             return declareLocal(v, {}, scope, ast, newManglings)
         else
@@ -1776,13 +1776,13 @@ SPECIALS['each'] = function(ast, scope, parent)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end
-docSpecial('each', {'[key value (iterator)]', '...'},
-           'Runs the body once for each set of values provided by the given iterator.'
-           ..'\nMost commonly used with ipairs for sequential tables or pairs for'
-               ..' undefined\norder, but can be used with any iterator.')
+docSpecial("each", {"[key value (iterator)]", "..."},
+           "Runs the body once for each set of values provided by the given iterator."
+           .."\nMost commonly used with ipairs for sequential tables or pairs for"
+               .." undefined\norder, but can be used with any iterator.")
 
 -- (while condition body...) => []
-SPECIALS['while'] = function(ast, scope, parent)
+SPECIALS["while"] = function(ast, scope, parent)
     local len1 = #parent
     local condition = compile1(ast[2], scope, parent, {nval = 1})[1]
     local len2 = #parent
@@ -1804,13 +1804,13 @@ SPECIALS['while'] = function(ast, scope, parent)
     emit(parent, subChunk, ast)
     emit(parent, 'end', ast)
 end
-docSpecial('while', {'condition', '...'},
-           'The classic while loop. Evaluates body until a condition is non-truthy.')
+docSpecial("while", {"condition", "..."},
+           "The classic while loop. Evaluates body until a condition is non-truthy.")
 
-SPECIALS['for'] = function(ast, scope, parent)
-    local ranges = assertCompile(isTable(ast[2]), 'expected binding table', ast)
+SPECIALS["for"] = function(ast, scope, parent)
+    local ranges = assertCompile(isTable(ast[2]), "expected binding table", ast)
     local bindingSym = assertCompile(isSym(table.remove(ast[2], 1)),
-                                     'expected iterator symbol', ast)
+                                     "expected iterator symbol", ast)
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
         rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
@@ -1823,11 +1823,11 @@ SPECIALS['for'] = function(ast, scope, parent)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end
-docSpecial('for', {'[index start stop step?]', '...'}, 'Numeric loop construct.' ..
-               '\nEvaluates body once for each value between start and stop (inclusive).')
+docSpecial("for", {"[index start stop step?]", "..."}, "Numeric loop construct." ..
+               "\nEvaluates body once for each value between start and stop (inclusive).")
 
-SPECIALS[':'] = function(ast, scope, parent)
-    assertCompile(#ast >= 3, 'expected at least 3 arguments', ast)
+SPECIALS[":"] = function(ast, scope, parent)
+    assertCompile(#ast >= 3, "expected at least 3 arguments", ast)
     -- Compile object
     local objectexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
     -- Compile method selector
@@ -1865,21 +1865,21 @@ SPECIALS[':'] = function(ast, scope, parent)
         methodstring,
         table.concat(args, ', ')), 'statement')
 end
-docSpecial(':', {'tbl', 'method-name', '...'},
-           'Call the named method on tbl with the provided args.'..
-           '\nMethod name doesn\'t have to be known at compile-time; if it is, use'
-               ..'\n(tbl:method-name ...) instead.')
+docSpecial(":", {"tbl", "method-name", "..."},
+           "Call the named method on tbl with the provided args."..
+           "\nMethod name doesn\"t have to be known at compile-time; if it is, use"
+               .."\n(tbl:method-name ...) instead.")
 
-SPECIALS['comment'] = function(ast, _, parent)
+SPECIALS["comment"] = function(ast, _, parent)
     local els = {}
     for i = 2, #ast do
         els[#els + 1] = tostring(ast[i]):gsub('\n', ' ')
     end
     emit(parent, '              -- ' .. table.concat(els, ' '), ast)
 end
-docSpecial('comment', {'...'}, 'Comment which will be emitted in Lua output.')
+docSpecial("comment", {"..."}, "Comment which will be emitted in Lua output.")
 
-SPECIALS['hashfn'] = function(ast, scope, parent)
+SPECIALS["hashfn"] = function(ast, scope, parent)
     assertCompile(#ast == 2, "expected one argument", ast)
     local fScope = makeScope(scope)
     local fChunk = {}
@@ -1900,7 +1900,7 @@ SPECIALS['hashfn'] = function(ast, scope, parent)
     emit(parent, 'end', ast)
     return expr(name, 'sym')
 end
-docSpecial('hashfn', {'...'}, 'Function literal shorthand; args are $1, $2, etc.')
+docSpecial("hashfn", {"..."}, "Function literal shorthand; args are $1, $2, etc.")
 
 local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
     local paddedOp = ' ' .. name .. ' '
@@ -1928,8 +1928,8 @@ local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
             end
         end
     end
-    docSpecial(name, {'a', 'b', '...'},
-               'Arithmetic operator; works the same as Lua but accepts more arguments.')
+    docSpecial(name, {"a", "b", "..."},
+               "Arithmetic operator; works the same as Lua but accepts more arguments.")
 end
 
 defineArithmeticSpecial('+', '0')
@@ -1943,18 +1943,18 @@ defineArithmeticSpecial('//', nil, '1')
 defineArithmeticSpecial('or', 'false')
 defineArithmeticSpecial('and', 'true')
 
-docSpecial('and', {'a', 'b', '...'},
-           'Boolean operator; works the same as Lua but accepts more arguments.')
-docSpecial('or', {'a', 'b', '...'},
-           'Boolean operator; works the same as Lua but accepts more arguments.')
-docSpecial('..', {'a', 'b', '...'},
-           'String concatenation operator; works the same as Lua but accepts more arguments.')
+docSpecial("and", {"a", "b", "..."},
+           "Boolean operator; works the same as Lua but accepts more arguments.")
+docSpecial("or", {"a", "b", "..."},
+           "Boolean operator; works the same as Lua but accepts more arguments.")
+docSpecial("..", {"a", "b", "..."},
+           "String concatenation operator; works the same as Lua but accepts more arguments.")
 
 local function defineComparatorSpecial(name, realop, chainOp)
     local op = realop or name
     SPECIALS[name] = function(ast, scope, parent)
         local len = #ast
-        assertCompile(len > 2, 'expected at least two arguments', ast)
+        assertCompile(len > 2, "expected at least two arguments", ast)
         local lhs = compile1(ast[2], scope, parent, {nval = 1})[1]
         local lastval = compile1(ast[3], scope, parent, {nval = 1})[1]
         -- avoid double-eval by introducing locals for possible side-effects
@@ -1973,8 +1973,8 @@ local function defineComparatorSpecial(name, realop, chainOp)
         end
         return out
     end
-    docSpecial(name, {'a', 'b', '...'},
-               'Comparison operator; works the same as Lua but accepts more arguments.')
+    docSpecial(name, {"a", "b", "..."},
+               "Comparison operator; works the same as Lua but accepts more arguments.")
 end
 
 defineComparatorSpecial('>')
@@ -1993,12 +1993,12 @@ local function defineUnarySpecial(op, realop)
     end
 end
 
-defineUnarySpecial('not', 'not ')
-docSpecial('not', {'x'}, 'Boolean operator; works the same as Lua.')
+defineUnarySpecial("not", "not ")
+docSpecial("not", {"x"}, "Logical operator; works the same as Lua.")
 
-defineUnarySpecial('length', '#')
-docSpecial('length', {'x'}, 'Returns the length of a table or string.')
-SPECIALS['#'] = SPECIALS['length']
+defineUnarySpecial("length", "#")
+docSpecial("length", {"x"}, "Returns the length of a table or string.")
+SPECIALS["#"] = SPECIALS["length"]
 
 -- Save current macro scope
 local macroCurrentScope = GLOBAL_SCOPE

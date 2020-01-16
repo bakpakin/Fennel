@@ -214,4 +214,15 @@ The impact hasn't been benchmarked, and may be minimal particularly in luajit,
 but enabling metadata is currently recommended for development purposes only
 to minimize overhead.
 
+## Load Lua code in a portable way
+
+This isn't Fennel-specific, but the `loadCode` function takes a string
+of Lua code along with an optional environment table and filename
+string, and returns a function for the loaded code which will run inside
+that environment, in a way that's portable across any Lua 5.1+ version.
+
+```lua
+local f = fennel.loadCode(luaCode, { x = y }, "myfile.lua")
+```
+
 [1]: https://github.com/rxi/lume#lumehotswapmodname

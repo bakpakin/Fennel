@@ -460,12 +460,15 @@ local rootChunk
 local rootScope
 local rootOptions
 
+local GLOBAL_SCOPE
+
 -- Create a new Scope, optionally under a parent scope. Scopes are compile time
 -- constructs that are responsible for keeping track of local variables, name
 -- mangling, and macros.  They are accessible to user code via the
 -- 'eval-compiler' special form (may change). They use metatables to implement
 -- nesting via metatables.
 local function makeScope(parent)
+    if not parent then parent = GLOBAL_SCOPE end
     return {
         unmanglings = setmetatable({}, {
             __index = parent and parent.unmanglings
@@ -505,7 +508,7 @@ local function assertCompile(condition, msg, ast)
     return condition
 end
 
-local GLOBAL_SCOPE = makeScope()
+GLOBAL_SCOPE = makeScope()
 GLOBAL_SCOPE.vararg = true
 local SPECIALS = GLOBAL_SCOPE.specials
 local COMPILER_SCOPE = makeScope(GLOBAL_SCOPE)
@@ -2281,189 +2284,6 @@ local function dofileFennel(filename, options, ...)
     return eval(source, opts, ...)
 end
 
--- Implements a configurable repl
-local function repl(options)
-    local opts = copy(options)
-    -- This would get set for us when calling eval, but we want to seed it
-    -- with a value that is persistent so it doesn't get reset on each eval.
-    if opts.allowedGlobals == nil then
-        opts.allowedGlobals = currentGlobalNames(opts.env)
-    end
-
-    opts.useMetadata = options.useMetadata ~= false
-    opts.moduleName = options.moduleName
-    local oldRootOptions = rootOptions
-
-    local env = opts.env and wrapEnv(opts.env) or setmetatable({}, {
-        __index = _ENV or _G
-    })
-
-    local function defaultReadChunk(parserState)
-        io.write(parserState.stackSize > 0 and '.. ' or '>> ')
-        io.flush()
-        local input = io.read()
-        return input and input .. '\n'
-    end
-
-    local function defaultOnValues(xs)
-        io.write(table.concat(xs, '\t'))
-        io.write('\n')
-    end
-
-    local function defaultOnError(errtype, err, luaSource)
-        if (errtype == 'Lua Compile') then
-            io.write('Bad code generated - likely a bug with the compiler:\n')
-            io.write('--- Generated Lua Start ---\n')
-            io.write(luaSource .. '\n')
-            io.write('--- Generated Lua End ---\n')
-        end
-        if (errtype == 'Runtime') then
-            io.write(traceback(err, 4))
-            io.write('\n')
-        else
-            io.write(('%s error: %s\n'):format(errtype, tostring(err)))
-        end
-    end
-
-    local envdbg = (opts.env or _G)["debug"]
-    -- if the environment doesn't support debug.getlocal you can't save locals
-    local saveLocals = opts.saveLocals ~= false and envdbg and envdbg.getlocal
-    local saveSource = table.
-       concat({"local ___i___ = 1",
-               "while true do",
-               " local name, value = debug.getlocal(1, ___i___)",
-               " if(name and name ~= \"___i___\") then",
-               " ___replLocals___[name] = value",
-               " ___i___ = ___i___ + 1",
-               " else break end end"}, "\n")
-
-    -- we do some source munging in order to save off locals from each chunk
-    -- and reintroduce them to the beginning of the next chunk, allowing
-    -- locals to work in the repl the way you'd expect them to.
-       local spliceSaveLocals = function(luaSource)
-        env.___replLocals___ = env.___replLocals___ or {}
-        local splicedSource = {}
-        for line in luaSource:gmatch("([^\n]+)\n?") do
-            table.insert(splicedSource, line)
-        end
-        -- reintroduce locals from the previous time around
-        local bind = "local %s = ___replLocals___['%s']"
-        for name in pairs(env.___replLocals___) do
-            table.insert(splicedSource, 1, bind:format(name, name))
-        end
-        -- save off new locals at the end - if safe to do so (i.e. last line is a return)
-        if (string.match(splicedSource[#splicedSource], "^ *return .*$")) then
-            if (#splicedSource > 1) then
-                table.insert(splicedSource, #splicedSource, saveSource)
-            end
-        end
-        return table.concat(splicedSource, "\n")
-    end
-
-    -- Read options
-    local readChunk = opts.readChunk or defaultReadChunk
-    local onValues = opts.onValues or defaultOnValues
-    local onError = opts.onError or defaultOnError
-    local pp = opts.pp or tostring
-
-    -- Make parser
-    local bytestream, clearstream = granulate(readChunk)
-    local chars = {}
-    local read, reset = parser(function (parserState)
-        local c = bytestream(parserState)
-        chars[#chars + 1] = c
-        return c
-    end)
-
-    local scope = makeScope(GLOBAL_SCOPE)
-
-    local replCompleter = function(text)
-        local matches = {}
-        local inputFragment = text:gsub(".*[%s)(]+", "")
-
-        -- adds partial key matches in tbl to the match list
-        local function addPartials(input, tbl, prefix)
-            for k in pairs(tbl) do
-                if tbl == env or tbl == env.___replLocals___ then
-                    k = scope.unmanglings[k] or k
-                end
-                if #matches >= 40 then break -- cap completions at 40
-                elseif type(k) == 'string' and input == k:sub(0, #input) then
-                    table.insert(matches, prefix .. k)
-                end
-            end
-        end
-        -- adds matches to the match list, descending into table fields
-        local function addMatches(input, tbl, prefix)
-            prefix = prefix and prefix .. "." or ""
-            if not string.find(input, "%.") then -- no (more) dots, so add matches
-                return addPartials(input, tbl, prefix)
-            end
-            -- check for table access field.child, and if field is a table, recur
-            local head, tail = string.match(input, "^([^.]+)%.(.*)")
-            local rawHead = tbl == env or tbl == env.___replLocals___
-                and scope.manglings[head] or head -- check mangling
-            if type(tbl[rawHead]) == "table" then
-                return addMatches(tail, tbl[rawHead], prefix .. head)
-            end
-        end
-
-        addMatches(inputFragment, scope.specials or {})
-        addMatches(inputFragment, SPECIALS or {})
-        addMatches(inputFragment, env.___replLocals___ or {})
-        addMatches(inputFragment, env)
-        addMatches(inputFragment, env._ENV or env._G or {})
-        return matches
-    end
-    if opts.registerCompleter then opts.registerCompleter(replCompleter) end
-
-    -- REPL loop
-    while true do
-        chars = {}
-        local ok, parseok, x = pcall(read)
-        local srcstring = string.char(unpack(chars))
-        if not ok then
-            onError('Parse', parseok)
-            clearstream()
-            reset()
-        else
-            rootOptions = opts
-            if not parseok then break end -- eof
-            local compileOk, luaSource = pcall(compile, x, {
-                correlate = opts.correlate,
-                source = srcstring,
-                scope = scope,
-                useMetadata = opts.useMetadata,
-                moduleName = opts.moduleName,
-            })
-            if not compileOk then
-                clearstream()
-                onError('Compile', luaSource) -- luaSource is error message in this case
-            else
-                if saveLocals then
-                    luaSource = spliceSaveLocals(luaSource)
-                end
-                local luacompileok, loader = pcall(loadCode, luaSource, env)
-                if not luacompileok then
-                    clearstream()
-                    onError('Lua Compile', loader, luaSource)
-                else
-                    local loadok, ret = xpcall(function () return {loader()} end,
-                        function (runtimeErr)
-                            onError('Runtime', runtimeErr)
-                        end)
-                    if loadok then
-                        env._ = ret[1]
-                        env.__ = ret
-                        onValues(map(ret, pp))
-                    end
-                end
-            end
-            rootOptions = oldRootOptions
-        end
-    end
-end
-
 local macroLoaded = {}
 
 local pathTable = {"./?.fnl", "./?/init.fnl"}
@@ -2480,6 +2300,7 @@ local module = {
     compileString = compileString,
     compileStream = compileStream,
     compile1 = compile1,
+    loadCode = loadCode,
     mangle = globalMangling,
     unmangle = globalUnmangling,
     list = list,
@@ -2488,13 +2309,164 @@ local module = {
     scope = makeScope,
     gensym = gensym,
     eval = eval,
-    repl = repl,
     dofile = dofileFennel,
     macroLoaded = macroLoaded,
     path = table.concat(pathTable, ";"),
     traceback = traceback,
     version = "0.4.0-dev",
 }
+
+-- In order to make this more readable, you can switch your editor to treating
+-- this file as if it were Fennel for the purposes of this section
+local replsource = [===[(local (fennel internals) ...)
+
+(fn default-read-chunk [parser-state]
+  (io.write (if (< 0 parser-state.stackSize) ".." ">> "))
+  (io.flush)
+  (let [input (io.read)]
+    (and input (.. input "\n"))))
+
+(fn default-on-values [xs]
+  (io.write (table.concat xs "\t"))
+  (io.write "\n"))
+
+(fn default-on-error [errtype err lua-source]
+  (io.write
+   (match errtype
+     "Lua Compile" (.. "Bad code generated - likely a bug with the compiler:\n"
+                       "--- Generated Lua Start ---\n"
+                       lua-source
+                       "--- Generated Lua End ---\n")
+     "Runtime" (.. (fennel.traceback err 4) "\n")
+     _ (: "%s error: %s\n" errtype (tostring err)))))
+
+(local save-source
+       (table.concat ["local ___i___ = 1"
+                      "while true do"
+                      " local name, value = debug.getlocal(1, ___i___)"
+                      " if(name and name ~= \"___i___\") then"
+                      " ___replLocals___[name] = value"
+                      " ___i___ = ___i___ + 1"
+                      " else break end end"] "\n"))
+
+(fn splice-save-locals [env lua-source]
+  (set env.___replLocals___ (or env.___replLocals___ {}))
+  (let [spliced-source []
+        bind "local %s = ___replLocals___['%s']"]
+    (each [line (lua-source:gmatch "([^\n]+)\n?")]
+      (table.insert spliced-source line))
+    (each [name (pairs env.___replLocals___)]
+      (table.insert spliced-source 1 (bind:format name name)))
+    (when (and (: (. spliced-source (# spliced-source)) :match "^ *return .*$")
+               (< 1 (# spliced-source)))
+      (table.insert spliced-source (# spliced-source) save-source))
+    (table.concat spliced-source "\n")))
+
+(fn completer [env scope text]
+  (let [matches []
+        input-fragment (text:gsub ".*[%s)(]+" "")]
+    (fn add-partials [input tbl prefix] ; add partial key matches in tbl
+      (each [k (pairs tbl)]
+        (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
+                    (. scope.unmanglings k)
+                    k)]
+          (when (and (< (# matches) 40)
+                     (= (type k) "string")
+                     (= input (k:sub 0 (# input))))
+            (table.insert matches (.. prefix k))))))
+    (fn add-matches [input tbl prefix] ; add matches, descending into tbl fields
+      (let [prefix (if prefix (.. prefix ".") "")]
+        (if (not (input:find "%.")) ; no more dots, so add matches
+            (add-partials input tbl prefix)
+            (let [(head tail) (input:match "^([^.]+)%.(.*)")
+                  raw-head (if (or (= tbl env) (= tbl env.___replLocals___))
+                               (. scope.manglings head)
+                               head)]
+              (when (= (type (. tbl raw-head)) "table")
+                (add-matches tail (. tbl raw-head) (.. prefix head)))))))
+
+    (add-matches input-fragment (or scope.specials []))
+    (add-matches input-fragment (or internals.SPECIALS []))
+    (add-matches input-fragment (or env.___replLocals___ []))
+    (add-matches input-fragment env)
+    (add-matches input-fragment (or env._ENV env._G []))
+    matches))
+
+(fn repl [options]
+  (let [old-root-options internals.rootOptions
+        env (if options.env
+                (internals.wrapEnv options.env)
+                (setmetatable {} {:__index (or _G._ENV _G)}))
+        save-locals? (and (not= options.saveLocals false)
+                          env.debug env.debug.getlocal)
+        opts {}
+        _ (each [k v (pairs options)] (tset opts k v))
+        read-chunk (or opts.readChunk default-read-chunk)
+        on-values (or opts.onValues default-on-values)
+        on-error (or opts.onError default-on-error)
+        pp (or opts.pp tostring)
+        ;; make parser
+        (byte-stream clear-stream) (fennel.granulate read-chunk)
+        chars []
+        (read reset) (fennel.parser (fn [parser-state]
+                                      (let [c (byte-stream parser-state)]
+                                        (tset chars (+ (# chars) 1) c)
+                                        c)))
+        scope (fennel.scope)]
+
+    ;; use metadata unless we've specifically disabled it
+    (set opts.useMetadata (not= options.useMetadata false))
+    (when (= opts.allowedGlobals nil)
+      (set opts.allowedGlobals (internals.currentGlobalNames opts.env)))
+
+    (when opts.registerCompleter
+      (opts.registerCompleter (partial completer env scope)))
+
+    (fn loop []
+      (each [k (pairs chars)] (tset chars k nil))
+      (let [(ok parse-ok? x) (pcall read)
+            src-string (string.char ((or _G.unpack table.unpack) chars))]
+        (internals.setRootOptions opts)
+        (if (not ok)
+            (do (on-error "Parse" parse-ok?)
+                (clear-stream)
+                (reset))
+            (when parse-ok?
+              (match (pcall fennel.compile x {:correlate opts.correlate
+                                              :source src-string
+                                              :scope scope
+                                              :useMetadata opts.useMetadata
+                                              :moduleName opts.moduleName})
+                (false msg) (do (clear-stream)
+                                (on-error "Compile" msg))
+                (true source) (let [source (if save-locals?
+                                               (splice-save-locals env source)
+                                               source)
+                                    (lua-ok? loader) (pcall fennel.loadCode
+                                                            source env)]
+                                (if (not lua-ok?)
+                                    (do (clear-stream)
+                                        (on-error "Lua Compile" loader source))
+                                    (match (xpcall #[(loader)]
+                                                   (partial on-error "Runtime"))
+                                      (true ret)
+                                      (do (set env._ (. ret 1))
+                                          (set env.__ ret)
+                                          (on-values (internals.map ret pp)))))))
+              (internals.setRootOptions old-root-options)
+              (loop)))))
+    (loop)))]===]
+
+module.repl = function(options)
+    -- functionality the repl needs that isn't part of the public API yet
+    local internals = { rootOptions = rootOptions,
+                        setRootOptions = function(r) rootOptions = r end,
+                        currentGlobalNames = currentGlobalNames,
+                        wrapEnv = wrapEnv,
+                        SPECIALS = SPECIALS,
+                        map = map }
+    return eval(replsource, { correlate = true }, module, internals)(options)
+end
 
 local function searchModule(modulename, pathstring)
     modulename = modulename:gsub("%.", "/")

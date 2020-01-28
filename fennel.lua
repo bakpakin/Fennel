@@ -2280,7 +2280,7 @@ local function dofileFennel(filename, options, ...)
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all"):gsub("^#![^\n]*\n", "")
     f:close()
-    opts.filename = opts.filename or filename
+    opts.filename = filename
     return eval(source, opts, ...)
 end
 

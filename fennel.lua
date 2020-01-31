@@ -58,14 +58,14 @@ end
 
 local function deref(self) return self[1] end
 
-local SYMBOL_MT = { 'SYMBOL', __tostring = deref }
+local function listToString(self, tostring2)
+    return '(' .. table.concat(map(self, tostring2 or tostring), ' ', 1, #self) .. ')'
+end
+
+local SYMBOL_MT = { 'SYMBOL', __tostring = deref, __fennelview = deref }
 local EXPR_MT = { 'EXPR', __tostring = deref }
 local VARARG = setmetatable({ '...' }, { 'VARARG', __tostring = deref })
-local LIST_MT = { 'LIST',
-    __tostring = function (self)
-        return '(' .. table.concat(map(self, tostring), ' ', 1, #self) .. ')'
-    end
-}
+local LIST_MT = { 'LIST', __tostring = listToString, __fennelview = listToString }
 local SEQUENCE_MT = { 'SEQUENCE' }
 
 -- Load code with an environment in all recent Lua versions

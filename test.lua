@@ -420,6 +420,9 @@ local cases = {
         ["((require :fennelview) (let [t {}] [t t]))"]="[ {} #<table 2> ]",
         ["((require :fennelview) (let [t {}] [t t]) {:detect-cycles? false})"]=
             "[ {} {} ]",
+        -- ensure fennelview works on lists and syms
+        ["(eval-compiler (set _G.out ((require :fennelview) '(a {} [1 2])))) _G.out"]=
+            "(a {} [ 1 2 ])",
     },
 }
 

@@ -176,7 +176,7 @@
                    :level 0 :buffer {} :ids {} :max-ids {}
                    :indent (or options.indent (if options.one-line "" "  "))
                    :detect-cycles? (not (= false options.detect-cycles?))
-                   :fennelview fennelview}]
+                   :fennelview #(fennelview $1 options)}]
     (put-value inspector x)
     (let [str (table.concat inspector.buffer)]
       (if options.one-line (one-line str) str))))

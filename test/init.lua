@@ -14,13 +14,17 @@ local function test(moduleName)
     l.LuaUnit:runSuiteByInstances(i)
 end
 
+-- these tests need to be in Lua; if anything here breaks, we can't even load
+-- our tests that are written in Fennel.
 test("test.core")
 test("test.mangling")
 test("test.quoting")
+test("test.misc")
+
+-- these can be in Fennel
 test("test.docstring")
 test("test.fennelview")
 test("test.failures")
-test("test.misc")
 test("test.repl")
 
 os.exit(l.LuaUnit.result.notSuccessCount > 0 and 1 or 0)

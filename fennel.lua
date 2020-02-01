@@ -230,6 +230,11 @@ local prefixes = { -- prefix chars substituted while reading
     [35] = 'hashfn' -- #
 }
 
+-- The resetRoot function needs to be called at every exit point of the compiler
+-- including when there's a parse error or compiler error. Introduce it up here
+-- so error functions have access to it, and set it when we have values below.
+local resetRoot = nil
+
 -- Parse one value given a function that
 -- returns sequential bytes. Will throw an error as soon
 -- as possible without getting more bytes on bad input. Returns
@@ -262,6 +267,7 @@ local function parser(getbyte, filename)
         return r
     end
     local function parseError(msg)
+        if resetRoot then resetRoot() end
         return error(msg .. ' in ' .. (filename or 'unknown') .. ':' .. line, 0)
     end
 
@@ -456,9 +462,15 @@ end
 --
 
 -- Top level compilation bindings.
-local rootChunk
-local rootScope
-local rootOptions
+local rootChunk, rootScope, rootOptions
+
+local function setResetRoot(oldChunk, oldScope, oldOptions)
+    local oldResetRoot = resetRoot -- this needs to nest!
+    resetRoot = function()
+        rootChunk, rootScope, rootOptions = oldChunk, oldScope, oldOptions
+        resetRoot = oldResetRoot
+    end
+end
 
 local GLOBAL_SCOPE
 
@@ -501,6 +513,7 @@ end
 local function assertCompile(condition, msg, ast)
     -- if we use regular `assert' we can't provide the `level' argument of zero
     if not condition then
+        if resetRoot then resetRoot() end
         error(string.format("Compile error in '%s' %s:%s: %s",
                             isSym(ast[1]) and ast[1][1] or ast[1] or '()',
                             ast.filename or "unknown", ast.line or '?', msg), 0)
@@ -2028,23 +2041,17 @@ local requireSpecial
 local function compile(ast, options)
     local opts = copy(options)
     local oldGlobals = allowedGlobals
-    local oldChunk = rootChunk
-    local oldScope = rootScope
-    local oldOptions = rootOptions
+    setResetRoot(rootChunk, rootScope, rootOptions)
     allowedGlobals = opts.allowedGlobals
     if opts.indent == nil then opts.indent = '  ' end
     local chunk = {}
     local scope = opts.scope or makeScope(GLOBAL_SCOPE)
-    rootChunk = chunk
-    rootScope = scope
-    rootOptions = opts
+    rootChunk, rootScope, rootOptions = chunk, scope, opts
     if opts.requireAsInclude then scope.specials.require = requireSpecial end
     local exprs = compile1(ast, scope, chunk, {tail = true})
     keepSideEffects(exprs, chunk, nil, ast)
     allowedGlobals = oldGlobals
-    rootChunk = oldChunk
-    rootScope = oldScope
-    rootOptions = oldOptions
+    resetRoot()
     return flatten(chunk, opts)
 end
 
@@ -2131,9 +2138,7 @@ docSpecial('quote', {'x'}, 'Quasiquote the following form. Only works in macro/c
 local function compileStream(strm, options)
     local opts = copy(options)
     local oldGlobals = allowedGlobals
-    local oldChunk = rootChunk
-    local oldScope = rootScope
-    local oldOptions = rootOptions
+    setResetRoot(rootChunk, rootScope, rootOptions)
     allowedGlobals = opts.allowedGlobals
     if opts.indent == nil then opts.indent = '  ' end
     local scope = opts.scope or makeScope(GLOBAL_SCOPE)
@@ -2144,9 +2149,7 @@ local function compileStream(strm, options)
         vals[#vals + 1] = val
     end
     local chunk = {}
-    rootChunk = chunk
-    rootScope = scope
-    rootOptions = opts
+    rootChunk, rootScope, rootOptions = chunk, scope, opts
     for i = 1, #vals do
         local exprs = compile1(vals[i], scope, chunk, {
             tail = i == #vals,
@@ -2154,9 +2157,7 @@ local function compileStream(strm, options)
         keepSideEffects(exprs, chunk, nil, vals[i])
     end
     allowedGlobals = oldGlobals
-    rootChunk = oldChunk
-    rootScope = oldScope
-    rootOptions = oldOptions
+    resetRoot()
     return flatten(chunk, opts)
 end
 

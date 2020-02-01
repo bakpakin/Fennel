@@ -28,8 +28,10 @@ For large changes, please discuss it first either on the mailing list, IRC chann
 issue before sinking time and effort into something we may not merge.
 
 * Include a description of the changes.
-* If there are changes to the compiler or the language, please include tests in test.lua. You can
-  run tests with `make test`, or `lua test.lua`.
+* If there are changes to the compiler or the language, please include tests, either in one of the
+  existing suites in the `test/` directory or in a new one. If the thing your testing would cause
+  the compiler to be unable to load code, write your test in Lua, but otherwise the test should be
+  in Fennel. You can run tests with `make test`.
 * Make sure that your changes will work on Lua versions 5.1, 5.2, 5.3, and LuaJIT. Making fennel
   require LuaJIT, 5.2, or 5.3 specific features is a non-goal of the project. In general, this means
   target Lua 5.1, but provide shims for where functionality is different in newer Lua versions. Running

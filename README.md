@@ -15,7 +15,7 @@ expressive, and has almost zero overhead compared to handwritten Lua.
 * The [API listing](api.md) shows how to integrate Fennel into your codebase
 * The [Lua primer](lua-primer.md) gives a very brief intro to Lua with
   pointers to further details
-* The [test suite](test.lua) has basic usage examples for most features.
+* The [test suite](test/) has basic usage examples for most features.
 
 For a small complete example that uses the LÖVE game engine, see
 [pong.fnl][2].

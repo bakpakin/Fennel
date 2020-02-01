@@ -20,7 +20,10 @@
   (l.assertEquals (table.sort a) (table.sort b) msg))
 
 (fn test-completion []
-  ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine bug
+  ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
+  ;; limitation. Normally we want all tests to run on all versions, but in
+  ;; this case the feature will work fine; we just can't use this method of
+  ;; testing it on PUC 5.1, so skip it.
   (when (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
     (let [(send comp) (wrap-repl)]
       (send "(local [foo foo-ba* moe-larry] [1 2 {:*curly* \"Why soitenly\"}])")

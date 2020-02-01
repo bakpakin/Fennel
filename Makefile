@@ -1,16 +1,16 @@
 LUA ?= lua
 
 test:
-	$(LUA) test.lua
+	$(LUA) test/init.lua
 
 testall:
-	lua5.1 test.lua
-	lua5.2 test.lua
-	lua5.3 test.lua
-	luajit test.lua
+	lua5.1 test/init.lua
+	lua5.2 test/init.lua
+	lua5.3 test/init.lua
+	luajit test/init.lua
 
 luacheck:
-	luacheck fennel.lua fennel test.lua
+	luacheck fennel.lua fennel test/*.lua
 
 count:
 	cloc fennel.lua
@@ -22,3 +22,5 @@ count:
 pre-compile: fennelview.fnl.lua
 
 ci: luacheck testall count pre-compile
+
+.PHONY: test testall luacheck count pre-compile ci

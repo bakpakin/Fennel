@@ -93,7 +93,8 @@
   (puts self "[")
   (set self.level (+ self.level 1))
   (for [i 1 len]
-    (puts self " ")
+    (when (< 1 i len)
+      (puts self " "))
     (put-value self (. t i)))
   (set self.level (- self.level 1))
   (puts self " ]"))

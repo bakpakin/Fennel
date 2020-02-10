@@ -483,12 +483,12 @@ local function test_fennelview()
     local cases = { -- generative fennelview tests are also below
         ["((require :fennelview) {:a 1 :b 52})"]="{\n  :a 1\n  :b 52\n}",
         ["((require :fennelview) {:a 1 :b 5} {:one-line true})"]="{:a 1 :b 5}",
-        ["((require :fennelview) (let [t {}] [t t]))"]="[ {} #<table 2> ]",
+        ["((require :fennelview) (let [t {}] [t t]))"]="[{} #<table 2>]",
         ["((require :fennelview) (let [t {}] [t t]) {:detect-cycles? false})"]=
-            "[ {} {} ]",
+            "[{} {}]",
         -- ensure fennelview works on lists and syms
         ["(eval-compiler (set _G.out ((require :fennelview) '(a {} [1 2])))) _G.out"]=
-            "(a {} [ 1 2 ])",
+            "(a {} [1 2])",
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)

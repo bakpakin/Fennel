@@ -103,13 +103,14 @@ local function put_sequential_table(self, t, len)
   puts(self, "[")
   self.level = (self.level + 1)
   for i = 1, len do
-    if ((1 < i) and (i < len)) then
+    local _0_ = (1 + len)
+    if ((1 < i) and (i < _0_)) then
       puts(self, " ")
     end
     put_value(self, t[i])
   end
   self.level = (self.level - 1)
-  return puts(self, " ]")
+  return puts(self, "]")
 end
 local function put_key(self, k)
   if ((type(k) == "string") and k:find("^[-%w?\\^_!$%&*+./@:|<=>]+$")) then

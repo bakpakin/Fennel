@@ -93,11 +93,11 @@
   (puts self "[")
   (set self.level (+ self.level 1))
   (for [i 1 len]
-    (when (< 1 i len)
+    (when (< 1 i (+ 1 len))
       (puts self " "))
     (put-value self (. t i)))
   (set self.level (- self.level 1))
-  (puts self " ]"))
+  (puts self "]"))
 
 (fn put-key [self k]
   (if (and (= (type k) "string")

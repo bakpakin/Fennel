@@ -2339,7 +2339,7 @@ local replsource = [===[(local (fennel internals) ...)
                        lua-source
                        "--- Generated Lua End ---\n")
      "Runtime" (.. (fennel.traceback err 4) "\n")
-     _ (: "%s error: %s\n" errtype (tostring err)))))
+     _ (: "%s error: %s\n" :format errtype (tostring err)))))
 
 (local save-source
        (table.concat ["local ___i___ = 1"

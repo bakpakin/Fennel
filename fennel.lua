@@ -2431,8 +2431,9 @@ local replsource = [===[(local (fennel internals) ...)
         (if (not ok)
             (do (on-error "Parse" parse-ok?)
                 (clear-stream)
-                (reset))
-            (when parse-ok?
+                (reset)
+                (loop))
+            (when parse-ok? ; if this is false, we got eof
               (match (pcall fennel.compile x {:correlate opts.correlate
                                               :source src-string
                                               :scope scope

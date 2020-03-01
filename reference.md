@@ -9,7 +9,8 @@ Everything Fennel does happens at compile-time, so you will need to
 familiarize yourself with Lua's standard library functions. Thankfully
 it's much smaller than almost any other language.
 
-Fennel source code should be UTF-8-encoded text.
+Fennel source code should be UTF-8-encoded text, although currently
+only ASCII forms of whitespace and numerals are supported.
 
 ## Functions
 

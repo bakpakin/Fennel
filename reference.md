@@ -160,14 +160,6 @@ table or a function call which returns multiple values:
 Example:
 
 ```fennel
-(let [[a b c] [1 2 3]]
-  (+ a b c)) ; => 6
-```
-
-
-Example:
-
-```fennel
 (let [(x y z) (unpack [10 9 8])]
   (+ x y z)) ; => 27
 ```
@@ -179,6 +171,22 @@ Example:
   (print message) val)
 ```
 
+Example:
+
+```fennel
+(let [[a b c] [1 2 3]]
+  (+ a b c)) ; => 6
+```
+
+When binding to a sequential table, you can capture all the remainder
+of the table in a local by using `&`:
+
+Example:
+
+```fennel
+(let [[a b & c] [1 2 3 4 5 6]]
+  (table.concat c ",")) ; => "3,4,5,6"
+```
 
 ### `local` declare local
 
@@ -191,7 +199,6 @@ Example:
 ```fennel
 (local tau-approx 6.28318)
 ```
-
 
 Supports destructuring and multiple-value binding.
 
@@ -222,13 +229,14 @@ first element; if so then it will add up the second and third elements.
 Patterns can be tables, literal values, or symbols. If a symbol has
 already been bound, then the value is checked against the existing
 local's value, but if it's a new local then the symbol is bound to the
-value. 
+value.
 
 Tables can be nested, and they may be either sequential (`[]` style)
 or key/value (`{}` style) tables. Sequential tables will match if they
 have at least as many elements as the pattern. (To allow an element to
 be nil, use a symbol like `?this`.) Tables will never fail to match
-due to having too many elements.
+due to having too many elements. You can use `&` to  capture all the
+remaining elements of a sequential table, just like `let`.
 
 ```fennel
 (match mytable

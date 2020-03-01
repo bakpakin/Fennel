@@ -1,5 +1,10 @@
 # Summary of user-visible changes
 
+## ??? / ???
+
+* Add support for __fennelview metamethod for custom serialization
+* Fix a bug where `dofile` would report the wrong filename
+
 ## 0.3.2 / 2020-01-14
 
 * Fix a bug where `include` could not be nested without repetition (#214)

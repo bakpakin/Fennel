@@ -493,6 +493,8 @@ local function test_fennelview()
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)
     end
+    local mt = setmetatable({}, {__fennelview=function() return "META" end})
+    l.assertEquals(require("fennelview")(mt), "META")
 end
 
 return {

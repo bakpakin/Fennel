@@ -125,7 +125,7 @@
   (puts self "}"))
 
 (fn put-table [self t]
-  (let [metamethod (-?> t getmetatable (. :__fennelview))]
+  (let [metamethod (and self.metamethod? (-?> t getmetatable (. :__fennelview)))]
     (if (and (already-visited? self t) self.detect-cycles?)
         (puts self "#<table " (get-id self t) ">")
         (>= self.level self.depth)
@@ -170,13 +170,26 @@
     ret))
 
 (fn fennelview [x options]
-  "Return a string representation of x."
+  "Return a string representation of x.
+
+Can take an options table with these keys:
+* :one-line (boolean: default: false) keep the output string as a one-liner
+* :depth (number, default: 128) limit how many levels to go (default: 128)
+* :indent (string, default: \"  \") use this string to indent each level
+* :detect-cycles? (boolean, default: true) don't try to traverse a looping table
+* :metamethod? (boolean: default: true) use the __fennelview metamethod if found
+
+The __fennelview metamethod should take the table being serialized as its first
+argument and a function as its second arg which can be used on table elements to
+continue the fennelview process on them.
+"
   (let [options (or options {})
         inspector {:appearances (count-table-appearances x {})
                    :depth (or options.depth 128)
                    :level 0 :buffer {} :ids {} :max-ids {}
                    :indent (or options.indent (if options.one-line "" "  "))
                    :detect-cycles? (not (= false options.detect-cycles?))
+                   :metamethod? (not (= false options.metamethod?))
                    :fennelview #(fennelview $1 options)}]
     (put-value inspector x)
     (let [str (table.concat inspector.buffer)]

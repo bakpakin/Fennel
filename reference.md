@@ -23,7 +23,8 @@ cover the declared ones, the remaining ones are `nil`.
 Example:
 
 ```fennel
-(fn pxy [x y] (print (+ x y)))
+(fn pxy [x y]
+  (print (+ x y)))
 ```
 
 
@@ -41,7 +42,8 @@ any of the listed arguments are nil, unless its identifier begins with `?`.
 Example:
 
 ```fennel
-(lambda [x ?y z] (print (- x (* (or ?y 1) z))))
+(lambda [x ?y z]
+  (print (- x (* (or ?y 1) z))))
 ```
 
 
@@ -55,7 +57,10 @@ Both the `fn` and `lambda`/`λ` forms of function definition accept an optional
 docstring.
 
 ```fennel
-(fn pxy [x y] "Print the sum of x and y" (print (+ x y)))
+(fn pxy [x y]
+  "Print the sum of x and y"
+  (print (+ x y)))
+
 (λ pxyz [x ?y z]
   "Print the sum of x, y, and z. If y is not provided, defaults to 0."
   (print (+ x (or ?y 0) z)))
@@ -141,7 +146,8 @@ Introduces a new scope in which a given set of local bindings are used.
 Example:
 
 ```fennel
-(let [x 89] (print (+ x 12)) ; => 101
+(let [x 89]
+  (print (+ x 12)) ; => 101
 ```
 
 These locals cannot be changed with `set` but they can be shadowed by
@@ -154,21 +160,23 @@ table or a function call which returns multiple values:
 Example:
 
 ```fennel
-(let [[a b c] [1 2 3]] (+ a b c)) ; => 6
+(let [[a b c] [1 2 3]]
+  (+ a b c)) ; => 6
 ```
 
 
 Example:
 
 ```fennel
-(let [(x y z) (unpack [10 9 8])] (+ x y z)) ; => 27
+(let [(x y z) (unpack [10 9 8])]
+  (+ x y z)) ; => 27
 ```
-
 
 Example:
 
 ```fennel
-(let [{:msg message : val} (returns-a-table)] (print message) val)
+(let [{:msg message : val} (returns-a-table)]
+  (print message) val)
 ```
 
 
@@ -318,7 +326,8 @@ Example:
 Example:
 
 ```fennel
-(let [t {:a 4 :b 8}] (set t.a 2) t) ; => {:a 2 :b 8}
+(let [t {:a 4 :b 8}]
+  (set t.a 2) t) ; => {:a 2 :b 8}
 ```
 
 
@@ -333,7 +342,8 @@ with `local` and `let`.
 Example:
 
 ```fennel
-(let [tbl {:d 32} field :d] (tset tbl field 19) tbl) ; => {:d 19}
+(let [tbl {:d 32} field :d]
+  (tset tbl field 19) tbl) ; => {:d 19}
 ```
 
 
@@ -348,13 +358,15 @@ value.
 Example:
 
 ```fennel
-(let [x (values 1 2 3)] x) ; => 1
+(let [x (values 1 2 3)]
+  x) ; => 1
 ```
 
 Example:
 
 ```fennel
-(let [(file-handle message code) (io.open "foo.blah")] message) ; => "foo.blah: No such file or directory"
+(let [(file-handle message code) (io.open "foo.blah")]
+  message) ; => "foo.blah: No such file or directory"
 ```
 
 Example:

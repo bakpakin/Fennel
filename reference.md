@@ -112,8 +112,8 @@ arguments, each named `$1` through `$9`. A lone `$` in a hash function
 is treated as an alias for `$1`.
 
 Hash functions are defined with the `hashfn` macro, which wraps
-it's single argument in a function literal. For example, `#$3`
-is a function that returns it's third argument. `#[$1 $2 $3]` is
+its single argument in a function literal. For example, `#$3`
+is a function that returns its third argument. `#[$1 $2 $3]` is
 a function that returns a table from the first 3 arguments. And
 so on.
 

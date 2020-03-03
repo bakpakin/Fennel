@@ -140,19 +140,20 @@ local function put_kv_table(self, t, ordered_keys)
 end
 local function put_table(self, t)
   local metamethod = nil
-  do
+  local function _1_()
     local _0_0 = t
     if _0_0 then
-      local _1_0 = getmetatable(_0_0)
-      if _1_0 then
-        metamethod = _1_0.__fennelview
+      local _2_0 = getmetatable(_0_0)
+      if _2_0 then
+        return _2_0.__fennelview
       else
-        metamethod = _1_0
+        return _2_0
       end
     else
-      metamethod = _0_0
+      return _0_0
     end
   end
+  metamethod = (self["metamethod?"] and _1_())
   if (already_visited_3f(self, t) and self["detect-cycles?"]) then
     return puts(self, "#<table ", get_id(self, t), ">")
   elseif (self.level >= self.depth) then
@@ -203,7 +204,7 @@ local function fennelview(x, options)
       return "  "
     end
   end
-  inspector = {["detect-cycles?"] = not (false == options0["detect-cycles?"]), ["max-ids"] = {}, appearances = count_table_appearances(x, {}), buffer = {}, depth = (options0.depth or 128), fennelview = _1_, ids = {}, indent = (options0.indent or _2_()), level = 0}
+  inspector = {["detect-cycles?"] = not (false == options0["detect-cycles?"]), ["max-ids"] = {}, ["metamethod?"] = not (false == options0["metamethod?"]), appearances = count_table_appearances(x, {}), buffer = {}, depth = (options0.depth or 128), fennelview = _1_, ids = {}, indent = (options0.indent or _2_()), level = 0}
   put_value(inspector, x)
   do
     local str = table.concat(inspector.buffer)

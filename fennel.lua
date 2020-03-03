@@ -520,6 +520,9 @@ local function makeScope(parent)
         specials = setmetatable({}, {
             __index = parent and parent.specials
         }),
+        macros = setmetatable({}, {
+            __index = parent and parent.macros
+        }),
         symmeta = setmetatable({}, {
             __index = parent and parent.symmeta
         }),
@@ -751,7 +754,7 @@ end
 local function checkBindingValid(symbol, scope, ast)
     -- Check if symbol will be over shadowed by special
     local name = symbol[1]
-    assertCompile(not scope.specials[name],
+    assertCompile(not scope.specials[name] and not scope.macros[name],
                   ("local %s was overshadowed by a special form or macro")
                       :format(name), ast)
     assertCompile(not isQuoted(symbol),
@@ -1027,6 +1030,22 @@ local function handleCompileOpts(exprs, parent, opts, ast)
     return exprs
 end
 
+-- Save current macro scope; used by gensym, in-scope?, etc
+local macroCurrentScope = GLOBAL_SCOPE
+
+local function macroexpand(ast, scope, once)
+    local first = isSym(ast[1])
+    local macro = first and scope.macros[deref(first)]
+    if not macro then return ast end
+    local oldScope = macroCurrentScope
+    macroCurrentScope = scope
+    local ok, transformed = pcall(macro, unpack(ast, 2))
+    macroCurrentScope = oldScope
+    assertCompile(ok, transformed, ast)
+    if once then return transformed end -- macroexpand-1
+    return macroexpand(transformed, scope)
+end
+
 -- Compile an AST expression in the scope into parent, a tree
 -- of lines that is eventually compiled into Lua code. Also
 -- returns some information about the evaluation of the compiled expression,
@@ -1064,6 +1083,7 @@ local function compile1(ast, scope, parent, opts)
         -- Function call or special form
         local len = #ast
         assertCompile(len > 0, "expected a function, macro, or special to call", ast)
+        ast = macroexpand(ast, scope)
         -- Test for special form
         local first = ast[1]
         if isSym(first) then -- Resolve symbol
@@ -1564,9 +1584,9 @@ SPECIALS['doc'] = function(ast, scope, parent)
     assertCompile(#ast == 2, "expected one argument", ast)
 
     local target = deref(ast[2])
-    local special = scope.specials[target]
-    if special then
-        return ("print([[%s]])"):format(doc(special, target))
+    local specialOrMacro = scope.specials[target] or scope.macros[target]
+    if specialOrMacro then
+        return ("print([[%s]])"):format(doc(specialOrMacro, target))
     else
         local value = tostring(compile1(ast[2], scope, parent, {nval = 1})[1])
         -- need to require here since the metadata is stored in the module
@@ -2091,27 +2111,6 @@ defineUnarySpecial("length", "#")
 docSpecial("length", {"x"}, "Returns the length of a table or string.")
 SPECIALS["#"] = SPECIALS["length"]
 
--- Save current macro scope
-local macroCurrentScope = nil
-
--- Covert a macro function to a special form
-local function macroToSpecial(mac)
-    local special = function(ast, scope, parent, opts)
-        local oldScope = macroCurrentScope
-        macroCurrentScope = scope
-        local ok, transformed = pcall(mac, unpack(ast, 2))
-        macroCurrentScope = oldScope
-        assertCompile(ok, transformed, ast)
-        local result = compile1(transformed, scope, parent, opts)
-        return result
-    end
-    if metadata[mac] then
-        -- copy metadata from original function to special form function
-        metadata[mac], metadata[special] = nil, metadata[mac]
-    end
-    return special
-end
-
 local requireSpecial
 local function compile(ast, options)
     local opts = copy(options)
@@ -2617,7 +2616,9 @@ local function makeCompilerEnv(ast, scope, parent)
         ["in-scope?"] = function(symbol)
             assertCompile(macroCurrentScope, "must call in-scope? from macro", ast)
             return macroCurrentScope.manglings[tostring(symbol)]
-        end
+        end,
+        ["macroexpand"] = function(form) return macroexpand(form, scope) end,
+        ["macroexpand-1"] = function(form) return macroexpand(form, scope, 1) end,
     }, { __index = _ENV or _G })
 end
 
@@ -2629,7 +2630,7 @@ end
 
 local function addMacros(macros, ast, scope)
     assertCompile(isTable(macros), 'expected macros to be table', ast)
-    kvmap(macros, function(k, v) return k, macroToSpecial(v) end, scope.specials)
+    for k,v in pairs(macros) do scope.macros[k] = v end
 end
 
 local function loadMacros(modname, ast, scope, parent)
@@ -3009,11 +3010,9 @@ do
                             useMetadata = true,
                             filename = "built-ins",
                             moduleName = moduleName })
-    kvmap(macros,
-          function(name, fn) return name, macroToSpecial(fn, name) end,
-          SPECIALS)
+    for k,v in pairs(macros) do GLOBAL_SCOPE.macros[k] = v end
     package.preload[moduleName] = nil
 end
-SPECIALS['λ'] = SPECIALS['lambda']
+GLOBAL_SCOPE.macros['λ'] = GLOBAL_SCOPE.macros['lambda']
 
 return module

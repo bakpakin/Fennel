@@ -849,7 +849,7 @@ and a metatable that the compiler uses to distinguish them. You can use
 * `gensym` - generates a unique symbol for use in macros.
 * `varg?` - is this a `...` symbol which indicates var args?
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
-* `in-scope?` - does this symbol refer to a local in the current scope?
+* `in-scope?` - does this symbol refer to an in-scope local? (works in macros only)
 
 Note that other internals of the compiler exposed in compiler scope are
 subject to change.

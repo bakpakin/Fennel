@@ -2017,7 +2017,7 @@ docSpecial("length", {"x"}, "Returns the length of a table or string.")
 SPECIALS["#"] = SPECIALS["length"]
 
 -- Save current macro scope
-local macroCurrentScope = GLOBAL_SCOPE
+local macroCurrentScope = nil
 
 -- Covert a macro function to a special form
 local function macroToSpecial(mac)
@@ -2523,15 +2523,21 @@ local function makeCompilerEnv(ast, scope, parent)
         list = list,
         sym = sym,
         unpack = unpack,
-        gensym = function() return sym(gensym(macroCurrentScope)) end,
+        gensym = function() return sym(gensym(macroCurrentScope or scope)) end,
         ["list?"] = isList,
         ["multi-sym?"] = isMultiSym,
         ["sym?"] = isSym,
         ["table?"] = isTable,
         ["sequence?"] = isSequence,
         ["varg?"] = isVarg,
-        ["get-scope"] = function() return macroCurrentScope end,
+        ["get-scope"] = function()
+            if io and io.stderr then
+                io.stderr:write(("%s:%s: get-scope is deprecated and will be removed\n"):
+                        format(ast.filename, ast.line))
+            end
+            return macroCurrentScope end,
         ["in-scope?"] = function(symbol)
+            assertCompile(macroCurrentScope, "must call in-scope? from macro", ast)
             return macroCurrentScope.manglings[tostring(symbol)]
         end
     }, { __index = _ENV or _G })

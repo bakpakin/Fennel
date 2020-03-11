@@ -2532,8 +2532,9 @@ local function makeCompilerEnv(ast, scope, parent)
         ["varg?"] = isVarg,
         ["get-scope"] = function()
             if io and io.stderr then
-                io.stderr:write(("%s:%s: get-scope is deprecated and will be removed\n"):
-                        format(ast.filename, ast.line))
+                io.stderr:
+                 write(("-- %s:%s get-scope is deprecated and will be removed\n"):
+                 format(ast.filename, ast.line))
             end
             return macroCurrentScope end,
         ["in-scope?"] = function(symbol)

@@ -665,7 +665,7 @@ same thing in rather than using the value from the previous form for
 the next form.
 
 ```fennel
-(doto (io.open "/tmp/err.log)
+(doto (io.open "/tmp/err.log")
   (: :write contents)
   (: :close))
 

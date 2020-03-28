@@ -46,9 +46,11 @@ function usage can be viewed with the `doc` macro:
   "Prints args as a string, delimited by sep"
   (print (table.concat [...] sep)))
 (doc print-sep) ; -> outputs:
-; (print-sep sep ...)
-;   Prints args as a string, delimited by sep
+;; (print-sep sep ...)
+;;   Prints args as a string, delimited by sep
 ```
+
+Like other lisps, Fennel uses semicolons for comments.
 
 Functions defined with `fn` are fast; they have no runtime overhead
 compared to Lua. However, they also have no arity checking. (That is,

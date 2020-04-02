@@ -1473,8 +1473,8 @@ SPECIALS["fn"] = function(ast, scope, parent)
                              :gsub('"', '\\"') .. '"')
         end
         local metaStr = ('require("%s").metadata'):format(rootOptions.moduleName or "fennel")
-        emit(parent, string.format('%s:setall(%s, %s)', metaStr,
-                                   fnName, table.concat(metaFields, ', ')))
+        emit(parent, string.format('pcall(function() %s:setall(%s, %s) end)',
+                                   metaStr, fnName, table.concat(metaFields, ', ')))
     end
 
     checkUnused(fScope, ast)

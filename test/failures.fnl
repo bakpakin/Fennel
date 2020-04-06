@@ -68,6 +68,7 @@
   "(set)" "Compile error in 'set' unknown:1: expected name and value"
   "(x(y))" "expected whitespace before opening delimiter ("
   "(x[1 2])" "expected whitespace before opening delimiter ["
+  "(fn abc:def [x] (+ x 2))" "malformed function name: abc:def"
 })
 
 (fn test-failures []

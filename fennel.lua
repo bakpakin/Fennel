@@ -1403,8 +1403,11 @@ SPECIALS["fn"] = function(ast, scope, parent)
     local isLocalFn
     local docstring
     fScope.vararg = false
+    local multi = fnName and isMultiSym(fnName[1])
+    assertCompile(not multi or not multi.multiSymMethodCall,
+                  "malformed function name: " .. tostring(fnName), ast)
     if fnName and fnName[1] ~= 'nil' then
-        isLocalFn = not isMultiSym(fnName[1])
+        isLocalFn = not multi
         if isLocalFn then
             fnName = declareLocal(fnName, {}, scope, ast)
         else

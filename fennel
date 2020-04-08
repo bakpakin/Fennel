@@ -117,8 +117,12 @@ end
 
 -- Try to load readline library
 local function tryReadline(opts)
-    local ok, readline = pcall(require, "readline")
-    if ok then
+    local readline_ok, readline = pcall(require, "readline")
+    if readline_ok then
+        if readline.set_readline_name then -- added as of readline.lua 2.6-0
+            readline.set_readline_name('fennel')
+        end
+
         readline.set_options({
             keeplines = 1000
         })

@@ -2627,7 +2627,7 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
     emit(tempChunk, subChunk, ast)
     -- if lua, simply emit the setting of package.preload
     if not isFennel then
-        emit(tempChunk, target .. ' = ' .. target .. ' or function()\n' .. s .. 'end', ast)
+        emit(tempChunk, target .. ' = ' .. target .. ' or function()\n' .. s .. '\nend', ast)
     end
     -- Splice tempChunk to begining of rootChunk
     for i, v in ipairs(tempChunk) do

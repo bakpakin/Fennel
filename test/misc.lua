@@ -20,7 +20,7 @@ local function test_global_mangling()
 end
 
 local function test_include()
-    local quuxsrc = 'return foo or false\n'
+    local quuxsrc = 'return foo or false\n-- comment in lua'
     local bazsrc = '[:BAZ 3]\n'
     local barsrc = ([[
     (local bar [:BAR 2])

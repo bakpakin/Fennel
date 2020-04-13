@@ -2156,6 +2156,7 @@ local function compileStream(strm, options)
     for i = 1, #vals do
         local exprs = compile1(vals[i], scope, chunk, {
             tail = i == #vals,
+            nval = i < #vals and 0 or nil
         })
         keepSideEffects(exprs, chunk, nil, vals[i])
     end

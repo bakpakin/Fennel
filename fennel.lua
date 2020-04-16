@@ -968,7 +968,9 @@ local function handleCompileOpts(exprs, parent, opts, ast)
         emit(parent, ('return %s'):format(exprs1(exprs)), ast)
     end
     if opts.target then
-        emit(parent, ('%s = %s'):format(opts.target, exprs1(exprs)), ast)
+        local result = exprs1(exprs)
+        if result == '' then result = 'nil' end
+        emit(parent, ('%s = %s'):format(opts.target, result), ast)
     end
     if opts.tail or opts.target then
         -- Prevent statements and expression from being used twice if they
@@ -1236,7 +1238,9 @@ local function destructure(to, from, ast, scope, parent, opts)
         elseif isTable(left) then -- table destructuring
             if top then rightexprs = compile1(from, scope, parent) end
             local s = gensym(scope)
-            emit(parent, ("local %s = %s"):format(s, exprs1(rightexprs)), left)
+            local right = exprs1(rightexprs)
+            if right == '' then right = 'nil' end
+            emit(parent, ("local %s = %s"):format(s, right), left)
             for k, v in pairs(left) do
                 if isSym(left[k]) and left[k][1] == "&" then
                     assertCompile(type(k) == "number" and not left[k+2],

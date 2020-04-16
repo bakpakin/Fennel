@@ -964,9 +964,9 @@ local function handleCompileOpts(exprs, parent, opts, ast)
         emit(parent, ('return %s'):format(exprs1(exprs)), ast)
     end
     if opts.target then
-        local expr = exprs1(exprs)
-        if expr == '' then expr = 'nil' end
-        emit(parent, ('%s = %s'):format(opts.target, expr), ast)
+        local result = exprs1(exprs)
+        if result == '' then result = 'nil' end
+        emit(parent, ('%s = %s'):format(opts.target, result), ast)
     end
     if opts.tail or opts.target then
         -- Prevent statements and expression from being used twice if they

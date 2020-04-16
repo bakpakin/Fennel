@@ -99,7 +99,7 @@ local function test_empty_values()
               {: h} {:h (values)}]
               (not (or a b c d e f g h)))
     ]=], "empty (values) should resolve to nil")
-    
+
     local broken_code = fennel.compile [[
         (local [x] (values))
         (local {: y} (values))

@@ -88,11 +88,32 @@ local function test_env_iteration()
                    "Expected mangled globals to be kept across eval invocations.")
 end
 
+local function test_empty_values()
+    l.assertTrue(fennel.eval[=[
+        (let [a (values)
+              b (values (values))
+              (c d) (values)
+              e (if (values) (values))
+              f (while (values) (values))
+              [g] [(values)]
+              {: h} {:h (values)}]
+              (not (or a b c d e f g h)))
+    ]=], "empty (values) should resolve to nil")
+    
+    local broken_code = fennel.compile [[
+        (local [x] (values))
+        (local {: y} (values))
+    ]]
+    l.assertNotNil(broken_code, "code should compile")
+    l.assertError(broken_code, "code should fail at runtime");
+end
+
 return {
     test_leak=test_leak,
     test_runtime_quote=test_runtime_quote,
     test_global_mangling=test_global_mangling,
     test_include=test_include,
     test_env_iteration=test_env_iteration,
+    test_empty_values=test_empty_values,
 }
 

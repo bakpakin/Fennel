@@ -768,11 +768,15 @@ end
 local function peephole(chunk)
     if chunk.leaf then return chunk end
     -- Optimize do ... end in some cases.
-    if #chunk == 3 and
-        chunk[1].leaf == 'do' and
-        not chunk[2].leaf and
-        chunk[3].leaf == 'end' then
-        return peephole(chunk[2])
+    if #chunk >= 3 and
+        chunk[#chunk - 2].leaf == 'do' and
+        not chunk[#chunk - 1].leaf and
+        chunk[#chunk].leaf == 'end' then
+        local kid = peephole(chunk[#chunk - 1])
+        local newChunk = {ast = chunk.ast}
+        for i = 1, #chunk - 3 do table.insert(newChunk, peephole(chunk[i])) end
+        for i = 1, #kid do table.insert(newChunk, kid[i]) end
+        return newChunk
     end
     -- Recurse
     return map(chunk, peephole)

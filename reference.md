@@ -134,9 +134,41 @@ Example:
 (partial (fn [x y] (print (+ x y))) 2)
 ```
 
-
 This example returns a function which will print a number that is 2
 greater than the argument it is passed.
+
+### `limit-values` limit varargs/multiple returns to the first n values
+
+Discard all values after the first n when dealing, with multi-values, `...`,
+and multiple returns. Useful for composing functions that return multiple values
+with variadic functions.
+
+Example:
+
+```fennel
+(limit-values 0 :a :b :c :d :e) ; => nil
+[(limit-values 2 (table.unpack [:a :b :c]))] ;-> ["a" "b"]
+
+(fn sum-all [x y ...]
+  (let [x (or x 0) y (or y 0)]
+    (if (= (select :# ...) 0) (+ x y) (sum-all (+ x y) ...))))
+
+(sum-all (limit-values 2 (values 10 10))) ; => 20
+(->> [1 2 3 4 5] (table.unpack) (limit-values 3) (sum-all)) ; => 6
+```
+
+### `limit-args` wrap a function to accept only first n arguments
+
+Like `limit-values`, but takes an integer, `n`, and a function or other operation,
+f, and creates a new function that invokes `f` with only the first n arguments.
+
+Example:
+
+```fennel
+(local sum-2 (limit-args 2 sum-all))
+(sum-2 5 5 5 5) ; => 10
+(-> [1 2 3 4 5] (table.unpack) ((limit-args 3 sum-all))) ; => 6
+```
 
 ## Binding
 

@@ -2771,6 +2771,21 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
             (let [body (list f ...)]
               (table.insert body _VARARG)
               `(fn [,_VARARG] ,body)))
+ :limit-args (fn [n f]
+               "Returns a function that passes only the first n arguments to f."
+               (assert (and (= (type n) :number) (= n (math.floor n)) (>= n 0))
+                 "Expected n to be an integer literal >= 0.")
+               (let [bindings []]
+                 (for [i 1 n] (tset bindings i (gensym)))
+                 `(fn ,bindings (,f ,(unpack bindings)))))
+ :limit-values (fn [n ...]
+                 "Limits values to the first n items. Useful for restricting multiple returns."
+                 (assert (and (= :number (type n)) (>= n 0) (= n (math.floor n)))
+                         "Expected n to be an integer >= 0")
+                 (let [bindings `()]
+                   (for [i 1 n] (table.insert bindings (gensym)))
+                   (if (= n 0) `(values)
+                       `(let [,bindings ,...] (values ,(unpack bindings))))))
  :lambda (fn [...]
            "Function literal with arity checking.
 Will throw an exception if a declared argument is passed in as nil, unless

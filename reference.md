@@ -139,7 +139,7 @@ greater than the argument it is passed.
 
 ### `limit-values` limit varargs/multiple returns to the first n values
 
-Discard all values after the first n when dealing, with multi-values, `...`,
+Discard all values after the first n when dealing with multi-values (`...`)
 and multiple returns. Useful for composing functions that return multiple values
 with variadic functions.
 

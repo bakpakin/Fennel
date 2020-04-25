@@ -97,6 +97,7 @@ local function test_functions()
         ["(let [f (fn [...] [...]) f-0 (limit-args 0 f)] (f-0 :foo))"]={},
         -- limit-values
         ["(let [f #(values :a :b :c)] [(limit-values 2 (f))])"]={'a','b'},
+        ["[(limit-values 2 :a :b :c (values :d :e))]"]={'a','b'},
         ["[(limit-values 0 (values 1 2 3 4 5))]"]={},
         -- functions with empty bodies return nil
         ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",

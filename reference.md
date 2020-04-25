@@ -146,7 +146,7 @@ with variadic functions.
 Example:
 
 ```fennel
-(limit-values 0 (values :a :b :c :d :e)) ; => nil
+(limit-values 0 :a :b :c :d :e) ; => nil
 [(limit-values 2 (table.unpack [:a :b :c]))] ;-> ["a" "b"]
 
 (fn sum-all [x y ...]

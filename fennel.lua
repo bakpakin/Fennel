@@ -2782,10 +2782,11 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
                  "Limits values to the first n items. Useful for restricting multiple returns."
                  (assert (and (= :number (type n)) (>= n 0) (= n (math.floor n)))
                          "Expected n to be an integer >= 0")
-                 (let [bindings `()]
-                   (for [i 1 n] (table.insert bindings (gensym)))
+                 (let [let-syms   (list)
+                       let-values (if (= 1 (select :# ...)) ... `(values ,...))]
+                   (for [i 1 n] (table.insert let-syms (gensym)))
                    (if (= n 0) `(values)
-                       `(let [,bindings ,...] (values ,(unpack bindings))))))
+                       `(let [,let-syms ,let-values] (values ,(unpack let-syms))))))
  :lambda (fn [...]
            "Function literal with arity checking.
 Will throw an exception if a declared argument is passed in as nil, unless

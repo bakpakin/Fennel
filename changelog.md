@@ -5,6 +5,7 @@
 * Add support for __fennelview metamethod for custom serialization
 * Fix a bug where `dofile` would report the wrong filename
 * Fix bug causing failing `include` of Lua modules that lack a trailing newline (#234)
+- Introduce `limit-values` and `limit-args` macros (#246)
 
 ## 0.3.2 / 2020-01-14
 

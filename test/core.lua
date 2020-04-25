@@ -92,6 +92,12 @@ local function test_functions()
         ["(let [add (fn [x y] (+ x y)) inc (partial add 1)] (inc 99))"]=100,
         ["(let [add (fn [x y z] (+ x y z)) f2 (partial add 1 2)] (f2 6))"]=9,
         ["(let [add (fn [x y] (+ x y)) add2 (partial add)] (add2 99 2))"]=101,
+        -- limit-args
+        ["(let [f (fn [...] [...]) f-2 (limit-args 2 f)] (f-2 1 2 3))"]={1,2},
+        ["(let [f (fn [...] [...]) f-0 (limit-args 0 f)] (f-0 :foo))"]={},
+        -- limit-values
+        ["(let [f #(values :a :b :c)] [(limit-values 2 (f))])"]={'a','b'},
+        ["[(limit-values 0 (values 1 2 3 4 5))]"]={},
         -- functions with empty bodies return nil
         ["(if (= nil ((fn [a]) 1)) :pass :fail)"]="pass",
         -- basic lambda

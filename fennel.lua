@@ -726,7 +726,7 @@ local function checkBindingValid(symbol, scope, ast)
     -- Check if symbol will be over shadowed by special
     local name = symbol[1]
     assertCompile(not scope.specials[name],
-    ("symbol %s may be overshadowed by a special form or macro"):format(name), ast)
+    ("%s may be overshadowed by a special form or macro"):format(name), ast)
     assertCompile(not isQuoted(symbol), 'macro tried to bind ' .. name ..
                       " without gensym; try ' .. name .. '# instead", ast)
 
@@ -736,7 +736,8 @@ end
 local function declareLocal(symbol, meta, scope, ast, tempManglings)
     checkBindingValid(symbol, scope, ast)
     local name = symbol[1]
-    assertCompile(not isMultiSym(name), "did not expect mutltisym", ast)
+    assertCompile(not isMultiSym(name),
+                  "did not expect multi symbol " .. name, ast)
     local mangling = localMangling(name, scope, ast, tempManglings)
     scope.symmeta[name] = meta
     return mangling
@@ -1035,7 +1036,7 @@ local function compile1(ast, scope, parent, opts)
     if isList(ast) then
         -- Function call or special form
         local len = #ast
-        assertCompile(len > 0, "expected a function to call", ast)
+        assertCompile(len > 0, "expected a function, macro, or special to call", ast)
         -- Test for special form
         local first = ast[1]
         if isSym(first) then -- Resolve symbol
@@ -1191,7 +1192,7 @@ local function destructure(to, from, ast, scope, parent, opts)
     local function getname(symbol, up1)
         local raw = symbol[1]
         assertCompile(not (nomulti and isMultiSym(raw)),
-            'did not expect multisym', up1)
+            'did not expect multi symbol ' .. raw, up1)
         if declaration then
             return declareLocal(symbol, {var = isvar}, scope, symbol, newManglings)
         else
@@ -1199,11 +1200,11 @@ local function destructure(to, from, ast, scope, parent, opts)
             local meta = scope.symmeta[parts[1]]
             if #parts == 1 and not forceset then
                 assertCompile(not(forceglobal and meta),
-                    'expected global, found var', up1)
+                    'expected global, found local', symbol)
                 assertCompile(meta or not noundef,
-                    'expected local var ' .. parts[1], up1)
+                    'expected local ' .. parts[1], symbol)
                 assertCompile(not (meta and not meta.var),
-                    'expected local var', up1)
+                    'expected var ' .. raw, symbol)
             end
             if forceglobal then
                 assertCompile(not scope.symmeta[scope.unmanglings[raw]],
@@ -1294,6 +1295,7 @@ local function destructure(to, from, ast, scope, parent, opts)
                 destructure1(pair[1], {pair[2]}, left)
             end
         else
+            -- TODO: binding vector is lacking source metadata here:
             assertCompile(false, 'unable to bind ' .. tostring(left), up1)
         end
         if top then return {returned = true} end
@@ -1342,6 +1344,7 @@ local function checkUnused(scope, ast)
     if not rootOptions.checkUnusedLocals then return end
     for symName in pairs(scope.symmeta) do
         assertCompile(scope.symmeta[symName].used or symName:find("^_"),
+                      -- ast here is the whole form, not the local itself
                       ("unused local %s"):format(symName), ast)
     end
 end
@@ -1429,7 +1432,7 @@ SPECIALS["fn"] = function(ast, scope, parent)
     fScope.vararg = false
     local multi = fnName and isMultiSym(fnName[1])
     assertCompile(not multi or not multi.multiSymMethodCall,
-                  "malformed function name: " .. tostring(fnName), ast)
+                  "did not expect multi symbol " .. tostring(fnName), ast[index])
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not multi
         if isLocalFn then
@@ -1443,10 +1446,13 @@ SPECIALS["fn"] = function(ast, scope, parent)
         fnName = gensym(scope)
     end
     local argList = assertCompile(isTable(ast[index]),
-                                  "expected vector arg list [a b ...]", ast)
+                                  "expected parameters",
+                                  type(ast[index]) == "table" and ast[index] or ast)
     local function getArgName(i, name)
         if isVarg(name) then
-            assertCompile(i == #argList, "expected vararg as last parameter", ast)
+            assertCompile(i == #argList, "expected vararg as last parameter",
+                          -- TODO: arglists missing file/line/byte metadata
+                          ast)
             fScope.vararg = true
             return "..."
         elseif(isSym(name) and deref(name) ~= "nil"
@@ -1459,7 +1465,8 @@ SPECIALS["fn"] = function(ast, scope, parent)
                         { declaration = true, nomulti = true })
             return declared
         else
-            assertCompile(false, "expected symbol for function parameter", ast)
+            assertCompile(false, ("expected symbol for function parameter: %s"):
+                              format(name), ast)
         end
     end
     local argNameList = kvmap(argList, getArgName)
@@ -1517,8 +1524,7 @@ docSpecial("fn", {"name?", "args", "docstring?", "..."},
 -- (lua "print 'hello!'" "10") -> prints hello, evaluates to the number 10
 -- (lua nil "{1,2,3}") -> Evaluates to a table literal
 SPECIALS['lua'] = function(ast, _, parent)
-    assertCompile(#ast == 2 or #ast == 3,
-        "expected 2 or 3 arguments in 'lua' special form", ast)
+    assertCompile(#ast == 2 or #ast == 3, "expected 1 or 2 arguments", ast)
     if ast[2] ~= nil then
         table.insert(parent, {leaf = tostring(ast[2]), ast = ast})
     end
@@ -1870,7 +1876,7 @@ docSpecial("for", {"[index start stop step?]", "..."}, "Numeric loop construct."
                "\nEvaluates body once for each value between start and stop (inclusive).")
 
 SPECIALS[":"] = function(ast, scope, parent)
-    assertCompile(#ast >= 3, "expected at least 3 arguments", ast)
+    assertCompile(#ast >= 3, "expected at least 2 arguments", ast)
     -- Compile object
     local objectexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
     -- Compile method selector
@@ -2152,7 +2158,7 @@ local function doQuote (form, scope, parent, runtime)
 end
 
 SPECIALS['quote'] = function(ast, scope, parent)
-    assertCompile(#ast == 2, "quote only takes a single form")
+    assertCompile(#ast == 2, "expected one argument")
     local runtime, thisScope = true, scope
     while thisScope do
         thisScope = thisScope.parent
@@ -2585,7 +2591,7 @@ end
 
 local function loadMacros(modname, ast, scope, parent)
     local filename = assertCompile(searchModule(modname),
-                                   modname .. " not found.", ast)
+                                   modname .. " module not found.", ast)
     local env = makeCompilerEnv(ast, scope, parent)
     local globals = macroGlobals(env, currentGlobalNames())
     return dofileFennel(filename, { env = env, allowedGlobals = globals,
@@ -2633,7 +2639,7 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
             if opts.fallback then
                 return opts.fallback(modexpr)
             else
-                assertCompile(false, 'could not find module ' .. mod, ast)
+                assertCompile(false, 'module not found ' .. mod, ast)
             end
         end
     end

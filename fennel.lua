@@ -80,6 +80,14 @@ local function loadCode(code, environment, filename)
     end
 end
 
+-- Safely load an environment variable
+local getenv = os and os.getenv or function() end
+
+local function debugOn(flag)
+    local level = getenv("FENNEL_DEBUG") or ""
+    return level == "all" or level:find(flag)
+end
+
 -- Create a new list. Lists are a compile-time construct in Fennel; they are
 -- represented as tables with a special marker metatable. They only come from
 -- the parser, and they represent code which comes from reading a paren form;
@@ -2228,9 +2236,10 @@ local function traceback(msg, start)
     local lines = {}
     if msg then
         if msg:find("^Compile error") then
-            -- TODO: usually you don't want a traceback! but sometimes you might?
-            -- table.insert(lines, msg)
-            return msg
+            -- End users don't want to see compiler stack traces, but when
+            -- you're hacking on the compiler, export FENNEL_DEBUG=trace
+            if not debugOn("trace") then return msg end
+            table.insert(lines, msg)
         else
             local newmsg = msg:gsub('^[^:]*:%d+:%s+', 'runtime error: ')
             table.insert(lines, newmsg)
@@ -2310,10 +2319,7 @@ end
 local macroLoaded = {}
 
 local pathTable = {"./?.fnl", "./?/init.fnl"}
-local osPath = os and os.getenv and os.getenv("FENNEL_PATH")
-if osPath then
-    table.insert(pathTable, osPath)
-end
+table.insert(pathTable, getenv("FENNEL_PATH"))
 
 local module = {
     parser = parser,

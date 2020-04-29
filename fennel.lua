@@ -511,9 +511,17 @@ end
 -- Assert a condition and raise a compile error with line numbers. The ast arg
 -- should be unmodified so that its first element is the form being called.
 local function assertCompile(condition, msg, ast)
-    -- if we use regular `assert' we can't provide the `level' argument of zero
+    local override = rootOptions and rootOptions["assert-compile"]
+    if override then
+        -- don't make custom handlers deal with resetting root; it's error-prone
+        if not condition and resetRoot then resetRoot() end
+        override(condition, msg, ast)
+        -- should we fall thru to the default check, or should we allow the
+        -- override to swallow the error?
+    end
     if not condition then
         if resetRoot then resetRoot() end
+        -- if we use regular `assert' we can't provide the `level' argument of 0
         error(string.format("Compile error in '%s' %s:%s: %s",
                             isSym(ast[1]) and ast[1][1] or ast[1] or '()',
                             ast.filename or "unknown", ast.line or '?', msg), 0)
@@ -2220,7 +2228,9 @@ local function traceback(msg, start)
     local lines = {}
     if msg then
         if msg:find("^Compile error") then
-            table.insert(lines, msg)
+            -- TODO: usually you don't want a traceback! but sometimes you might?
+            -- table.insert(lines, msg)
+            return msg
         else
             local newmsg = msg:gsub('^[^:]*:%d+:%s+', 'runtime error: ')
             table.insert(lines, newmsg)

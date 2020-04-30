@@ -1210,7 +1210,7 @@ local function destructure(to, from, ast, scope, parent, opts)
             local meta = scope.symmeta[parts[1]]
             if #parts == 1 and not forceset then
                 assertCompile(not(forceglobal and meta),
-                    ("global %s conflicts with local"):format(symbol), symbol)
+                    ("global %s conflicts with local"):format(tostring(symbol)), symbol)
                 assertCompile(not (meta and not meta.var),
                     'expected var ' .. raw, symbol)
                 assertCompile(meta or not noundef,
@@ -1306,7 +1306,7 @@ local function destructure(to, from, ast, scope, parent, opts)
             end
         else
             assertCompile(false, ("unable to bind %s %s"):
-                              format(type(left), left),
+                              format(type(left), tostring(left)),
                           type(up1[2]) == "table" and up1[2] or up1)
         end
         if top then return {returned = true} end
@@ -1475,7 +1475,7 @@ SPECIALS["fn"] = function(ast, scope, parent)
             return declared
         else
             assertCompile(false, ("expected symbol for function parameter: %s"):
-                              format(name), ast[2])
+                              format(tostring(name)), ast[2])
         end
     end
     local argNameList = kvmap(argList, getArgName)
@@ -1869,7 +1869,8 @@ SPECIALS["for"] = function(ast, scope, parent)
     local ranges = assertCompile(isTable(ast[2]), "expected binding table", ast)
     local bindingSym = table.remove(ast[2], 1)
     assertCompile(isSym(bindingSym),
-                  ("unable to bind %s %s"):format(type(bindingSym), bindingSym), ast[2])
+                  ("unable to bind %s %s"):
+                      format(type(bindingSym), tostring(bindingSym)), ast[2])
     assertCompile(#ast >= 3, "expected body expression", ast[1])
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do

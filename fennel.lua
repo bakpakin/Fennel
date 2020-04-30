@@ -2135,6 +2135,7 @@ local function doQuote (form, scope, parent, runtime)
     -- symbol
     elseif isSym(form) then
         assertCompile(not runtime, "symbols may only be used at compile time", form)
+        -- TODO: this discards filename/line/byte-offset source data
         if deref(form):find("#$") then -- autogensym
             return ("sym('%s')"):format(autogensym(deref(form), scope))
         else -- prevent non-gensymmed symbols from being bound as an identifier

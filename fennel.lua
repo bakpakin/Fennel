@@ -728,8 +728,9 @@ local function checkBindingValid(symbol, scope, ast)
     assertCompile(not scope.specials[name],
                   ("local %s was overshadowed by a special form or macro")
                       :format(name), ast)
-    assertCompile(not isQuoted(symbol), 'macro tried to bind ' .. name ..
-                      " without gensym; try ' .. name .. '# instead", ast)
+    -- TODO: missing source data on symbol
+    assertCompile(not isQuoted(symbol),
+                  ("macro tried to bind %s without gensym"):format(name), symbol)
 
 end
 
@@ -1201,11 +1202,11 @@ local function destructure(to, from, ast, scope, parent, opts)
             local meta = scope.symmeta[parts[1]]
             if #parts == 1 and not forceset then
                 assertCompile(not(forceglobal and meta),
-                    'expected global, found local', symbol)
-                assertCompile(meta or not noundef,
-                    'expected local ' .. parts[1], symbol)
+                    ("global %s conflicts with local"):format(symbol), symbol)
                 assertCompile(not (meta and not meta.var),
                     'expected var ' .. raw, symbol)
+                assertCompile(meta or not noundef,
+                    'expected local ' .. parts[1], symbol)
             end
             if forceglobal then
                 assertCompile(not scope.symmeta[scope.unmanglings[raw]],
@@ -1262,7 +1263,7 @@ local function destructure(to, from, ast, scope, parent, opts)
             for k, v in pairs(left) do
                 if isSym(left[k]) and left[k][1] == "&" then
                     assertCompile(type(k) == "number" and not left[k+2],
-                        "expected rest argument in final position", left)
+                        "expected rest argument before last parameter", left)
                     local subexpr = expr(('{(table.unpack or unpack)(%s, %s)}'):format(s, k),
                         'expression')
                     destructure1(left[k+1], {subexpr}, left)
@@ -2902,7 +2903,7 @@ that argument name begins with ?."
             (each [k pat (pairs pattern)]
               (if (and (sym? pat) (= "&" (tostring pat)))
                   (do (assert (not (. pattern (+ k 2)))
-                              "expected rest argument in final position")
+                              "expected rest argument before last parameter")
                       (table.insert bindings (. pattern (+ k 1)))
                       (table.insert bindings [`(select ,k ((or _G.unpack table.unpack)
                                                            ,val))]))

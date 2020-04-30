@@ -10,7 +10,7 @@
   "()" "expected a function, macro, or special"
   "(789)" "cannot call literal value"
   "(do\n\n\n(each \n[x (pairs {})] (when)))" "when' unknown:5:"
-  "(do\n\n\n(each \n[x 34 (pairs {})] 21))" "4: unable to bind number"
+  "(do\n\n\n(each \n[x 34 (pairs {})] 21))" "5: unable to bind number 34"
   "(each [k v (pairs {})] (BAD k v))" "BAD"
   "(f" "expected closing delimiter ) in unknown:1"
   "(fn [12])" "expected symbol for function parameter"

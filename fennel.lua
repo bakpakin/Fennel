@@ -1303,7 +1303,8 @@ local function destructure(to, from, ast, scope, parent, opts)
             end
         else
             assertCompile(false, ("unable to bind %s %s"):
-                              format(type(left), left), up1[2])
+                              format(type(left), left),
+                          type(up1[2]) == "table" and up1[2] or up1)
         end
         if top then return {returned = true} end
     end

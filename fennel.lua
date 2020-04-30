@@ -356,11 +356,17 @@ local function parser(getbyte, filename)
                     for i = 1, #last do
                         val[i] = last[i]
                     end
+                    -- for table literals we can store file/line/offset source
+                    -- data in fields on the table itself, because the AST node
+                    -- *is* the table, and the fields would show up in the
+                    -- compiled output. keep them on the metatable instead.
+                    setmetatable(val, last)
                 else -- ; }
                     if #last % 2 ~= 0 then
                         parseError('expected even number of values in table literal')
                     end
                     val = {}
+                    setmetatable(val, last) -- see note above about source data
                     for i = 1, #last, 2 do
                         if(tostring(last[i]) == ":" and isSym(last[i + 1])
                            and isSym(last[i])) then
@@ -1297,8 +1303,8 @@ local function destructure(to, from, ast, scope, parent, opts)
                 destructure1(pair[1], {pair[2]}, left)
             end
         else
-            -- TODO: binding vector is lacking source metadata here:
-            assertCompile(false, ("unable to bind %s %s"):format(type(left), left), up1)
+            assertCompile(false, ("unable to bind %s %s"):
+                              format(type(left), left), up1[2])
         end
         if top then return {returned = true} end
     end

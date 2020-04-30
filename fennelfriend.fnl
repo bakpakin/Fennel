@@ -109,7 +109,7 @@
     (values codeline bytes eol)))
 
 (fn friendly-msg [msg ast]
-  (let [{: filename : line : bytestart : byteend} ast
+  (let [{: filename : line : bytestart : byteend} (or (getmetatable ast) ast)
         (ok codeline bol eol) (pcall read-line-from-file filename line)
         suggestions (suggest msg ast)
         out [msg ""]]
@@ -127,7 +127,8 @@
 
 (fn friendly [condition msg ast]
   (when (not condition)
-    (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
-                            (or ast.filename "unknown") (or ast.line "?") msg)
-                         ast) 0))
+    (let [{: filename : line} (or (getmetatable ast) ast)]
+      (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
+                              (or filename "unknown") (or line "?") msg)
+                           ast) 0)))
   condition)

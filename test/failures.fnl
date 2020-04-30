@@ -6,7 +6,8 @@
   "\n\n(let [f (lambda []\n(local))] (f))" "4: expected name and value"
   "\n\n(let [x.y 9] nil)" "unknown:3: unexpected multi"
   "\n(when)" "Compile error in 'when' unknown:2"
-  "((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))\n      (->1 23 (+ 1))" "unknown global in strict mode"
+  "((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))
+      (->1 23 (+ 1))" "unknown global in strict mode"
   "()" "expected a function, macro, or special"
   "(789)" "cannot call literal value"
   "(do\n\n\n(each \n[x (pairs {})] (when)))" "when' unknown:5:"
@@ -79,4 +80,17 @@
       (l.assertFalse ok? (.. "Expected compiling " code " to fail."))
       (l.assertStrContains msg expected-msg))))
 
-{: test-failures}
+;; automated tests for suggestions are rudimentary because the usefulness of the
+;; output is so subjective. to see a full catalog of suggestions, run the script
+;; test/bad/friendly.sh and review that output.
+(fn test-suggestions []
+  (let [(_ msg) (pcall fennel.dofile "test/bad/set-local.fnl"
+                       {:assert-compile (require :fennelfriend)})]
+    ;; show the raw error message
+    (l.assertStrContains msg "expected var x")
+    ;; offer suggestions
+    (l.assertStrContains msg "Try declaring x using var")
+    ;; show the code and point out the identifier at fault
+    (l.assertStrContains msg "(set x 3)\n     ^")))
+
+{: test-failures : test-suggestions}

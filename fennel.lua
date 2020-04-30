@@ -734,7 +734,6 @@ local function checkBindingValid(symbol, scope, ast)
     assertCompile(not scope.specials[name],
                   ("local %s was overshadowed by a special form or macro")
                       :format(name), ast)
-    -- TODO: missing source data on symbol
     assertCompile(not isQuoted(symbol),
                   ("macro tried to bind %s without gensym"):format(name), symbol)
 
@@ -1216,7 +1215,7 @@ local function destructure(to, from, ast, scope, parent, opts)
             end
             if forceglobal then
                 assertCompile(not scope.symmeta[scope.unmanglings[raw]],
-                              "global " .. raw .. " conflicts with local", ast)
+                              "global " .. raw .. " conflicts with local", symbol)
                 scope.manglings[raw] = globalMangling(raw)
                 scope.unmanglings[globalMangling(raw)] = raw
                 if allowedGlobals then
@@ -1458,9 +1457,7 @@ SPECIALS["fn"] = function(ast, scope, parent)
                                   type(ast[index]) == "table" and ast[index] or ast)
     local function getArgName(i, name)
         if isVarg(name) then
-            assertCompile(i == #argList, "expected vararg as last parameter",
-                          -- TODO: arglists missing file/line/byte metadata
-                          ast)
+            assertCompile(i == #argList, "expected vararg as last parameter", ast[2])
             fScope.vararg = true
             return "..."
         elseif(isSym(name) and deref(name) ~= "nil"
@@ -1474,7 +1471,7 @@ SPECIALS["fn"] = function(ast, scope, parent)
             return declared
         else
             assertCompile(false, ("expected symbol for function parameter: %s"):
-                              format(name), ast)
+                              format(name), ast[2])
         end
     end
     local argNameList = kvmap(argList, getArgName)
@@ -1641,8 +1638,8 @@ SPECIALS["let"] = function(ast, scope, parent, opts)
     assertCompile(isList(bindings) or isTable(bindings),
                   "expected binding table", ast)
     assertCompile(#bindings % 2 == 0,
-                  "expected even number of name/value bindings", ast)
-    assertCompile(#ast >= 3, "expected body expression", ast)
+                  "expected even number of name/value bindings", ast[2])
+    assertCompile(#ast >= 3, "expected body expression", ast[1])
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, #bindings, 2 do
@@ -1804,7 +1801,7 @@ docSpecial("if", {"cond1", "body1", "...", "condN", "bodyN"},
 -- (each [k v (pairs t)] body...) => []
 SPECIALS["each"] = function(ast, scope, parent)
     local binding = assertCompile(isTable(ast[2]), "expected binding table", ast)
-    assertCompile(#ast >= 3, "expected body expression", ast)
+    assertCompile(#ast >= 3, "expected body expression", ast[1])
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local destructures = {}
     local newManglings = {}
@@ -1867,10 +1864,9 @@ docSpecial("while", {"condition", "..."},
 SPECIALS["for"] = function(ast, scope, parent)
     local ranges = assertCompile(isTable(ast[2]), "expected binding table", ast)
     local bindingSym = table.remove(ast[2], 1)
-    -- TODO: should be ast[2] but missing source data
     assertCompile(isSym(bindingSym),
-                  ("unable to bind %s %s"):format(type(bindingSym), bindingSym), ast)
-    assertCompile(#ast >= 3, "expected body expression", ast)
+                  ("unable to bind %s %s"):format(type(bindingSym), bindingSym), ast[2])
+    assertCompile(#ast >= 3, "expected body expression", ast[1])
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
         rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])

@@ -1,0 +1,1 @@
+(fn myfun (a) a)

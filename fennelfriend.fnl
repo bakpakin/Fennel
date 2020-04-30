@@ -7,6 +7,10 @@
 (fn odd-bindings-suggest [[_ _bindings]]
   ["finding where the identifier or value is missing"])
 
+(fn ast-source [ast]
+  (let [m (getmetatable ast)]
+    (if (and m m.filename m.line m) m ast)))
+
 (local suggestions
        {"unexpected multi symbol (.*)"
         ["renaming %s to not have a dot or colon in it"]
@@ -109,11 +113,12 @@
     (values codeline bytes eol)))
 
 (fn friendly-msg [msg ast]
-  (let [{: filename : line : bytestart : byteend} (or (getmetatable ast) ast)
+  (let [{: filename : line : bytestart : byteend} (ast-source ast)
         (ok codeline bol eol) (pcall read-line-from-file filename line)
         suggestions (suggest msg ast)
         out [msg ""]]
     ;; don't assume the file can be read as-is
+    ;; (when (not ok) (print :err codeline))
     (when (and ok codeline)
       (table.insert out codeline))
     (when (and ok codeline bytestart byteend)
@@ -127,7 +132,7 @@
 
 (fn friendly [condition msg ast]
   (when (not condition)
-    (let [{: filename : line} (or (getmetatable ast) ast)]
+    (let [{: filename : line} (ast-source ast)]
       (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
                               (or filename "unknown") (or line "?") msg)
                            ast) 0)))

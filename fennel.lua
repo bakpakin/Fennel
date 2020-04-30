@@ -647,7 +647,7 @@ end
 local function localMangling(str, scope, ast, tempManglings)
     local append = 0
     local mangling = str
-    assertCompile(not isMultiSym(str), 'did not expect multi symbol ' .. str, ast)
+    assertCompile(not isMultiSym(str), 'unexpected multi symbol ' .. str, ast)
 
     -- Mapping mangling to a valid Lua identifier
     if luaKeywords[mangling] or mangling:match('^%d') then
@@ -726,7 +726,8 @@ local function checkBindingValid(symbol, scope, ast)
     -- Check if symbol will be over shadowed by special
     local name = symbol[1]
     assertCompile(not scope.specials[name],
-    ("%s may be overshadowed by a special form or macro"):format(name), ast)
+                  ("local %s was overshadowed by a special form or macro")
+                      :format(name), ast)
     assertCompile(not isQuoted(symbol), 'macro tried to bind ' .. name ..
                       " without gensym; try ' .. name .. '# instead", ast)
 
@@ -737,7 +738,7 @@ local function declareLocal(symbol, meta, scope, ast, tempManglings)
     checkBindingValid(symbol, scope, ast)
     local name = symbol[1]
     assertCompile(not isMultiSym(name),
-                  "did not expect multi symbol " .. name, ast)
+                  "unexpected multi symbol " .. name, ast)
     local mangling = localMangling(name, scope, ast, tempManglings)
     scope.symmeta[name] = meta
     return mangling
@@ -1192,7 +1193,7 @@ local function destructure(to, from, ast, scope, parent, opts)
     local function getname(symbol, up1)
         local raw = symbol[1]
         assertCompile(not (nomulti and isMultiSym(raw)),
-            'did not expect multi symbol ' .. raw, up1)
+            'unexpected multi symbol ' .. raw, up1)
         if declaration then
             return declareLocal(symbol, {var = isvar}, scope, symbol, newManglings)
         else
@@ -1296,7 +1297,7 @@ local function destructure(to, from, ast, scope, parent, opts)
             end
         else
             -- TODO: binding vector is lacking source metadata here:
-            assertCompile(false, 'unable to bind ' .. tostring(left), up1)
+            assertCompile(false, ("unable to bind %s %s"):format(type(left), left), up1)
         end
         if top then return {returned = true} end
     end
@@ -1432,7 +1433,7 @@ SPECIALS["fn"] = function(ast, scope, parent)
     fScope.vararg = false
     local multi = fnName and isMultiSym(fnName[1])
     assertCompile(not multi or not multi.multiSymMethodCall,
-                  "did not expect multi symbol " .. tostring(fnName), ast[index])
+                  "unexpected multi symbol " .. tostring(fnName), ast[index])
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not multi
         if isLocalFn then
@@ -1631,10 +1632,10 @@ docSpecial("var", {"name", "val"},
 SPECIALS["let"] = function(ast, scope, parent, opts)
     local bindings = ast[2]
     assertCompile(isList(bindings) or isTable(bindings),
-                  "expected table for destructuring", ast)
+                  "expected binding table", ast)
     assertCompile(#bindings % 2 == 0,
                   "expected even number of name/value bindings", ast)
-    assertCompile(#ast >= 3, "missing body expression", ast)
+    assertCompile(#ast >= 3, "expected body expression", ast)
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, #bindings, 2 do
@@ -1650,7 +1651,7 @@ docSpecial("let", {"[name1 val1 ... nameN valN]", "..."},
 
 -- For setting items in a table
 SPECIALS["tset"] = function(ast, scope, parent)
-    assertCompile(#ast > 3, ("tset form needs table, key, and value"), ast)
+    assertCompile(#ast > 3, ("expected table, key, and value arguments"), ast)
     local root = compile1(ast[2], scope, parent, {nval = 1})[1]
     local keys = {}
     for i = 3, #ast - 1 do
@@ -1796,11 +1797,11 @@ docSpecial("if", {"cond1", "body1", "...", "condN", "bodyN"},
 -- (each [k v (pairs t)] body...) => []
 SPECIALS["each"] = function(ast, scope, parent)
     local binding = assertCompile(isTable(ast[2]), "expected binding table", ast)
+    assertCompile(#ast >= 3, "expected body expression", ast)
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local destructures = {}
     local newManglings = {}
     local function destructureBinding(v)
-        assertCompile(isSym(v) or isTable(v), "expected iterator symbol or table", ast)
         if isSym(v) then
             return declareLocal(v, {}, scope, ast, newManglings)
         else
@@ -1858,8 +1859,11 @@ docSpecial("while", {"condition", "..."},
 
 SPECIALS["for"] = function(ast, scope, parent)
     local ranges = assertCompile(isTable(ast[2]), "expected binding table", ast)
-    local bindingSym = assertCompile(isSym(table.remove(ast[2], 1)),
-                                     "expected iterator symbol", ast)
+    local bindingSym = table.remove(ast[2], 1)
+    -- TODO: should be ast[2] but missing source data
+    assertCompile(isSym(bindingSym),
+                  ("unable to bind %s %s"):format(type(bindingSym), bindingSym), ast)
+    assertCompile(#ast >= 3, "expected body expression", ast)
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
         rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
@@ -2833,7 +2837,7 @@ that argument name begins with ?."
                                              :format ,(tostring a)
                                              ,(or a.filename "unknown")
                                              ,(or a.line "?"))))))
-             (assert (> (length args) 1) "missing body expression")
+             (assert (> (length args) 1) "expected body expression")
              (each [_ a (ipairs arglist)]
                (check! a))
              `(fn ,(unpack args))))

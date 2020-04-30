@@ -1,14 +1,20 @@
 ;; an assert-compile function which tries to show where the error occurred
 ;; and what to do about it!
 
+;; TODO: run this in compiler scope so we have access to the real sym?
+(fn sym? [s] (-?> (getmetatable s) (. 1) (= "SYMBOL")))
+
+(fn odd-bindings-suggest [[_ bindings]]
+  "find the missing identifier or value")
+
 (local suggestions
-       {"did not expect multi symbol (.*)"
+       {"unexpected multi symbol (.*)"
         "rename %s to not have a dot or colon in it"
 
         "use of global (.*) is aliased by a local"
         "rename local %s to avoid conflict"
 
-        "(.*) may be overshadowed by a special form or macro"
+        "(.*) was overshadowed by a special form or macro"
         "rename local %s to avoid conflict"
 
         "global (.*) conflicts with local"
@@ -44,8 +50,8 @@
         "expected parameters"
         "place parameters in function as a list of identifiers in brackets"
 
-        "unable to bind"
-        "replace string/number literal being bound with an identifier"
+        "unable to bind (.*)"
+        "replace %s being bound with an identifier"
 
         "expected rest argument in final position"
         "when destructuring, move & to right before the final identifier"
@@ -60,18 +66,30 @@
         (.. "you're probably calling a macro that returns a coroutine or "
             "userdata?\nYou'll need to debug your macro")
 
-        ;; no idea how to trigger this one
-        ;; "expected local"
+        "expected local"
+        "probably a typo, or you're using something that's out of scope"
 
-        ;; skipping special forms for now...
+        "expected body expression"
+        "put some code in the body of this form after the bindings"
+
+        "expected binding table"
+        "place a table here in square brackets containing identifiers to bind"
+
+        "expected even number of name/value bindings"
+        odd-bindings-suggest
+
+        "may only be used at compile time"
+        "move this to inside a macro if you need to manipulate symbols/lists"
         })
 
-(fn suggest [msg _ast]
+(fn suggest [msg ast]
   (var suggestion nil)
   (each [pat sug (pairs suggestions)]
     (let [matches [(msg:match pat)]]
       (when (< 0 (# matches))
-        (set suggestion (sug:format (unpack matches))))))
+        (set suggestion (if (= :string (type sug))
+                            (sug:format (unpack matches))
+                            (sug ast matches))))))
   suggestion)
 
 (fn read-line-from-file [filename line]

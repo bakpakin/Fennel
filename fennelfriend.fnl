@@ -13,16 +13,16 @@
 
 (local suggestions
        {"unexpected multi symbol (.*)"
-        ["renaming %s to not have a dot or colon in it"]
+        ["removing periods or colons from %s"]
 
         "use of global (.*) is aliased by a local"
-        ["renaming local %s to avoid conflict"]
+        ["renaming local %s"]
 
         "local (.*) was overshadowed by a special form or macro"
-        ["renaming local %s to avoid conflict"]
+        ["renaming local %s"]
 
         "global (.*) conflicts with local"
-        ["renaming local %s to avoid conflict"]
+        ["renaming local %s"]
 
         "expected var (.*)"
         ["declaring %s using var instead of let/local"
@@ -40,21 +40,21 @@
          "using square brackets if you want an empty table"]
 
         "cannot call literal value"
-        ["looking to see if there's a typo"
-         "looking for a missing function name"]
+        ["checking for typos"
+         "checking for a missing function name"]
 
         "unexpected vararg"
-        ["putting ... at the end of the function's parameters to use varargs"]
+        ["putting \"...\" at the end of the fn parameters if the vararg was intended"]
 
         "multisym method calls may only be in call position"
-        ["using a dot instead of a colon to reference a table's fields"]
+        ["using a period instead of a colon to reference a table's fields"]
 
         "unused local (.*)"
         ["fixing a typo so %s is used"
-         "renaming it to _%s"]
+         "renaming the local to _%s"]
 
         "expected parameters"
-        ["placing function parameters as a list of identifiers in brackets"]
+        ["adding function parameters as a list of identifiers in brackets"]
 
         "unable to bind (.*)"
         ["replacing the %s being bound with an identifier"]
@@ -63,10 +63,10 @@
         ["moving & to right before the final identifier when destructuring"]
 
         "expected vararg as last parameter"
-        ["moving the ... argument to the end of the parameter list"]
+        ["moving the \"...\" to the end of the parameter list"]
 
         "expected symbol for function parameter: (.*)"
-        ["changing the %s parameter to an identifier instead of a literal"]
+        ["changing %s to an identifier instead of a literal value"]
 
         "could not compile value of type "
         ["debugging the macro you're calling not to return a coroutine or userdata"]

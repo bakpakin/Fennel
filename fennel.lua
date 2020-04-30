@@ -535,10 +535,13 @@ local function assertCompile(condition, msg, ast)
     end
     if not condition then
         if resetRoot then resetRoot() end
+        local m = getmetatable(ast)
+        local filename = m and m.filename or ast.filename or "unknown"
+        local line = m and m.line or ast.line or "?"
         -- if we use regular `assert' we can't provide the `level' argument of 0
         error(string.format("Compile error in '%s' %s:%s: %s",
                             isSym(ast[1]) and ast[1][1] or ast[1] or '()',
-                            ast.filename or "unknown", ast.line or '?', msg), 0)
+                            filename, line, msg), 0)
     end
     return condition
 end

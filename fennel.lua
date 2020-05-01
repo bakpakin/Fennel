@@ -446,22 +446,30 @@ local function parser(getbyte, filename, options)
                         x = tonumber(numberWithStrippedUnderscores) or
                             parseError('could not read number "' .. rawstr .. '"')
                     else
-                        x = tonumber(numberWithStrippedUnderscores) or
-                            (rawstr:match("%.[0-9]") and
-                                 parseError("can't start multisym segment " ..
-                                                "with a digit: ".. rawstr)) or
-                            ((rawstr:match(":%.") or
-                                  rawstr:match("%.:") or
-                                  rawstr:match("::") or
-                                  (rawstr:match("%.%.") and rawstr ~= "..")) and
-                                    parseError("malformed multisym: " .. rawstr)) or
-                            (rawstr:match(":.+:") or rawstr:match(":.+%.") and
-                                 parseError("method must be last component " ..
-                                                "of multisym: " .. rawstr)) or
-                            sym(rawstr, nil, { line = line,
-                                               filename = filename,
-                                               bytestart = bytestart,
-                                               byteend = byteindex, })
+                        x = tonumber(numberWithStrippedUnderscores)
+                        if not x then
+                            if(rawstr:match("%.[0-9]")) then
+                                byteindex = (byteindex - #rawstr +
+                                                 rawstr:find("%.[0-9]") + 1)
+                                parseError("can't start multisym segment " ..
+                                               "with a digit: ".. rawstr)
+                            elseif(rawstr:match("[%.:][%.:]") and
+                                   rawstr ~= "..") then
+                                byteindex = (byteindex - #rawstr +
+                                                 rawstr:find("[%.:][%.:]") + 1)
+                                parseError("malformed multisym: " .. rawstr)
+                            elseif(rawstr:match(":.+[%.:]")) then
+                                byteindex = (byteindex - #rawstr +
+                                                 rawstr:find(":.+[%.:]"))
+                                parseError("method must be last component " ..
+                                               "of multisym: " .. rawstr)
+                            else
+                                x = sym(rawstr, nil, { line = line,
+                                                       filename = filename,
+                                                       bytestart = bytestart,
+                                                       byteend = byteindex, })
+                            end
+                        end
                     end
                     dispatch(x)
                 end

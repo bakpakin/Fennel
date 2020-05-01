@@ -278,7 +278,7 @@ local function parser(getbyte, filename, options)
     local function parseError(msg)
         if resetRoot then resetRoot() end
         local override = options and options["parse-error"]
-        if override then override(msg, filename or "unknown", line or "?") end
+        if override then override(msg, filename or "unknown", line or "?", byteindex) end
         return error(("Parse error in %s:%s: %s"):
                 format(filename or "unknown", line or "?", msg), 0)
     end
@@ -349,7 +349,7 @@ local function parser(getbyte, filename, options)
                 local last = stack[#stack]
                 local val
                 if last.closer ~= b then
-                    parseError('unexpected delimiter ' .. string.char(b) ..
+                    parseError('mismatched closing delimiter ' .. string.char(b) ..
                                ', expected ' .. string.char(last.closer))
                 end
                 last.byteend = byteindex -- Set closing byte index

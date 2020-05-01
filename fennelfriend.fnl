@@ -1,12 +1,6 @@
 ;; an assert-compile function which tries to show where the error occurred
 ;; and what to do about it!
 
-;; TODO: run this in compiler scope so we have access to the real sym?
-(fn sym? [s] (-?> (getmetatable s) (. 1) (= "SYMBOL")))
-
-(fn odd-bindings-suggest [[_ _bindings]]
-  ["finding where the identifier or value is missing"])
-
 (fn ast-source [ast]
   (let [m (getmetatable ast)]
     (if (and m m.filename m.line m) m ast)))
@@ -82,14 +76,35 @@
         ["placing a table here in square brackets containing identifiers to bind"]
 
         "expected even number of name/value bindings"
-        odd-bindings-suggest
+        ["finding where the identifier or value is missing"]
 
         "may only be used at compile time"
         ["moving this to inside a macro if you need to manipulate symbols/lists"
          "using square brackets instead of parens to construct a table"]
+
+        "unexpected closing delimiter (.)"
+        ["deleting %s"
+         "adding matching opening delimiter earlier"]
+
+        "mismatched closing delimiter (.), expected (.)"
+        ["replacing %s with %s"
+         "deleting %s"
+         "adding matching opening delimiter earlier"]
+
+        ;; TODO:
+        ;; * expected whitespace before opening delimiter
+        ;; * expected even number of values in table literal
+        ;; * invalid whitespace after quoting prefix
+        ;; * illegal character ~
+        ;; * could not read token
+        ;; * can't start multisym segment with digit
+        ;; * malformed multisym
+        ;; * method must be last component
+        ;; * illegal character
+
         })
 
-(fn suggest [msg ast]
+(fn suggest [msg]
   (var suggestion nil)
   (each [pat sug (pairs suggestions)]
     (let [matches [(msg:match pat)]]
@@ -99,7 +114,7 @@
                               (each [_ s (ipairs sug)]
                                 (table.insert out (s:format (unpack matches))))
                               out)
-                            (sug ast matches))))))
+                            (sug matches))))))
   suggestion)
 
 (fn read-line-from-file [filename line]
@@ -112,10 +127,9 @@
     (f:close)
     (values codeline bytes eol)))
 
-(fn compile-msg [msg ast]
-  (let [{: filename : line : bytestart : byteend} (ast-source ast)
-        (ok codeline bol eol) (pcall read-line-from-file filename line)
-        suggestions (suggest msg ast)
+(fn friendly-msg [msg {: filename : line : bytestart : byteend}]
+  (let [(ok codeline bol eol) (pcall read-line-from-file filename line)
+        suggestions (suggest msg)
         out [msg ""]]
     ;; don't assume the file can be read as-is
     ;; (when (not ok) (print :err codeline))
@@ -125,6 +139,9 @@
       (table.insert out (.. (string.rep " " (- bytestart bol 1)) "^"
                             (string.rep "^" (math.min (- byteend bytestart)
                                                       (- eol bytestart))))))
+    (when (and ok codeline bytestart (not byteend))
+      (table.insert out (.. (string.rep "-" (- bytestart bol 1)) "^"))
+      (table.insert out ""))
     (when suggestions
       (each [_ suggestion (ipairs suggestions)]
         (table.insert out (: "* Try %s." :format suggestion))))
@@ -133,12 +150,12 @@
 (fn assert-compile [condition msg ast]
   (when (not condition)
     (let [{: filename : line} (ast-source ast)]
-      (error (compile-msg (: "Compile error in %s:%s\n  %s" :format
-                             filename line msg)
-                          ast) 0)))
+      (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
+                              filename line msg) (ast-source ast)) 0)))
   condition)
 
-(fn parse-error [msg filename line]
-  (error (: "Parse error in %s:%s\n  %s" :format filename line msg) 0))
+(fn parse-error [msg filename line bytestart]
+  (error (friendly-msg (: "Parse error in %s:%s\n  %s" :format filename line msg)
+                       {: filename : line : bytestart}) 0))
 
 {: assert-compile : parse-error}

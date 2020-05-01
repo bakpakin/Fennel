@@ -444,19 +444,19 @@ local function parser(getbyte, filename, options)
                     local x
                     if forceNumber then
                         x = tonumber(numberWithStrippedUnderscores) or
-                            parseError('could not read token "' .. rawstr .. '"')
+                            parseError('could not read number "' .. rawstr .. '"')
                     else
                         x = tonumber(numberWithStrippedUnderscores) or
                             (rawstr:match("%.[0-9]") and
                                  parseError("can't start multisym segment " ..
-                                                "with digit: ".. rawstr)) or
+                                                "with a digit: ".. rawstr)) or
                             ((rawstr:match(":%.") or
                                   rawstr:match("%.:") or
                                   rawstr:match("::") or
                                   (rawstr:match("%.%.") and rawstr ~= "..")) and
                                     parseError("malformed multisym: " .. rawstr)) or
-                            (rawstr:match(":.+:") and
-                                 parseError("method call must be last component " ..
+                            (rawstr:match(":.+:") or rawstr:match(":.+%.") and
+                                 parseError("method must be last component " ..
                                                 "of multisym: " .. rawstr)) or
                             sym(rawstr, nil, { line = line,
                                                filename = filename,

@@ -91,18 +91,32 @@
          "deleting %s"
          "adding matching opening delimiter earlier"]
 
-        ;; TODO:
-        ;; * expected whitespace before opening delimiter
-        ;; * expected even number of values in table literal
-        ;; * invalid whitespace after quoting prefix
-        ;; * illegal character ~
-        ;; * could not read token
-        ;; * can't start multisym segment with digit
-        ;; * malformed multisym
-        ;; * method must be last component
-        ;; * illegal character
+        "expected even number of values in table literal"
+        ["removing a key"
+         "adding a value"]
 
-        })
+        "expected whitespace before opening delimiter"
+        ["adding whitespace"]
+
+        "illegal character: (.)"
+        ["deleting or replacing %s"
+         "avoiding reserved characters like \", \\, ', ~, ;, @, `, and comma"]
+
+        "could not read number (.*)"
+        ["removing the non-digit character"
+         "beginning the identifier with a non-digit, if it is not meant to be a number"]
+
+        "can't start multisym segment with a digit"
+        ["removing the digit"
+         "adding a non-digit before the digit"]
+
+        "malformed multisym"
+        ["ensuring each period or colon is not followed by another period or colon"]
+
+        "method must be last component"
+        ["using a period instead of a colon for field access"
+         "removing segments after the colon"
+         "making the method call, then looking up the field on the result"]})
 
 (fn suggest [msg]
   (var suggestion nil)

@@ -153,7 +153,10 @@ end
 
 -- TODO: generalize this instead of hardcoding it
 local fok, friendly = pcall(fennel.dofile, fennel_dir .. "fennelfriend.fnl", options)
-if fok then options["assert-compile"] = friendly end
+if fok then
+    options["assert-compile"] = friendly["assert-compile"]
+    options["parse-error"] = friendly["parse-error"]
+end
 
 if arg[1] == "--repl" or #arg == 0 then
     local ppok, pp = pcall(fennel.dofile, fennel_dir .. "fennelview.fnl", options)

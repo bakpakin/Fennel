@@ -248,7 +248,7 @@ local resetRoot = nil
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
-local function parser(getbyte, filename)
+local function parser(getbyte, filename, options)
 
     -- Stack of unfinished values
     local stack = {}
@@ -274,9 +274,13 @@ local function parser(getbyte, filename)
         if r == 10 then line = line + 1 end
         return r
     end
+
     local function parseError(msg)
         if resetRoot then resetRoot() end
-        return error(msg .. ' in ' .. (filename or 'unknown') .. ':' .. line, 0)
+        local override = options and options["parse-error"]
+        if override then override(msg, filename or "unknown", line or "?") end
+        return error(("Parse error in %s:%s: %s"):
+                format(filename or "unknown", line or "?", msg), 0)
     end
 
     -- Parse stream
@@ -2190,7 +2194,7 @@ local function compileStream(strm, options)
     local scope = opts.scope or makeScope(GLOBAL_SCOPE)
     if opts.requireAsInclude then scope.specials.require = requireSpecial end
     local vals = {}
-    for ok, val in parser(strm, opts.filename) do
+    for ok, val in parser(strm, opts.filename, opts) do
         if not ok then break end
         vals[#vals + 1] = val
     end
@@ -2254,7 +2258,7 @@ local function traceback(msg, start)
     local level = start or 2 -- Can be used to skip some frames
     local lines = {}
     if msg then
-        if msg:find("^Compile error") then
+        if msg:find("^Compile error") or msg:find("^Parse error") then
             -- End users don't want to see compiler stack traces, but when
             -- you're hacking on the compiler, export FENNEL_DEBUG=trace
             if not debugOn("trace") then return msg end

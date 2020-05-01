@@ -2,7 +2,7 @@
 (local fennel (require :fennel))
 
 (local failures {
-  "\n\n(+))" "unexpected closing delimiter ) in unknown:3"
+  "\n\n(+))" "unknown:3: unexpected closing delimiter )"
   "\n\n(let [f (lambda []\n(local))] (f))" "4: expected name and value"
   "\n\n(let [x.y 9] nil)" "unknown:3: unexpected multi"
   "\n(when)" "Compile error in 'when' unknown:2"
@@ -13,7 +13,7 @@
   "(do\n\n\n(each \n[x (pairs {})] (when)))" "when' unknown:5:"
   "(do\n\n\n(each \n[x 34 (pairs {})] 21))" "5: unable to bind number 34"
   "(each [k v (pairs {})] (BAD k v))" "BAD"
-  "(f" "expected closing delimiter ) in unknown:1"
+  "(f" "unknown:1: expected closing delimiter )"
   "(fn [12])" "expected symbol for function parameter"
   "(fn [:huh] 4)" "expected symbol for function parameter"
   "(fn []\n(for [32 34 32] 21))" "2: unable to bind number"
@@ -84,8 +84,9 @@
 ;; output is so subjective. to see a full catalog of suggestions, run the script
 ;; test/bad/friendly.sh and review that output.
 (fn test-suggestions []
-  (let [(_ msg) (pcall fennel.dofile "test/bad/set-local.fnl"
-                       {:assert-compile (require :fennelfriend)})]
+  (let [friend (require :fennelfriend)
+        (_ msg) (pcall fennel.dofile "test/bad/set-local.fnl"
+                       {:assert-compile friend.assert-compile})]
     ;; show the raw error message
     (l.assertStrContains msg "expected var x")
     ;; offer suggestions

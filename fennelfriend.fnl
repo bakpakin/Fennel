@@ -112,7 +112,7 @@
     (f:close)
     (values codeline bytes eol)))
 
-(fn friendly-msg [msg ast]
+(fn compile-msg [msg ast]
   (let [{: filename : line : bytestart : byteend} (ast-source ast)
         (ok codeline bol eol) (pcall read-line-from-file filename line)
         suggestions (suggest msg ast)
@@ -130,10 +130,15 @@
         (table.insert out (: "* Try %s." :format suggestion))))
     (table.concat out "\n")))
 
-(fn friendly [condition msg ast]
+(fn assert-compile [condition msg ast]
   (when (not condition)
     (let [{: filename : line} (ast-source ast)]
-      (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
-                              (or filename "unknown") (or line "?") msg)
-                           ast) 0)))
+      (error (compile-msg (: "Compile error in %s:%s\n  %s" :format
+                             filename line msg)
+                          ast) 0)))
   condition)
+
+(fn parse-error [msg filename line]
+  (error (: "Parse error in %s:%s\n  %s" :format filename line msg) 0))
+
+{: assert-compile : parse-error}

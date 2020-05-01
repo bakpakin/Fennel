@@ -206,13 +206,11 @@ local function fennelview(x, options)
   end
   inspector = {["detect-cycles?"] = not (false == options0["detect-cycles?"]), ["max-ids"] = {}, ["metamethod?"] = not (false == options0["metamethod?"]), appearances = count_table_appearances(x, {}), buffer = {}, depth = (options0.depth or 128), fennelview = _1_, ids = {}, indent = (options0.indent or _2_()), level = 0}
   put_value(inspector, x)
-  do
-    local str = table.concat(inspector.buffer)
-    if options0["one-line"] then
-      return one_line(str)
-    else
-      return str
-    end
+  local str = table.concat(inspector.buffer)
+  if options0["one-line"] then
+    return one_line(str)
+  else
+    return str
   end
 end
 return fennelview

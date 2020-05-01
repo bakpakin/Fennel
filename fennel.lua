@@ -369,6 +369,7 @@ local function parser(getbyte, filename, options)
                     setmetatable(val, last)
                 else -- ; }
                     if #last % 2 ~= 0 then
+                        byteindex = byteindex - 1
                         parseError('expected even number of values in table literal')
                     end
                     val = {}

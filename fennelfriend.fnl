@@ -41,7 +41,8 @@
         ["putting \"...\" at the end of the fn parameters if the vararg was intended"]
 
         "multisym method calls may only be in call position"
-        ["using a period instead of a colon to reference a table's fields"]
+        ["using a period instead of a colon to reference a table's fields"
+         "putting parens around this"]
 
         "unused local (.*)"
         ["fixing a typo so %s is used"
@@ -51,7 +52,7 @@
         ["adding function parameters as a list of identifiers in brackets"]
 
         "unable to bind (.*)"
-        ["replacing the %s being bound with an identifier"]
+        ["replacing the %s with an identifier"]
 
         "expected rest argument before last parameter"
         ["moving & to right before the final identifier when destructuring"]
@@ -104,7 +105,7 @@
 
         "could not read number (.*)"
         ["removing the non-digit character"
-         "beginning the identifier with a non-digit, if it is not meant to be a number"]
+         "beginning the identifier with a non-digit if it is not meant to be a number"]
 
         "can't start multisym segment with a digit"
         ["removing the digit"
@@ -165,7 +166,10 @@
   (when (not condition)
     (let [{: filename : line} (ast-source ast)]
       (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
-                              filename line msg) (ast-source ast)) 0)))
+                              ;; still need fallbacks because backtick erases
+                              ;; source data, and vararg has no source data
+                              (or filename :unknown) (or line :?) msg)
+                           (ast-source ast)) 0)))
   condition)
 
 (fn parse-error [msg filename line bytestart]

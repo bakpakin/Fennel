@@ -275,6 +275,8 @@ local function parser(getbyte, filename, options)
         return r
     end
 
+    -- If you add new calls to this function, please update fenneldfriend.fnl
+    -- as well to add suggestions for how to fix the new error.
     local function parseError(msg)
         if resetRoot then resetRoot() end
         local override = options and options["parse-error"]
@@ -536,6 +538,8 @@ end
 
 -- Assert a condition and raise a compile error with line numbers. The ast arg
 -- should be unmodified so that its first element is the form being called.
+-- If you add new calls to this function, please update fenneldfriend.fnl
+-- as well to add suggestions for how to fix the new error.
 local function assertCompile(condition, msg, ast)
     local override = rootOptions and rootOptions["assert-compile"]
     if override then

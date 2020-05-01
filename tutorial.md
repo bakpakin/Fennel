@@ -121,7 +121,10 @@ nested `let`-like equivalent of `var`.
 Of course, all our standard arithmetic operators like `+`, `-`, `*`,
 and `/` work here in prefix form. Note that numbers are
 double-precision floats in all Lua versions prior to 5.3, which optionally
-introduced integers. On 5.3 and up, integer division uses `//`.
+introduced integers. On 5.3 and up, integer division uses `//` and bit-wise
+operations use `>>`, `<<`, `|`, `&`, as in Lua. Bit-wise not and exclusive or
+are `bnot` and `xor`. Bit-wise operators and integer division will not work
+if the host Lua environment is older than version 5.3.
 
 You may also use underscores to separate sections of long numbers. The
 underscores have no effect on the output.

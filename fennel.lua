@@ -1929,8 +1929,8 @@ SPECIALS["hashfn"] = function(ast, scope, parent)
 end
 docSpecial("hashfn", {"..."}, "Function literal shorthand; args are $1, $2, etc.")
 
-local function defineArithmeticSpecial(name, zeroArity, unaryPrefix)
-    local paddedOp = ' ' .. name .. ' '
+local function defineArithmeticSpecial(name, zeroArity, unaryPrefix, luaName)
+    local paddedOp = ' ' .. (luaName or name) .. ' '
     SPECIALS[name] = function(ast, scope, parent)
         local len = #ast
         if len == 1 then
@@ -1967,6 +1967,12 @@ defineArithmeticSpecial('*', '1')
 defineArithmeticSpecial('%')
 defineArithmeticSpecial('/', nil, '1')
 defineArithmeticSpecial('//', nil, '1')
+defineArithmeticSpecial('>>', nil, '1')
+defineArithmeticSpecial('<<', nil, '1')
+defineArithmeticSpecial('&', '0', '0')
+defineArithmeticSpecial('|', '0', '0')
+defineArithmeticSpecial('xor', '0', '0', '~')
+
 defineArithmeticSpecial('or', 'false')
 defineArithmeticSpecial('and', 'true')
 
@@ -2022,6 +2028,9 @@ end
 
 defineUnarySpecial("not", "not ")
 docSpecial("not", {"x"}, "Logical operator; works the same as Lua.")
+
+defineUnarySpecial("bnot", "~")
+docSpecial("bnot", {"x"}, "Bitwise negation; only works in Lua 5.3")
 
 defineUnarySpecial("length", "#")
 docSpecial("length", {"x"}, "Returns the length of a table or string.")

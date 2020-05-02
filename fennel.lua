@@ -2189,7 +2189,10 @@ local function doQuote (form, scope, parent, runtime)
     -- table
     elseif type(form) == 'table' then
         local mapped = kvmap(form, entryTransform(q, q))
-        return '{' .. mixedConcat(mapped, ", ") .. '}'
+        local source = getmetatable(form)
+        local filename = source.filename and ("'%s'"):format(source.filename)
+        return ("setmetatable({%s}, {filename=%s, line=%s})"):
+            format(mixedConcat(mapped, ", "), filename, source and source.line)
     -- string
     elseif type(form) == 'string' then
         return serializeString(form)

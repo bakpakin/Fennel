@@ -19,7 +19,7 @@ count:
 %.lua: %.fnl fennel fennel.lua
 	./fennel --compile $< > $@
 
-pre-compile: fennelview.lua
+pre-compile: fennelview.lua fennelfriend.lua
 
 ci: luacheck testall count pre-compile
 

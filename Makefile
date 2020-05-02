@@ -16,10 +16,10 @@ count:
 	cloc fennel.lua
 
 # Precompile fennel libraries
-%.fnl.lua: %.fnl fennel fennel.lua
+%.lua: %.fnl fennel fennel.lua
 	./fennel --compile $< > $@
 
-pre-compile: fennelview.fnl.lua
+pre-compile: fennelview.lua
 
 ci: luacheck testall count pre-compile
 

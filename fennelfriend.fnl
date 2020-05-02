@@ -27,7 +27,9 @@
 
         "unknown global in strict mode: (.*)"
         ["looking to see if there's a typo"
-         "using the _G table instead, eg. _G.%s if you really want a global"]
+         "using the _G table instead, eg. _G.%s if you really want a global"
+         "moving this code to somewhere that %s is in scope"
+         "binding %s as a local in the scope of this code"]
 
         "expected a function.* to call"
         ["removing the empty parentheses"

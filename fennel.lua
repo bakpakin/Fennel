@@ -557,7 +557,7 @@ local function assertCompile(condition, msg, ast)
         local line = m and m.line or ast.line or "?"
         -- if we use regular `assert' we can't provide the `level' argument of 0
         error(string.format("Compile error in '%s' %s:%s: %s",
-                            isSym(ast[1]) and ast[1][1] or ast[1] or '()',
+                            tostring(isSym(ast[1]) and ast[1][1] or ast[1] or '()'),
                             filename, line, msg), 0)
     end
     return condition
@@ -2168,13 +2168,15 @@ local function doQuote (form, scope, parent, runtime)
     -- symbol
     elseif isSym(form) then
         assertCompile(not runtime, "symbols may only be used at compile time", form)
-        local filename = form.filename and ("'%s'"):format(form.filename)
+        -- We should be able to use "%q" for this but Lua 5.1 throws an error
+        -- when you try to format nil, because it's extremely bad.
+        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
         if deref(form):find("#$") then -- autogensym
             return ("sym('%s', nil, {filename=%s, line=%s})"):
-                format(autogensym(deref(form), scope), filename, form.line)
+                format(autogensym(deref(form), scope), filename, form.line or "nil")
         else -- prevent non-gensymmed symbols from being bound as an identifier
             return ("sym('%s', nil, {quoted=true, filename=%s, line=%s})"):
-                format(deref(form), filename, form.line)
+                format(deref(form), filename, form.line or "nil")
         end
     -- unquote
     elseif isList(form) and isSym(form[1]) and (deref(form[1]) == 'unquote') then
@@ -2190,9 +2192,9 @@ local function doQuote (form, scope, parent, runtime)
     elseif type(form) == 'table' then
         local mapped = kvmap(form, entryTransform(q, q))
         local source = getmetatable(form)
-        local filename = source.filename and ("'%s'"):format(source.filename)
+        local filename = source.filename and ("'%s'"):format(source.filename) or "nil"
         return ("setmetatable({%s}, {filename=%s, line=%s})"):
-            format(mixedConcat(mapped, ", "), filename, source and source.line)
+            format(mixedConcat(mapped, ", "), filename, source and source.line or "nil")
     -- string
     elseif type(form) == 'string' then
         return serializeString(form)

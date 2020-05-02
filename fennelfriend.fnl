@@ -121,6 +121,8 @@
          "removing segments after the colon"
          "making the method call, then looking up the field on the result"]})
 
+(local unpack (or _G.unpack table.unpack))
+
 (fn suggest [msg]
   (var suggestion nil)
   (each [pat sug (pairs suggestions)]

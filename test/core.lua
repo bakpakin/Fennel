@@ -194,6 +194,8 @@ local function test_core()
         ["(do (var a nil) (var b nil) (local ret (fn [] a)) (set (a b) (values 4 5)) (ret))"]=4,
         -- Tset doesn't screw up with table literal
         ["(do (tset {} :a 1) 1)"]=1,
+        -- tset with let inside binds correctly
+        ["(let [t []] (tset t :a (let [{: a} {:a :bcd}] a)) t.a)"]="bcd",
         -- # is valid symbol constituent character
         ["(local x#x# 90) x#x#"]=90,
         -- : works on literal tables

@@ -1378,7 +1378,7 @@ local function checkUnused(scope, ast)
 end
 
 -- Implements a do statement, starting at the 'start' element. By default, start is 2.
-local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
+local function doImpl(ast, scope, parent, opts, start, chunk, subScope, preSyms)
     start = start or 2
     subScope = subScope or makeScope(scope)
     chunk = chunk or {}
@@ -1394,7 +1394,7 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope)
             -- Generate a local target
             local syms = {}
             for i = 1, opts.nval do
-                local s = gensym(scope)
+                local s = preSyms and preSyms[i] or gensym(scope)
                 syms[i] = s
                 retexprs[i] = expr(s, 'sym')
             end
@@ -1661,6 +1661,10 @@ SPECIALS["let"] = function(ast, scope, parent, opts)
     assertCompile(#bindings % 2 == 0,
                   "expected even number of name/value bindings", ast[2])
     assertCompile(#ast >= 3, "expected body expression", ast[1])
+    -- we have to gensym the binding for the let body's return value before
+    -- compiling the binding vector, otherwise there's a possibility to conflict
+    local preSyms = {}
+    for _ = 1, (opts.nval or 0) do table.insert(preSyms, gensym(scope)) end
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, #bindings, 2 do
@@ -1669,7 +1673,7 @@ SPECIALS["let"] = function(ast, scope, parent, opts)
             nomulti = true
         })
     end
-    return doImpl(ast, scope, parent, opts, 3, subChunk, subScope)
+    return doImpl(ast, scope, parent, opts, 3, subChunk, subScope, preSyms)
 end
 docSpecial("let", {"[name1 val1 ... nameN valN]", "..."},
            "Introduces a new scope in which a given set of local bindings are used.")

@@ -1,7 +1,10 @@
 # Summary of user-visible changes
 
 ## ??? / ???
+
 * Add bit-wise operators `>>`, `<<`, `|`, `&`, `bnot`, and `xor`
+* Friendlier compiler/parse error messages with suggestions
+* Omit compiler internal stack traces by default unless `FENNEL_DEBUG=trace`
 * Add support for __fennelview metamethod for custom serialization
 * Fix a bug where `dofile` would report the wrong filename
 * Fix bug causing failing `include` of Lua modules that lack a trailing newline (#234)

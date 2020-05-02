@@ -80,6 +80,14 @@ local function loadCode(code, environment, filename)
     end
 end
 
+-- Safely load an environment variable
+local getenv = os and os.getenv or function() end
+
+local function debugOn(flag)
+    local level = getenv("FENNEL_DEBUG") or ""
+    return level == "all" or level:find(flag)
+end
+
 -- Create a new list. Lists are a compile-time construct in Fennel; they are
 -- represented as tables with a special marker metatable. They only come from
 -- the parser, and they represent code which comes from reading a paren form;
@@ -240,7 +248,7 @@ local resetRoot = nil
 -- as possible without getting more bytes on bad input. Returns
 -- if a value was read, and then the value read. Will return nil
 -- when input stream is finished.
-local function parser(getbyte, filename)
+local function parser(getbyte, filename, options)
 
     -- Stack of unfinished values
     local stack = {}
@@ -266,9 +274,15 @@ local function parser(getbyte, filename)
         if r == 10 then line = line + 1 end
         return r
     end
+
+    -- If you add new calls to this function, please update fenneldfriend.fnl
+    -- as well to add suggestions for how to fix the new error.
     local function parseError(msg)
         if resetRoot then resetRoot() end
-        return error(msg .. ' in ' .. (filename or 'unknown') .. ':' .. line, 0)
+        local override = options and options["parse-error"]
+        if override then override(msg, filename or "unknown", line or "?", byteindex) end
+        return error(("Parse error in %s:%s: %s"):
+                format(filename or "unknown", line or "?", msg), 0)
     end
 
     -- Parse stream
@@ -337,7 +351,7 @@ local function parser(getbyte, filename)
                 local last = stack[#stack]
                 local val
                 if last.closer ~= b then
-                    parseError('unexpected delimiter ' .. string.char(b) ..
+                    parseError('mismatched closing delimiter ' .. string.char(b) ..
                                ', expected ' .. string.char(last.closer))
                 end
                 last.byteend = byteindex -- Set closing byte index
@@ -348,11 +362,18 @@ local function parser(getbyte, filename)
                     for i = 1, #last do
                         val[i] = last[i]
                     end
+                    -- for table literals we can store file/line/offset source
+                    -- data in fields on the table itself, because the AST node
+                    -- *is* the table, and the fields would show up in the
+                    -- compiled output. keep them on the metatable instead.
+                    setmetatable(val, last)
                 else -- ; }
                     if #last % 2 ~= 0 then
+                        byteindex = byteindex - 1
                         parseError('expected even number of values in table literal')
                     end
                     val = {}
+                    setmetatable(val, last) -- see note above about source data
                     for i = 1, #last, 2 do
                         if(tostring(last[i]) == ":" and isSym(last[i + 1])
                            and isSym(last[i])) then
@@ -426,24 +447,32 @@ local function parser(getbyte, filename)
                     local x
                     if forceNumber then
                         x = tonumber(numberWithStrippedUnderscores) or
-                            parseError('could not read token "' .. rawstr .. '"')
+                            parseError('could not read number "' .. rawstr .. '"')
                     else
-                        x = tonumber(numberWithStrippedUnderscores) or
-                            (rawstr:match("%.[0-9]") and
-                                 parseError("can't start multisym segment " ..
-                                                "with digit: ".. rawstr)) or
-                            ((rawstr:match(":%.") or
-                                  rawstr:match("%.:") or
-                                  rawstr:match("::") or
-                                  (rawstr:match("%.%.") and rawstr ~= "..")) and
-                                    parseError("malformed multisym: " .. rawstr)) or
-                            (rawstr:match(":.+:") and
-                                 parseError("method call must be last component " ..
-                                                "of multisym: " .. rawstr)) or
-                            sym(rawstr, nil, { line = line,
-                                               filename = filename,
-                                               bytestart = bytestart,
-                                               byteend = byteindex, })
+                        x = tonumber(numberWithStrippedUnderscores)
+                        if not x then
+                            if(rawstr:match("%.[0-9]")) then
+                                byteindex = (byteindex - #rawstr +
+                                                 rawstr:find("%.[0-9]") + 1)
+                                parseError("can't start multisym segment " ..
+                                               "with a digit: ".. rawstr)
+                            elseif(rawstr:match("[%.:][%.:]") and
+                                   rawstr ~= "..") then
+                                byteindex = (byteindex - #rawstr +
+                                                 rawstr:find("[%.:][%.:]") + 1)
+                                parseError("malformed multisym: " .. rawstr)
+                            elseif(rawstr:match(":.+[%.:]")) then
+                                byteindex = (byteindex - #rawstr +
+                                                 rawstr:find(":.+[%.:]"))
+                                parseError("method must be last component " ..
+                                               "of multisym: " .. rawstr)
+                            else
+                                x = sym(rawstr, nil, { line = line,
+                                                       filename = filename,
+                                                       bytestart = bytestart,
+                                                       byteend = byteindex, })
+                            end
+                        end
                     end
                     dispatch(x)
                 end
@@ -510,13 +539,26 @@ end
 
 -- Assert a condition and raise a compile error with line numbers. The ast arg
 -- should be unmodified so that its first element is the form being called.
+-- If you add new calls to this function, please update fenneldfriend.fnl
+-- as well to add suggestions for how to fix the new error.
 local function assertCompile(condition, msg, ast)
-    -- if we use regular `assert' we can't provide the `level' argument of zero
+    local override = rootOptions and rootOptions["assert-compile"]
+    if override then
+        -- don't make custom handlers deal with resetting root; it's error-prone
+        if not condition and resetRoot then resetRoot() end
+        override(condition, msg, ast)
+        -- should we fall thru to the default check, or should we allow the
+        -- override to swallow the error?
+    end
     if not condition then
         if resetRoot then resetRoot() end
+        local m = getmetatable(ast)
+        local filename = m and m.filename or ast.filename or "unknown"
+        local line = m and m.line or ast.line or "?"
+        -- if we use regular `assert' we can't provide the `level' argument of 0
         error(string.format("Compile error in '%s' %s:%s: %s",
                             isSym(ast[1]) and ast[1][1] or ast[1] or '()',
-                            ast.filename or "unknown", ast.line or '?', msg), 0)
+                            filename, line, msg), 0)
     end
     return condition
 end
@@ -631,7 +673,7 @@ end
 local function localMangling(str, scope, ast, tempManglings)
     local append = 0
     local mangling = str
-    assertCompile(not isMultiSym(str), 'did not expect multi symbol ' .. str, ast)
+    assertCompile(not isMultiSym(str), 'unexpected multi symbol ' .. str, ast)
 
     -- Mapping mangling to a valid Lua identifier
     if luaKeywords[mangling] or mangling:match('^%d') then
@@ -710,9 +752,10 @@ local function checkBindingValid(symbol, scope, ast)
     -- Check if symbol will be over shadowed by special
     local name = symbol[1]
     assertCompile(not scope.specials[name],
-    ("symbol %s may be overshadowed by a special form or macro"):format(name), ast)
-    assertCompile(not isQuoted(symbol), 'macro tried to bind ' .. name ..
-                      " without gensym; try ' .. name .. '# instead", ast)
+                  ("local %s was overshadowed by a special form or macro")
+                      :format(name), ast)
+    assertCompile(not isQuoted(symbol),
+                  ("macro tried to bind %s without gensym"):format(name), symbol)
 
 end
 
@@ -720,7 +763,8 @@ end
 local function declareLocal(symbol, meta, scope, ast, tempManglings)
     checkBindingValid(symbol, scope, ast)
     local name = symbol[1]
-    assertCompile(not isMultiSym(name), "did not expect mutltisym", ast)
+    assertCompile(not isMultiSym(name),
+                  "unexpected multi symbol " .. name, ast)
     local mangling = localMangling(name, scope, ast, tempManglings)
     scope.symmeta[name] = meta
     return mangling
@@ -1019,7 +1063,7 @@ local function compile1(ast, scope, parent, opts)
     if isList(ast) then
         -- Function call or special form
         local len = #ast
-        assertCompile(len > 0, "expected a function to call", ast)
+        assertCompile(len > 0, "expected a function, macro, or special to call", ast)
         -- Test for special form
         local first = ast[1]
         if isSym(first) then -- Resolve symbol
@@ -1175,7 +1219,7 @@ local function destructure(to, from, ast, scope, parent, opts)
     local function getname(symbol, up1)
         local raw = symbol[1]
         assertCompile(not (nomulti and isMultiSym(raw)),
-            'did not expect multisym', up1)
+            'unexpected multi symbol ' .. raw, up1)
         if declaration then
             return declareLocal(symbol, {var = isvar}, scope, symbol, newManglings)
         else
@@ -1183,15 +1227,15 @@ local function destructure(to, from, ast, scope, parent, opts)
             local meta = scope.symmeta[parts[1]]
             if #parts == 1 and not forceset then
                 assertCompile(not(forceglobal and meta),
-                    'expected global, found var', up1)
-                assertCompile(meta or not noundef,
-                    'expected local var ' .. parts[1], up1)
+                    ("global %s conflicts with local"):format(tostring(symbol)), symbol)
                 assertCompile(not (meta and not meta.var),
-                    'expected local var', up1)
+                    'expected var ' .. raw, symbol)
+                assertCompile(meta or not noundef,
+                    'expected local ' .. parts[1], symbol)
             end
             if forceglobal then
                 assertCompile(not scope.symmeta[scope.unmanglings[raw]],
-                              "global " .. raw .. " conflicts with local", ast)
+                              "global " .. raw .. " conflicts with local", symbol)
                 scope.manglings[raw] = globalMangling(raw)
                 scope.unmanglings[globalMangling(raw)] = raw
                 if allowedGlobals then
@@ -1244,7 +1288,7 @@ local function destructure(to, from, ast, scope, parent, opts)
             for k, v in pairs(left) do
                 if isSym(left[k]) and left[k][1] == "&" then
                     assertCompile(type(k) == "number" and not left[k+2],
-                        "expected rest argument in final position", left)
+                        "expected rest argument before last parameter", left)
                     local subexpr = expr(('{(table.unpack or unpack)(%s, %s)}'):format(s, k),
                         'expression')
                     destructure1(left[k+1], {subexpr}, left)
@@ -1278,7 +1322,9 @@ local function destructure(to, from, ast, scope, parent, opts)
                 destructure1(pair[1], {pair[2]}, left)
             end
         else
-            assertCompile(false, 'unable to bind ' .. tostring(left), up1)
+            assertCompile(false, ("unable to bind %s %s"):
+                              format(type(left), tostring(left)),
+                          type(up1[2]) == "table" and up1[2] or up1)
         end
         if top then return {returned = true} end
     end
@@ -1326,6 +1372,7 @@ local function checkUnused(scope, ast)
     if not rootOptions.checkUnusedLocals then return end
     for symName in pairs(scope.symmeta) do
         assertCompile(scope.symmeta[symName].used or symName:find("^_"),
+                      -- ast here is the whole form, not the local itself
                       ("unused local %s"):format(symName), ast)
     end
 end
@@ -1413,7 +1460,7 @@ SPECIALS["fn"] = function(ast, scope, parent)
     fScope.vararg = false
     local multi = fnName and isMultiSym(fnName[1])
     assertCompile(not multi or not multi.multiSymMethodCall,
-                  "malformed function name: " .. tostring(fnName), ast)
+                  "unexpected multi symbol " .. tostring(fnName), ast[index])
     if fnName and fnName[1] ~= 'nil' then
         isLocalFn = not multi
         if isLocalFn then
@@ -1427,10 +1474,11 @@ SPECIALS["fn"] = function(ast, scope, parent)
         fnName = gensym(scope)
     end
     local argList = assertCompile(isTable(ast[index]),
-                                  "expected vector arg list [a b ...]", ast)
+                                  "expected parameters",
+                                  type(ast[index]) == "table" and ast[index] or ast)
     local function getArgName(i, name)
         if isVarg(name) then
-            assertCompile(i == #argList, "expected vararg as last parameter", ast)
+            assertCompile(i == #argList, "expected vararg as last parameter", ast[2])
             fScope.vararg = true
             return "..."
         elseif(isSym(name) and deref(name) ~= "nil"
@@ -1443,7 +1491,8 @@ SPECIALS["fn"] = function(ast, scope, parent)
                         { declaration = true, nomulti = true })
             return declared
         else
-            assertCompile(false, "expected symbol for function parameter", ast)
+            assertCompile(false, ("expected symbol for function parameter: %s"):
+                              format(tostring(name)), ast[2])
         end
     end
     local argNameList = kvmap(argList, getArgName)
@@ -1501,8 +1550,7 @@ docSpecial("fn", {"name?", "args", "docstring?", "..."},
 -- (lua "print 'hello!'" "10") -> prints hello, evaluates to the number 10
 -- (lua nil "{1,2,3}") -> Evaluates to a table literal
 SPECIALS['lua'] = function(ast, _, parent)
-    assertCompile(#ast == 2 or #ast == 3,
-        "expected 2 or 3 arguments in 'lua' special form", ast)
+    assertCompile(#ast == 2 or #ast == 3, "expected 1 or 2 arguments", ast)
     if ast[2] ~= nil then
         table.insert(parent, {leaf = tostring(ast[2]), ast = ast})
     end
@@ -1609,10 +1657,10 @@ docSpecial("var", {"name", "val"},
 SPECIALS["let"] = function(ast, scope, parent, opts)
     local bindings = ast[2]
     assertCompile(isList(bindings) or isTable(bindings),
-                  "expected table for destructuring", ast)
+                  "expected binding table", ast)
     assertCompile(#bindings % 2 == 0,
-                  "expected even number of name/value bindings", ast)
-    assertCompile(#ast >= 3, "missing body expression", ast)
+                  "expected even number of name/value bindings", ast[2])
+    assertCompile(#ast >= 3, "expected body expression", ast[1])
     local subScope = makeScope(scope)
     local subChunk = {}
     for i = 1, #bindings, 2 do
@@ -1628,7 +1676,7 @@ docSpecial("let", {"[name1 val1 ... nameN valN]", "..."},
 
 -- For setting items in a table
 SPECIALS["tset"] = function(ast, scope, parent)
-    assertCompile(#ast > 3, ("tset form needs table, key, and value"), ast)
+    assertCompile(#ast > 3, ("expected table, key, and value arguments"), ast)
     local root = compile1(ast[2], scope, parent, {nval = 1})[1]
     local keys = {}
     for i = 3, #ast - 1 do
@@ -1774,11 +1822,11 @@ docSpecial("if", {"cond1", "body1", "...", "condN", "bodyN"},
 -- (each [k v (pairs t)] body...) => []
 SPECIALS["each"] = function(ast, scope, parent)
     local binding = assertCompile(isTable(ast[2]), "expected binding table", ast)
+    assertCompile(#ast >= 3, "expected body expression", ast[1])
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local destructures = {}
     local newManglings = {}
     local function destructureBinding(v)
-        assertCompile(isSym(v) or isTable(v), "expected iterator symbol or table", ast)
         if isSym(v) then
             return declareLocal(v, {}, scope, ast, newManglings)
         else
@@ -1836,8 +1884,11 @@ docSpecial("while", {"condition", "..."},
 
 SPECIALS["for"] = function(ast, scope, parent)
     local ranges = assertCompile(isTable(ast[2]), "expected binding table", ast)
-    local bindingSym = assertCompile(isSym(table.remove(ast[2], 1)),
-                                     "expected iterator symbol", ast)
+    local bindingSym = table.remove(ast[2], 1)
+    assertCompile(isSym(bindingSym),
+                  ("unable to bind %s %s"):
+                      format(type(bindingSym), tostring(bindingSym)), ast[2])
+    assertCompile(#ast >= 3, "expected body expression", ast[1])
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
         rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
@@ -1854,7 +1905,7 @@ docSpecial("for", {"[index start stop step?]", "..."}, "Numeric loop construct."
                "\nEvaluates body once for each value between start and stop (inclusive).")
 
 SPECIALS[":"] = function(ast, scope, parent)
-    assertCompile(#ast >= 3, "expected at least 3 arguments", ast)
+    assertCompile(#ast >= 3, "expected at least 2 arguments", ast)
     -- Compile object
     local objectexpr = compile1(ast[2], scope, parent, {nval = 1})[1]
     -- Compile method selector
@@ -2117,6 +2168,7 @@ local function doQuote (form, scope, parent, runtime)
     -- symbol
     elseif isSym(form) then
         assertCompile(not runtime, "symbols may only be used at compile time", form)
+        -- TODO: this discards filename/line/byte-offset source data
         if deref(form):find("#$") then -- autogensym
             return ("sym('%s')"):format(autogensym(deref(form), scope))
         else -- prevent non-gensymmed symbols from being bound as an identifier
@@ -2145,7 +2197,7 @@ local function doQuote (form, scope, parent, runtime)
 end
 
 SPECIALS['quote'] = function(ast, scope, parent)
-    assertCompile(#ast == 2, "quote only takes a single form")
+    assertCompile(#ast == 2, "expected one argument")
     local runtime, thisScope = true, scope
     while thisScope do
         thisScope = thisScope.parent
@@ -2164,7 +2216,7 @@ local function compileStream(strm, options)
     local scope = opts.scope or makeScope(GLOBAL_SCOPE)
     if opts.requireAsInclude then scope.specials.require = requireSpecial end
     local vals = {}
-    for ok, val in parser(strm, opts.filename) do
+    for ok, val in parser(strm, opts.filename, opts) do
         if not ok then break end
         vals[#vals + 1] = val
     end
@@ -2228,7 +2280,10 @@ local function traceback(msg, start)
     local level = start or 2 -- Can be used to skip some frames
     local lines = {}
     if msg then
-        if msg:find("^Compile error") then
+        if msg:find("^Compile error") or msg:find("^Parse error") then
+            -- End users don't want to see compiler stack traces, but when
+            -- you're hacking on the compiler, export FENNEL_DEBUG=trace
+            if not debugOn("trace") then return msg end
             table.insert(lines, msg)
         else
             local newmsg = msg:gsub('^[^:]*:%d+:%s+', 'runtime error: ')
@@ -2309,10 +2364,7 @@ end
 local macroLoaded = {}
 
 local pathTable = {"./?.fnl", "./?/init.fnl"}
-local osPath = os and os.getenv and os.getenv("FENNEL_PATH")
-if osPath then
-    table.insert(pathTable, osPath)
-end
+table.insert(pathTable, getenv("FENNEL_PATH"))
 
 local module = {
     parser = parser,
@@ -2578,7 +2630,7 @@ end
 
 local function loadMacros(modname, ast, scope, parent)
     local filename = assertCompile(searchModule(modname),
-                                   modname .. " not found.", ast)
+                                   modname .. " module not found.", ast)
     local env = makeCompilerEnv(ast, scope, parent)
     local globals = macroGlobals(env, currentGlobalNames())
     return dofileFennel(filename, { env = env, allowedGlobals = globals,
@@ -2626,7 +2678,7 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
             if opts.fallback then
                 return opts.fallback(modexpr)
             else
-                assertCompile(false, 'could not find module ' .. mod, ast)
+                assertCompile(false, 'module not found ' .. mod, ast)
             end
         end
     end
@@ -2820,7 +2872,7 @@ that argument name begins with ?."
                                              :format ,(tostring a)
                                              ,(or a.filename "unknown")
                                              ,(or a.line "?"))))))
-             (assert (> (length args) 1) "missing body expression")
+             (assert (> (length args) 1) "expected body expression")
              (each [_ a (ipairs arglist)]
                (check! a))
              `(fn ,(unpack args))))
@@ -2885,7 +2937,7 @@ that argument name begins with ?."
             (each [k pat (pairs pattern)]
               (if (and (sym? pat) (= "&" (tostring pat)))
                   (do (assert (not (. pattern (+ k 2)))
-                              "expected rest argument in final position")
+                              "expected rest argument before last parameter")
                       (table.insert bindings (. pattern (+ k 1)))
                       (table.insert bindings [`(select ,k ((or _G.unpack table.unpack)
                                                            ,val))]))

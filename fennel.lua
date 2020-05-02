@@ -97,11 +97,11 @@ local function list(...)
 end
 
 -- Create a new symbol. Symbols are a compile-time construct in Fennel and are
--- not exposed outside the compiler. Symbols have metadata describing what file,
--- line, etc that they came from.
-local function sym(str, scope, meta)
+-- not exposed outside the compiler. Symbols have source data describing what
+-- file, line, etc that they came from.
+local function sym(str, scope, source)
     local s = {str, scope = scope}
-    for k, v in pairs(meta or {}) do
+    for k, v in pairs(source or {}) do
         if type(k) == 'string' then s[k] = v end
     end
     return setmetatable(s, SYMBOL_MT)
@@ -507,7 +507,7 @@ local GLOBAL_SCOPE
 -- constructs that are responsible for keeping track of local variables, name
 -- mangling, and macros.  They are accessible to user code via the
 -- 'eval-compiler' special form (may change). They use metatables to implement
--- nesting via metatables.
+-- nesting.
 local function makeScope(parent)
     if not parent then parent = GLOBAL_SCOPE end
     return {
@@ -2168,11 +2168,13 @@ local function doQuote (form, scope, parent, runtime)
     -- symbol
     elseif isSym(form) then
         assertCompile(not runtime, "symbols may only be used at compile time", form)
-        -- TODO: this discards filename/line/byte-offset source data
+        local filename = form.filename and ("'%s'"):format(form.filename)
         if deref(form):find("#$") then -- autogensym
-            return ("sym('%s')"):format(autogensym(deref(form), scope))
+            return ("sym('%s', nil, {filename=%s, line=%s})"):
+                format(autogensym(deref(form), scope), filename, form.line)
         else -- prevent non-gensymmed symbols from being bound as an identifier
-            return ("sym('%s', nil, {quoted=true})"):format(deref(form))
+            return ("sym('%s', nil, {quoted=true, filename=%s, line=%s})"):
+                format(deref(form), filename, form.line)
         end
     -- unquote
     elseif isList(form) and isSym(form[1]) and (deref(form[1]) == 'unquote') then

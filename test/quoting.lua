@@ -20,6 +20,15 @@ local function test_quote()
     l.assertTrue(compiled == "return {[\"a\"]=5, [\"b\"]=9}" or
                      compiled == "return {[\"b\"]=9, [\"a\"]=5}",
                  "quoted keyed table")
+
+    -- syms have source data
+    c("\n\n(eval-compiler (set _G.source-line (. `abc :line)))")
+    l.assertEquals(_G["source-line"], 3)
+    -- autogensyms have source data
+    c("\n(eval-compiler (set _G.source-line (. `abc# :line)))")
+    l.assertEquals(_G["source-line"], 2)
+    -- lists have source data
+    -- tables have source data
 end
 
 return {test_quote=test_quote}

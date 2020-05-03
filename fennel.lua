@@ -2187,7 +2187,9 @@ local function doQuote (form, scope, parent, runtime)
     elseif isList(form) then
         assertCompile(not runtime, "lists may only be used at compile time", form)
         local mapped = kvmap(form, entryTransform(no, q))
-        return 'list(' .. mixedConcat(mapped, ", ") .. ')'
+        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
+        local s = "(function(l) l.filename, l.line = %s, %s return l end)(list(%s))"
+        return (s):format(filename, form.line or "nil", mixedConcat(mapped, ", "))
     -- table
     elseif type(form) == 'table' then
         local mapped = kvmap(form, entryTransform(q, q))

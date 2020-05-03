@@ -34,7 +34,7 @@ local function test_quoted_source()
 
     c("\n\n\n(eval-compiler (set _G.source-line (. `(abc) :line)))")
     -- TODO: this one's hard!
-    -- l.assertEquals(_G["source-line"], 4, "lists have source data")
+    l.assertEquals(_G["source-line"], 4, "lists have source data")
 
     local _, msg = pcall(c, "\n\n\n\n(macro abc [] `(fn [... a#] 1)) (abc)")
     l.assertStrContains(msg, "unknown:5", "quoted tables have source data")

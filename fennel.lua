@@ -2619,9 +2619,6 @@ local function makeCompilerEnv(ast, scope, parent)
         end,
         ["macroexpand"] = function(form) return macroexpand(form, scope) end,
         ["macroexpand-1"] = function(form) return macroexpand(form, scope, 1) end,
-        ["macroprint"] = function(form, view)
-            print((view or require("fennelview"))(macroexpand(form, scope)))
-        end,
     }, { __index = _ENV or _G })
 end
 
@@ -2892,6 +2889,9 @@ that argument name begins with ?."
           (assert (sym? name) "expected symbol for macro name")
           (local args [...])
           `(macros { ,(tostring name) (fn ,name ,(unpack args))}))
+ :macrodebug (fn macrodebug [form]
+              `(print ,((or (pcall require :fennelvieww) tostring)
+                        (macroexpand form _SCOPE))))
  :match
 (fn match [val ...]
   "Perform pattern matching on val. See reference for details."

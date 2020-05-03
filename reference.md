@@ -833,6 +833,30 @@ about the functions available here.
 If you are only defining a single macro, this is equivalent to the
 previous example. The syntax mimics `fn`.
 
+### `macrodebug` print the expansion of a macro
+
+```fennel
+(macrodebug (-> abc
+                (+ 99)
+                (> 0)
+                (when (os.exit))))
+; -> (if (> (+ abc 99) 0) (do (os.exit)))
+```
+
+Call the `macrodebug` macro with a form and it will expand all the
+macros in that form and print out the resulting form. Note that the
+resulting form will usually not be sensibly indented, so you might
+need to copy it and reformat it into something more readable.
+
+It will attempt to load the `fennelview` module to pretty-print the
+results but will fall back to `tostring` if that isn't found. If you
+have moved the `fennelview` module to another location, try setting it
+in `package.loaded` to make it available here:
+
+```fennel
+(set package.loaded (require :lib.newlocation.fennelview))
+```
+
 ### Macro gotchas
 
 It's easy to make macros which accidentally evaluate their arguments
@@ -923,12 +947,6 @@ and a metatable that the compiler uses to distinguish them. You can use
 * `in-scope?` - does this symbol refer to an in-scope local? (works in macros only)
 * `macroexpand` - performs macroexpansion on its argument form; returns an AST
 * `macroexpand-1` - performs one level of macroexpansion on its argument
-* `macroprint` - performs macroexpansion and prints the result for debugging
-
-The `macroprint` function will attempt to load the `fennelview` module
-in order to print the expanded AST; if this is not available it will
-fail unless you provide a second argument to use as a pretty printer
-instead. In a pinch, `tostring` will work on some forms.
 
 Note that other internals of the compiler exposed in compiler scope are
 subject to change.

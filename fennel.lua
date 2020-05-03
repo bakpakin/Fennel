@@ -2847,7 +2847,7 @@ expands to\n\t(fn [_0_ _1_] (func _0_ _1_))"
                  `(fn ,bindings (,f ,(unpack bindings)))))
  :pick-values (fn [n ...]
                  "Like the `values` special, but emits exactly n values.\nFor example,
-\t(pick-values 2 ...)\nexpands to\n\t(let [(_0_ _1_) (values ...)] (values _0_ _1_))"
+\t(pick-values 2 ...)\nexpands to\n\t(let [(_0_ _1_) ...] (values _0_ _1_))"
                  (assert (and (= :number (type n)) (>= n 0) (= n (math.floor n)))
                          "Expected n to be an integer >= 0")
                  (let [let-syms   (list)

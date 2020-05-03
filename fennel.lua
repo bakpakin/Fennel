@@ -2619,6 +2619,9 @@ local function makeCompilerEnv(ast, scope, parent)
         end,
         ["macroexpand"] = function(form) return macroexpand(form, scope) end,
         ["macroexpand-1"] = function(form) return macroexpand(form, scope, 1) end,
+        ["macroprint"] = function(form, view)
+            print((view or require("fennelview"))(macroexpand(form, scope)))
+        end,
     }, { __index = _ENV or _G })
 end
 

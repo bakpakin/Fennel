@@ -560,7 +560,7 @@ Example:
 *(Changed in 0.3.0: the function was called `#` before.)*
 
 Returns the length of a string or table. Note that the length of a
-table with gaps in it is undefined; it can return a number
+table with gaps (nils) in it is undefined; it can return a number
 corresponding to any of the table's "boundary" positions between nil
 and non-nil values. If a table has nils and you want to know the last
 consecutive numeric index starting at 1, you must calculate it
@@ -593,8 +593,8 @@ Example:
 ```
 
 
-Note that if the field name is known at compile time, you don't need
-this and can just use `mytbl.field`.
+Note that if the field name is a string known at compile time, you
+don't need this and can just use `mytbl.field`.
 
 ### `:` method call
 
@@ -730,7 +730,31 @@ the next form.
 The first form becomes the return value for the whole expression, and
 subsequent forms are evaluated solely for side-effects.
 
-### `require-macros`
+### `include`
+
+*(since 0.3.0)*
+
+```fennel
+(include :my.embedded.module)
+```
+Load Fennel/Lua module code at compile time and embed it, along with any modules *it*
+requires, etc., in the compiled output. The module name must be a string literal
+that can resolve to a module during compilation. The bundled code will be wrapped
+in a function invocation in the emitted Lua.
+
+See also: the `requireAsInclude` option in the API documentation and the `--require-as-include`
+CLI flag (`fennel --help`)
+
+## Macros
+
+Note that the macro interface is still preliminary and is subject to
+change over time.
+
+All forms which introduce macros do so inside the current scope. This
+is usually the top level for a given file, but you can introduce
+macros into smaller scopes as well.
+
+### `require-macros` load macros from a separate module
 
 Requires a module at compile-time and binds its fields locally as macros.
 
@@ -778,18 +802,15 @@ into the backtick template:
 See "Compiler API" below for details about additional functions visible
 inside compiler scope which macros run in.
 
-Note that the macro interface is still preliminary and is subject to
-change over time.
-
-### `macros`
+### `macros` define several macros
 
 *(Since 0.3.0)*
 
-Defines a table of macros local to the current fennel file. Note that
-inside the macro definitions, you cannot access variables and bindings
-from the surrounding code. The macros are essentially compiled in their
-own compiler environment. Again, see the "Compiler API" section for
-more details about the macro interface.
+Defines a table of macros. Note that inside the macro definitions, you
+cannot access variables and bindings from the surrounding code. The
+macros are essentially compiled in their own compiler
+environment. Again, see the "Compiler API" section for more details
+about the functions available here.
 
 ```fennel
 (macros {:my-max (fn [x y]
@@ -800,6 +821,17 @@ more details about the macro interface.
 (print (my-max 20 10))
 (print (my-max 20 20))
 ```
+
+### `macro` define a single macro
+
+```fennel
+(macro my-max [x y]
+  `(let [x# ,x y# ,y]
+     (if (< x# y#) y# x#)))
+```
+
+If you are only defining a single macro, this is equivalent to the
+previous example. The syntax mimics `fn`.
 
 ### Macro gotchas
 
@@ -850,21 +882,6 @@ allow the macro to be called, it will fail trying to call a global
 ; Compile error in 'my-max': attempt to call global '__fnl_global__my_2dfn' (a nil value)
 ```
 
-### `include`
-
-*(since 0.3.0)*
-
-```fennel
-(include :my.embedded.module)
-```
-Load Fennel/Lua module code at compile time and embed it, along with any modules *it*
-requires, etc., in the compiled output. The module name must be a string literal
-that can resolve to a module during compilation. The bundled code will be wrapped
-in a function invocation in the emitted Lua.
-
-See also: the `requireAsInclude` option in the API documentation and the `--require-as-include`
-CLI flag (`fennel --help`)
-
 ### `eval-compiler`
 
 Evaluate a block of code during compile-time with access to compiler
@@ -875,8 +892,11 @@ Example:
 
 ```fennel
 (eval-compiler
-  (tset _SPECIALS "local" (. _SPECIALS "global")))
+  (each [name (pairs _G)]
+    (print name)))
 ```
+
+This prints all the functions available in compiler scope.
 
 ### Compiler API
 
@@ -901,6 +921,14 @@ and a metatable that the compiler uses to distinguish them. You can use
 * `varg?` - is this a `...` symbol which indicates var args?
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
 * `in-scope?` - does this symbol refer to an in-scope local? (works in macros only)
+* `macroexpand` - performs macroexpansion on its argument form; returns an AST
+* `macroexpand-1` - performs one level of macroexpansion on its argument
+* `macroprint` - performs macroexpansion and prints the result for debugging
+
+The `macroprint` function will attempt to load the `fennelview` module
+in order to print the expanded AST; if this is not available it will
+fail unless you provide a second argument to use as a pretty printer
+instead. In a pinch, `tostring` will work on some forms.
 
 Note that other internals of the compiler exposed in compiler scope are
 subject to change.

@@ -137,37 +137,56 @@ Example:
 This example returns a function which will print a number that is 2
 greater than the argument it is passed.
 
-### `limit-values` limit varargs/multiple returns to the first n values
+### `pick-values` emit exactly n values
 
 Discard all values after the first n when dealing with multi-values (`...`)
 and multiple returns. Useful for composing functions that return multiple values
-with variadic functions.
-
-Example:
+with variadic functions. Expands to a `let` expression that binds and re-emits
+exactly n values, e.g.
 
 ```fennel
-(limit-values 0 :a :b :c :d :e) ; => nil
-[(limit-values 2 (table.unpack [:a :b :c]))] ;-> ["a" "b"]
-
-(fn sum-all [x y ...]
-  (let [x (or x 0) y (or y 0)]
-    (if (= (select :# ...) 0) (+ x y) (sum-all (+ x y) ...))))
-
-(sum-all (limit-values 2 (values 10 10))) ; => 20
-(->> [1 2 3 4 5] (table.unpack) (limit-values 3) (sum-all)) ; => 6
+(pick-values 2 (func))
+```
+expands to
+```fennel
+(let [(_0_ _1_) (func)] (values _0_ _1_))
 ```
 
-### `limit-args` wrap a function to accept only first n arguments
-
-Like `limit-values`, but takes an integer, `n`, and a function or other operation,
-f, and creates a new function that invokes `f` with only the first n arguments.
-
 Example:
 
 ```fennel
-(local sum-2 (limit-args 2 sum-all))
-(sum-2 5 5 5 5) ; => 10
-(-> [1 2 3 4 5] (table.unpack) ((limit-args 3 sum-all))) ; => 6
+(pick-values 0 :a :b :c :d :e) ; => nil
+[(pick-values 2 (table.unpack [:a :b :c]))] ;-> ["a" "b"]
+
+(fn add [x y ...] (let [sum (+ (or x 0) (or y 0))]
+                        (if (= (select :# ...) 0) sum (add sum ...))))
+
+(add (pick-values 2 10 10 10 10)) ; => 20
+(->> [1 2 3 4 5] (table.unpack) (pick-values 3) (add)) ; => 6
+```
+
+**Note:** If n is greater than the number of values supplied, n values will still be emitted.
+This is reflected when using `(select "#" ...)` to count varargs, but tables `[...]`
+ignore trailing nils:
+
+```fennel
+(select :# (pick-values 5 "one" "two")) ; => 5
+[(pick-values 5 "one" "two")]           ; => ["one" "two"]
+```
+
+### `pick-args` create a function of fixed arity
+
+Like `pick-values`, but takes an integer `n` and a function/operator
+`f`, and creates a new function that applies exactly `n` arguments to `f`.
+
+Example, using the `add` function created above:
+
+```
+(pick-args 2 add) ; expands to `(fn [_0_ _1_] (add _0_ _1_))`
+(-> [1 2 3 4 5] (table.unpack) ((pick-args 3 add))) ; => 6
+
+(local count-args (partial select "#"))
+((pick-args 3 count-args) "still three args, but 2nd and 3rd are nil") ; => 3
 ```
 
 ## Binding

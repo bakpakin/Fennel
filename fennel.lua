@@ -2836,15 +2836,18 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
             (let [body (list f ...)]
               (table.insert body _VARARG)
               `(fn [,_VARARG] ,body)))
- :limit-args (fn [n f]
-               "Returns a function that passes only the first n arguments to f."
+ :pick-args (fn [n f]
+               "Creates a function of arity n that applies its arguments to f.
+For example,\n\t(pick-args 2 func)
+expands to\n\t(fn [_0_ _1_] (func _0_ _1_))"
                (assert (and (= (type n) :number) (= n (math.floor n)) (>= n 0))
                  "Expected n to be an integer literal >= 0.")
                (let [bindings []]
                  (for [i 1 n] (tset bindings i (gensym)))
                  `(fn ,bindings (,f ,(unpack bindings)))))
- :limit-values (fn [n ...]
-                 "Limits values to the first n items. Useful for restricting multiple returns."
+ :pick-values (fn [n ...]
+                 "Like the `values` special, but emits exactly n values.\nFor example,
+\t(pick-values 2 ...)\nexpands to\n\t(let [(_0_ _1_) ...] (values _0_ _1_))"
                  (assert (and (= :number (type n)) (>= n 0) (= n (math.floor n)))
                          "Expected n to be an integer >= 0")
                  (let [let-syms   (list)

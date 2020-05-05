@@ -70,6 +70,26 @@ local function kvmap(t, f, out)
     return out
 end
 
+local function allPairs(t)
+    assert(type(t) == 'table', 'allPairs expects a table')
+    local seen = {}
+    local function allPairsNext(_, state)
+        local nextState, value = next(t, state)
+        if seen[nextState] then
+            return allPairsNext(nil, nextState)
+        elseif nextState then
+            seen[nextState] = true
+            return nextState, value
+        end
+        local meta = getmetatable(t)
+        if meta and meta.__index then
+            t = meta.__index
+            return allPairsNext(t)
+        end
+    end
+    return allPairsNext
+end
+
 local function deref(self) return self[1] end
 
 local function listToString(self, tostring2)
@@ -2456,11 +2476,11 @@ local replsource = [===[(local (fennel internals) ...)
   (let [matches []
         input-fragment (text:gsub ".*[%s)(]+" "")]
     (fn add-partials [input tbl prefix] ; add partial key matches in tbl
-      (each [k (pairs tbl)]
+      (each [k (internals.allPairs tbl)]
         (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
                     (. scope.unmanglings k)
                     k)]
-          (when (and (< (# matches) 40)
+          (when (and (< (# matches) 2000) ; stop explosion on too many items
                      (= (type k) "string")
                      (= input (k:sub 0 (# input))))
             (table.insert matches (.. prefix k))))))
@@ -2477,7 +2497,6 @@ local replsource = [===[(local (fennel internals) ...)
 
     (add-matches input-fragment (or scope.specials []))
     (add-matches input-fragment (or scope.macros []))
-    (add-matches input-fragment (or internals.SPECIALS []))
     (add-matches input-fragment (or env.___replLocals___ []))
     (add-matches input-fragment env)
     (add-matches input-fragment (or env._ENV env._G []))
@@ -2555,7 +2574,7 @@ module.repl = function(options)
                         setRootOptions = function(r) rootOptions = r end,
                         currentGlobalNames = currentGlobalNames,
                         wrapEnv = wrapEnv,
-                        SPECIALS = SPECIALS,
+                        allPairs = allPairs,
                         map = map }
     return eval(replsource, { correlate = true }, module, internals)(options)
 end

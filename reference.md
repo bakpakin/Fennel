@@ -843,10 +843,10 @@ previous example. The syntax mimics `fn`.
 ; -> (if (> (+ abc 99) 0) (do (os.exit)))
 ```
 
-Call the `macrodebug` macro with a form and it will expand all the
-macros in that form and print out the resulting form. Note that the
-resulting form will usually not be sensibly indented, so you might
-need to copy it and reformat it into something more readable.
+Call the `macrodebug` macro with a form and it will repeatedly expand
+top-level macros in that form and print out the resulting form. Note
+that the resulting form will usually not be sensibly indented, so you
+might need to copy it and reformat it into something more readable.
 
 It will attempt to load the `fennelview` module to pretty-print the
 results but will fall back to `tostring` if that isn't found. If you
@@ -944,9 +944,12 @@ and a metatable that the compiler uses to distinguish them. You can use
 * `gensym` - generates a unique symbol for use in macros.
 * `varg?` - is this a `...` symbol which indicates var args?
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
-* `in-scope?` - does this symbol refer to an in-scope local? (works in macros only)
+
+These functions can be used from within macros only, not from any
+`eval-compiler` call:
+
+* `in-scope?` - does this symbol refer to an in-scope local?
 * `macroexpand` - performs macroexpansion on its argument form; returns an AST
-* `macroexpand-1` - performs one level of macroexpansion on its argument
 
 Note that other internals of the compiler exposed in compiler scope are
 subject to change.

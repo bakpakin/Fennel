@@ -1034,8 +1034,7 @@ end
 local macroCurrentScope = GLOBAL_SCOPE
 
 local function macroexpand(ast, scope, once)
-    local first = isSym(ast[1])
-    local macro = first and scope.macros[deref(first)]
+    local macro = isSym(ast[1]) and scope.macros[deref(ast[1])]
     if not macro then return ast end
     local oldScope = macroCurrentScope
     macroCurrentScope = scope
@@ -2463,6 +2462,7 @@ local replsource = [===[(local (fennel internals) ...)
                 (add-matches tail (. tbl raw-head) (.. prefix head)))))))
 
     (add-matches input-fragment (or scope.specials []))
+    (add-matches input-fragment (or scope.macros []))
     (add-matches input-fragment (or internals.SPECIALS []))
     (add-matches input-fragment (or env.___replLocals___ []))
     (add-matches input-fragment env)
@@ -2614,11 +2614,13 @@ local function makeCompilerEnv(ast, scope, parent)
             end
             return macroCurrentScope end,
         ["in-scope?"] = function(symbol)
-            assertCompile(macroCurrentScope, "must call in-scope? from macro", ast)
+            assertCompile(macroCurrentScope, "must call from macro", ast)
             return macroCurrentScope.manglings[tostring(symbol)]
         end,
-        ["macroexpand"] = function(form) return macroexpand(form, scope) end,
-        ["macroexpand-1"] = function(form) return macroexpand(form, scope, 1) end,
+        ["macroexpand"] = function(form)
+            assertCompile(macroCurrentScope, "must call from macro", ast)
+            return macroexpand(form, macroCurrentScope)
+        end,
     }, { __index = _ENV or _G })
 end
 
@@ -2890,8 +2892,10 @@ that argument name begins with ?."
           (local args [...])
           `(macros { ,(tostring name) (fn ,name ,(unpack args))}))
  :macrodebug (fn macrodebug [form]
-              `(print ,((or (pcall require :fennelvieww) tostring)
-                        (macroexpand form _SCOPE))))
+              "Print the resulting form after performing macroexpansion."
+              (let [(ok view) (pcall require :fennelview)]
+                `(print ,((if ok view tostring)
+                          (macroexpand form _SCOPE)))))
  :match
 (fn match [val ...]
   "Perform pattern matching on val. See reference for details."

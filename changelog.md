@@ -9,6 +9,10 @@
 * Fix a bug where `dofile` would report the wrong filename
 * Fix bug causing failing `include` of Lua modules that lack a trailing newline (#234)
 * Introduce `pick-values` and `pick-args` macros (as `limit-*`: #246, as `pick-*`: #256)
+* Fix a bug where destructuring tables emits locals in unstable order in Lua 5.2/5.3 (#259)
+* Set macros on scope.macros & add new `macroexpand` helper to expand macro forms during
+compilation rather than uplifting macros to specials. (#258)
+* Add `macrodebug` util macro for printing expanded macro forms in REPL. (#258)
 
 ## 0.3.2 / 2020-01-14
 

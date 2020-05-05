@@ -30,6 +30,20 @@ local unpack = unpack or table.unpack
 -- Main Types and support functions
 --
 
+-- Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
+-- pairs is already stable, but on 5.3 every run gives different ordering.
+local function stablepairs(t)
+    local keys, succ = {}, {}
+    for k in pairs(t) do table.insert(keys, k) end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    for i,k in ipairs(keys) do succ[k] = keys[i+1] end
+    local function stablenext(tbl, idx)
+        if idx == nil then return keys[1], tbl[keys[1]] end
+        return succ[idx], tbl[succ[idx]]
+    end
+    return stablenext, t, nil
+end
+
 -- Map function f over sequential table t, removing values where f returns nil.
 -- Optionally takes a target table to insert the mapped values into.
 local function map(t, f, out)
@@ -48,7 +62,7 @@ end
 local function kvmap(t, f, out)
     out = out or {}
     if type(f) ~= "function" then local s = f f = function(x) return x[s] end end
-    for k,x in pairs(t) do
+    for k,x in stablepairs(t) do
         local korv, v = f(k, x)
         if korv and not v then table.insert(out, korv) end
         if korv and v then out[korv] = v end
@@ -1304,7 +1318,7 @@ local function destructure(to, from, ast, scope, parent, opts)
             local right = exprs1(rightexprs)
             if right == '' then right = 'nil' end
             emit(parent, ("local %s = %s"):format(s, right), left)
-            for k, v in pairs(left) do
+            for k, v in stablepairs(left) do
                 if isSym(left[k]) and left[k][1] == "&" then
                     assertCompile(type(k) == "number" and not left[k+2],
                         "expected rest argument before last parameter", left)
@@ -1337,7 +1351,7 @@ local function destructure(to, from, ast, scope, parent, opts)
                 local lvalue = table.concat(leftNames, ', ')
                 emit(parent, setter:format(lvalue, exprs1(rightexprs)), left)
             end
-            for _, pair in pairs(tables) do -- recurse if left-side tables found
+            for _, pair in stablepairs(tables) do -- recurse if left-side tables found
                 destructure1(pair[1], {pair[2]}, left)
             end
         else
@@ -1865,7 +1879,7 @@ SPECIALS["each"] = function(ast, scope, parent)
     emit(parent, ('for %s in %s do'):format(table.concat(bindVars, ', '),
                                             table.concat(valNames, ", ")), ast)
     local chunk = {}
-    for raw, args in pairs(destructures) do
+    for raw, args in stablepairs(destructures) do
         destructure(args, raw, ast, scope, chunk,
                     { declaration = true, nomulti = true })
     end
@@ -2151,7 +2165,7 @@ local function mixedConcat(t, joiner)
         ret = ret .. s .. v
         s = joiner
     end
-    for k,v in pairs(t) do
+    for k,v in stablepairs(t) do
         if not(seen[k]) then
             ret = ret .. s .. '[' .. k .. ']' .. '=' .. v
             s = joiner

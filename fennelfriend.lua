@@ -41,10 +41,10 @@ local function read_line_from_file(filename, line)
 end
 local function friendly_msg(msg, _0_0)
   local _1_ = _0_0
-  local filename = _1_["filename"]
-  local bytestart = _1_["bytestart"]
-  local line = _1_["line"]
   local byteend = _1_["byteend"]
+  local bytestart = _1_["bytestart"]
+  local filename = _1_["filename"]
+  local line = _1_["line"]
   local ok, codeline, bol, eol = pcall(read_line_from_file, filename, line)
   local suggestions0 = suggest(msg)
   local out = {msg, ""}

@@ -13,6 +13,7 @@
 * Set macros on scope.macros & add new `macroexpand` helper to expand macro forms during
 compilation rather than uplifting macros to specials. (#258)
 * Add `macrodebug` util macro for printing expanded macro forms in REPL. (#258)
+* Make completion walk scope ancestors for macros & specials (#260)
 
 ## 0.3.2 / 2020-01-14
 

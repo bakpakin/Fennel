@@ -131,11 +131,11 @@ local function list(...)
 end
 
 -- Create a new symbol. Symbols are a compile-time construct in Fennel and are
--- not exposed outside the compiler. Symbols have metadata describing what file,
--- line, etc that they came from.
-local function sym(str, scope, meta)
+-- not exposed outside the compiler. Symbols have source data describing what
+-- file, line, etc that they came from.
+local function sym(str, scope, source)
     local s = {str, scope = scope}
-    for k, v in pairs(meta or {}) do
+    for k, v in pairs(source or {}) do
         if type(k) == 'string' then s[k] = v end
     end
     return setmetatable(s, SYMBOL_MT)
@@ -541,7 +541,7 @@ local GLOBAL_SCOPE
 -- constructs that are responsible for keeping track of local variables, name
 -- mangling, and macros.  They are accessible to user code via the
 -- 'eval-compiler' special form (may change). They use metatables to implement
--- nesting via metatables.
+-- nesting.
 local function makeScope(parent)
     if not parent then parent = GLOBAL_SCOPE end
     return {
@@ -594,7 +594,7 @@ local function assertCompile(condition, msg, ast)
         local line = m and m.line or ast.line or "?"
         -- if we use regular `assert' we can't provide the `level' argument of 0
         error(string.format("Compile error in '%s' %s:%s: %s",
-                            isSym(ast[1]) and ast[1][1] or ast[1] or '()',
+                            tostring(isSym(ast[1]) and ast[1][1] or ast[1] or '()'),
                             filename, line, msg), 0)
     end
     return condition
@@ -2204,11 +2204,15 @@ local function doQuote (form, scope, parent, runtime)
     -- symbol
     elseif isSym(form) then
         assertCompile(not runtime, "symbols may only be used at compile time", form)
-        -- TODO: this discards filename/line/byte-offset source data
+        -- We should be able to use "%q" for this but Lua 5.1 throws an error
+        -- when you try to format nil, because it's extremely bad.
+        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
         if deref(form):find("#$") then -- autogensym
-            return ("sym('%s')"):format(autogensym(deref(form), scope))
+            return ("sym('%s', nil, {filename=%s, line=%s})"):
+                format(autogensym(deref(form), scope), filename, form.line or "nil")
         else -- prevent non-gensymmed symbols from being bound as an identifier
-            return ("sym('%s', nil, {quoted=true})"):format(deref(form))
+            return ("sym('%s', nil, {quoted=true, filename=%s, line=%s})"):
+                format(deref(form), filename, form.line or "nil")
         end
     -- unquote
     elseif isList(form) and isSym(form[1]) and (deref(form[1]) == 'unquote') then
@@ -2219,11 +2223,16 @@ local function doQuote (form, scope, parent, runtime)
     elseif isList(form) then
         assertCompile(not runtime, "lists may only be used at compile time", form)
         local mapped = kvmap(form, entryTransform(no, q))
-        return 'list(' .. mixedConcat(mapped, ", ") .. ')'
+        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
+        local s = "(function(l) l.filename, l.line = %s, %s return l end)(list(%s))"
+        return (s):format(filename, form.line or "nil", mixedConcat(mapped, ", "))
     -- table
     elseif type(form) == 'table' then
         local mapped = kvmap(form, entryTransform(q, q))
-        return '{' .. mixedConcat(mapped, ", ") .. '}'
+        local source = getmetatable(form)
+        local filename = source.filename and ("'%s'"):format(source.filename) or "nil"
+        return ("setmetatable({%s}, {filename=%s, line=%s})"):
+            format(mixedConcat(mapped, ", "), filename, source and source.line or "nil")
     -- string
     elseif type(form) == 'string' then
         return serializeString(form)

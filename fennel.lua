@@ -1078,7 +1078,7 @@ local function macroexpand(ast, scope, once)
             macro = isTable(macro) and macro[multiSymParts[i]]
             if macro then inNamespace = true end
         end
-        assertCompile(not inNamespace or macro and type(macro) == 'function',
+        assertCompile(not inNamespace or type(macro) == 'function',
             'macro not found in namespace', ast)
     end
     if not macro then return ast end

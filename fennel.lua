@@ -1069,7 +1069,18 @@ end
 local macroCurrentScope = GLOBAL_SCOPE
 
 local function macroexpand(ast, scope, once)
+    local multiSymParts = isMultiSym(ast[1] and deref(ast[1]))
     local macro = isSym(ast[1]) and scope.macros[deref(ast[1])]
+    if not macro and multiSymParts then
+        local inNamespace
+        macro = scope.macros
+        for i = 1, #multiSymParts do
+            macro = isTable(macro) and macro[multiSymParts[i]]
+            if macro then inNamespace = true end
+        end
+        assertCompile(not inNamespace or macro and type(macro) == 'function',
+            'macro not found in namespace', ast)
+    end
     if not macro then return ast end
     local oldScope = macroCurrentScope
     macroCurrentScope = scope
@@ -2660,13 +2671,7 @@ local function makeCompilerEnv(ast, scope, parent)
         ["table?"] = isTable,
         ["sequence?"] = isSequence,
         ["varg?"] = isVarg,
-        ["get-scope"] = function()
-            if io and io.stderr then
-                io.stderr:
-                 write(("-- %s:%s get-scope is deprecated and will be removed\n"):
-                 format(ast.filename, ast.line))
-            end
-            return macroCurrentScope end,
+        ["get-scope"] = function() return macroCurrentScope end,
         ["in-scope?"] = function(symbol)
             assertCompile(macroCurrentScope, "must call from macro", ast)
             return macroCurrentScope.manglings[tostring(symbol)]
@@ -2950,6 +2955,37 @@ that argument name begins with ?."
               (let [(ok view) (pcall require :fennelview)]
                 `(print ,((if ok view tostring)
                           (macroexpand form _SCOPE)))))
+ :import-macros (fn import-macros [macro-bindings]
+                  "Imports the macros from each macro module in bindings/modname pairs.
+Examples:\n  Bind individual macros to the current namespace, optionally with an alias:
+    (import-macros [{:some-macro aliased-name : other-macro} :project.mymacros])
+  Bind an entire module of macros to a namespace:
+    (import-macros [mymacros :mymacros othermacros :othermacros])"
+                  (assert (and (table? macro-bindings) (= 0 (% (# macro-bindings) 2)))
+                          "expected macro-bindings to be a binding vector")
+                  (for [i 1 (# macro-bindings) 2]
+                    (local (bindings modname) (values (. macro-bindings i)
+                                                      (. macro-bindings (+ 1 i))))
+                    ;; generate a subscope of current scope, use require-macros to bring in macro
+                    ;; module. after that, we just copy the macros from subscope to scope.
+                    (local scope (get-scope))
+                    (local subscope (fennel.scope scope))
+                    (fennel.compileString (string.format "(require-macros %q)" modname)
+                                          {:scope subscope})
+                    (if (sym? bindings)
+                        ;; import a whole set of macros to a symbol namespace
+                        (do (tset scope.macros (. bindings 1) {})
+                            (each [k v (pairs subscope.macros)]
+                              (tset (. scope.macros (. bindings 1)) k v)))
+
+                        ;; 1-level table destructuring for importing individual macros
+                        (table? bindings)
+                        (each [macro-name [import-key] (pairs bindings)]
+                          (assert (. subscope.macros macro-name)
+                                  (.. "macro " macro-name " not found in module " modname))
+                          (tset scope.macros import-key (. subscope.macros macro-name)))))
+                  ;; TODO: replace with `nil` once we fix macros being able to return nil
+                  `(do nil))
  :match
 (fn match [val ...]
   "Perform pattern matching on val. See reference for details."

@@ -7,33 +7,6 @@ repository and edit configuration files in a UNIX-like environment.
 Fennel can be used in non-UNIX environments, but those environments
 will not be covered in this document.
 
-# Table of contents
-
-- [Requirements](#requirements)
-- [Downloading and installing Fennel](#downloading-and-installing-fennel)
-    - [Using Git to download and install Fennel](#using-git-to-download-and-install-fennel)
-        - [To download Fennel](#to-download-fennel)
-        - [To install Fennel](#to-install-fennel)
-    - [Using LuaRocks to download and install Fennel](#using-luarocks-to-download-and-install-fennel)
-        - [To download and install Fennel](#to-download-and-install-fennel)
-- [Embedding Fennel](#embedding-fennel)
-    - [Embedding the Fennel compiler in a Lua application](#embedding-the-fennel-compiler-in-a-lua-application)
-        - [To embed the Fennel compiler in a Lua application](#to-embed-the-fennel-compiler-in-a-lua-application)
-    - [Performing ahead-of-time compilation](#performing-ahead-of-time-compilation)
-        - [To perform ahead-of-time compilation](#to-perform-ahead-of-time-compilation)
-- [Making games in Fennel](#making-games-in-fennel)
-    - [Using Fennel in TIC-80](#using-fennel-in-tic-80)
-    - [Using Fennel with LOVE](#using-fennel-with-love)
-- [Expanding your Fennel development experience](#expanding-your-fennel-development-experience)
-    - [Adding Fennel support to Emacs](#adding-fennel-support-to-emacs)
-        - [To add Fennel support to Emacs](#to-add-fennel-support-to-emacs)
-    - [Adding Fennel support to Vim](#adding-fennel-support-to-vim)
-        - [To add Fennel support to Vim](#to-add-fennel-support-to-vim)
-    - [Adding Fennel support to Neovim](#adding-fennel-support-to-neovim)
-        - [To add Fennel support to Neovim](#to-add-fennel-support-to-neovim)
-    - [Adding readline support to Fennel](#adding-readline-support-to-fennel)
-        - [To add readline support to Fennel](#to-add-readline-support-to-fennel)
-
 # Requirements
 
 * Access to a UNIX-like environment, such as Ubuntu, Debian, Arch
@@ -72,20 +45,20 @@ Fennel easier.
 
 1. Run `cd Fennel`
 2. Run `make fennel`
-3. Copy or link `fennel` to a location on your shell's `$PATH`, such
-   as `~/bin` or `/usr/local/bin`
+3. Copy or link the `fennel` script to a directory on your `$PATH`,
+   such as `/usr/local/bin`
 
 **Note 1**: `Step 2.` above will compile Fennel into a standalone script
 called `fennel`.
 
-**Note 2**: If the `fennel` script exists inside your `$PATH`
-directory, you can run `fennel filename.fnl` to run a Fennel file.
+**Note 2**: If the `fennel` script exists in one of the directories on
+your `$PATH` , you can run `fennel filename.fnl` to run a Fennel file.
 
 ## Using LuaRocks to download and install Fennel
 
 [LuaRocks](https://luarocks.org/) contains a repository of Lua
 software packages. LuaRocks is convenient because it automates the
-downloading, installation, and uninstallation of software packages.
+downloading, installation, and uninstallation of Lua software packages.
 
 ### To download and install Fennel
 
@@ -98,7 +71,7 @@ installation succeeded.
 
 # Embedding Fennel
 
-Fennel can be embedded inside of Lua applications by including the
+Fennel code can be embedded inside of Lua applications by including the
 Fennel compiler inside of a Lua application, or by performing
 ahead-of-time compilation.
 
@@ -118,9 +91,7 @@ easier.
 ## Embedding the Fennel compiler in a Lua application
 
 The Fennel compiler can be added to your code repository, and then
-loaded from Lua. This allows you to call functions defined in Fennel
-code from Lua, and functions defined in Lua from Fennel without
-slowdown.
+loaded from Lua. 
 
 ### To embed the Fennel compiler in a Lua application
 
@@ -155,7 +126,7 @@ this compilation for you.
 
 ```
 %.lua: %.fnl fennel
-    ./fennel --compile $< > $@
+	./fennel --compile $< > $@
 ```
 
 3. Run `make` to perform the compilation
@@ -164,7 +135,7 @@ this compilation for you.
 working with requires optimal startup time. "Fennel compiles fast,
 but not as fast as not having to compile" -- jaawerth
 
-**Note 2**: It's recommended you include `fennel` itself in your
+**Note 2**: It's recommended you include the `fennel` script in your
 repository to get consistent results rather than relying on an
 arbitrary version of Fennel that is installed on your machine at the
 time of building.
@@ -218,10 +189,10 @@ For references , see the Links below:
 
 ## Using Fennel with LOVE
 
-LOVE has no built-in support for Fennel, so setup support yourself.
+LOVE has no built-in support for Fennel, so you will need to setup support yourself.
 
 This [project skeleton for LOVE](https://gitlab.com/alexjgriffith/min-love2d-fennel)
-for LOVE shows you how to setup support for Fennel and how to setup a
+shows you how to setup support for Fennel and how to setup a
 console-based REPL for debugging your game while it runs.
 
 # Expanding your Fennel development experience

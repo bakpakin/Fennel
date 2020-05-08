@@ -2,7 +2,7 @@
 
 This document will guide you through setting up Fennel on your
 computer. This document assumes you know how to download a Git
-repository, and edit configuration files in a UNIX-like environment.
+repository and edit configuration files in a UNIX-like environment.
 
 ## Requirements
 
@@ -35,16 +35,18 @@ to download Fennel at all.
 
 You may want to use Git to install if:
 
-* You want to use a version that hasn't been released yet.
-* You want to contribute changes to Fennel.
-* You have Git installed and don't want to bother with another system.
+* You want to use a version that hasn't been released yet
+* You want to contribute changes to Fennel
+* You have Git installed and don't want to bother with another system
 
-Run `git clone https://github.com/bakpakin/Fennel` in a shell. This
-will create a directory called "Fennel" in your current directory.
+To install:
 
-At this time it's recommended to add the "Fennel" directory to your
-shell's `$PATH` in order to be able to run the `fennel` command from
-anywhere.
+1. Change to the directory where you keep source checkouts (eg `~/src`)
+2. Run `git clone https://github.com/bakpakin/Fennel` in a shell
+3. Change directories with `cd Fennel`
+4. Run `make fennel` to compile Fennel into a standalone script
+5. Copy or link `fennel` to a location on your shell's `$PATH` (eg
+   `~/bin` or `/usr/local/bin`)
 
 ## Using LuaRocks to download Fennel
 
@@ -74,43 +76,94 @@ working with an application that has more restrictions, it may be
 simpler to compile your Fennel code to Lua during the build process
 and only include the Lua output in the application.
 
-## Embedding the compiler (TODO)
+## Embedding the compiler
 
-## Ahead of time compilation (TODO)
+Add `fennel.lua` to your repository, then you can load it from Lua like so:
 
-# Making games in Fennel with LOVE
+```lua
+local fennel = require("fennel")
+table.insert(package.loaders or package.searchers, fennel.searcher)
+local mylib = require("mylib") -- will compile and load code in mylib.fnl
+```
 
-[LOVE](https://love2d.org/) is a beginner-friendly, game-making
-library for the Lua programming language. The LOVE website contains [a
-wiki](https://love2d.org/wiki/Main_Page) with helpful game-making
-information related to game-programming in LOVE. Because Fennel
-compiles to Lua, this can be used with Fennel.
+You can call any function defined in Fennel code from Lua with zero
+overhead, and vice versa.
 
-Compared to using TIC-80, LOVE is much more flexible. However, the
-cost of this flexibility is that it's a lot more complicated. LOVE
-allows you to use a lot more 3rd-party libraries and tools, whereas
-TIC-80 includes built-in tools for graphics and music. Both tools
-offer cross-platform support across Windows, Mac, and Linux systems,
-but TIC-80 games can be played in the browser and LOVE games cannot.
+In order to get the repl to be able to print tables correctly, you
+probably also want to add `fennelview.fnl`. In order to improve the
+compiler errors, you can add `fennelfriend.fnl`. However, both these
+modules are optional.
+
+## Ahead of time compilation
+
+If you need to ship `.lua` files in your program, you can use `make`
+to perform the compilation. Add this to your `Makefile`:
+
+```
+%.lua: %.fnl fennel
+	./fennel --compile $< > $@
+```
+
+It's recommended you include `fennel` itself in your repository so that
+you will always get consistent results rather than relying on whatever
+version of Fennel is installed on your machine at the time of building.
+
+# Making games in Fennel
+
+The two main platforms for making games with Fennel are
+[LOVE](https://love2d.org/) and [TIC-80](https://tic.computer).
+
+LOVE is a game-making framework for the Lua programming language. The
+LOVE website contains [a wiki](https://love2d.org/wiki/Main_Page) with
+helpful game-making information related to game-programming in LOVE.
+
+Compared to using TIC-80, LOVE is much more flexible. In TIC-80, you
+can only use one specific low resolution, and you create all the
+graphics and sounds yourself inside TIC, while LOVE lets you import
+from external sources and use any resolution. However, the cost of
+this flexibility is that it's a lot more complicated. Both tools offer
+cross-platform support across Windows, Mac, and Linux systems, but
+TIC-80 games can be played in the browser and LOVE games cannot.
 
 ## Using Fennel in TIC-80
 
-TODO
+Support for Fennel is built-in. If you want to use the built-in text
+editor, you don't need any other tools, just launch TIC-80 and run
+`new fennel` to get started.
 
-### To use Fennel in TIC-80
+But if you want to see an example, this
+[Conway's Life](https://tic.computer/play?cart=656) implementation
+could be a good starting point. Click start, press ESC, use the arrows
+to go down to "close game", and press Z to go to the console. Then
+press ESC to see the source.
 
-TODO: Maybe a link to the TIC-80 wiki?
+The [TIC-80 wiki](https://github.com/nesbox/TIC-80/wiki) is an
+indispensable documentation resource.
+
+If you would prefer to use an external editor, this
+[project skeleton repo](https://github.com/stefandevai/fennel-tic80-game)
+provides some helpful support.
+
+## Using Fennel with LOVE
+
+LOVE has no built-in support for Fennel, so you need to bring it yourself.
+This [project skeleton repo](https://gitlab.com/alexjgriffith/min-love2d-fennel)
+for LOVE shows you how to do that, including a console-based REPL for
+debugging and reloading.
 
 # Expanding your Fennel development experience
 
-TODO: Introduce concept
-TODO: Explain one of the following:
+You can write Fennel code in any editor, but some make it more
+convenient than others. Most people find that you want at least some
+level of support for syntax highlighting, automatic indentation, and
+matching delimiters, as working without these can feel very tedious.
 
-* How does this benefit the user?
-* What significance does this have to the user?
-* What's in it for the user? WIIFM (What's in it for me? (for the user))
+Other editors support advanced features like an integrated REPL,
+reloading, documentation lookup, and jumping to source definitions.
 
-Provide a section outline with the names of all the subsections using the following phrase:
+If your favorite editor isn't listed here, that's OK; stick with what
+you're most comfortable. You can usually get decent results by telling
+your editor to treat Fennel files as if they were Clojure or Scheme.
 
 This section consists of the following subections:
 
@@ -121,16 +174,14 @@ This section consists of the following subections:
 
 ## Adding Fennel support to Emacs
 
-This section will guide you through adding syntax highlighting,
-indentation support, and REPL integration into Emacs. These features
-will make Fennel code easier to read, save you time on indenting, and
-create an interactive experience when writing Fennel code.
+Installing [fennel-mode](https://gitlab.com/technomancy/fennel-mode/)
+gives you syntax highlighting, indentation, paren-matching, a repl,
+reloading, documentation lookup, and jumping to source definitions.
 
-### To add Fennel support to Emacs
-
-1. TODO
-2. TODO
-3. TODO
+It's one file, so it is easy to install from source on use your
+package manager; see
+[the readme](https://gitlab.com/technomancy/fennel-mode/-/blob/master/Readme.md)
+for details.
 
 ## Adding Fennel support to Vim
 

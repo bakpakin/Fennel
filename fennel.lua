@@ -2076,11 +2076,20 @@ defineArithmeticSpecial('*', '1')
 defineArithmeticSpecial('%')
 defineArithmeticSpecial('/', nil, '1')
 defineArithmeticSpecial('//', nil, '1')
-defineArithmeticSpecial('>>', nil, '1')
-defineArithmeticSpecial('<<', nil, '1')
-defineArithmeticSpecial('&', '0', '0')
-defineArithmeticSpecial('|', '0', '0')
-defineArithmeticSpecial('xor', '0', '0', '~')
+
+defineArithmeticSpecial("lshift", nil, "1", "<<")
+defineArithmeticSpecial("rshift", nil, "1", ">>")
+defineArithmeticSpecial("band", "0", "0", "&")
+defineArithmeticSpecial("bor", "0", "0", "|")
+defineArithmeticSpecial("bxor", "0", "0", "~")
+
+docSpecial("lshift", {"x", "n"},
+           "Bitwise logical left shift of x by n bits; only works in Lua 5.3+.")
+docSpecial("rshift", {"x", "n"},
+           "Bitwise logical right shift of x by n bits; only works in Lua 5.3+.")
+docSpecial("band", {"x1", "x2"}, "Bitwise AND of arguments; only works in Lua 5.3+.")
+docSpecial("bor", {"x1", "x2"}, "Bitwise OR of arguments; only works in Lua 5.3+.")
+docSpecial("bxor", {"x1", "x2"}, "Bitwise XOR of arguments; only works in Lua 5.3+.")
 
 defineArithmeticSpecial('or', 'false')
 defineArithmeticSpecial('and', 'true')
@@ -2139,7 +2148,7 @@ defineUnarySpecial("not", "not ")
 docSpecial("not", {"x"}, "Logical operator; works the same as Lua.")
 
 defineUnarySpecial("bnot", "~")
-docSpecial("bnot", {"x"}, "Bitwise negation; only works in Lua 5.3")
+docSpecial("bnot", {"x"}, "Bitwise negation; only works in Lua 5.3+.")
 
 defineUnarySpecial("length", "#")
 docSpecial("length", {"x"}, "Returns the length of a table or string.")

@@ -1,5 +1,10 @@
 #!/usr/bin/env lua
 
+-- This is the old version of the launcher wrapper script; we keep it around
+-- for bootstraping purposes to avoid chicken/egg problems using launcher.fnl
+-- to compile Fennel itself. In general there is no need to keep this file in
+-- sync with launcher.fnl; changes for new features should just go there.
+
 local fennel_dir = arg[0]:match("(.-)[^\\/]+$")
 package.path = fennel_dir .. "?.lua;" .. package.path
 local fennel = require('fennel')

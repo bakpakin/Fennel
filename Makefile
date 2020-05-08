@@ -10,14 +10,19 @@ testall:
 	luajit test/init.lua
 
 luacheck:
-	luacheck fennel.lua fennel test/*.lua
+	luacheck fennel.lua test/*.lua
 
 count:
 	cloc fennel.lua
 
 # Precompile fennel libraries
-%.lua: %.fnl fennel fennel.lua
-	./fennel --compile $< > $@
+%.lua: %.fnl fennel.lua
+	./launcher.lua --compile $< > $@
+
+fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua
+	echo "#!/usr/bin/env lua" > $@
+	chmod 755 $@
+	./launcher.lua --require-as-include --no-searcher --compile $< >> $@
 
 pre-compile: fennelview.lua fennelfriend.lua
 

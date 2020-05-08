@@ -2556,7 +2556,9 @@ local replsource = [===[(local (fennel internals) ...)
                                               :source src-string
                                               :scope scope
                                               :useMetadata opts.useMetadata
-                                              :moduleName opts.moduleName})
+                                              :moduleName opts.moduleName
+                                              :assert-compile opts.assert-compile
+                                              :parse-error opts.parse-error})
                 (false msg) (do (clear-stream)
                                 (on-error "Compile" msg))
                 (true source) (let [source (if save-locals?

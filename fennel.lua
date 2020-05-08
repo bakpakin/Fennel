@@ -1069,7 +1069,7 @@ end
 local macroCurrentScope = GLOBAL_SCOPE
 
 local function macroexpand(ast, scope, once)
-    local multiSymParts = isMultiSym(ast[1] and deref(ast[1]))
+    local multiSymParts = isMultiSym(ast[1])
     local macro = isSym(ast[1]) and scope.macros[deref(ast[1])]
     if not macro and multiSymParts then
         local inNamespace
@@ -2955,17 +2955,15 @@ that argument name begins with ?."
               (let [(ok view) (pcall require :fennelview)]
                 `(print ,((if ok view tostring)
                           (macroexpand form _SCOPE)))))
- :import-macros (fn import-macros [macro-bindings]
-                  "Imports the macros from each macro module in bindings/modname pairs.
-Examples:\n  Bind individual macros to the current namespace, optionally with an alias:
-    (import-macros [{:some-macro aliased-name : other-macro} :project.mymacros])
-  Bind an entire module of macros to a namespace:
-    (import-macros [mymacros :mymacros othermacros :othermacros])"
-                  (assert (and (table? macro-bindings) (= 0 (% (# macro-bindings) 2)))
-                          "expected macro-bindings to be a binding vector")
-                  (for [i 1 (# macro-bindings) 2]
-                    (local (bindings modname) (values (. macro-bindings i)
-                                                      (. macro-bindings (+ 1 i))))
+ :import-macros (fn import-macros [...]
+                  "Imports the macros from each macro module in binding/modname pairs.
+Example:
+  (import-macros mymacros                 :proj.macros ; bind all to namespace
+                 {:macro1 alias : macro2} :my-macros)  ; import by name"
+                  (assert (= 0 (% (select :# ...) 2))
+                          "expected even number of binding/modulename pairs")
+                  (for [i 1 (select :# ...) 2]
+                    (local (bindings modname) (select i ...))
                     ;; generate a subscope of current scope, use require-macros to bring in macro
                     ;; module. after that, we just copy the macros from subscope to scope.
                     (local scope (get-scope))

@@ -2,7 +2,9 @@
 
 ## ??? / ???
 
-* Add bit-wise operators `>>`, `<<`, `|`, `&`, `bnot`, and `xor`
+* Ensure deterministic compiler output (#257)
+* Fix an issue where quoted forms did not have filename/line source data (#253)
+* Add bit-wise operators `rshift`, `lshift`, `bor`, `band`, `bnot`, and `bxor`
 * Friendlier compiler/parse error messages with suggestions
 * Omit compiler internal stack traces by default unless `FENNEL_DEBUG=trace`
 * Add support for `__fennelview` metamethod for custom serialization

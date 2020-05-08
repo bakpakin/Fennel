@@ -98,7 +98,8 @@ end
 
 local SYMBOL_MT = { 'SYMBOL', __tostring = deref, __fennelview = deref }
 local EXPR_MT = { 'EXPR', __tostring = deref }
-local VARARG = setmetatable({ '...' }, { 'VARARG', __tostring = deref })
+local VARARG = setmetatable({ '...' },
+    { 'VARARG', __tostring = deref, __fennelview = deref })
 local LIST_MT = { 'LIST', __tostring = listToString, __fennelview = listToString }
 local SEQUENCE_MT = { 'SEQUENCE' }
 

@@ -12,7 +12,7 @@ will not be covered in this document.
 * Access to a UNIX-like environment, such as Ubuntu, Debian, Arch
   Linux, Windows Subsystem for Linux, Homebrew, scoop.sh, etc.
 * Lua version 5.1, 5.2, 5.3, or LuaJIT
-* LuaRocks or Git
+* LuaRocks or Git and Make
 
 # Downloading and installing Fennel
 
@@ -83,15 +83,15 @@ This section consists of the following subsections:
 **Note**: Embedding the Fennel compiler in an application is the more
 flexible option, and is recommended. By embedding the Fennel compiler
 in an application, users can write their own extension scripts in
-Fennel to interact with the application. If the application is more
-restricted, then compiling Fennel code to Lua during the build
-process, and including the Lua output in the application may be
-easier.
+Fennel to interact with the application, and you can reload during
+development. If the application is more restricted, then compiling
+Fennel code to Lua during the build process and including the Lua
+output in the application may be easier.
 
 ## Embedding the Fennel compiler in a Lua application
 
 The Fennel compiler can be added to your code repository, and then
-loaded from Lua. 
+loaded from Lua.
 
 ### To embed the Fennel compiler in a Lua application
 
@@ -104,8 +104,8 @@ table.insert(package.loaders or package.searchers, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
-**Note**: Optionally, if you want the Fennel REPL to print tables and
-other data in a more readable format, you can add `fennelview.fnl` to
+**Note**: Optionally, if you want the Fennel REPL to print tables
+in a more readable format, you can add `fennelview.fnl` to
 your code repository. For more helpful compiler errors, you can add
 `fennelfriend.fnl` to your code repository.
 
@@ -121,7 +121,7 @@ this compilation for you.
 
 ### To perform ahead-of-time compilation
 
-1. Run `touch Makefile`
+1. Run `touch Makefile` if it doesn't already exist.
 2. Add the following lines to the `Makefile`:
 
 ```
@@ -133,7 +133,7 @@ this compilation for you.
 
 **Note 1**: Ahead-of-time compilation is also useful if what you are
 working with requires optimal startup time. "Fennel compiles fast,
-but not as fast as not having to compile" -- jaawerth
+but not as fast as not having to compile." -- jaawerth
 
 **Note 2**: It's recommended you include the `fennel` script in your
 repository to get consistent results rather than relying on an
@@ -143,7 +143,7 @@ time of building.
 # Making games in Fennel
 
 The two main platforms for making games with Fennel are
-[TIC-80](https://tic.computer) and [LOVE](https://love2d.org/).
+[TIC-80](https://tic.computer) and [LÖVE](https://love2d.org/).
 
 TIC-80 is software that acts as a computer in which you can write
 code, design art, compose music, and lay out maps for games. TIC-80
@@ -151,21 +151,21 @@ also makes it easy for you to publish and share the games you make
 with others. TIC-80 creates restrictions, such as low resolution and
 memory to emulate old games.
 
-LOVE is a game-making framework for the Lua programming
-language. Because Fennel compiles to Lua, you can reference the [LOVE
+LÖVE is a game-making framework for the Lua programming
+language. Because Fennel compiles to Lua, you can reference the [LÖVE
 wiki](https://love2d.org/wiki/Main_Page) when making games with Fennel.
-LOVE is more flexible than TIC-80 in that it allows you to import from
+LÖVE is more flexible than TIC-80 in that it allows you to import from
 external resources and use any resolution or memory you like, but at
 a cost in that it is more complicated to make games in.
 
-Both TIC-80 and LOVE offer cross-platform support across Windows, Mac,
+Both TIC-80 and LÖVE offer cross-platform support across Windows, Mac,
 and Linux systems, but TIC-80 games can be played in the browser and
-LOVE games cannot.
+LÖVE games cannot.
 
 This section consists of the following subsections:
 
 * [Using Fennel in TIC-80](#using-fennel-in-tic-80)
-* [Using Fennel with LOVE](#using-fennel-with-love)
+* [Using Fennel with LÖVE](#using-fennel-with-love)
 
 ## Using Fennel in TIC-80
 
@@ -187,20 +187,20 @@ For references , see the Links below:
   information on using external editors, instead of the built-in
   TIC-80 editor.
 
-## Using Fennel with LOVE
+## Using Fennel with LÖVE
 
-LOVE has no built-in support for Fennel, so you will need to setup support yourself.
+LÖVE has no built-in support for Fennel, so you will need to setup support yourself.
 
-This [project skeleton for LOVE](https://gitlab.com/alexjgriffith/min-love2d-fennel)
+This [project skeleton for LÖVE](https://gitlab.com/alexjgriffith/min-love2d-fennel)
 shows you how to setup support for Fennel and how to setup a
 console-based REPL for debugging your game while it runs.
 
 # Expanding your Fennel development experience
 
 You can write Fennel code in any editor, but some editors make it more
-convenient than others. Most people find support for syntax
+comfortable than others. Most people find support for syntax
 highlighting, automatic indentation, and delimiter matching
-convenient, as working without these features can feel very tedious.
+convenient, as working without these features can feel tedious.
 
 Other editors support advanced features like an integrated REPL, live
 reloading while you edit the program, documentation lookups, and
@@ -216,6 +216,7 @@ This section consists of the following subections:
 * [Adding Fennel support to Emacs](#adding-fennel-support-to-emacs)
 * [Adding Fennel support to Vim](#adding-fennel-support-to-vim)
 * [Adding Fennel support to Neovim](#adding-fennel-support-to-neovim)
+* [Adding Fennel support to VS Code](#adding-fennel-support-to-vs-code)
 * [Adding readline support to Fennel](#adding-readline-support-to-fennel)
 
 ## Adding Fennel support to Emacs
@@ -260,7 +261,7 @@ TODO: Explain one of the following:
 2. TODO
 3. TODO
 
-## Adding readline support to Fennel
+## Adding Fennel support to VS Code
 
 TODO: Introduce concept
 TODO: Explain one of the following:
@@ -269,33 +270,46 @@ TODO: Explain one of the following:
 * What significance does this have to the user?
 * What's in it for the user? WIIFM (What's in it for me? (for the user))
 
+### To add Fennel support to VS Code
+
+1. TODO
+2. TODO
+3. TODO
+
+## Adding readline support to Fennel
+
 The command-line REPL that comes with the `fennel` works out of the box, but
 the built-in line-reader is very limited in user experience. Adding
 [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) support
 enables such user-friendly features as
+
 - Tab completion on the REPL that can complete on all locals, macros, and special forms
 - A rolling history buffer, which can be navigated, searched (`ctrl+r`), and optionally
 persisted to disk so you can search input from previous REPL sessions.
 - emacs (default) or vi emulation via readline's custom support for better line
 navigation
 - Optional use of additional readline features in `~/.inputrc`, such as blinking
-on matched parentheses or color color output
+on matched parentheses or color color output (described below)
 
 ### Requirements for readline support
 
 All you need to enable readline support is:
+
 - GNU Readline installed on your system (you may already have it!)
 - [readline.lua](https://pjb.com.au/comp/lua/readline.html) lua bindings to libreadline
 
-The Fennel CLI REPL will automatically load and use the readline bindings when
-it can resolve the readline module, so that's all you need to get started.
+The stock Fennel REPL will automatically load and use the readline bindings when
+it can resolve the `readline` module, so that's all you need to get started.
 
 ### Installing readline.lua
+
 For the official support on getting readline.lua, see the
 [official docs](https://pjb.com.au/comp/lua/readline.html#installation).
 
 The easiest way to get readline.lua is to install it with Luarocks, which
 will fetch the package and automatically compile the native bindings for you.
+If you don't want to use LuaRocks, you can do a
+[manual install](https://pjb.com.au/comp/lua/readline.html#installation).
 
 #### Installing readline with LuaRocks
 
@@ -317,28 +331,6 @@ If you've installed with the `--local` flag, you may need to ensure your `packag
 and `package.cpath` contain its location so it can be resolved by `require`.
 
 **TODO: Add and link to section on configuring environment to detect local rocks**
-
-#### Manual installation
-
-See the [installation guide in the readline.lua docs](https://pjb.com.au/comp/lua/readline.html#installation)
-for a URL from which to obtain the source code of the most recent version.
-The source is also available, along with the author's other Lua modules, on
-[Gitlab](https://gitlab.com/peterbillam/pjb_lua).
-
-To manually compile the native bindings, you can use `gcc`. Here is an example
-on a typical Linux system:
-
-```bash
-$ gcc -O2 -fPIC -c C-readline.c -o C-readline.o
-$ gcc -shared -o C-readline.so C-readline.o -lreadline
-
-# to compile for a specific Lua version, you will need to include its location:
-$ gcc -O2 -fPIC -I/usr/include/luajit-2.0 -c C-readline.c -o C-readline.o
-$ gcc -shared -o C-readline.so C-readline.o -lreadline
-```
-
-Once the bindings are compiled, simply ensure readline.lua is available on your
-`package.path` and C-readline.so on `package.cpath`.
 
 ### Configuring readline for an enhanced experience
 
@@ -363,7 +355,7 @@ other parameters that can be set via
 
 #### Configuring readline in `~/.inputrc`
 
-[documentation on the readline init file](https://www.gnu.org/software/bash/manual/html_node/Readline-Init-File.html)
+See the [documentation on the readline init file](https://www.gnu.org/software/bash/manual/html_node/Readline-Init-File.html)
 for the full set of options and a sample inputrc.
 
 As of Fennel 0.4.0 and readline.lua 2.6, you can make use of a [conditional
@@ -378,15 +370,10 @@ the parens are plentiful!
 candidates immediately instead of ringing the bell + requiring a second `<tab>`
 
 ```inputrc
+# requires Fennel >= 0.4.0 and readline.lua >= 2.6
 $if fennel
   set enable-bracketed-paste on
   set blink-matching-paren on
   set show-all-if-ambiguous on
 $endif
 ```
-
-**NOTE:** The conditional directive `$if fennel` used above to set fennel-only
-options is only available in *Fennel >= 0.4.0* and *readline.lua >= 2.6*. You
-can still use `~/.inputrc` configuration in older versions, but the `$if`
-directive won't recognize fennel. You can, however, configure an alias to set
-the `INPUTRC` environment variable if you still want to set fennel-only options.

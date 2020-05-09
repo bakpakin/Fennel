@@ -1,9 +1,9 @@
 LUA ?= lua
 
-test:
+test: fennel
 	$(LUA) test/init.lua
 
-testall:
+testall: fennel
 	lua5.1 test/init.lua
 	lua5.2 test/init.lua
 	lua5.3 test/init.lua
@@ -17,12 +17,12 @@ count:
 
 # Precompile fennel libraries
 %.lua: %.fnl fennel.lua
-	./launcher.lua --compile $< > $@
+	./old_launcher.lua --compile $< > $@
 
 fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua
 	echo "#!/usr/bin/env lua" > $@
 	chmod 755 $@
-	./launcher.lua --require-as-include --no-searcher --compile $< >> $@
+	./old_launcher.lua --require-as-include --no-searcher --compile $< >> $@
 
 pre-compile: fennelview.lua fennelfriend.lua
 

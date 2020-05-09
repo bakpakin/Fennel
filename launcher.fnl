@@ -50,6 +50,11 @@ Run fennel, a lisp programming language for the Lua runtime.
   (each [g (global-names:gmatch "([^,]+),?")]
     (table.insert options.allowedGlobals g)))
 
+(fn handle-load [i]
+  (let [file (table.remove arg (+ i 1))]
+    (dosafely fennel.dofile file options [])
+    (table.remove arg i)))
+
 (for [i (# arg) 1 -1]
   (match (. arg i)
     "--no-searcher" (do (set options.no_searcher true)
@@ -64,9 +69,8 @@ Run fennel, a lisp programming language for the Lua runtime.
     "--add-fennel-path" (let [entry (table.remove arg (+ i 1))]
                           (set fennel.path (.. entry ";" fennel.path))
                           (table.remove arg i))
-    "--load" (let [file (table.remove arg (+ i 1))]
-               (dosafely fennel.dofile file options [])
-               (table.remove arg i))
+    "--load" (handle-load i)
+    "-l" (handle-load i)
     "--no-fennelrc" (do (set options.fennelrc false)
                         (table.remove arg i))
     "--correlate" (do (set options.correlate true)
@@ -98,12 +102,12 @@ Run fennel, a lisp programming language for the Lua runtime.
     (when readline.set_readline_name
       (readline.set_readline_name "fennel"))
     (readline.set_options {:keeplines 1000 :histfile ""})
-    (fn opts.readChunk [parser-state]
+    (fn options.readChunk [parser-state]
       (let [prompt (if (< 0 parser-state.stackSize) ".. " ">> ")
             str (readline.readline prompt)]
         (if str (.. str "\n"))))
     (var completer nil)
-    (fn opts.registerCompleter [repl-completer]
+    (fn options.registerCompleter [repl-completer]
       (set completer repl-completer))
     (fn repl-completer [text from to]
       (if completer
@@ -114,7 +118,6 @@ Run fennel, a lisp programming language for the Lua runtime.
     readline))
 
 ;; TODO: generalize this as a plugin instead of hard-coding it
-;; we can't pcall this or we won't be able to use --require-as-include.
 (each [k v (pairs (require :fennelfriend))]
   (tset options k v))
 
@@ -132,6 +135,8 @@ Run fennel, a lisp programming language for the Lua runtime.
 
 (fn repl []
   (let [readline (try-readline (pcall require :readline))]
+    (when (not readline)
+      (print "Try installing readline via luarocks for a better repl experience."))
     (set options.pp (require :fennelview))
     (when (not= false options.fennelrc)
       (load-initfile))
@@ -156,7 +161,7 @@ Run fennel, a lisp programming language for the Lua runtime.
                                       io.stdin
                                       (assert (io.open filename :rb)))
                                 (ok val) (xpcall #(fennel.compileString
-                                                   (f:read :*all options))
+                                                   (f:read :*a) options)
                                                  fennel.traceback)]
                             (if ok
                                 (print val)

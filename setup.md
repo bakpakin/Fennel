@@ -233,18 +233,8 @@ for details.
 
 ## Adding Fennel support to Vim
 
-TODO: Introduce concept
-TODO: Explain one of the following:
-
-* How does this benefit the user?
-* What significance does this have to the user?
-* What's in it for the user? WIIFM (What's in it for me? (for the user))
-
-### To add Fennel support to Vim
-
-1. TODO
-2. TODO
-3. TODO
+The [fennel.vim](https://github.com/bakpakin/fennel.vim) plugin offers
+syntax highlighting and indentation support.
 
 ## Adding Fennel support to Neovim
 

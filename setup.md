@@ -269,8 +269,124 @@ TODO: Explain one of the following:
 * What significance does this have to the user?
 * What's in it for the user? WIIFM (What's in it for me? (for the user))
 
-### To add readline support to Fennel
+The command-line REPL that comes with the `fennel` works out of the box, but
+the built-in line-reader is very limited in user experience. Adding
+[GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) support
+enables such user-friendly features as
+- Tab completion on the REPL that can complete on all locals, macros, and special forms
+- A rolling history buffer, which can be navigated, searched (`ctrl+r`), and optionally
+persisted to disk so you can search input from previous REPL sessions.
+- emacs (default) or vi emulation via readline's custom support for better line
+navigation
+- Optional use of additional readline features in `~/.inputrc`, such as blinking
+on matched parentheses or color color output
 
-1. TODO
-2. TODO
-3. TODO
+### Requirements for readline support
+
+All you need to enable readline support is:
+- GNU Readline installed on your system (you may already have it!)
+- [readline.lua](https://pjb.com.au/comp/lua/readline.html) lua bindings to libreadline
+
+The Fennel CLI REPL will automatically load and use the readline bindings when
+it can resolve the readline module, so that's all you need to get started.
+
+### Installing readline.lua
+For the official support on getting readline.lua, see the
+[official docs](https://pjb.com.au/comp/lua/readline.html#installation).
+
+The easiest way to get readline.lua is to install it with Luarocks, which
+will fetch the package and automatically compile the native bindings for you.
+
+#### Installing readline with LuaRocks
+
+```bash
+# to install globally on the system (requires admin privileges or sudo)
+$ luarocks install readline
+
+# to install to the user's local tree
+$ luarocks install --local readline
+
+# install for Lua 5.1 (including LuaJIT)
+$ luarocks install --lua-version=5.1 readline
+```
+
+Because the readline Lua module contains native bindings to libreadline, be sure
+it's installed for the Lua version you intend to use.
+
+If you've installed with the `--local` flag, you may need to ensure your `package.path`
+and `package.cpath` contain its location so it can be resolved by `require`.
+
+**TODO: Add and link to section on configuring environment to detect local rocks**
+
+#### Manual installation
+
+See the [installation guide in the readline.lua docs](https://pjb.com.au/comp/lua/readline.html#installation)
+for a URL from which to obtain the source code of the most recent version.
+The source is also available, along with the author's other Lua modules, on
+[Gitlab](https://gitlab.com/peterbillam/pjb_lua).
+
+To manually compile the native bindings, you can use `gcc`. Here is an example
+on a typical Linux system:
+
+```bash
+$ gcc -O2 -fPIC -c C-readline.c -o C-readline.o
+$ gcc -shared -o C-readline.so C-readline.o -lreadline
+
+# to compile for a specific Lua version, you will need to include its location:
+$ gcc -O2 -fPIC -I/usr/include/luajit-2.0 -c C-readline.c -o C-readline.o
+$ gcc -shared -o C-readline.so C-readline.o -lreadline
+```
+
+Once the bindings are compiled, simply ensure readline.lua is available on your
+`package.path` and C-readline.so on `package.cpath`.
+
+### Configuring readline for an enhanced experience
+
+Readline itself has a number of configuration options, which can be set either
+via the readline.lua API in `fennelrc`, or in readline's own `~/.inputrc` config file.
+
+#### Enabling persistent history
+
+To configure the REPL to save the rolling history to file at the end of every
+session, add the following to your `fennelrc` with your desired filename:
+
+See the readline.lua documentation for information on its API, most notably
+other parameters that can be set via
+[rl.set_options](https://pjb.com.au/comp/lua/readline.html#set_options).
+
+```fennel
+; persist repl history
+(match package.loaded.readline
+  rl   (rl.set_options {:histfile  "~/.fennel_history" ; default:"" (don't save)
+                        :keeplines 1000}))             ; default:1000
+```
+
+#### Configuring readline in `~/.inputrc`
+
+[documentation on the readline init file](https://www.gnu.org/software/bash/manual/html_node/Readline-Init-File.html)
+for the full set of options and a sample inputrc.
+
+As of Fennel 0.4.0 and readline.lua 2.6, you can make use of a [conditional
+directive your `inputrc`](https://www.gnu.org/software/bash/manual/html_node/Conditional-Init-Constructs.html#Conditional-Init-Constructs)
+for fennel-only configuration options. 
+
+The following example adds these behaviors:
+- Blink on a matching parenthesis when entering `)`. Useful in a Lisp REPL, where
+the parens are plentiful!
+- Enable bracketed paste mode for more reliable pasting from clipboard
+- When tab-completing on a term with more than one possible match, display all
+candidates immediately instead of ringing the bell + requiring a second `<tab>`
+
+```inputrc
+$if fennel
+  set enable-bracketed-paste on
+  set blink-matching-paren on
+  set show-all-if-ambiguous on
+$endif
+```
+
+**NOTE:** The conditional directive `$if fennel` used above to set fennel-only
+options is only available in *Fennel >= 0.4.0* and *readline.lua >= 2.6*. You
+can still use `~/.inputrc` configuration in older versions, but the `$if`
+directive won't recognize fennel. You can, however, configure an alias to set
+the `INPUTRC` environment variable if you still want to set fennel-only options.

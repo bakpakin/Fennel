@@ -48,9 +48,11 @@ use without installing anything.
 Check your OS's package manager to see if Fennel is available
 there. If you use [LuaRocks][3] you can run `luarocks install fennel`.
 
-Otherwise clone this repository, and run `./fennel` to start a
-repl. Use `./fennel my-file.fnl` to run code or `./fennel --compile
-my-file.fnl > my-file.lua` to perform ahead-of-time compilation.
+Otherwise clone this repository, and run `make`.
+
+Then you can use `./fennel` to start a repl. Use `./fennel
+my-file.fnl` to run code or `./fennel --compile my-file.fnl >
+my-file.lua` to perform ahead-of-time compilation.
 
 See the [API documentation](api.md) for how to embed Fennel in your program.
 
@@ -106,9 +108,9 @@ reasonably well.
 
 ## License
 
-Copyright © 2016-2019 Calvin Rose and contributors
+Copyright © 2016-2020 Calvin Rose and contributors
 
-Released under the MIT license
+Released under the [MIT license](LICENSE).
 
 [1]: https://fennel-lang.org
 [2]: https://p.hagelb.org/pong.fnl.html

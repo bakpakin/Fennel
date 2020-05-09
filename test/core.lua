@@ -346,6 +346,13 @@ local function test_macros()
         -- macros with mangled names
         ["(require-macros \"test-macros\")\
           (->1 9 (+ 2) (* 11))"]=121,
+        -- import-macros targeting one name import and one aliased
+        ["(import-macros {:defn1 defn : ->1} :test-macros)\
+          (defn join [sep ...] (table.concat [...] sep))\
+          (join :: :num (->1 5 (* 2) (+ 8)))"]="num:18",
+        -- targeting a namespace AND an alias
+        ["(import-macros test :test-macros {:inc INC} :test-macros)\
+          (INC (test.inc 5))"]=7,
         -- special form
         [ [[(eval-compiler
              (tset _SPECIALS "reverse-it" (fn [ast scope parent opts]

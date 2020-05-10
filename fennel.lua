@@ -1072,14 +1072,14 @@ local function macroexpand(ast, scope, once)
     local multiSymParts = isMultiSym(ast[1])
     local macro = isSym(ast[1]) and scope.macros[deref(ast[1])]
     if not macro and multiSymParts then
-        local inNamespace
+        local inMacroModule
         macro = scope.macros
         for i = 1, #multiSymParts do
             macro = isTable(macro) and macro[multiSymParts[i]]
-            if macro then inNamespace = true end
+            if macro then inMacroModule = true end
         end
-        assertCompile(not inNamespace or type(macro) == 'function',
-            'macro not found in namespace', ast)
+        assertCompile(not inMacroModule or type(macro) == 'function',
+            'macro not found in imported macro module', ast)
     end
     if not macro then return ast end
     local oldScope = macroCurrentScope
@@ -2691,7 +2691,10 @@ end
 
 local function addMacros(macros, ast, scope)
     assertCompile(isTable(macros), 'expected macros to be table', ast)
-    for k,v in pairs(macros) do scope.macros[k] = v end
+    for k,v in pairs(macros) do
+        assertCompile(type(v) == 'function', 'expected each macro to be function', ast)
+        scope.macros[k] = v
+    end
 end
 
 local function loadMacros(modname, ast, scope, parent)
@@ -2955,33 +2958,33 @@ that argument name begins with ?."
               (let [(ok view) (pcall require :fennelview)]
                 `(print ,((if ok view tostring)
                           (macroexpand form _SCOPE)))))
- :import-macros (fn import-macros [...]
-                  "Imports the macros from each macro module in binding/modname pairs.
-Example:
-  (import-macros mymacros                 :proj.macros ; bind all to namespace
-                 {:macro1 alias : macro2} :my-macros)  ; import by name"
-                  (assert (= 0 (% (select :# ...) 2))
+ :import-macros (fn import-macros [binding1 module-name1 ...]
+                  "Binds a table of macros from each macro module according to its binding form.
+Each binding form can be either a symbol or a k/v destructuring table.
+Example:\n  (import-macros mymacros                 :my-macros    ; bind to symbol
+                 {:macro1 alias : macro2} :proj.macros) ; import by name"
+                  (assert (and binding1 module-name1 (= 0 (% (select :# ...) 2)))
                           "expected even number of binding/modulename pairs")
-                  (for [i 1 (select :# ...) 2]
-                    (local (bindings modname) (select i ...))
+                  (for [i 1 (select :# binding1 module-name1 ...) 2]
+                    (local (binding modname) (select i binding1 module-name1 ...))
                     ;; generate a subscope of current scope, use require-macros to bring in macro
                     ;; module. after that, we just copy the macros from subscope to scope.
                     (local scope (get-scope))
                     (local subscope (fennel.scope scope))
                     (fennel.compileString (string.format "(require-macros %q)" modname)
                                           {:scope subscope})
-                    (if (sym? bindings)
-                        ;; import a whole set of macros to a symbol namespace
-                        (do (tset scope.macros (. bindings 1) {})
-                            (each [k v (pairs subscope.macros)]
-                              (tset (. scope.macros (. bindings 1)) k v)))
+                    (if (sym? binding)
+                      ;; bind whole table of macros to table bound to symbol
+                      (do (tset scope.macros (. binding 1) {})
+                          (each [k v (pairs subscope.macros)]
+                            (tset (. scope.macros (. binding 1)) k v)))
 
-                        ;; 1-level table destructuring for importing individual macros
-                        (table? bindings)
-                        (each [macro-name [import-key] (pairs bindings)]
-                          (assert (. subscope.macros macro-name)
-                                  (.. "macro " macro-name " not found in module " modname))
-                          (tset scope.macros import-key (. subscope.macros macro-name)))))
+                      ;; 1-level table destructuring for importing individual macros
+                      (table? binding)
+                      (each [macro-name [import-key] (pairs binding)]
+                        (assert (= :function (type (. subscope.macros macro-name)))
+                                (.. "macro " macro-name " not found in module " modname))
+                        (tset scope.macros import-key (. subscope.macros macro-name)))))
                   ;; TODO: replace with `nil` once we fix macros being able to return nil
                   `(do nil))
  :match

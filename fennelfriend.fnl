@@ -22,6 +22,16 @@
         ["declaring %s using var instead of let/local"
          "introducing a new local instead of changing the value of %s"]
 
+        "expected macros to be table"
+        ["ensuring your macro definitions return a table"]
+
+        "expected each macro to be function"
+        ["ensuring that the value for each key in your macros table contains a function"
+         "avoid defining nested macro tables"]
+
+        "macro not found in macro module"
+        ["checking the keys of the imported macro module's returned table"]
+
         "macro tried to bind (.*) without gensym"
         ["changing to %s# when introducing identifiers inside macros"]
 

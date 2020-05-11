@@ -238,12 +238,9 @@ syntax highlighting and indentation support.
 
 ## Adding Fennel support to Neovim
 
-TODO: Introduce concept
-TODO: Explain one of the following:
-
-* How does this benefit the user?
-* What significance does this have to the user?
-* What's in it for the user? WIIFM (What's in it for me? (for the user))
+* For syntax highlighting and indentation, install [fennel.vim](https://github.com/bakpakin/fennel.vim)
+* To spin up a REPL in the terminal buffer, you can install a REPL plugin like [iron.nvim](https://github.com/Vigemus/iron.nvim)
+and follow the documentation to add fennel as an executable REPL command.
 
 ### To add Fennel support to Neovim
 

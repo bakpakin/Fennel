@@ -1,7 +1,8 @@
 # Summary of user-visible changes
 
-## ??? / ???
+## 0.4.0 / ???
 
+* Add `import-macros` for more flexible macro module loading (#269)
 * Ensure deterministic compiler output (#257)
 * Fix an issue where quoted forms did not have filename/line source data (#253)
 * Add bit-wise operators `rshift`, `lshift`, `bor`, `band`, `bnot`, and `bxor`

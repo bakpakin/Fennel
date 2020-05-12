@@ -174,4 +174,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   ["--help"] (print help)
   ["-h"] (print help)
   ["-" & args] (dosafely fennel.eval (io.stdin:read :*a))
-  [filename & args] (dosafely fennel.dofile filename options args))
+  [filename & args] (do (tset arg -2 (. arg -1))
+                        (tset arg -1 (. arg 0))
+                        (tset arg 0 (table.remove arg 1))
+                        (dosafely fennel.dofile filename options (unpack args))))

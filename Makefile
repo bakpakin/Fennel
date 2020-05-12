@@ -24,7 +24,7 @@ fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua
 	echo "#!/usr/bin/env lua" > $@
 	chmod 755 $@
 	./old_launcher.lua --globals "" --require-as-include --no-searcher \
-		--compile $< >> $@
+	  --metadata --compile $< >> $@
 
 pre-compile: fennelview.lua fennelfriend.lua
 

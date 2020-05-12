@@ -177,6 +177,7 @@
     (table.concat out "\n")))
 
 (fn assert-compile [condition msg ast]
+  "A drop-in replacement for the internal assertCompile with friendly messages."
   (when (not condition)
     (let [{: filename : line} (ast-source ast)]
       (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
@@ -187,6 +188,7 @@
   condition)
 
 (fn parse-error [msg filename line bytestart]
+  "A drop-in replacement for the internal parseError with friendly messages."
   (error (friendly-msg (: "Parse error in %s:%s\n  %s" :format filename line msg)
                        {: filename : line : bytestart}) 0))
 

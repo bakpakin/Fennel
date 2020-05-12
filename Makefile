@@ -5,10 +5,10 @@ test: fennel
 
 testall: export FNL_TEST_OUTPUT ?= text
 testall: fennel
-	@echo -e 'Testing lua 5.1:'  ; lua5.1 test/init.lua
-	@echo -e "\nTesting lua 5.2:"; lua5.2 test/init.lua
-	@echo -e "\nTesting lua 5.3:"; lua5.3 test/init.lua
-	@echo -e "\nTesting luajit:" ; luajit test/init.lua
+	@printf 'Testing lua 5.1:\n'  ; lua5.1 test/init.lua
+	@printf "\nTesting lua 5.2:\n"; lua5.2 test/init.lua
+	@printf "\nTesting lua 5.3:\n"; lua5.3 test/init.lua
+	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
 luacheck:
 	luacheck fennel.lua test/*.lua

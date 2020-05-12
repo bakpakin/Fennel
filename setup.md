@@ -1,8 +1,8 @@
 # Setting up Fennel
 
 This document will guide you through setting up Fennel on your
-computer. This document assumes you know how to download a Git
-repository and edit configuration files in a UNIX-like environment.
+computer. This document assumes you know how to run shell commands and
+edit configuration files in a UNIX-like environment.
 
 Fennel can be used in non-UNIX environments, but those environments
 will not be covered in this document.
@@ -22,8 +22,8 @@ Git or LuaRocks.
 
 Depending on which method you want to use, choose a subsection below:
 
-* [Using Git to download Fennel](#using-git-to-download-fennel)
-* [Using LuaRocks to download Fennel](#using-luarocks-to-download-fennel)
+* [Using Git to download Fennel](#using-git-to-download-and-install-fennel)
+* [Using LuaRocks to download Fennel](#using-luarocks-to-download-and-install-fennel)
 
 **Tip**: If you are using software that supports Fennel, such as
 [TIC-80](https://tic.computer), you do not need to download Fennel,
@@ -48,7 +48,7 @@ Fennel easier.
 3. Copy or link the `fennel` script to a directory on your `$PATH`,
    such as `/usr/local/bin`
 
-**Note 1**: `Step 2.` above will compile Fennel into a standalone script
+**Note 1**: Step 2 above will compile Fennel into a standalone script
 called `fennel`.
 
 **Note 2**: If the `fennel` script exists in one of the directories on
@@ -111,25 +111,24 @@ your code repository. For more helpful compiler errors, you can add
 
 ## Performing ahead-of-time compilation
 
-If the target system of your application does not have Fennel
-installed, but has Lua installed, Fennel offers ahead-of-time
+If the target system of your application does not make it easy to add
+the Fennel compiler but has Lua installed, Fennel offers ahead-of-time
 compilation. This allows you to compile `.fnl` files to `.lua` files
 before shipping an application.
 
-This section will guide you through creating a `Makefile` to perform
+This section will guide you through updating a `Makefile` to perform
 this compilation for you.
 
 ### To perform ahead-of-time compilation
 
-1. Run `touch Makefile` if it doesn't already exist.
-2. Add the following lines to the `Makefile`:
+1. Add the following lines to your `Makefile`:
 
 ```
 %.lua: %.fnl fennel
 	./fennel --compile $< > $@
 ```
 
-3. Run `make` to perform the compilation
+2. Ensure your build target depends on the `.lua` files you need.
 
 **Note 1**: Ahead-of-time compilation is also useful if what you are
 working with requires optimal startup time. "Fennel compiles fast,
@@ -148,8 +147,8 @@ The two main platforms for making games with Fennel are
 TIC-80 is software that acts as a computer in which you can write
 code, design art, compose music, and lay out maps for games. TIC-80
 also makes it easy for you to publish and share the games you make
-with others. TIC-80 creates restrictions, such as low resolution and
-memory to emulate old games.
+with others. TIC-80 introduces restrictions such as low resolution and
+limited memory to emulate retro game styles.
 
 LÖVE is a game-making framework for the Lua programming
 language. Because Fennel compiles to Lua, you can reference the [LÖVE
@@ -167,25 +166,30 @@ This section consists of the following subsections:
 * [Using Fennel in TIC-80](#using-fennel-in-tic-80)
 * [Using Fennel with LÖVE](#using-fennel-with-love)
 
+The [Fennel wiki](https://github.com/bakpakin/Fennel/wiki#games) links
+to many games made in both systems you can study.
+
 ## Using Fennel in TIC-80
 
 Support for Fennel is built into TIC-80. If you want to use the
 built-in text editor, you don't need any other tools, just launch
 TIC-80 and run `new fennel` to get started.
 
-For references , see the Links below:
-
-* [Conway's Life](https://tic.computer/play?cart=656): Implementing
-  this would be a good learning exercise.
-    * Click "start" to begin
-    * Press the Esc key to open a menu
-    * Use the arrow keys to navigate the menu
-    * Press the Z key to open the console, followed by Esc to see the
-      source code.
-* [The TIC-80 wiki](https://github.com/nesbox/TIC-80/wiki)
-* [project skeleton repo](https://github.com/stefandevai/fennel-tic80-game) for
-  information on using external editors, instead of the built-in
+* The [TIC-80 wiki](https://github.com/nesbox/TIC-80/wiki) documents
+  the functions to use and important concepts.
+* See this [project skeleton repo](https://github.com/stefandevai/fennel-tic80-game)
+  for information on using external editors, instead of the built-in
   TIC-80 editor.
+
+All TIC-80 games allow you to view and edit the source and assets. Try
+loading this [Conway's Life](https://tic.computer/play?cart=656) game
+to see how it's made:
+
+* Click "start" to begin
+* Press the Esc key to open a menu
+* Use the arrow keys to navigate the menu
+* Press the Z key to open the console, followed by Esc to see the
+  source code.
 
 ## Using Fennel with LÖVE
 
@@ -216,7 +220,6 @@ This section consists of the following subections:
 * [Adding Fennel support to Emacs](#adding-fennel-support-to-emacs)
 * [Adding Fennel support to Vim](#adding-fennel-support-to-vim)
 * [Adding Fennel support to Neovim](#adding-fennel-support-to-neovim)
-* [Adding Fennel support to VS Code](#adding-fennel-support-to-vs-code)
 * [Adding readline support to Fennel](#adding-readline-support-to-fennel)
 
 ## Adding Fennel support to Emacs
@@ -242,27 +245,6 @@ syntax highlighting and indentation support.
 * To spin up a REPL in the terminal buffer, you can install a REPL plugin like [iron.nvim](https://github.com/Vigemus/iron.nvim)
 and follow the documentation to add fennel as an executable REPL command.
 
-### To add Fennel support to Neovim
-
-1. TODO
-2. TODO
-3. TODO
-
-## Adding Fennel support to VS Code
-
-TODO: Introduce concept
-TODO: Explain one of the following:
-
-* How does this benefit the user?
-* What significance does this have to the user?
-* What's in it for the user? WIIFM (What's in it for me? (for the user))
-
-### To add Fennel support to VS Code
-
-1. TODO
-2. TODO
-3. TODO
-
 ## Adding readline support to Fennel
 
 The command-line REPL that comes with the `fennel` works out of the box, but
@@ -282,8 +264,9 @@ on matched parentheses or color color output (described below)
 
 All you need to enable readline support is:
 
-- GNU Readline installed on your system (you may already have it!)
-- [readline.lua](https://pjb.com.au/comp/lua/readline.html) lua bindings to libreadline
+* GNU Readline installed on your system (installation steps vary for
+  different operating systems, but you may already have it!)
+* [readline.lua](https://pjb.com.au/comp/lua/readline.html) lua bindings to libreadline
 
 The stock Fennel REPL will automatically load and use the readline bindings when
 it can resolve the `readline` module, so that's all you need to get started.

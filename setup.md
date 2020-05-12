@@ -64,9 +64,16 @@ downloading, installation, and uninstallation of Lua software packages.
 
 1. Ensure the `luarocks` package is installed on your system
 2. Ensure the `~/.luarocks/bin` directory is added to your shell's `$PATH`
-3. Run `luarocks --local install fennel`
+3. Run one of
+    - `luarocks install fennel` to install globally (requires admin or sudo)
+    - `luarocks --local install fennel` to install locally (see the note below about paths)
 
-**Note**: You can try running `fennel --help` to confirm the
+**Note:** When using luarocks with `--local`, you'll need to ensure you have
+the correct lua path values. You can run `eval $(luarocks path --bin)` from
+your shell to set this correctly; see [LuaRocks path docs](https://github.com/luarocks/luarocks/wiki/path)
+for details.
+
+You can try running `fennel --help` to confirm the
 installation succeeded.
 
 # Embedding Fennel
@@ -297,10 +304,9 @@ $ luarocks install --lua-version=5.1 readline
 Because the readline Lua module contains native bindings to libreadline, be sure
 it's installed for the Lua version you intend to use.
 
-If you've installed with the `--local` flag, you may need to ensure your `package.path`
-and `package.cpath` contain its location so it can be resolved by `require`.
-
-**TODO: Add and link to section on configuring environment to detect local rocks**
+**Note:** If you've installed with the `--local` flag, you may need to ensure your `package.path`
+and `package.cpath` contain its location. See the
+[note on LuaRocks installation](#using-luarocks-to-download-and-install-fennel) for details.
 
 ### Configuring readline for an enhanced experience
 

@@ -146,66 +146,6 @@ repository to get consistent results rather than relying on an
 arbitrary version of Fennel that is installed on your machine at the
 time of building.
 
-# Making games in Fennel
-
-The two main platforms for making games with Fennel are
-[TIC-80](https://tic.computer) and [LÖVE](https://love2d.org/).
-
-TIC-80 is software that acts as a computer in which you can write
-code, design art, compose music, and lay out maps for games. TIC-80
-also makes it easy for you to publish and share the games you make
-with others. TIC-80 introduces restrictions such as low resolution and
-limited memory to emulate retro game styles.
-
-LÖVE is a game-making framework for the Lua programming
-language. Because Fennel compiles to Lua, you can reference the [LÖVE
-wiki](https://love2d.org/wiki/Main_Page) when making games with Fennel.
-LÖVE is more flexible than TIC-80 in that it allows you to import from
-external resources and use any resolution or memory you like, but at
-a cost in that it is more complicated to make games in.
-
-Both TIC-80 and LÖVE offer cross-platform support across Windows, Mac,
-and Linux systems, but TIC-80 games can be played in the browser and
-LÖVE games cannot.
-
-This section consists of the following subsections:
-
-* [Using Fennel in TIC-80](#using-fennel-in-tic-80)
-* [Using Fennel with LÖVE](#using-fennel-with-love)
-
-The [Fennel wiki](https://github.com/bakpakin/Fennel/wiki#games) links
-to many games made in both systems you can study.
-
-## Using Fennel in TIC-80
-
-Support for Fennel is built into TIC-80. If you want to use the
-built-in text editor, you don't need any other tools, just launch
-TIC-80 and run `new fennel` to get started.
-
-* The [TIC-80 wiki](https://github.com/nesbox/TIC-80/wiki) documents
-  the functions to use and important concepts.
-* See this [project skeleton repo](https://github.com/stefandevai/fennel-tic80-game)
-  for information on using external editors, instead of the built-in
-  TIC-80 editor.
-
-All TIC-80 games allow you to view and edit the source and assets. Try
-loading this [Conway's Life](https://tic.computer/play?cart=656) game
-to see how it's made:
-
-* Click "start" to begin
-* Press the Esc key to open a menu
-* Use the arrow keys to navigate the menu
-* Press the Z key to open the console, followed by Esc to see the
-  source code.
-
-## Using Fennel with LÖVE
-
-LÖVE has no built-in support for Fennel, so you will need to setup support yourself.
-
-This [project skeleton for LÖVE](https://gitlab.com/alexjgriffith/min-love2d-fennel)
-shows you how to setup support for Fennel and how to setup a
-console-based REPL for debugging your game while it runs.
-
 # Expanding your Fennel development experience
 
 You can write Fennel code in any editor, but some editors make it more
@@ -353,3 +293,63 @@ $if fennel
   set show-all-if-ambiguous on
 $endif
 ```
+
+# Making games in Fennel
+
+The two main platforms for making games with Fennel are
+[TIC-80](https://tic.computer) and [LÖVE](https://love2d.org/).
+
+TIC-80 is software that acts as a computer in which you can write
+code, design art, compose music, and lay out maps for games. TIC-80
+also makes it easy for you to publish and share the games you make
+with others. TIC-80 introduces restrictions such as low resolution and
+limited memory to emulate retro game styles.
+
+LÖVE is a game-making framework for the Lua programming
+language. Because Fennel compiles to Lua, you can reference the [LÖVE
+wiki](https://love2d.org/wiki/Main_Page) when making games with Fennel.
+LÖVE is more flexible than TIC-80 in that it allows you to import from
+external resources and use any resolution or memory you like, but at
+a cost in that it is more complicated to make games in.
+
+Both TIC-80 and LÖVE offer cross-platform support across Windows, Mac,
+and Linux systems, but TIC-80 games can be played in the browser and
+LÖVE games cannot.
+
+This section consists of the following subsections:
+
+* [Using Fennel in TIC-80](#using-fennel-in-tic-80)
+* [Using Fennel with LÖVE](#using-fennel-with-love)
+
+The [Fennel wiki](https://github.com/bakpakin/Fennel/wiki#games) links
+to many games made in both systems you can study.
+
+## Using Fennel in TIC-80
+
+Support for Fennel is built into TIC-80. If you want to use the
+built-in text editor, you don't need any other tools, just launch
+TIC-80 and run `new fennel` to get started.
+
+* The [TIC-80 wiki](https://github.com/nesbox/TIC-80/wiki) documents
+  the functions to use and important concepts.
+* See this [project skeleton repo](https://github.com/stefandevai/fennel-tic80-game)
+  for information on using external editors, instead of the built-in
+  TIC-80 editor.
+
+All TIC-80 games allow you to view and edit the source and assets. Try
+loading this [Conway's Life](https://tic.computer/play?cart=656) game
+to see how it's made:
+
+* Click "start" to begin
+* Press the Esc key to open a menu
+* Use the arrow keys to navigate the menu
+* Press the Z key to open the console, followed by Esc to see the
+  source code.
+
+## Using Fennel with LÖVE
+
+LÖVE has no built-in support for Fennel, so you will need to setup support yourself.
+
+This [project skeleton for LÖVE](https://gitlab.com/alexjgriffith/min-love2d-fennel)
+shows you how to setup support for Fennel and how to setup a
+console-based REPL for debugging your game while it runs.

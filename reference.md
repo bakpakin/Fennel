@@ -139,6 +139,8 @@ greater than the argument it is passed.
 
 ### `pick-values` emit exactly n values
 
+*(Since 0.4.0)*
+
 Discard all values after the first n when dealing with multi-values (`...`)
 and multiple returns. Useful for composing functions that return multiple values
 with variadic functions. Expands to a `let` expression that binds and re-emits
@@ -175,6 +177,8 @@ ignore trailing nils:
 ```
 
 ### `pick-args` create a function of fixed arity
+
+*(Since 0.4.0)*
 
 Like `pick-values`, but takes an integer `n` and a function/operator
 `f`, and creates a new function that applies exactly `n` arguments to `f`.
@@ -255,6 +259,8 @@ Example:
 Supports destructuring and multiple-value binding.
 
 ### `match` pattern matching
+
+*(Since 0.2.0)*
 
 Evaluates its first argument, then searches thru the subsequent
 pattern/body clauses to find one where the pattern matches the value,
@@ -438,7 +444,7 @@ Example:
 Example:
 
 ```fennel
-(do (local (_ _ z) (unpack [:a :b :c :d :e])), z)  => c
+(do (local (_ _ z) (unpack [:a :b :c :d :e])) z)  => c
 ```
 
 ## Flow Control
@@ -528,13 +534,14 @@ this `begin` or `progn`.
 
 ### operators
 
-* `and`, `or`, `not` boolean
-* `+`, `-`, `*`, `/`, `//`, `%`, `^` arithmetic
-* `>`, `<`, `>=`, `<=`, `=`, `not=` comparison
+* `and`, `or`, `not`: boolean
+* `+`, `-`, `*`, `/`, `//`, `%`, `^`: arithmetic
+* `>`, `<`, `>=`, `<=`, `=`, `not=`: comparison
+* `lshift`, `rshift`, `band`, `bor`, `bxor`, `bnot`: bitwise operations
 
-These all work as you would expect, with a few caveats.
-`//` for integer division is
-only available in Lua 5.3 and onward.
+These all work as you would expect, with a few caveats.  `//` for
+integer division and the bitwise operators are only available in Lua
+5.3 and onward.
 
 They all take any number of arguments, as long as that number is fixed
 at compile-time. For instance, `(= 2 2 (unpack [2 5]))` will evaluate
@@ -754,15 +761,18 @@ All forms which introduce macros do so inside the current scope. This
 is usually the top level for a given file, but you can introduce
 macros into smaller scopes as well.
 
-### `require-macros` load macros from a separate module
+### `import-macros` load macros from a separate module
 
-Requires a module at compile-time and binds its fields locally as macros.
+*(Since 0.4.0)*
 
-Macros currently must be defined in separate modules. A macro module
-exports any number of functions which take code forms as arguments at
-compile time and emit lists which are fed back into the compiler. For
-instance, here is a macro function which implements `when2` in terms of
-`if` and `do`:
+*Experimental*: subject to change in future releases.
+
+Loads a module at compile-time and binds its fields as local macros.
+
+A macro module exports any number of functions which take code forms
+as arguments at compile time and emit lists which are fed back into
+the compiler. For instance, here is a macro function which implements
+`when2` in terms of `if` and `do`:
 
 ```fennel
 (fn when2 [condition body1 ...]
@@ -782,7 +792,7 @@ in 0.3.0: `@` was used instead of `,` before.)*
 Assuming the code above is in the file "my-macros.fnl" then it turns this input:
 
 ```fennel
-(require-macros :my-macros)
+(import-macros {: when2} :my-macros)
 
 (when2 (= 3 (+ 2 a))
   (print "yes")
@@ -799,8 +809,27 @@ into the backtick template:
     (finish-calculation)))
 ```
 
+The `import-macros` macro can take any number of binding/module-name
+pairs. It can also bind the entire macro module to a single name
+rather than destructuring it. In this case you can use a dot to call
+the individual macros inside the module:
+
+```fennel
+(import-macros mine :my-macros)
+
+(mine.when2 (= 3 (+ 2 a))
+  (print "yes")
+  (finish-calculation))
+```
+
 See "Compiler API" below for details about additional functions visible
 inside compiler scope which macros run in.
+
+### `require-macros` load macros with less flexibility
+
+The `require-macros` form is like `import-macros`, except it does not
+give you any control over the naming of the macros being
+imported. Consider using `import-macros` instead of `require-macros`.
 
 ### `macros` define several macros
 
@@ -890,7 +919,7 @@ guarantees the local name is unique.
 `macros` is useful for one-off, quick macros, or even some more complicated
 macros, but be careful. It may be tempting to try and use some function
 you have previously defined,  but if you need such functionality, you
-should probably use `require-macros`.
+should probably use `import-macros`.
 
 For example, this will not compile in strict mode! Even when it does
 allow the macro to be called, it will fail trying to call a global
@@ -925,7 +954,7 @@ This prints all the functions available in compiler scope.
 ### Compiler API
 
 Inside `eval-compiler`, `macros`, or `macro` blocks, as well as
-`require-macros` modules, these functions are visible to your code.
+`import-macros` modules, these functions are visible to your code.
 
 Note that lists are compile-time concepts that don't exist at runtime; they
 are implemented as regular tables which have a special metatable to

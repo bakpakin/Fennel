@@ -2717,7 +2717,8 @@ SPECIALS['require-macros'] = function(ast, scope, parent)
 end
 docSpecial('require-macros', {'macro-module-name'},
            'Load given module and use its contents as macro definitions in current scope.'
-               ..'\nMacro module should return a table of macro functions with string keys.')
+               ..'\nMacro module should return a table of macro functions with string keys.'
+               ..'\nConsider using import-macros instead as it is more flexible.')
 
 SPECIALS['include'] = function(ast, scope, parent, opts)
     assertCompile(#ast == 2, 'expected one argument', ast)

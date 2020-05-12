@@ -1088,7 +1088,7 @@ local function macroexpand(ast, scope, once)
     macroCurrentScope = oldScope
     assertCompile(ok, transformed, ast)
     if once then return transformed end -- macroexpand-1
-    return macroexpand(transformed, scope)
+    if transformed then return macroexpand(transformed, scope) end
 end
 
 -- Compile an AST expression in the scope into parent, a tree
@@ -1130,7 +1130,7 @@ local function compile1(ast, scope, parent, opts)
         assertCompile(len > 0, "expected a function, macro, or special to call", ast)
         ast = macroexpand(ast, scope)
         -- Test for special form
-        local first = ast[1]
+        local first = type(ast) == "table" and ast[1]
         if isSym(first) then -- Resolve symbol
             first = first[1]
         end
@@ -1164,7 +1164,7 @@ local function compile1(ast, scope, parent, opts)
             end
             local compiled = compile1(newAST, scope, parent, opts)
             exprs = compiled
-        else
+        elseif(type(ast) == "table") then
             -- Function call
             local fargs = {}
             local fcallee = compile1(ast[1], scope, parent, {

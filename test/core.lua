@@ -381,6 +381,8 @@ local function test_macros()
         ["(-> 1234 string.reverse string.upper)"]="4321",
         -- Auto-gensym
         ["(macros {:m (fn [y] `(let [xa# 1] (+ xa# ,y)))}) (m 4)"]=5,
+        -- Side-effecting macros
+        ["(macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided"]=952,
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)

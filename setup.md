@@ -167,6 +167,7 @@ This section consists of the following subections:
 * [Adding Fennel support to Emacs](#adding-fennel-support-to-emacs)
 * [Adding Fennel support to Vim](#adding-fennel-support-to-vim)
 * [Adding Fennel support to Neovim](#adding-fennel-support-to-neovim)
+* [Adding Fennel support to Visual Studio Code](#adding-fennel-support-to-visual-studio-code)
 * [Adding readline support to Fennel](#adding-readline-support-to-fennel)
 
 ## Adding Fennel support to Emacs
@@ -191,6 +192,12 @@ syntax highlighting and indentation support.
 * For syntax highlighting and indentation, install [fennel.vim](https://github.com/bakpakin/fennel.vim)
 * To spin up a REPL in the terminal buffer, you can install a REPL plugin like [iron.nvim](https://github.com/Vigemus/iron.nvim)
 and follow the documentation to add fennel as an executable REPL command.
+
+## Adding Fennel support to Visual Studio Code
+
+Search in the built-in extension manager for "Fennel" to install
+[the vsc-fennel extension](https://github.com/kongeor/vsc-fennel). At
+the time of this writing it only provides syntax support.
 
 ## Adding readline support to Fennel
 

@@ -2453,7 +2453,7 @@ local module = {
     macroLoaded = macroLoaded,
     path = table.concat(pathTable, ";"),
     traceback = traceback,
-    version = "0.4.0-dev",
+    version = "0.4.0",
 }
 
 -- In order to make this more readable, you can switch your editor to treating

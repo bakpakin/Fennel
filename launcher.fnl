@@ -135,14 +135,14 @@ Run fennel, a lisp programming language for the Lua runtime.
 
 (fn repl []
   (let [readline (try-readline (pcall require :readline))]
-    (when (not readline)
-      (print "Try installing readline via luarocks for a better repl experience."))
     (set options.pp (require :fennelview))
     (when (not= false options.fennelrc)
       (load-initfile))
     (print (.. "Welcome to Fennel " fennel.version "!"))
     (when (not= options.useMetadata false)
       (print "Use (doc something) to view documentation."))
+    (when (not readline)
+      (print "Try installing readline via luarocks for a better repl experience."))
     (fennel.repl options)
     (when readline
       (readline.save_history))))

@@ -15,19 +15,20 @@ luacheck:
 
 count:
 	cloc fennel.lua
+	cloc --force-lang=lisp fennelview.fnl fennelfriend.fnl launcher.fnl
+
+# For the time being, avoid chicken/egg situation thru the old Lua launcher.
+LAUNCHER=./old_launcher.lua
 
 # Precompile fennel libraries
 %.lua: %.fnl fennel.lua
-	./old_launcher.lua --globals "" --compile $< > $@
+	 $(LAUNCHER) --globals "" --compile $< > $@
 
 fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua
 	echo "#!/usr/bin/env lua" > $@
+	$(LAUNCHER) --globals "" --require-as-include --metadata --compile $< >> $@
 	chmod 755 $@
-	./old_launcher.lua --globals "" --require-as-include --no-searcher \
-	  --metadata --compile $< >> $@
 
-pre-compile: fennelview.lua fennelfriend.lua
+ci: luacheck testall count
 
-ci: luacheck testall count pre-compile
-
-.PHONY: test testall luacheck count pre-compile ci
+.PHONY: test testall luacheck count ci

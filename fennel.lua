@@ -2497,8 +2497,8 @@ local replsource = [===[(local (fennel internals) ...)
       (table.insert spliced-source line))
     (each [name (pairs env.___replLocals___)]
       (table.insert spliced-source 1 (bind:format name name)))
-    (when (and (: (. spliced-source (# spliced-source)) :match "^ *return .*$")
-               (< 1 (# spliced-source)))
+    (when (and (< 1 (# spliced-source))
+               (: (. spliced-source (# spliced-source)) :match "^ *return .*$"))
       (table.insert spliced-source (# spliced-source) save-source))
     (table.concat spliced-source "\n")))
 

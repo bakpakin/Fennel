@@ -340,6 +340,8 @@ local function test_macros()
         ["(-?> {:a {:b {:c :z}}} (. :a) (. :missing) (. :c))"]=nil,
         ["(-?>> :w (. {:w :x}) (. {:x :y}) (. {:y :z}))"]="z",
         ["(-?>> :w (. {:w :x}) (. {:x :missing}) (. {:y :z}))"]=nil,
+        ["(-?> [:a :b] (table.concat \" \"))"]="a b",
+        ["(-?>> \" \" (table.concat [:a :b]))"]="a b",
         -- just a boring old set+fn combo
         ["(require-macros \"test-macros\")\
           (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,

@@ -1126,9 +1126,9 @@ local function compile1(ast, scope, parent, opts)
     -- Compile the form
     if isList(ast) then
         -- Function call or special form
-        local len = #ast
-        assertCompile(len > 0, "expected a function, macro, or special to call", ast)
+        assertCompile(#ast > 0, "expected a function, macro, or special to call", ast)
         ast = macroexpand(ast, scope)
+        local len = ast and #ast or 0
         -- Test for special form
         local first = type(ast) == "table" and ast[1]
         if isSym(first) then -- Resolve symbol

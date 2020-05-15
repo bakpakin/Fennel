@@ -1069,6 +1069,7 @@ end
 local macroCurrentScope = GLOBAL_SCOPE
 
 local function macroexpand(ast, scope, once)
+    if not isList(ast) then return ast end -- bail early if not a list form
     local multiSymParts = isMultiSym(ast[1])
     local macro = isSym(ast[1]) and scope.macros[deref(ast[1])]
     if not macro and multiSymParts then
@@ -1124,16 +1125,15 @@ local function compile1(ast, scope, parent, opts)
     local exprs = {}
 
     -- Compile the form
-    if isList(ast) then
-        -- Function call or special form
+    if isList(ast) then -- Function call or special form
+        local len, oldAst = #ast, ast
         assertCompile(#ast > 0, "expected a function, macro, or special to call", ast)
         ast = macroexpand(ast, scope)
-        local len = ast and #ast or 0
+        -- if it's a macro, recur with the expanded ast
+        if (ast ~= oldAst) then return compile1(ast, scope, parent, opts) end
         -- Test for special form
-        local first = type(ast) == "table" and ast[1]
-        if isSym(first) then -- Resolve symbol
-            first = first[1]
-        end
+        local first = len > 0 and ast[1] or nil
+        if isSym(first) then first = first[1] end -- Resolve symbol
         local multiSymParts = isMultiSym(first)
         local special = scope.specials[first]
         if special and isSym(ast[1]) then
@@ -1164,8 +1164,7 @@ local function compile1(ast, scope, parent, opts)
             end
             local compiled = compile1(newAST, scope, parent, opts)
             exprs = compiled
-        elseif(type(ast) == "table") then
-            -- Function call
+        else -- Function call
             local fargs = {}
             local fcallee = compile1(ast[1], scope, parent, {
                 nval = 1

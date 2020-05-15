@@ -386,7 +386,7 @@ local function test_macros()
         -- macro expanding to primitives
         ["(macro five [] 5) (five)"] = 5,
         ["(macro greet [] :Hi!) (greet)"] = "Hi!",
-        ["(macro yes [] true) (yes)"] = true,
+        ["(macros {:yes (fn [] true) :no (fn [] false)}) [(yes) (no)]"]={true, false},
         -- Side-effecting macros
         ["(macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided"]=952,
     }

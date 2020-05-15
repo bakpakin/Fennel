@@ -1088,8 +1088,8 @@ local function macroexpand(ast, scope, once)
     local ok, transformed = pcall(macro, unpack(ast, 2))
     macroCurrentScope = oldScope
     assertCompile(ok, transformed, ast)
-    if once then return transformed end -- macroexpand-1
-    if transformed then return macroexpand(transformed, scope) end
+    if once or not transformed then return transformed end -- macroexpand-1
+    return macroexpand(transformed, scope)
 end
 
 -- Compile an AST expression in the scope into parent, a tree

@@ -23,6 +23,8 @@ Run fennel, a lisp programming language for the Lua runtime.
   --correlate             : Make Lua output line numbers match Fennel input
   --load FILE (-l)        : Load the specified FILE before executing the command
   --no-fennelrc           : Skip loading ~/.fennelrc when launching repl
+  --compile-binary FILE
+      OUT LUA_LIB LUA_DIR : Compile FILE to standalone binary OUT (experimental)
 
   --help (-h)             : Display this text
   --version (-v)          : Show version
@@ -168,6 +170,14 @@ Run fennel, a lisp programming language for the Lua runtime.
                                 (do (io.stderr:write (.. val "\n"))
                                     (os.exit 1)))
                             (f:close)))
+  ["--compile-binary" "--help"] (print (. (require :fennelbinary) :help))
+  ["--compile-binary" filename out
+   static-lua lua-include-dir] (let [bin (require :fennelbinary)]
+                                 (set options.filename filename)
+                                 (set options.requireAsInclude true)
+                                 (bin.compile filename out
+                                              static-lua lua-include-dir
+                                              options))
   ["--eval" form] (eval form)
   ["-e" form] (eval form)
   ["--version"] (print (.. "Fennel " fennel.version))

@@ -2730,7 +2730,7 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
     local mod = loadCode(code)()
 
     -- Check cache
-    if scope.includes[mod] then return scope.includes[mod] end
+    if rootScope.includes[mod] then return rootScope.includes[mod] end
 
     -- Find path to source
     local path = searchModule(mod)

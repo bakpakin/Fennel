@@ -383,6 +383,10 @@ local function test_macros()
         ["(-> 1234 string.reverse string.upper)"]="4321",
         -- Auto-gensym
         ["(macros {:m (fn [y] `(let [xa# 1] (+ xa# ,y)))}) (m 4)"]=5,
+        -- macro expanding to primitives
+        ["(macro five [] 5) (five)"] = 5,
+        ["(macro greet [] :Hi!) (greet)"] = "Hi!",
+        ["(macros {:yes (fn [] true) :no (fn [] false)}) [(yes) (no)]"]={true, false},
         -- Side-effecting macros
         ["(macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided"]=952,
     }

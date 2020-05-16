@@ -1,5 +1,9 @@
 # Summary of user-visible changes
 
+## 0.4.1 / ???
+
+* Fix a 0.4.0 bug where macros can't expand to string/boolean/number primitives (#279)
+
 ## 0.4.0 / 2020-05-12
 
 * Add `import-macros` for more flexible macro module loading (#269)

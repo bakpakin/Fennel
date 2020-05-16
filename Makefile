@@ -16,7 +16,8 @@ luacheck:
 
 count:
 	cloc fennel.lua
-	cloc --force-lang=lisp fennelview.fnl fennelfriend.fnl launcher.fnl
+	cloc --force-lang=lisp fennelview.fnl fennelfriend.fnl fennelbinary.fnl \
+		launcher.fnl
 
 # For the time being, avoid chicken/egg situation thru the old Lua launcher.
 LAUNCHER=./old_launcher.lua
@@ -25,21 +26,17 @@ LAUNCHER=./old_launcher.lua
 %.lua: %.fnl fennel.lua
 	 $(LAUNCHER) --globals "" --compile $< > $@
 
-fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua
+fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua fennelbinary.fnl
 	echo "#!/usr/bin/env lua" > $@
 	$(LAUNCHER) --globals "" --require-as-include --metadata --compile $< >> $@
 	chmod 755 $@
 
+# Change these up to swap out the version of Lua or for other operating systems.
 STATIC_LUA_LIB ?= /usr/lib/x86_64-linux-gnu/liblua5.3.a
 LUA_INCLUDE_DIR ?= /usr/include/lua5.3
 
-# requires installing luastatic from luarocks
-# see https://github.com/ers35/luastatic/issues/27
-fennel-static: fennel
-	mv $< fnl.lua # refuses to build right now unless input file ends in .lua
-	luastatic fnl.lua $(STATIC_LUA_LIB) -I $(LUA_INCLUDE_DIR)
-	mv fnl.lua $<
-	mv fnl $@
+fennel-bin: launcher.fnl fennel
+	fennel --compile-binary $< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 ci: luacheck testall count
 

@@ -2,9 +2,9 @@
 
 # Created by https://www.gitignore.io/api/lua
 
-# from luastatic
-/fennel-static
-/fnl.lua.c
+# from static compilation
+/*_binary.c
+/fennel-bin
 
 ### Lua ###
 # Compiled Lua sources

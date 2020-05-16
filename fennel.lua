@@ -1123,21 +1123,16 @@ end
 local function compile1(ast, scope, parent, opts)
     opts = opts or {}
     local exprs = {}
-
+    -- expand any top-level macros before parsing and emitting Lua
+    ast = macroexpand(ast, scope)
     -- Compile the form
     if isList(ast) then -- Function call or special form
-        local len, oldAst = #ast, ast
         assertCompile(#ast > 0, "expected a function, macro, or special to call", ast)
-        ast = macroexpand(ast, scope)
-        -- if it's a macro, recur with the expanded ast
-        if (ast ~= oldAst) then return compile1(ast, scope, parent, opts) end
         -- Test for special form
-        local first = len > 0 and ast[1] or nil
-        if isSym(first) then first = first[1] end -- Resolve symbol
+        local len, first = #ast, ast[1]
         local multiSymParts = isMultiSym(first)
-        local special = scope.specials[first]
-        if special and isSym(ast[1]) then
-            -- Special form
+        local special = isSym(first) and scope.specials[deref(first)]
+        if special then -- Special form
             exprs = special(ast, scope, parent, opts) or expr('nil', 'literal')
             -- Be very accepting of strings or expression
             -- as well as lists or expressions

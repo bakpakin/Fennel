@@ -273,6 +273,9 @@ local prefixes = { -- prefix chars substituted while reading
     [35] = 'hashfn' -- #
 }
 
+-- Top level compilation bindings.
+local rootChunk, rootScope, rootOptions
+
 -- The resetRoot function needs to be called at every exit point of the compiler
 -- including when there's a parse error or compiler error. Introduce it up here
 -- so error functions have access to it, and set it when we have values below.
@@ -313,9 +316,11 @@ local function parser(getbyte, filename, options)
     -- If you add new calls to this function, please update fenneldfriend.fnl
     -- as well to add suggestions for how to fix the new error.
     local function parseError(msg)
+        local source = rootOptions and rootOptions.source
         if resetRoot then resetRoot() end
         local override = options and options["parse-error"]
-        if override then override(msg, filename or "unknown", line or "?", byteindex) end
+        if override then override(msg, filename or "unknown", line or "?",
+                                  byteindex, source) end
         return error(("Parse error in %s:%s: %s"):
                 format(filename or "unknown", line or "?", msg), 0)
     end
@@ -525,9 +530,6 @@ end
 -- Compilation
 --
 
--- Top level compilation bindings.
-local rootChunk, rootScope, rootOptions
-
 local function setResetRoot(oldChunk, oldScope, oldOptions)
     local oldResetRoot = resetRoot -- this needs to nest!
     resetRoot = function()
@@ -582,9 +584,10 @@ end
 local function assertCompile(condition, msg, ast)
     local override = rootOptions and rootOptions["assert-compile"]
     if override then
+        local source = rootOptions and rootOptions.source
         -- don't make custom handlers deal with resetting root; it's error-prone
         if not condition and resetRoot then resetRoot() end
-        override(condition, msg, ast)
+        override(condition, msg, ast, source)
         -- should we fall thru to the default check, or should we allow the
         -- override to swallow the error?
     end
@@ -2295,8 +2298,12 @@ local function compileStream(strm, options)
 end
 
 local function compileString(str, options)
-    local strm = stringStream(str)
-    return compileStream(strm, options)
+    options = options or {}
+    local oldSource = options.source
+    options.source = str -- used by fennelfriend
+    local ast = compileStream(stringStream(str), options)
+    options.source = oldSource
+    return ast
 end
 
 ---
@@ -2447,7 +2454,7 @@ local module = {
     macroLoaded = macroLoaded,
     path = table.concat(pathTable, ";"),
     traceback = traceback,
-    version = "0.5.0-dev",
+    version = "0.4.1-dev",
 }
 
 -- In order to make this more readable, you can switch your editor to treating

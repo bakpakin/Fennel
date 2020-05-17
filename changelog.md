@@ -2,7 +2,9 @@
 
 ## 0.4.1 / ???
 
+* Fix a bug where included modules could get included twice
 * Fix a 0.4.0 bug where macros can't expand to string/boolean/number primitives (#279)
+* Fix a bug in macros returning forms of a different length from their input (#276)
 
 ## 0.4.0 / 2020-05-12
 

@@ -116,7 +116,7 @@ local function loadCode(code, environment, filename)
 end
 
 -- Safely load an environment variable
-local getenv = os and os.getenv or function() end
+local getenv = os and os.getenv or function() return nil end
 
 local function debugOn(flag)
     local level = getenv("FENNEL_DEBUG") or ""

@@ -11,7 +11,8 @@ testall: fennel
 	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
 luacheck:
-	luacheck fennel.lua test/*.lua
+	luacheck fennel.lua test/init.lua test/mangling.lua \
+		test/misc.lua test/quoting.lua
 
 count:
 	cloc fennel.lua

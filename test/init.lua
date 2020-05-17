@@ -3,9 +3,9 @@ package.loaded.fennel = dofile("fennel.lua")
 table.insert(package.loaders or package.searchers, package.loaded.fennel.searcher)
 package.loaded.fennelview = package.loaded.fennel.dofile("fennelview.fnl")
 
-local lu, outputType = require('luaunit'), os.getenv('FNL_TEST_OUTPUT') or 'tap'
+local lu = require('test.luaunit')
 local runner = lu.LuaUnit:new()
-runner:setOutputType(outputType)
+runner:setOutputType(os.getenv('FNL_TEST_OUTPUT') or 'tap')
 
 -- attach test modules (which export k/v tables of test fns) as alists
 local function addModule(instances, moduleName)

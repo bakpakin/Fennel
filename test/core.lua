@@ -1,4 +1,4 @@
-local l = require("luaunit")
+local l = require("test.luaunit")
 local fennel = require("fennel")
 
 _G.tbl = {}
@@ -343,17 +343,17 @@ local function test_macros()
         ["(-?> [:a :b] (table.concat \" \"))"]="a b",
         ["(-?>> \" \" (table.concat [:a :b]))"]="a b",
         -- just a boring old set+fn combo
-        ["(require-macros \"test-macros\")\
+        ["(require-macros \"test.macros\")\
           (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,
         -- macros with mangled names
-        ["(require-macros \"test-macros\")\
+        ["(require-macros \"test.macros\")\
           (->1 9 (+ 2) (* 11))"]=121,
         -- import-macros targeting one name import and one aliased
-        ["(import-macros {:defn1 defn : ->1} :test-macros)\
+        ["(import-macros {:defn1 defn : ->1} :test.macros)\
           (defn join [sep ...] (table.concat [...] sep))\
           (join :: :num (->1 5 (* 2) (+ 8)))"]="num:18",
         -- targeting a namespace AND an alias
-        ["(import-macros test :test-macros {:inc INC} :test-macros)\
+        ["(import-macros test :test.macros {:inc INC} :test.macros)\
           (INC (test.inc 5))"]=7,
         -- special form
         [ [[(eval-compiler

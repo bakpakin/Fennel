@@ -2749,39 +2749,39 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
 
     -- Read source
     local f = io.open(path)
-    local s = f:read('*all')
+    local s = f:read('*all'):gsub('[\r\n]*$', '')
     f:close()
 
     -- splice in source and memoize it in compiler AND package.preload
     -- so we can include it again without duplication, even in runtime
-    local target = 'package.preload["' .. mod .. '"]'
     local ret = expr('require("' .. mod .. '")', 'statement')
+    local target = ('package.preload[%q]'):format(mod)
+    local preloadStr = target .. ' = ' .. target .. ' or function()'
 
-    local subChunk, tempChunk = {}, {}
-    emit(tempChunk, subChunk, ast)
-    -- if lua, simply emit the setting of package.preload
-    if not isFennel then
-        emit(tempChunk, target .. ' = ' .. target .. ' or function()\n' .. s .. '\nend', ast)
-    end
+    local tempChunk, subChunk = {}, {}
+    emit(tempChunk, preloadStr, ast)
+    emit(tempChunk, subChunk)
+    emit(tempChunk, 'end', ast)
     -- Splice tempChunk to begining of rootChunk
-    for i, v in ipairs(tempChunk) do
-        table.insert(rootChunk, i, v)
-    end
+    for i, v in ipairs(tempChunk) do table.insert(rootChunk, i, v) end
 
     -- For fnl source, compile subChunk AFTER splicing into start of rootChunk.
     if isFennel then
-        local subopts = { nval = 1, target = target }
         local subscope = makeScope(rootScope.parent)
         if rootOptions.requireAsInclude then
             subscope.specials.require = requireSpecial
         end
-        local targetForm = list(sym('.'), sym('package.preload'), mod)
-        -- splice "or" statement in so it uses existing package.preload[modname]
-        -- if it's been set by something else, allowing for overrides
-        local forms = list(sym('or'), targetForm, list(sym('fn'), sequence()))
-        local p = parser(stringStream(s), path)
-        for _, val in p do table.insert(forms[3], val) end
-        compile1(forms, subscope, subChunk, subopts)
+        -- parse Fennel src into table of exprs to know which expr is the tail
+        local forms, p = {}, parser(stringStream(s), path)
+        for _, val in p do table.insert(forms, val) end
+        -- Compile the forms into subChunk; compile1 is necessary for all nested
+        -- includes to be emitted in the same rootChunk in the top-level module
+        for i = 1, #forms do
+            local subopts = i == #forms and {nval=1, tail=true} or {}
+            compile1(forms[i], subscope, subChunk, subopts)
+        end
+    else -- for Lua source, simply emit the src into the loader's body
+        emit(subChunk, s, ast)
     end
 
     -- Put in cache and return

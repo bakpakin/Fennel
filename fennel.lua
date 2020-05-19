@@ -92,8 +92,15 @@ end
 
 local function deref(self) return self[1] end
 
+local nilSym -- haven't defined sym yet; create this later
+
 local function listToString(self, tostring2)
-    return '(' .. table.concat(map(self, tostring2 or tostring), ' ', 1, #self) .. ')'
+    local safe, max = {}, 0
+    for k in pairs(self) do if type(k) == "number" and k>max then max=k end end
+    for i=1,max do -- table.maxn was removed from Lua 5.3 for some reason???
+        safe[i] = self[i] == nil and nilSym or self[i]
+    end
+    return '(' .. table.concat(map(safe, tostring2 or tostring), ' ', 1, max) .. ')'
 end
 
 local SYMBOL_MT = { 'SYMBOL', __tostring = deref, __fennelview = deref }
@@ -141,6 +148,8 @@ local function sym(str, scope, source)
     end
     return setmetatable(s, SYMBOL_MT)
 end
+
+nilSym = sym("nil")
 
 -- Create a new sequence. Sequences are tables that come from the parser when
 -- it encounters a form with square brackets. They are treated as regular tables
@@ -2239,8 +2248,15 @@ local function doQuote (form, scope, parent, runtime)
         assertCompile(not runtime, "lists may only be used at compile time", form)
         local mapped = kvmap(form, entryTransform(no, q))
         local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
-        local s = "(function(l) l.filename, l.line = %s, %s return l end)(list(%s))"
-        return (s):format(filename, form.line or "nil", mixedConcat(mapped, ", "))
+        -- Constructing a list and then adding file/line data to it triggers a
+        -- bug where it changes the value of # for lists that contain nils in
+        -- them; constructing the list all in one go with the source data and
+        -- contents is how we construct lists in the parser and works around
+        -- this problem; allowing # to work in a way that lets us see the nils.
+        return ("setmetatable({filename=%s, line=%s, bytestart=%s, %s}" ..
+                    ", getmetatable(list()))")
+            :format(filename, form.line or "nil", form.bytestart or "nil",
+                    mixedConcat(mapped, ", "))
     -- table
     elseif type(form) == 'table' then
         local mapped = kvmap(form, entryTransform(q, q))

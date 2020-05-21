@@ -389,6 +389,8 @@ local function test_macros()
         ["(macros {:yes (fn [] true) :no (fn [] false)}) [(yes) (no)]"]={true, false},
         -- Side-effecting macros
         ["(macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided"]=952,
+        -- Macros returning nil in unquote
+        ["(import-macros m :test.macros) (var x 1) (m.inc! x 2) (m.inc! x) x"]=4,
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)

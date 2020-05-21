@@ -133,18 +133,19 @@ int main(int argc, char *argv[]) {
   return 0;
 }")
 
-(local loader
-       "(do (local bundle ...)
-        (fn loader [name]
-          (match (or (. bundle name) (. bundle (.. name \".init\")))
-            (mod ? (= :function (type mod))) mod
-            (mod ? (= :string (type mod))) (assert (if (= _VERSION \"Lua 5.1\")
-                                                       (loadstring mod name)
-                                                       (load mod name)))
-            nil (values nil (: \"\n\tno module '%%s' in fennel bundle\"
-                               :format name))))
-        (table.insert (or package.loaders package.searchers) 2 loader)
-        ((assert (loader \"%s\")) ((or unpack table.unpack) arg)))")
+(macro loader []
+  `(do (local bundle# ...)
+       (fn loader# [name#]
+         (match (or (. bundle# name#) (. bundle# (.. name# ".init")))
+           (mod# ? (= :function (type mod#))) mod#
+           (mod# ? (= :string (type mod#))) (assert
+                                             (if (= _VERSION "Lua 5.1")
+                                                 (loadstring mod# name#)
+                                                 (load mod# name#)))
+           nil (values nil (: "\n\tmodule '%%s' not found in fennel bundle"
+                              :format name#))))
+       (table.insert (or package.loaders package.searchers) 2 loader#)
+       ((assert (loader# "%s")) ((or unpack table.unpack) arg))))
 
 (fn compile-fennel [filename options]
   (let [f (if (= filename "-")
@@ -161,7 +162,8 @@ int main(int argc, char *argv[]) {
                     (: :gsub "^%.%/" "")
                     (: :gsub "[\\/]" "."))
         dotpath-noextension (or (dotpath:match "(.+)%.") dotpath)
-        lua-loader (fennel.compileString (loader:format dotpath-noextension))]
+        fennel-loader (: (macrodebug (loader) :do) :format dotpath-noextension)
+        lua-loader (fennel.compileString fennel-loader)]
     (c-shim:format (string->c-hex-literal lua-loader)
                    basename-noextension
                    (string->c-hex-literal (compile-fennel filename options))

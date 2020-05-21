@@ -16,7 +16,6 @@ Run fennel, a lisp programming language for the Lua runtime.
   --add-fennel-path  PATH : Add PATH to fennel.path for finding Fennel modules
   --globals G1[,G2...]    : Allow these globals in addition to standard ones
   --globals-only G1[,G2]  : Same as above, but exclude standard ones
-  --check-unused-locals   : Raise error when compiling code with unused locals
   --require-as-include    : Inline required modules in the output
   --metadata              : Enable function metadata, even in compiled output
   --no-metadata           : Disable function metadata, even in REPL

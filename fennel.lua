@@ -238,6 +238,7 @@ end
 
 -- Convert a string into a stream of bytes
 local function stringStream(str)
+    str=str:gsub("^#![^\n]*\n", "") -- remove shebang
     local index = 1
     return function()
         local r = str:byte(index)
@@ -2438,7 +2439,7 @@ local function dofileFennel(filename, options, ...)
         opts.allowedGlobals = currentGlobalNames(opts.env)
     end
     local f = assert(io.open(filename, "rb"))
-    local source = f:read("*all"):gsub("^#![^\n]*\n", "")
+    local source = f:read("*all")
     f:close()
     opts.filename = filename
     return eval(source, opts, ...)

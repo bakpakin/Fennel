@@ -2,6 +2,7 @@
 
 ## 0.4.1 / ???
 
+* Support shebang in all contexts, not just dofile.
 * Pinpoint source in compile errors even when loading from a string
 * Fix a bug where included modules could get included twice
 * Fix a 0.4.0 bug where macros can't expand to string/boolean/number primitives (#279)

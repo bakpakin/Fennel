@@ -108,7 +108,7 @@ local EXPR_MT = { 'EXPR', __tostring = deref }
 local VARARG = setmetatable({ '...' },
     { 'VARARG', __tostring = deref, __fennelview = deref })
 local LIST_MT = { 'LIST', __tostring = listToString, __fennelview = listToString }
-local SEQUENCE_MT = { 'SEQUENCE' }
+local SEQUENCE_MARKER = { 'SEQUENCE' }
 
 -- Load code with an environment in all recent Lua versions
 local function loadCode(code, environment, filename)
@@ -155,7 +155,11 @@ nilSym = sym("nil")
 -- it encounters a form with square brackets. They are treated as regular tables
 -- except when certain macros need to look for binding forms, etc specifically.
 local function sequence(...)
-   return setmetatable({...}, SEQUENCE_MT)
+    -- can't use SEQUENCE_MT directly as the sequence metatable like we do with
+    -- the other types without giving up the ability to set source metadata
+    -- on a sequence, (which we need for error reporting) so embed a marker
+    -- value in the metatable instead.
+    return setmetatable({...}, {sequence=SEQUENCE_MARKER})
 end
 
 -- Create a new expr
@@ -196,7 +200,8 @@ end
 
 -- Checks if an object is a sequence (created with a [] literal)
 local function isSequence(x)
-   return type(x) == 'table' and getmetatable(x) == SEQUENCE_MT and x
+    local mt = type(x) == "table" and getmetatable(x)
+    return mt and mt.sequence == SEQUENCE_MARKER and x
 end
 
 -- Returns a shallow copy of its table argument. Returns an empty table on nil.
@@ -408,15 +413,12 @@ local function parser(getbyte, filename, options)
                 if b == 41 then -- ; )
                     val = last
                 elseif b == 93 then -- ; ]
-                    val = sequence()
-                    for i = 1, #last do
-                        val[i] = last[i]
-                    end
+                    val = sequence(unpack(last))
                     -- for table literals we can store file/line/offset source
                     -- data in fields on the table itself, because the AST node
                     -- *is* the table, and the fields would show up in the
                     -- compiled output. keep them on the metatable instead.
-                    setmetatable(val, last)
+                    for k,v in pairs(last) do getmetatable(val)[k]=v end
                 else -- ; }
                     if #last % 2 ~= 0 then
                         byteindex = byteindex - 1
@@ -2681,6 +2683,7 @@ local function makeCompilerEnv(ast, scope, parent)
         -- via fennel.myfun, for example (fennel.eval "(print 1)").
         list = list,
         sym = sym,
+        sequence = sequence,
         unpack = unpack,
         gensym = function() return sym(gensym(macroCurrentScope or scope)) end,
         ["list?"] = isList,

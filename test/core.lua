@@ -391,6 +391,7 @@ local function test_macros()
         ["(macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided"]=952,
         -- Macros returning nil in unquote
         ["(import-macros m :test.macros) (var x 1) (m.inc! x 2) (m.inc! x) x"]=4,
+        ["(macro seq? [expr] (sequence? expr)) (seq? [65])"]={65},
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)

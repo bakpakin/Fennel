@@ -1904,28 +1904,29 @@ SPECIALS["each"] = function(ast, scope, parent)
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local destructures = {}
     local newManglings = {}
+    local subScope = makeScope(scope)
     local function destructureBinding(v)
         if isSym(v) then
-            return declareLocal(v, {}, scope, ast, newManglings)
+            return declareLocal(v, {}, subScope, ast, newManglings)
         else
-            local raw = sym(gensym(scope))
+            local raw = sym(gensym(subScope))
             destructures[raw] = v
-            return declareLocal(raw, {}, scope, ast)
+            return declareLocal(raw, {}, subScope, ast)
         end
     end
     local bindVars = map(binding, destructureBinding)
-    local vals = compile1(iter, scope, parent)
+    local vals = compile1(iter, subScope, parent)
     local valNames = map(vals, tostring)
 
     emit(parent, ('for %s in %s do'):format(table.concat(bindVars, ', '),
                                             table.concat(valNames, ", ")), ast)
     local chunk = {}
     for raw, args in stablepairs(destructures) do
-        destructure(args, raw, ast, scope, chunk,
+        destructure(args, raw, ast, subScope, chunk,
                     { declaration = true, nomulti = true })
     end
-    applyManglings(scope, newManglings, ast)
-    compileDo(ast, scope, chunk, 3)
+    applyManglings(subScope, newManglings, ast)
+    compileDo(ast, subScope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end
@@ -1963,19 +1964,20 @@ docSpecial("while", {"condition", "..."},
 SPECIALS["for"] = function(ast, scope, parent)
     local ranges = assertCompile(isTable(ast[2]), "expected binding table", ast)
     local bindingSym = table.remove(ast[2], 1)
+    local subScope = makeScope(scope)
     assertCompile(isSym(bindingSym),
                   ("unable to bind %s %s"):
                       format(type(bindingSym), tostring(bindingSym)), ast[2])
     assertCompile(#ast >= 3, "expected body expression", ast[1])
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
-        rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
+        rangeArgs[i] = tostring(compile1(ranges[i], subScope, parent, {nval = 1})[1])
     end
     emit(parent, ('for %s = %s do'):format(
-             declareLocal(bindingSym, {}, scope, ast),
+             declareLocal(bindingSym, {}, subScope, ast),
              table.concat(rangeArgs, ', ')), ast)
     local chunk = {}
-    compileDo(ast, scope, chunk, 3)
+    compileDo(ast, subScope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end

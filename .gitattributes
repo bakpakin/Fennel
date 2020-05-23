@@ -1,0 +1,6 @@
+# Ignore generated files
+fennelview.lua linguist-generated
+fennelfriend.lua linguist-generated
+
+# Use clojure syntax highlighting for .fnl until fennel is in linguist
+*.fnl linguist-language=clojure

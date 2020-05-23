@@ -178,6 +178,10 @@ Run fennel, a lisp programming language for the Lua runtime.
                                  (bin.compile filename out
                                               static-lua lua-include-dir
                                               options))
+  ["--compile-splice" filename out] (let [bin (require :fennelbinary)]
+                                      (set options.filename filename)
+                                      (set options.requireAsInclude true)
+                                      (bin.splice filename out options))
   ["--eval" form] (eval form)
   ["-e" form] (eval form)
   ["--version"] (print (.. "Fennel " fennel.version))

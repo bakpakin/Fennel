@@ -134,18 +134,42 @@ int main(int argc, char *argv[]) {
 }")
 
 (macro loader []
-  `(do (local bundle# ...)
-       (fn loader# [name#]
-         (match (or (. bundle# name#) (. bundle# (.. name# ".init")))
-           (mod# ? (= :function (type mod#))) mod#
-           (mod# ? (= :string (type mod#))) (assert
-                                             (if (= _VERSION "Lua 5.1")
-                                                 (loadstring mod# name#)
-                                                 (load mod# name#)))
-           nil (values nil (: "\n\tmodule '%%s' not found in fennel bundle"
-                              :format name#))))
-       (table.insert (or package.loaders package.searchers) 2 loader#)
-       ((assert (loader# "%s")) ((or unpack table.unpack) arg))))
+  `(do (fn seek-code-start# [f# end#]
+         (if (and (= "\n" (: f# :read 1))
+                  (= "-" (: f# :read 1))
+                  (= "-" (: f# :read 1))
+                  (= " " (: f# :read 1)))
+             (tonumber (: f# :read :*line))
+             (< (: f# :seek :cur) end#)
+             (seek-code-start# f# end#)))
+       (let [bundle# ...
+             name# "%s"
+             f# (assert (io.open (. arg 0) :rb))
+             end# (: f# :seek :end)
+             _# (: f# :seek :set (- end# 32))
+             code-start# (seek-code-start# f# end#)]
+         (fn run-payload# []
+           (: f# :seek :set code-start#)
+           (let [code# (: f# :read :*all)
+                 chunk# (if (= _VERSION "Lua 5.1")
+                            (loadstring code# name#)
+                            (load code# name#))]
+             (: f# :close)
+             ((assert chunk#) ((or unpack table.unpack) arg))))
+         (fn loader# [name#]
+           (match (or (. bundle# name#) (. bundle# (.. name# ".init")))
+             (mod# ? (= :function (type mod#))) mod#
+             (mod# ? (= :string (type mod#))) (assert
+                                               (if (= _VERSION "Lua 5.1")
+                                                   (loadstring mod# name#)
+                                                   (load mod# name#)))
+             nil (values nil (: "\n\tmodule '%%s' not found in fennel bundle"
+                                :format name#))))
+         (table.insert (or package.loaders package.searchers) 2 loader#)
+         (if code-start#
+             (run-payload# code-start#)
+             (do (: f# :close)
+                 ((assert (loader# name#)) ((or unpack table.unpack) arg)))))))
 
 (fn compile-fennel [filename options]
   (let [f (if (= filename "-")
@@ -204,6 +228,23 @@ int main(int argc, char *argv[]) {
   (compile-binary (write-c filename options) executable-name
                   static-lua lua-include-dir))
 
+(fn splice [filename out options]
+  (let [out-code (compile-fennel filename options)
+        parent (assert (io.open (. arg 0) :rb))
+        f (assert (io.open out :wb))
+        chunk-size 1024]
+    (var data (parent:read chunk-size))
+    (assert (not (data:find "^#!/usr/bin/env")) "Can only splice binary Fennel")
+    (while data
+      (f:write data)
+      (set data (parent:read chunk-size)))
+    ;; Add code payload plus offset to indicate where the code starts
+    (let [code-start (parent:seek :cur)]
+      (f:write out-code)
+      (f:write (: "\n-- %d" :format code-start))
+      (f:close)
+      (parent:close))))
+
 (local help (: "
 Usage: %s --compile-binary FILE OUT STATIC_LUA_LIB LUA_INCLUDE_DIR
 
@@ -234,4 +275,4 @@ and programs which do not transitively requiring Lua modules. Requiring a Lua
 module directly will work, but requiring a Lua module which requires another
 will fail." :format (. arg 0) (. arg 0)))
 
-{: compile : help}
+{: compile : help : splice}

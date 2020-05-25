@@ -2242,7 +2242,7 @@ local function doQuote (form, scope, parent, runtime)
         assertCompile(not runtime, "symbols may only be used at compile time", form)
         -- We should be able to use "%q" for this but Lua 5.1 throws an error
         -- when you try to format nil, because it's extremely bad.
-        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
+        local filename = form.filename and ('%q'):format(form.filename) or "nil"
         if deref(form):find("#$") then -- autogensym
             return ("sym('%s', nil, {filename=%s, line=%s})"):
                 format(autogensym(deref(form), scope), filename, form.line or "nil")
@@ -2259,7 +2259,7 @@ local function doQuote (form, scope, parent, runtime)
     elseif isList(form) then
         assertCompile(not runtime, "lists may only be used at compile time", form)
         local mapped = kvmap(form, entryTransform(no, q))
-        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
+        local filename = form.filename and ('%q'):format(form.filename) or "nil"
         -- Constructing a list and then adding file/line data to it triggers a
         -- bug where it changes the value of # for lists that contain nils in
         -- them; constructing the list all in one go with the source data and
@@ -2273,7 +2273,7 @@ local function doQuote (form, scope, parent, runtime)
     elseif type(form) == 'table' then
         local mapped = kvmap(form, entryTransform(q, q))
         local source = getmetatable(form)
-        local filename = source.filename and ("'%s'"):format(source.filename) or "nil"
+        local filename = source.filename and ('%q'):format(source.filename) or "nil"
         return ("setmetatable({%s}, {filename=%s, line=%s})"):
             format(mixedConcat(mapped, ", "), filename, source and source.line or "nil")
     -- string

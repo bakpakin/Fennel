@@ -2991,11 +2991,12 @@ that argument name begins with ?."
           (assert (sym? name) "expected symbol for macro name")
           (local args [...])
           `(macros { ,(tostring name) (fn ,name ,(unpack args))}))
- :macrodebug (fn macrodebug [form]
-              "Print the resulting form after performing macroexpansion."
-              (let [(ok view) (pcall require :fennelview)]
-                `(print ,((if ok view tostring)
-                          (macroexpand form _SCOPE)))))
+ :macrodebug (fn macrodebug [form return?]
+              "Print the resulting form after performing macroexpansion.
+With a second argument, returns expanded form as a string instead of printing."
+              (let [(ok view) (pcall require :fennelview)
+                    handle (if return? `do `print)]
+                `(,handle ,((if ok view tostring) (macroexpand form _SCOPE)))))
  :import-macros (fn import-macros [binding1 module-name1 ...]
                   "Binds a table of macros from each macro module according to its binding form.
 Each binding form can be either a symbol or a k/v destructuring table.

@@ -2639,8 +2639,8 @@ end
 
 local function searchModule(modulename, pathstring)
     -- use package.config to process package.path (e.g. for windows compat)
-    local pkgconfig = string.gmatch(package.config, "([^\n]+)")
-    local dirsep, pathsep, pathmark = pkgconfig(), pkgconfig(), pkgconfig()
+    local cfg = string.gmatch(package.config, "([^\n]+)")
+    local dirsep, pathsep, pathmark = cfg() or '/', cfg() or ';', cfg() or '?'
     local escapedSep = escapepat(pathsep)
     local pathsplit = string.format("([^%s]*)%s", escapedSep, escapedSep)
     modulename = modulename:gsub("%.", dirsep)

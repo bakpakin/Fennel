@@ -30,6 +30,10 @@ local unpack = unpack or table.unpack
 -- Main Types and support functions
 --
 
+-- Escape a string for safe use in a Lua pattern
+local function escapepat(str)
+    return string.gsub(str, "[^%w]", "%%%1")
+end
 -- Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
 -- pairs is already stable, but on 5.3 every run gives different ordering.
 local function stablepairs(t)
@@ -2634,9 +2638,14 @@ module.repl = function(options)
 end
 
 local function searchModule(modulename, pathstring)
-    modulename = modulename:gsub("%.", "/")
-    for path in string.gmatch((pathstring or module.path)..";", "([^;]*);") do
-        local filename = path:gsub("%?", modulename)
+    -- use package.config to process package.path (e.g. for windows compat)
+    local pkgconfig = string.gmatch(package.config, "([^\n]+)")
+    local dirsep, pathsep, pathmark = pkgconfig(), pkgconfig(), pkgconfig()
+    local escapedSep = escapepat(pathsep)
+    local pathsplit = string.format("([^%s]*)%s", escapedSep, escapedSep)
+    modulename = modulename:gsub("%.", dirsep)
+    for path in string.gmatch((pathstring or module.path)..escapedSep, pathsplit) do
+        local filename = path:gsub(escapepat(pathmark), modulename)
         local file = io.open(filename, "rb")
         if(file) then
             file:close()

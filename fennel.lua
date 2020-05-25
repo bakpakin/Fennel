@@ -2637,15 +2637,20 @@ module.repl = function(options)
     return eval(replsource, { correlate = true }, module, internals)(options)
 end
 
-local function searchModule(modulename, pathstring)
-    -- use package.config to process package.path (e.g. for windows compat)
+-- have searchModule use package.config to process package.path (windows compat)
+local pkgConfig
+do
     local cfg = string.gmatch(package.config, "([^\n]+)")
     local dirsep, pathsep, pathmark = cfg() or '/', cfg() or ';', cfg() or '?'
-    local escapedSep = escapepat(pathsep)
-    local pathsplit = string.format("([^%s]*)%s", escapedSep, escapedSep)
-    modulename = modulename:gsub("%.", dirsep)
-    for path in string.gmatch((pathstring or module.path)..escapedSep, pathsplit) do
-        local filename = path:gsub(escapepat(pathmark), modulename)
+    pkgConfig = {dirsep = dirsep, pathsep = pathsep, pathmark = pathmark}
+end
+
+local function searchModule(modulename, pathstring)
+    local pathsepesc = escapepat(pkgConfig.pathsep)
+    local pathsplit = string.format("([^%s]*)%s", pathsepesc, escapepat(pkgConfig.pathsep))
+    modulename = modulename:gsub("%.", pkgConfig.dirsep)
+    for path in string.gmatch((pathstring or module.path)..pkgConfig.pathsep, pathsplit) do
+        local filename = path:gsub(escapepat(pkgConfig.pathmark), modulename)
         local file = io.open(filename, "rb")
         if(file) then
             file:close()

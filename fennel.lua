@@ -30,6 +30,10 @@ local unpack = unpack or table.unpack
 -- Main Types and support functions
 --
 
+-- Escape a string for safe use in a Lua pattern
+local function escapepat(str)
+    return string.gsub(str, "[^%w]", "%%%1")
+end
 -- Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
 -- pairs is already stable, but on 5.3 every run gives different ordering.
 local function stablepairs(t)
@@ -2238,7 +2242,7 @@ local function doQuote (form, scope, parent, runtime)
         assertCompile(not runtime, "symbols may only be used at compile time", form)
         -- We should be able to use "%q" for this but Lua 5.1 throws an error
         -- when you try to format nil, because it's extremely bad.
-        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
+        local filename = form.filename and ('%q'):format(form.filename) or "nil"
         if deref(form):find("#$") then -- autogensym
             return ("sym('%s', nil, {filename=%s, line=%s})"):
                 format(autogensym(deref(form), scope), filename, form.line or "nil")
@@ -2255,7 +2259,7 @@ local function doQuote (form, scope, parent, runtime)
     elseif isList(form) then
         assertCompile(not runtime, "lists may only be used at compile time", form)
         local mapped = kvmap(form, entryTransform(no, q))
-        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
+        local filename = form.filename and ('%q'):format(form.filename) or "nil"
         -- Constructing a list and then adding file/line data to it triggers a
         -- bug where it changes the value of # for lists that contain nils in
         -- them; constructing the list all in one go with the source data and
@@ -2269,7 +2273,7 @@ local function doQuote (form, scope, parent, runtime)
     elseif type(form) == 'table' then
         local mapped = kvmap(form, entryTransform(q, q))
         local source = getmetatable(form)
-        local filename = source.filename and ("'%s'"):format(source.filename) or "nil"
+        local filename = source.filename and ('%q'):format(source.filename) or "nil"
         return ("setmetatable({%s}, {filename=%s, line=%s})"):
             format(mixedConcat(mapped, ", "), filename, source and source.line or "nil")
     -- string
@@ -2633,10 +2637,20 @@ module.repl = function(options)
     return eval(replsource, { correlate = true }, module, internals)(options)
 end
 
+-- have searchModule use package.config to process package.path (windows compat)
+local pkgConfig
+do
+    local cfg = string.gmatch(package.config, "([^\n]+)")
+    local dirsep, pathsep, pathmark = cfg() or '/', cfg() or ';', cfg() or '?'
+    pkgConfig = {dirsep = dirsep, pathsep = pathsep, pathmark = pathmark}
+end
+
 local function searchModule(modulename, pathstring)
-    modulename = modulename:gsub("%.", "/")
-    for path in string.gmatch((pathstring or module.path)..";", "([^;]*);") do
-        local filename = path:gsub("%?", modulename)
+    local pathsepesc = escapepat(pkgConfig.pathsep)
+    local pathsplit = string.format("([^%s]*)%s", pathsepesc, escapepat(pkgConfig.pathsep))
+    modulename = modulename:gsub("%.", pkgConfig.dirsep)
+    for path in string.gmatch((pathstring or module.path)..pkgConfig.pathsep, pathsplit) do
+        local filename = path:gsub(escapepat(pkgConfig.pathmark), modulename)
         local file = io.open(filename, "rb")
         if(file) then
             file:close()

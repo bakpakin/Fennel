@@ -1,10 +1,11 @@
 # Summary of user-visible changes
 
-## 0.4.1 / ???
+## 0.4.1 / 2020-05-25
 
+* Experimental --compile-binary command (#281)
 * Support shebang in all contexts, not just dofile.
 * Pinpoint source in compile errors even when loading from a string
-* Fix a bug where included modules could get included twice
+* Fix a bug where included modules could get included twice (#278)
 * Fix a 0.4.0 bug where macros can't expand to string/boolean/number primitives (#279)
 * Fix a bug in macros returning forms of a different length from their input (#276)
 

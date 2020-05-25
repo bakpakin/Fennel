@@ -22,7 +22,7 @@ build = {
    modules = {
        fennel = "fennel.lua",
        fennelview = "fennelview.lua",
-       fennelfriend = "fennelfriend.lua"
+       fennelfriend = "fennelfriend.lua",
        fennelbinary = "fennelbinary.fnl"
    },
    install = {

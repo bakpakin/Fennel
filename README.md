@@ -100,9 +100,7 @@ Released under the [MIT license](LICENSE).
 [3]: https://luarocks.org/
 [4]: http://luajit.org/ext_ffi_tutorial.html
 [5]: https://lists.sr.ht/%7Etechnomancy/fennel
-[6]: https://gitlab.com/technomancy/fennel-mode
 [7]: https://github.com/bakpakin/Fennel/wiki
 [8]: https://circleci.com/gh/bakpakin/Fennel
 [9]: https://webchat.freenode.net/
-[10]: https://github.com/bakpakin/fennel.vim
 [11]: https://matrix.to/#/!rnpLWzzTijEUDhhtjW:matrix.org?via=matrix.org

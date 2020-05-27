@@ -1,5 +1,7 @@
 /fennel
 
+/lua-5.3.5/
+
 # Created by https://www.gitignore.io/api/lua
 
 # from static compilation

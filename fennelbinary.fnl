@@ -179,19 +179,17 @@ int main(int argc, char *argv[]) {
 (fn compile-binary [lua-c-path executable-name static-lua lua-include-dir]
   (let [cc (or (os.getenv "CC") "cc")
         ;; http://lua-users.org/lists/lua-l/2009-05/msg00147.html
-        (rdynamic binary-extension) (if (: (shellout (.. cc " -dumpmachine"))
-                                           :match "mingw")
-                                        (values "" ".exe")
-                                        (values "-rdynamic" ""))
-        link-with-libdl? (match (-?> (shellout "uname -s") (: :match "%a+"))
-                           :Linux true :Darwin true :SunOS true)
+        (rdynamic bin-extension ldl?) (if (: (shellout (.. cc " -dumpmachine"))
+                                             :match "mingw")
+                                          (values "" ".exe" false)
+                                          (values "-rdynamic" "" true))
         compile-command [cc "-Os" ; optimize for size
                          lua-c-path
                          static-lua
                          rdynamic
                          "-lm"
-                         (if link-with-libdl? "-ldl" "")
-                         "-o" (.. executable-name binary-extension)
+                         (if ldl? "-ldl" "")
+                         "-o" (.. executable-name bin-extension)
                          "-I" lua-include-dir
                          (os.getenv "CC_OPTS")]]
     (when (not (execute (table.concat compile-command " ")))

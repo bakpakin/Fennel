@@ -123,7 +123,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   (tset options k v))
 
 (fn load-initfile []
-  (let [home (os.getenv "HOME")
+  (let [home (or (os.getenv "HOME") "/")
         xdg-config-home (or (os.getenv "XDG_CONFIG_HOME") (.. home "/.config"))
         xdg-initfile (.. xdg-config-home "/fennel/fennelrc")
         home-initfile (.. home "/.fennelrc")

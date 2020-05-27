@@ -26,8 +26,9 @@ LAUNCHER=./old_launcher.lua
 %.lua: %.fnl fennel.lua
 	 $(LAUNCHER) --globals "" --compile $< > $@
 
+# All-in-one pure-lua script:
 fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua fennelbinary.fnl
-	echo "#!/usr/bin/env lua" > $@
+	echo "#!/usr/bin/env $(LUA)" > $@
 	$(LAUNCHER) --globals "" --require-as-include --metadata --compile $< >> $@
 	chmod 755 $@
 
@@ -36,7 +37,7 @@ STATIC_LUA_LIB ?= /usr/lib/x86_64-linux-gnu/liblua5.3.a
 LUA_INCLUDE_DIR ?= /usr/include/lua5.3
 
 fennel-bin: launcher.fnl fennel
-	fennel --compile-binary $< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
+	./fennel --compile-binary $< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 ci: luacheck testall count
 

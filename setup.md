@@ -7,13 +7,6 @@ edit configuration files in a UNIX-like environment.
 Fennel can be used in non-UNIX environments, but those environments
 will not be covered in this document.
 
-# Requirements
-
-* Access to a UNIX-like environment, such as Ubuntu, Debian, Arch
-  Linux, Windows Subsystem for Linux, Homebrew, scoop.sh, etc.
-* Lua version 5.1, 5.2, 5.3, or LuaJIT
-* LuaRocks or Git and Make
-
 # Downloading and installing Fennel
 
 Downloading and installing Fennel on your system allows you to run
@@ -22,12 +15,35 @@ Git or LuaRocks.
 
 Depending on which method you want to use, choose a subsection below:
 
+* [Installing directly](#installing-directly)
 * [Using Git to download Fennel](#using-git-to-download-and-install-fennel)
 * [Using LuaRocks to download Fennel](#using-luarocks-to-download-and-install-fennel)
 
 **Tip**: If you are using software that supports Fennel, such as
 [TIC-80](https://tic.computer), you do not need to download Fennel,
 because you can use it inside of TIC-80.
+
+## Installing directly
+
+If you have Lua (5.1, 5.2, 5.3, or LuaJIT) installed on your system
+you can download the Fennel script easily, but updates will have to be
+done manually.
+
+### To install directly
+
+1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-0.4.1)
+3. Run `chmod +x fennel-0.4.1` to make it executable
+4. Download [the signature](https://fennel-lang.org/downloads/fennel-0.4.1.asc)
+5. Confirm it using `gpg --verify fennel-0.4.1.asc`
+3. Move `fennel-0.4.1` to a directory on your `$PATH`, such as `/usr/local/bin`
+
+You can rename the script to just `fennel` for convenience. If you
+don't have Lua installed, you can get one of the standalone binaries
+instead if there is one provided for your system:
+
+* [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64.asc))
+* [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-0.4.1-arm32) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-arm32.asc))
+* [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe.asc))
 
 ## Using Git to download and install Fennel
 

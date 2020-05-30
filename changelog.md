@@ -1,19 +1,27 @@
 # Summary of user-visible changes
 
-## ??? / ???
+## 0.4.1 / 2020-05-25
 
-* Add bit-wise operators `>>`, `<<`, `|`, `&`, `bnot`, and `xor`
+* Experimental --compile-binary command (#281)
+* Support shebang in all contexts, not just dofile.
+* Pinpoint source in compile errors even when loading from a string
+* Fix a bug where included modules could get included twice (#278)
+* Fix a 0.4.0 bug where macros can't expand to string/boolean/number primitives (#279)
+* Fix a bug in macros returning forms of a different length from their input (#276)
+
+## 0.4.0 / 2020-05-12
+
+* Add `import-macros` for more flexible macro module loading (#269)
+* Ensure deterministic compiler output (#257)
+* Add bit-wise operators `rshift`, `lshift`, `bor`, `band`, `bnot`, and `bxor`
 * Friendlier compiler/parse error messages with suggestions
 * Omit compiler internal stack traces by default unless `FENNEL_DEBUG=trace`
 * Add support for `__fennelview` metamethod for custom serialization
 * Fix a bug where `dofile` would report the wrong filename
 * Fix bug causing failing `include` of Lua modules that lack a trailing newline (#234)
 * Introduce `pick-values` and `pick-args` macros (as `limit-*`: #246, as `pick-*`: #256)
-* Fix a bug where destructuring tables emits locals in unstable order in Lua 5.2/5.3 (#259)
-* Set macros on scope.macros & add new `macroexpand` helper to expand macro forms during
-compilation rather than uplifting macros to specials. (#258)
-* Add `macrodebug` util macro for printing expanded macro forms in REPL. (#258)
-* Make completion walk scope ancestors for macros & specials (#260)
+* Add new `macroexpand` helper to expand macro forms during compilation (#258)
+* Add `macrodebug` utility macro for printing expanded macro forms in REPL (#258)
 
 ## 0.3.2 / 2020-01-14
 

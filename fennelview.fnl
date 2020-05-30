@@ -17,9 +17,10 @@
          long))
 
 (fn escape [str]
-  (let [str (: str :gsub "\\" "\\\\")
-        str (: str :gsub "(%c)%f[0-9]" long-control-char-escapes)]
-    (: str :gsub "%c" short-control-char-escapes)))
+  (-> str
+      (: :gsub "\\" "\\\\")
+      (: :gsub "(%c)%f[0-9]" long-control-char-escapes)
+      (: :gsub "%c" short-control-char-escapes)))
 
 (fn sequence-key? [k len]
   (and (= (type k) "number")

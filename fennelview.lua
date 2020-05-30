@@ -15,9 +15,7 @@ do
   long_control_char_escapes = long
 end
 local function escape(str)
-  local str0 = str:gsub("\\", "\\\\")
-  local str1 = str0:gsub("(%c)%f[0-9]", long_control_char_escapes)
-  return str1:gsub("%c", short_control_char_escapes)
+  return str:gsub("\\", "\\\\"):gsub("(%c)%f[0-9]", long_control_char_escapes):gsub("%c", short_control_char_escapes)
 end
 local function sequence_key_3f(k, len)
   return ((type(k) == "number") and (1 <= k) and (k <= len) and (math.floor(k) == k))

@@ -24,8 +24,9 @@ you do not need to subscribe to the mailing list in order to post to it!
 
 Alternately you may open a pull request on GitHub.
 
-For large changes, please discuss it first either on the mailing list, IRC channel, or in a GitHub
-issue before sinking time and effort into something we may not merge.
+For large changes, please discuss it first either on the mailing list,
+IRC/Matrix channel, or in a GitHub issue before sinking time and effort into
+something we may not merge.
 
 * Include a description of the changes.
 * If there are changes to the compiler or the language, please include tests, either in one of the

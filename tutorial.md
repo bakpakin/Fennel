@@ -20,8 +20,8 @@ but Fennel's own [Lua Primer][14] is shorter and covers the highlights.
 
 Use `fn` to make functions. If you provide an optional name, the
 function will be bound to that name in local scope; otherwise it is
-simply a value. The argument list is provided in square brackets. The
-final value is returned.
+simply an anonymous value. The argument list is provided in square
+brackets. The final value is returned.
 
 (If you've never used a lisp before, the main thing to note is that
 the function or macro being called goes *inside* the parens, not
@@ -118,13 +118,12 @@ nested `let`-like equivalent of `var`.
 
 ### Numbers and strings
 
-Of course, all our standard arithmetic operators like `+`, `-`, `*`,
-and `/` work here in prefix form. Note that numbers are
-double-precision floats in all Lua versions prior to 5.3, which optionally
-introduced integers. On 5.3 and up, integer division uses `//` and bit-wise
-operations use `>>`, `<<`, `|`, `&`, as in Lua. Bit-wise not and exclusive or
-are `bnot` and `xor`. Bit-wise operators and integer division will not work
-if the host Lua environment is older than version 5.3.
+Of course, all our standard arithmetic operators like `+`, `-`, `*`, and `/`
+work here in prefix form. Note that numbers are double-precision floats in all
+Lua versions prior to 5.3, which optionally introduced integers. On 5.3 and
+up, integer division uses `//` and bitwise operations use `lshift`, `rshift`,
+`bor`, `band`, `bnot` and `xor`. Bitwise operators and integer division will
+not work if the host Lua environment is older than version 5.3.
 
 You may also use underscores to separate sections of long numbers. The
 underscores have no effect on the output.
@@ -230,7 +229,7 @@ Looping over table elements is done with `each` and an iterator like
 `pairs` (used for general tables) or `ipairs` (for sequential tables):
 
 ```fennel
-(each [key value (pairs {:key1 52 :key2 99})]
+(each [key value (pairs {"key1" 52 "key2" 99})]
   (print key value))
 
 (each [index value (ipairs ["abc" "def" "xyz"])]
@@ -314,7 +313,7 @@ instead, which is often used for table keys:
 ```
 
 If a table has string keys like this, you can pull values out of it
-easily if the keys are known up front:
+easily with a dot if the keys are known up front:
 
 ```fennel
 (let [tbl {:x 52 :y 91}]
@@ -366,15 +365,13 @@ destructuring it to, you can omit the key name and use `:` instead:
   (print x y)) ; -> 23      42
 ```
 
-This can mix and match:
+This can nest and mix and match:
 
 ```fennel
 (let [f (fn [] ["abc" "def" {:x "xyz" :y "abc"}])
       [a d {:x x : y}] (f)]
-  (print a)
-  (print d)
-  (print x)
-  (print y))
+  (print a d)
+  (print x y))
 ```
 
 If the size of the table doesn't match the number of binding locals,
@@ -418,19 +415,23 @@ similar to the way throwing an exception works in many languages. You
 can make a protected call with `pcall`:
 
 ```fennel
-(let [(ok val-or-msg) (pcall potentially-disastrous-call filename)]
-  (if ok
+(let [(ok? val-or-msg) (pcall potentially-disastrous-call filename)]
+  (if ok?
       (print "Got value" val-or-msg)
       (print "Could not get value:" val-or-msg)))
 ```
 
-The `pcall` invocation there is equivalent to running
-`(potentially-disastrous-call filename)` in protected mode. It takes
+The `pcall` invocation there means you are running
+`(potentially-disastrous-call filename)` in protected mode. `pcall` takes
 an arbitrary number of arguments which are passed on to the
-function. You can see that `pcall` returns a boolean (`ok` here) to
+function. You can see that `pcall` returns a boolean (`ok?` here) to
 let you know if the call succeeded or not, and a second value
 (`val-or-msg`) which is the actual value if it succeeded or an error
 message if it didn't.
+
+**Note**: In real-world code it's better to use `match` when handling
+  errors; these snippets are intended as examples to specifically
+  illustrate how multiple values work.
 
 The `assert` function takes a value and an error message; it calls
 `error` if the value is `nil` and returns it otherwise. This can be
@@ -487,6 +488,9 @@ scope.
  (fn []
   (print ...)))
 ```
+
+You can read [more detailed coverage of some of the problems with `...` and multiple values](https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/)
+here.
 
 ## Globals
 

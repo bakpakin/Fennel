@@ -1,4 +1,4 @@
-(local l (require :luaunit))
+(local l (require :test.luaunit))
 (local fennel (require :fennel))
 
 (local doc-env (setmetatable {:print #$ :fennel fennel}
@@ -14,7 +14,7 @@
         ["(fn ml [] \"a\nmultiline\ndocstring\" :result) (doc ml)"  "(ml)\n  a\n  multiline\n  docstring" "multiline docstrings work correctly" ]
         ["(let [f (fn [] \"f\" :f) g (fn [] f)] (doc (g)))"  "((g))\n  f" "doc on expression" ]
         ["(let [x-tbl []] (fn x-tbl.y! [d] \"why\" 123) (doc x-tbl.y!))"  "(x-tbl.y! d)\n  why" "docstrings for mangled multisyms" ]
-        ["(local generate (fennel.dofile \"generate.fnl\" {:useMetadata true})) (doc generate)"  "(generate table-chance)\n  Generate a random piece of data." "docstrings from required module." ]
+        ["(local generate (fennel.dofile \"test/generate.fnl\" {:useMetadata true})) (doc generate)"  "(generate table-chance)\n  Generate a random piece of data." "docstrings from required module." ]
         ["(macro abc [x y z] \"this is a macro.\" :123) (doc abc)"  "(abc x y z)\n  this is a macro." "docstrings for user-defined macros" ]
         ["(λ foo [] :D 1) (doc foo)"  "(foo)\n  D" "(doc fnname) for named lambdas appear like named functions" ]])
 

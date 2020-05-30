@@ -1,4 +1,4 @@
-(local l (require :luaunit))
+(local l (require :test.luaunit))
 (local fennel (require :fennel))
 
 (local failures {
@@ -6,7 +6,7 @@
   "\n\n(let [f (lambda []\n(local))] (f))" "4: expected name and value"
   "\n\n(let [x.y 9] nil)" "unknown:3: unexpected multi"
   "\n(when)" "Compile error in 'when' unknown:2"
-  "((fn [] (require-macros \"test-macros\") (global x1 (->1 99 (+ 31)))))
+  "((fn [] (require-macros \"test.macros\") (global x1 (->1 99 (+ 31)))))
       (->1 23 (+ 1))" "unknown global in strict mode"
   "()" "expected a function, macro, or special"
   "(789)" "cannot call literal value"
@@ -70,6 +70,9 @@
   "(x(y))" "expected whitespace before opening delimiter ("
   "(x[1 2])" "expected whitespace before opening delimiter ["
   "(fn abc:def [x] (+ x 2))" "unexpected multi symbol abc:def"
+  "(macros {:foo {:bar (fn [] `(print :test))}})" "expected each macro to be function"
+  "(import-macros test :test.macros) (test.asdf)" "macro not found in imported macro module"
+  "(import-macros {: asdf} :test.macros)" "macro asdf not found in module test.macros"
 })
 
 (fn test-failures []

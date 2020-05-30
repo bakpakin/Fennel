@@ -1,4 +1,4 @@
-local l = require("luaunit")
+local l = require("test.luaunit")
 local fennel = require("fennel")
 
 _G.tbl = {}
@@ -294,6 +294,8 @@ local function test_loops()
           (each [_ x (values f s v)] (set t (+ t x))) t"]=6,
         ["(var t 0) (local (f s v) (pairs [1 2 3])) \
           (each [_ x (values f (doto s (table.remove 1)))] (set t (+ t x))) t"]=5,
+        ["(for [y 0 2] nil) (each [x (pairs [])] nil)\
+          (match [1 2] [x y] (+ x y))"]=3,
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)
@@ -340,12 +342,21 @@ local function test_macros()
         ["(-?> {:a {:b {:c :z}}} (. :a) (. :missing) (. :c))"]=nil,
         ["(-?>> :w (. {:w :x}) (. {:x :y}) (. {:y :z}))"]="z",
         ["(-?>> :w (. {:w :x}) (. {:x :missing}) (. {:y :z}))"]=nil,
+        ["(-?> [:a :b] (table.concat \" \"))"]="a b",
+        ["(-?>> \" \" (table.concat [:a :b]))"]="a b",
         -- just a boring old set+fn combo
-        ["(require-macros \"test-macros\")\
+        ["(require-macros \"test.macros\")\
           (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,
         -- macros with mangled names
-        ["(require-macros \"test-macros\")\
+        ["(require-macros \"test.macros\")\
           (->1 9 (+ 2) (* 11))"]=121,
+        -- import-macros targeting one name import and one aliased
+        ["(import-macros {:defn1 defn : ->1} :test.macros)\
+          (defn join [sep ...] (table.concat [...] sep))\
+          (join :: :num (->1 5 (* 2) (+ 8)))"]="num:18",
+        -- targeting a namespace AND an alias
+        ["(import-macros test :test.macros {:inc INC} :test.macros)\
+          (INC (test.inc 5))"]=7,
         -- special form
         [ [[(eval-compiler
              (tset _SPECIALS "reverse-it" (fn [ast scope parent opts]
@@ -374,6 +385,15 @@ local function test_macros()
         ["(-> 1234 string.reverse string.upper)"]="4321",
         -- Auto-gensym
         ["(macros {:m (fn [y] `(let [xa# 1] (+ xa# ,y)))}) (m 4)"]=5,
+        -- macro expanding to primitives
+        ["(macro five [] 5) (five)"] = 5,
+        ["(macro greet [] :Hi!) (greet)"] = "Hi!",
+        ["(macros {:yes (fn [] true) :no (fn [] false)}) [(yes) (no)]"]={true, false},
+        -- Side-effecting macros
+        ["(macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided"]=952,
+        -- Macros returning nil in unquote
+        ["(import-macros m :test.macros) (var x 1) (m.inc! x 2) (m.inc! x) x"]=4,
+        ["(macro seq? [expr] (sequence? expr)) (seq? [65])"]={65},
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)

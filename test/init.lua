@@ -1,30 +1,40 @@
-local l = require("luaunit")
 -- prevent luarocks-installed fennel from overriding
 package.loaded.fennel = dofile("fennel.lua")
 table.insert(package.loaders or package.searchers, package.loaded.fennel.searcher)
 package.loaded.fennelview = package.loaded.fennel.dofile("fennelview.fnl")
 
--- luaunit wants the test suite in a really weird alist format
-local function test(moduleName)
-    local i = {}
-    for k,v in pairs(require(moduleName)) do
-        table.insert(i, {k, v})
+local lu = require('test.luaunit')
+local runner = lu.LuaUnit:new()
+runner:setOutputType(os.getenv('FNL_TEST_OUTPUT') or 'tap')
+
+-- attach test modules (which export k/v tables of test fns) as alists
+local function addModule(instances, moduleName)
+    for k, v in pairs(require(moduleName)) do
+        instances[#instances + 1] = {k, v}
     end
-    print("Running", moduleName)
-    l.LuaUnit:runSuiteByInstances(i)
 end
 
--- these tests need to be in Lua; if anything here breaks, we can't even load
--- our tests that are written in Fennel.
-test("test.core")
-test("test.mangling")
-test("test.quoting")
-test("test.misc")
+local function testAll(testModules)
+    local instances = {}
+    for _, module in ipairs(testModules) do
+        addModule(instances, module)
+    end
+    return runner:runSuiteByInstances(instances)
+end
 
--- these can be in Fennel
-test("test.docstring")
-test("test.fennelview")
-test("test.failures")
-test("test.repl")
+testAll({
+    -- these tests need to be in Lua; if anything here breaks
+    -- we can't even load our tests that are written in Fennel.
+    'test.core',
+    'test.mangling',
+    'test.quoting',
+    'test.misc',
+    -- these can be in fennel
+    'test.docstring',
+    'test.fennelview',
+    'test.failures',
+    'test.repl',
+    'test.cli',
+})
 
-os.exit(l.LuaUnit.result.notSuccessCount > 0 and 1 or 0)
+os.exit(runner.result.notSuccessCount == 0 and 0 or 1)

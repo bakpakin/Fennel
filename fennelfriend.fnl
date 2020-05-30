@@ -22,6 +22,16 @@
         ["declaring %s using var instead of let/local"
          "introducing a new local instead of changing the value of %s"]
 
+        "expected macros to be table"
+        ["ensuring your macro definitions return a table"]
+
+        "expected each macro to be function"
+        ["ensuring that the value for each key in your macros table contains a function"
+         "avoid defining nested macro tables"]
+
+        "macro not found in macro module"
+        ["checking the keys of the imported macro module's returned table"]
+
         "macro tried to bind (.*) without gensym"
         ["changing to %s# when introducing identifiers inside macros"]
 
@@ -141,13 +151,27 @@
   (let [f (assert (io.open filename))
         _ (for [_ 1 (- line 1)]
             (set bytes (+ bytes 1 (# (f:read)))))
-        codeline (f:read)
-        eol (+ bytes (# codeline))]
+        codeline (f:read)]
     (f:close)
-    (values codeline bytes eol)))
+    (values codeline bytes)))
 
-(fn friendly-msg [msg {: filename : line : bytestart : byteend}]
-  (let [(ok codeline bol eol) (pcall read-line-from-file filename line)
+(fn read-line-from-source [source line]
+  (var (lines bytes codeline) (values 0 0))
+  (each [this-line (string.gmatch (.. source "\n") "(.-)\r?\n")]
+    (set lines (+ lines 1))
+    (when (= lines line)
+      (set codeline this-line)
+      (lua :break))
+    (set bytes (+ bytes 1 (# this-line))))
+  (values codeline bytes))
+
+(fn read-line [filename line source]
+  (if source
+      (read-line-from-source source line)
+      (read-line-from-file filename line)))
+
+(fn friendly-msg [msg {: filename : line : bytestart : byteend} source]
+  (let [(ok codeline bol eol) (pcall read-line filename line source)
         suggestions (suggest msg)
         out [msg ""]]
     ;; don't assume the file can be read as-is
@@ -157,7 +181,8 @@
     (when (and ok codeline bytestart byteend)
       (table.insert out (.. (string.rep " " (- bytestart bol 1)) "^"
                             (string.rep "^" (math.min (- byteend bytestart)
-                                                      (- eol bytestart))))))
+                                                      (- (+ bol (# codeline))
+                                                         bytestart))))))
     (when (and ok codeline bytestart (not byteend))
       (table.insert out (.. (string.rep "-" (- bytestart bol 1)) "^"))
       (table.insert out ""))
@@ -166,18 +191,20 @@
         (table.insert out (: "* Try %s." :format suggestion))))
     (table.concat out "\n")))
 
-(fn assert-compile [condition msg ast]
+(fn assert-compile [condition msg ast source]
+  "A drop-in replacement for the internal assertCompile with friendly messages."
   (when (not condition)
     (let [{: filename : line} (ast-source ast)]
       (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
                               ;; still need fallbacks because backtick erases
                               ;; source data, and vararg has no source data
                               (or filename :unknown) (or line :?) msg)
-                           (ast-source ast)) 0)))
+                           (ast-source ast) source) 0)))
   condition)
 
-(fn parse-error [msg filename line bytestart]
+(fn parse-error [msg filename line bytestart source]
+  "A drop-in replacement for the internal parseError with friendly messages."
   (error (friendly-msg (: "Parse error in %s:%s\n  %s" :format filename line msg)
-                       {: filename : line : bytestart}) 0))
+                       {: filename : line : bytestart} source) 0))
 
 {: assert-compile : parse-error}

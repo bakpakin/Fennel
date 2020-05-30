@@ -7,4 +7,7 @@
         x)
  :defn1 (fn [name args ...]
           (assert (sym? name) "defn1: function names must be symbols")
-          `(global ,name (fn ,args ,...)))}
+          `(global ,name (fn ,args ,...)))
+ :inc   (fn [n] (if (not (list? n)) `(+ ,n 1)
+                    `(let [num# ,n] (+ num# 1))))
+ :inc! (fn [a ?n] `(set ,a (+ ,a (or ,?n 1))))}

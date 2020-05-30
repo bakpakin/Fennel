@@ -4,93 +4,82 @@ This document will guide you through setting up Fennel on your
 computer. This document assumes you know how to run shell commands and
 edit configuration files in a UNIX-like environment.
 
-Fennel can be used in non-UNIX environments, but those environments
+**Note**: Fennel can be used in non-UNIX environments, but those environments
 will not be covered in this document.
 
-# Downloading and installing Fennel
+This document consists of the following sections:
 
-Downloading and installing Fennel on your system allows you to run
-Fennel scripts. Currently, you can download and install Fennel using
-Git or LuaRocks.
+* [Downloading Fennel](#downloading-fennel)
+* [Embedding Fennel](#embedding-fennel)
+* [Adding Fennel support to your text editor](#adding-fennel-support-to-your-text-editor)
+* [Adding readline support to the Fennel REPL](#adding-readline-support-to-the-fennel-repl)
+* [Writing games with Fennel](#making-games-with-fennel)
 
-Depending on which method you want to use, choose a subsection below:
+# Downloading Fennel
 
-* [Installing directly](#installing-directly)
-* [Using Git to download Fennel](#using-git-to-download-and-install-fennel)
-* [Using LuaRocks to download Fennel](#using-luarocks-to-download-and-install-fennel)
+Downloading Fennel on your computer allows you to run Fennel scripts.
 
-**Tip**: If you are using software that supports Fennel, such as
-[TIC-80](https://tic.computer), you do not need to download Fennel,
-because you can use it inside of TIC-80.
+See the options below for downloading Fennel:
 
-## Installing directly
+* [Downloading the fennel script](#downloading-the-fennel-script)
+* [Downloading a Fennel binary](#downloading-a-fennel-binary)
+* [Downloading Fennel using LuaRocks](#downloading-fennel-using-luarocks)
 
-If you have Lua (5.1, 5.2, 5.3, or LuaJIT) installed on your system
-you can download the Fennel script easily, but updates will have to be
-done manually.
+**Tip**: Fennel comes included in [TIC-80](https://tic.computer), so you
+won't need to download Fennel if you already have TIC-80 installed.
 
-### To install directly
+## Downloading the fennel script
+
+Downloading the `fennel` script allows you to place the script in
+convenient locations for running Fennel code.
+
+This method assumes you have Lua 5.1, 5.2, 5.3, or LuaJIT installed on your
+system.
+
+This method requires you to manually update the `fennel` script, as
+the script itself is associated with a version of Fennel.
+
+### To download the fennel script
 
 1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-0.4.1)
-3. Run `chmod +x fennel-0.4.1` to make it executable
-4. Download [the signature](https://fennel-lang.org/downloads/fennel-0.4.1.asc)
-5. Confirm it using `gpg --verify fennel-0.4.1.asc`
-3. Move `fennel-0.4.1` to a directory on your `$PATH`, such as `/usr/local/bin`
+2. Run `chmod +x fennel-0.4.1` to make it executable
+3. Download [the signature](https://fennel-lang.org/downloads/fennel-0.4.1.asc)
+4. Run `gpg --verify fennel-0.4.1.asc` to verify that the fennel script is from the Fennel creators
+5. Move `fennel-0.4.1` to a directory on your `$PATH`, such as `/usr/local/bin`
 
-You can rename the script to just `fennel` for convenience. If you
-don't have Lua installed, you can get one of the standalone binaries
-instead if there is one provided for your system:
+**Note**: You can rename the script to `fennel` for convenience.
 
-* [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64.asc))
-* [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-0.4.1-arm32) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-arm32.asc))
-* [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe.asc))
+## Downloading a Fennel binary
 
-## Using Git to download and install Fennel
+Downloading a Fennel binary allows you to run Fennel on your computer without
+having to download Lua.
 
-Downloading and installing Fennel using Git allows you to use versions
-of Fennel that haven't been released yet and makes contributions to
-Fennel easier.
+### To download a Fennel binary
 
-### To download Fennel
+1. Choose one the options below, depending on your system:
+   - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64.asc))
+   - [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-0.4.1-arm32) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-arm32.asc))
+   - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe.asc))
 
-1. `cd` to a directory in which you want to download Fennel, such as
-   `~/src`
-2. Run `git clone https://github.com/bakpakin/Fennel`
-
-### To install Fennel
-
-1. Run `cd Fennel`
-2. Run `make fennel`
-3. Copy or link the `fennel` script to a directory on your `$PATH`,
-   such as `/usr/local/bin`
-
-**Note 1**: Step 2 above will compile Fennel into a standalone script
-called `fennel`.
-
-**Note 2**: If the `fennel` script exists in one of the directories on
-your `$PATH` , you can run `fennel filename.fnl` to run a Fennel file.
-
-## Using LuaRocks to download and install Fennel
+## Downloading Fennel using LuaRocks
 
 [LuaRocks](https://luarocks.org/) contains a repository of Lua
 software packages. LuaRocks is convenient because it automates the
 downloading, installation, and uninstallation of Lua software packages.
 
-### To download and install Fennel
+### To download Fennel using LuaRocks
 
 1. Ensure the `luarocks` package is installed on your system
 2. Ensure the `~/.luarocks/bin` directory is added to your shell's `$PATH`
-3. Run one of
+3. Run one of the following commands:
     - `luarocks install fennel` to install globally (requires admin or sudo)
-    - `luarocks --local install fennel` to install locally (see the note below about paths)
+    - `luarocks --local install fennel` to install locally
+4. Run `fennel --help` to confirm the installation succeeded
 
-**Note:** When using luarocks with `--local`, you'll need to ensure you have
-the correct lua path values. You can run `eval $(luarocks path --bin)` from
-your shell to set this correctly; see [LuaRocks path docs](https://github.com/luarocks/luarocks/wiki/path)
-for details.
-
-You can try running `fennel --help` to confirm the
-installation succeeded.
+**Note:** When using `luarocks` with `--local`, you'll need to ensure
+you have the correct Lua path values. You can run `eval $(luarocks
+path --bin)` to set this correctly. See the [LuaRocks path docs](https://github.com/luarocks/luarocks/wiki/path)
+for more information.
 
 # Embedding Fennel
 
@@ -162,7 +151,7 @@ repository to get consistent results rather than relying on an
 arbitrary version of Fennel that is installed on your machine at the
 time of building.
 
-# Expanding your Fennel development experience
+# Adding Fennel support to your text editor
 
 You can write Fennel code in any editor, but some editors make it more
 comfortable than others. Most people find support for syntax
@@ -178,7 +167,7 @@ you're most comfortable. You can usually get decent results by telling
 your editor to treat Fennel files as if they were Clojure or Scheme
 files.
 
-This section consists of the following subections:
+This section consists of the following subsections:
 
 * [Adding Fennel support to Emacs](#adding-fennel-support-to-emacs)
 * [Adding Fennel support to Vim](#adding-fennel-support-to-vim)
@@ -192,11 +181,7 @@ Installing [fennel-mode](https://gitlab.com/technomancy/fennel-mode/)
 gives you syntax highlighting, indentation, paren-matching, a repl,
 reloading, documentation lookup, and jumping to source definitions.
 
-### To add Fennel support to Emacs
-
-See the `Readme.md`
-[here](https://gitlab.com/technomancy/fennel-mode/-/blob/master/Readme.md)
-for details.
+For more information, [click here](https://gitlab.com/technomancy/fennel-mode/-/blob/master/Readme.md)
 
 ## Adding Fennel support to Vim
 
@@ -215,12 +200,12 @@ Search in the built-in extension manager for "Fennel" to install
 [the vsc-fennel extension](https://github.com/kongeor/vsc-fennel). At
 the time of this writing it only provides syntax support.
 
-## Adding readline support to Fennel
+# Adding readline support to Fennel
 
-The command-line REPL that comes with the `fennel` works out of the box, but
+The command-line REPL that comes with the `fennel` script works out of the box, but
 the built-in line-reader is very limited in user experience. Adding
-[GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) support
-enables such user-friendly features as
+[GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html)
+support enables user-friendly features, such as:
 
 - Tab completion on the REPL that can complete on all locals, macros, and special forms
 - A rolling history buffer, which can be navigated, searched (`ctrl+r`), and optionally
@@ -230,53 +215,44 @@ navigation
 - Optional use of additional readline features in `~/.inputrc`, such as blinking
 on matched parentheses or color color output (described below)
 
-### Requirements for readline support
+## Requirements for readline support
 
-All you need to enable readline support is:
+* GNU Readline (installation steps vary for different operating systems, but you may already have it!)
+* [readline.lua](https://pjb.com.au/comp/lua/readline.html) Lua bindings to libreadline
 
-* GNU Readline installed on your system (installation steps vary for
-  different operating systems, but you may already have it!)
-* [readline.lua](https://pjb.com.au/comp/lua/readline.html) lua bindings to libreadline
+**Note**: The stock Fennel REPL will automatically load and use the
+readline bindings when it can resolve the `readline` module, so that's
+all you need to get started.
 
-The stock Fennel REPL will automatically load and use the readline bindings when
-it can resolve the `readline` module, so that's all you need to get started.
+## Installing readline.lua with LuaRocks
 
-### Installing readline.lua
-
-For the official support on getting readline.lua, see the
-[official docs](https://pjb.com.au/comp/lua/readline.html#installation).
-
-The easiest way to get readline.lua is to install it with Luarocks, which
+The easiest way to get readline.lua is to install it with LuaRocks, which
 will fetch the package and automatically compile the native bindings for you.
-If you don't want to use LuaRocks, you can do a
-[manual install](https://pjb.com.au/comp/lua/readline.html#installation).
 
-#### Installing readline with LuaRocks
+**Tip**: If you don't want to use LuaRocks, you can manually install
+readline.lua by following the guide
+[here](https://pjb.com.au/comp/lua/readline.html#installation).
 
-```bash
-# to install globally on the system (requires admin privileges or sudo)
-$ luarocks install readline
+### To install readline.lua with LuaRocks
 
-# to install to the user's local tree
-$ luarocks install --local readline
-
-# install for Lua 5.1 (including LuaJIT)
-$ luarocks install --lua-version=5.1 readline
-```
-
-Because the readline Lua module contains native bindings to libreadline, be sure
-it's installed for the Lua version you intend to use.
+1. Ensure libreadline is installed for the Lua version you intend to use
+2. Run one of the following commands:
+   - `luarocks install readline` (requires admin or sudo)
+   - `luarocks install --local readline`
+   - `luarocks install --lua-version=5.1 readline`
 
 **Note:** If you've installed with the `--local` flag, you may need to ensure your `package.path`
 and `package.cpath` contain its location. See the
 [note on LuaRocks installation](#using-luarocks-to-download-and-install-fennel) for details.
 
-### Configuring readline for an enhanced experience
+## Configuring readline.lua
 
-Readline itself has a number of configuration options, which can be set either
-via the readline.lua API in `fennelrc`, or in readline's own `~/.inputrc` config file.
+You can configure readline.lua using one of the following options:
 
-#### Enabling persistent history
+* the readline.lua API in `fennelrc`
+* the readline.lua `~/.inputrc` file
+
+### Enabling persistent history using `fennelrc`
 
 To configure the REPL to save the rolling history to file at the end of every
 session, add the following to your `fennelrc` with your desired filename:
@@ -292,14 +268,14 @@ other parameters that can be set via
                         :keeplines 1000}))             ; default:1000
 ```
 
-#### Configuring readline in `~/.inputrc`
+### Configuring readline in `~/.inputrc`
 
 See the [documentation on the readline init file](https://www.gnu.org/software/bash/manual/html_node/Readline-Init-File.html)
 for the full set of options and a sample inputrc.
 
 As of Fennel 0.4.0 and readline.lua 2.6, you can make use of a [conditional
 directive your `inputrc`](https://www.gnu.org/software/bash/manual/html_node/Conditional-Init-Constructs.html#Conditional-Init-Constructs)
-for fennel-only configuration options. 
+for fennel-only configuration options.
 
 The following example adds these behaviors:
 - Blink on a matching parenthesis when entering `)`. Useful in a Lisp REPL, where
@@ -317,7 +293,7 @@ $if fennel
 $endif
 ```
 
-# Making games in Fennel
+# Making games with Fennel
 
 The two main platforms for making games with Fennel are
 [TIC-80](https://tic.computer) and [LÖVE](https://love2d.org/).

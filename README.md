@@ -44,6 +44,24 @@ each release.
 (print (fib 10))
 ```
 
+## Building Fennel from source
+
+Building Fennel from source allows you to use versions of Fennel that
+haven't been released, and makes contributing to Fennel easier.
+
+### To build Fennel from source
+
+1. `cd` to a directory in which you want to download Fennel, such as
+   `~/src`
+2. Run `git clone https://github.com/bakpakin/Fennel`
+3. Run `cd Fennel`
+4. Run `make fennel` to create a standalone script called `fennel`
+5. Copy or link the `fennel` script to a directory on your `$PATH`, such as `/usr/local/bin`
+
+**Note 1**: If you copied the `fennel` script to one of the
+directories on your `$PATH`, then you can run `fennel filename.fnl` to
+run a Fennel file anywhere on your system.
+
 ## Differences from Lua
 
 * Syntax is much more regular and predictable (no statements; no operator precedence)

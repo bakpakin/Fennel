@@ -10,7 +10,11 @@ is intended for Fennel maintainers.
 4. Make sure tests pass for all versions of Lua and the linter is OK (`make ci`)
 5. Commit above changes.
 6. Tag release with chosen git tag, and push to repository.
-7. Upload rock with `luarocks upload rockspecs/fennel-(version)-1.rockspec`. Fennel is now released!
-8. Update the submodule in the fennel-lang.org repository.
-9. Announce it on the mailing list.
-10. Bump the version in fennel.lua to the next version with a "-dev" suffix; add changelog stub.
+7. Create a release in GitHub; paste the changelog for this version.
+8. Upload rock with `luarocks upload rockspecs/fennel-(version)-1.rockspec`. Test that the new version can be installed thru LuaRocks. Fennel is now released!
+9. Update the submodule in the fennel-lang.org repository.
+10. Upload builds to https://fennel-lang.org/downloads (TODO: automate)
+11. Update the download links in `setup.md`.
+12. Announce it on the mailing list.
+13. Bump the version in fennel.lua to the next version with a "-dev" suffix; add changelog stub.
+

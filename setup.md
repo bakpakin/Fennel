@@ -44,7 +44,7 @@ the script itself is associated with a version of Fennel.
 1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-0.4.1)
 2. Run `chmod +x fennel-0.4.1` to make it executable
 3. Download [the signature](https://fennel-lang.org/downloads/fennel-0.4.1.asc)
-4. Run `gpg --verify fennel-0.4.1.asc` to verify that the fennel script is from the Fennel creators
+4. Run `gpg --verify fennel-0.4.1.asc` to verify that the fennel script is from the Fennel creators (recommended)
 5. Move `fennel-0.4.1` to a directory on your `$PATH`, such as `/usr/local/bin`
 
 **Note**: You can rename the script to `fennel` for convenience.
@@ -60,6 +60,9 @@ having to download Lua.
    - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64.asc))
    - [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-0.4.1-arm32) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-arm32.asc))
    - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe.asc))
+2. Run `chmod +x fennel-0.4.1*` to make it executable
+3. Download the signature and confirm it matches using `gpg --verify fennel-0.4.1*.asc`
+4. Move the downloaded binary to a directory on your `$PATH`, such as `/usr/local/bin`
 
 ## Downloading Fennel using LuaRocks
 
@@ -77,8 +80,9 @@ downloading, installation, and uninstallation of Lua software packages.
 4. Run `fennel --help` to confirm the installation succeeded
 
 **Note:** When using `luarocks` with `--local`, you'll need to ensure
-you have the correct Lua path values. You can run `eval $(luarocks
-path --bin)` to set this correctly. See the [LuaRocks path docs](https://github.com/luarocks/luarocks/wiki/path)
+you have a `$PATH` which contains the LuaRocks `bin/` directory. You can add
+`eval $(luarocks path --bin)` to your shell's init file to do this. See the
+[LuaRocks path docs](https://github.com/luarocks/luarocks/wiki/path)
 for more information.
 
 # Embedding Fennel

@@ -1,5 +1,9 @@
 # Summary of user-visible changes
 
+## ??? / ???
+
+- Fix a bug causing `(comment)` to emit a Lua comment with excessive indentation
+
 ## 0.4.1 / 2020-05-25
 
 * Experimental --compile-binary command (#281)

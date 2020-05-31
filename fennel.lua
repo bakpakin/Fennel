@@ -2037,7 +2037,7 @@ SPECIALS["comment"] = function(ast, _, parent)
     for i = 2, #ast do
         els[#els + 1] = tostring(ast[i]):gsub('\n', ' ')
     end
-    emit(parent, '              -- ' .. table.concat(els, ' '), ast)
+    emit(parent, '-- ' .. table.concat(els, ' '), ast)
 end
 docSpecial("comment", {"..."}, "Comment which will be emitted in Lua output.")
 

@@ -300,6 +300,15 @@ local rootChunk, rootScope, rootOptions
 -- so error functions have access to it, and set it when we have values below.
 local resetRoot = nil
 
+-- Certain options should always get propagated onwards when a function that
+-- has options calls down into compile.
+local propagatedOptions = {"allowedGlobals", "indent", "correlate",
+                           "useMetadata", "env"}
+local function propagateOptions(options, subopts)
+    for _,name in ipairs(propagatedOptions) do subopts[name] = options[name] end
+    return subopts
+end
+
 -- Parse one value given a function that
 -- returns sequential bytes. Will throw an error as soon
 -- as possible without getting more bytes on bad input. Returns
@@ -1506,6 +1515,7 @@ local function doImpl(ast, scope, parent, opts, start, chunk, subScope, preSyms)
                 tail = i == len and outerTail or nil,
                 target = i == len and outerTarget or nil
             }
+            propagateOptions(opts, subopts)
             local subexprs = compile1(ast[i], subScope, chunk, subopts)
             if i ~= len then
                 keepSideEffects(subexprs, parent, nil, ast[i])
@@ -2821,6 +2831,7 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
         -- includes to be emitted in the same rootChunk in the top-level module
         for i = 1, #forms do
             local subopts = i == #forms and {nval=1, tail=true} or {}
+            propagateOptions(opts, subopts)
             compile1(forms[i], subscope, subChunk, subopts)
         end
     else -- for Lua source, simply emit the src into the loader's body

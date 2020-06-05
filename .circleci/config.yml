@@ -12,10 +12,10 @@ jobs:
       - run: apt-get update -qq && apt-get install -qq cloc make lua-check luajit lua5.1 lua5.2 lua5.3
       - run: make ci
   windows:
-    executor: win/default
+    executor: windows/default
     steps:
       - checkout
-      - run: choclatey install lua53
+      - run: choco install lua53
       - run: lua53 test/init.lua
 
 workflows:

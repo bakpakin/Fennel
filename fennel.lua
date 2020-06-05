@@ -2668,6 +2668,7 @@ local function searchModule(modulename, pathstring)
         end
     end
 end
+module.searchModule = searchModule
 
 module.makeSearcher = function(options)
     return function(modulename)

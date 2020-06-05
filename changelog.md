@@ -2,7 +2,9 @@
 
 ## ??? / ???
 
-- Fix a bug causing `(comment)` to emit a Lua comment with excessive indentation
+* Add `fennel.searchModule` function to module API
+* Fix a bug causing `include` to ignore compiler options
+* Fix a bug causing `(comment)` to emit a Lua comment with excessive indentation
 
 ## 0.4.1 / 2020-05-25
 

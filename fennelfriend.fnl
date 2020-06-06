@@ -157,12 +157,12 @@
 
 (fn read-line-from-source [source line]
   (var (lines bytes codeline) (values 0 0))
-  (each [this-line (string.gmatch (.. source "\n") "(.-)\r?\n")]
+  (each [this-line newline (string.gmatch (.. source "\n") "(.-)(\r?\n)")]
     (set lines (+ lines 1))
     (when (= lines line)
       (set codeline this-line)
       (lua :break))
-    (set bytes (+ bytes 1 (# this-line))))
+    (set bytes (+ bytes (# newline) (# this-line))))
   (values codeline bytes))
 
 (fn read-line [filename line source]

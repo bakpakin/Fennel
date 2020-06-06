@@ -40,13 +40,13 @@ local function read_line_from_file(filename, line)
 end
 local function read_line_from_source(source, line)
   local lines, bytes, codeline = 0, 0
-  for this_line in string.gmatch((source .. "\n"), "(.-)\13?\n") do
+  for this_line, newline in string.gmatch((source .. "\n"), "(.-)(\13?\n)") do
     lines = (lines + 1)
     if (lines == line) then
       codeline = this_line
       break
     end
-    bytes = (bytes + 1 + #this_line)
+    bytes = (bytes + #newline + #this_line)
   end
   return codeline, bytes
 end

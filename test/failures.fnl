@@ -95,6 +95,7 @@
     ;; offer suggestions
     (l.assertStrContains msg "Try declaring x using var")
     ;; show the code and point out the identifier at fault
-    (l.assertStrContains msg "(set x 3)\n     ^")))
+    (l.assertStrContains msg "(set x 3)")
+    (l.assertStrContains msg "\n     ^")))
 
 {: test-failures : test-suggestions}

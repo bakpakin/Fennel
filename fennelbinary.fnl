@@ -121,6 +121,9 @@ int main(int argc, char *argv[]) {
   };
   lua_pushlstring(L, (const char*)lua_require_1, sizeof(lua_require_1));
   lua_setfield(L, -2, \"%s\");
+
+%s
+
   if (docall(L, 1, LUA_MULTRET)) {
     const char *errmsg = lua_tostring(L, 1);
     if (errmsg) {
@@ -155,7 +158,19 @@ int main(int argc, char *argv[]) {
     (f:close)
     lua-code))
 
-(fn fennel->c [filename options]
+(fn native-loader [native]
+  (let [nm (or (os.getenv "NM") "nm")
+        out ["  /* native libraries */"]]
+    (each [_ path (ipairs native)]
+      (each [open (: (shellout (.. nm " " path))
+                     :gmatch "[^dD] _?luaopen_([%a%p%d]+)")]
+        (table.insert out (: "  int luaopen_%s(lua_State *L);" :format open))
+        (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format open))
+        (table.insert out (: "  lua_setfield(L, -2, \"%s\");\n"
+                             :format (open:gsub "_" ".")))))
+    (table.concat out "\n")))
+
+(fn fennel->c [filename native options]
   (let [basename (filename:gsub "(.*[\\/])(.*)" "%2")
         basename-noextension (or (basename:match "(.+)%.") basename)
         dotpath (-> filename
@@ -167,16 +182,17 @@ int main(int argc, char *argv[]) {
     (c-shim:format (string->c-hex-literal lua-loader)
                    basename-noextension
                    (string->c-hex-literal (compile-fennel filename options))
-                   dotpath-noextension)))
+                   dotpath-noextension
+                   (native-loader native))))
 
-(fn write-c [filename options]
+(fn write-c [filename native options]
   (let [out-filename (.. filename "_binary.c")
         f (assert (io.open out-filename "w+"))]
-    (f:write (fennel->c filename options))
+    (f:write (fennel->c filename native options))
     (f:close)
     out-filename))
 
-(fn compile-binary [lua-c-path executable-name static-lua lua-include-dir]
+(fn compile-binary [lua-c-path executable-name static-lua lua-include-dir native]
   (let [cc (or (os.getenv "CC") "cc")
         ;; http://lua-users.org/lists/lua-l/2009-05/msg00147.html
         (rdynamic bin-extension ldl?) (if (: (shellout (.. cc " -dumpmachine"))
@@ -185,6 +201,7 @@ int main(int argc, char *argv[]) {
                                           (values "-rdynamic" "" true))
         compile-command [cc "-Os" ; optimize for size
                          lua-c-path
+                         (table.concat native " ")
                          static-lua
                          rdynamic
                          "-lm"
@@ -192,15 +209,40 @@ int main(int argc, char *argv[]) {
                          "-o" (.. executable-name bin-extension)
                          "-I" lua-include-dir
                          (os.getenv "CC_OPTS")]]
+    (when (os.getenv "FENNEL_DEBUG")
+      (print "Compiling with" (table.concat compile-command " ")))
     (when (not (execute (table.concat compile-command " ")))
       (print :failed: (table.concat compile-command " "))
       (os.exit 1))
     (os.remove lua-c-path)
     (os.exit 0)))
 
-(fn compile [filename executable-name static-lua lua-include-dir options]
-  (compile-binary (write-c filename options) executable-name
-                  static-lua lua-include-dir))
+(fn native-path? [path]
+  (match (path:match "%.(%a+)$")
+    :a path :o path :so path :dylib path))
+
+(fn extract-native-args [args]
+  ;; all native libraries go in libraries; those with lua code go in modules too
+  (let [native {:modules [] :libraries []}]
+    (for [i (# args) 1 -1]
+      (when (= "--native-module" (. args i))
+        (let [path (assert (native-path? (table.remove args (+ i 1))))]
+          (table.insert native.modules 1 path)
+          (table.insert native.libraries 1 path)
+          (table.remove args i)))
+      (when (= "--native-library" (. args i))
+        (table.insert native.libraries 1
+                      (assert (native-path? (table.remove args (+ i 1)))))
+        (table.remove args i)))
+    (when (< 0 (# args))
+      (print (table.concat args " "))
+      (error (.. "Unknown args: " (table.concat args " "))))
+    native))
+
+(fn compile [filename executable-name static-lua lua-include-dir options args]
+  (let [{: modules : libraries} (extract-native-args args)]
+    (compile-binary (write-c filename modules options) executable-name
+                    static-lua lua-include-dir libraries)))
 
 (local help (: "
 Usage: %s --compile-binary FILE OUT STATIC_LUA_LIB LUA_INCLUDE_DIR
@@ -227,9 +269,11 @@ machine code. You can set the CC environment variable to change the compiler
 used (default: cc) or set CC_OPTS to pass in compiler options. For example
 set CC_OPTS=-static to generate a binary with static linking.
 
-This method is currently limited to programs which do not use any C libraries
-and programs which do not transitively requiring Lua modules. Requiring a Lua
-module directly will work, but requiring a Lua module which requires another
-will fail." :format (. arg 0) (. arg 0)))
+To include C libraries that contain Lua modules, add --native-module path/to.so,
+and to include C libraries without modules, use --native-librari path/to.so.
+
+This method is currently limited to programs do not transitively requiring Lua
+modules. Requiring a Lua module directly will work, but requiring a Lua module
+which requires another will fail." :format (. arg 0) (. arg 0)))
 
 {: compile : help}

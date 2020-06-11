@@ -2810,7 +2810,7 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
     -- so we can include it again without duplication, even in runtime
     local ret = expr('require("' .. mod .. '")', 'statement')
     local target = ('package.preload[%q]'):format(mod)
-    local preloadStr = target .. ' = ' .. target .. ' or function()'
+    local preloadStr = target .. ' = ' .. target .. ' or function(...)'
 
     local tempChunk, subChunk = {}, {}
     emit(tempChunk, preloadStr, ast)

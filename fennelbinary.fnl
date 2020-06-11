@@ -167,7 +167,10 @@ int main(int argc, char *argv[]) {
         (table.insert out (: "  int luaopen_%s(lua_State *L);" :format open))
         (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format open))
         (table.insert out (: "  lua_setfield(L, -2, \"%s\");\n"
-                             :format (open:gsub "_" ".")))))
+                             ;; changing initial underscore breaks luaossl
+                             :format (.. (open:sub 1 1)
+                                         (-> (open:sub 2)
+                                             (: :gsub "_" ".")))))))
     (table.concat out "\n")))
 
 (fn fennel->c [filename native options]
@@ -214,7 +217,8 @@ int main(int argc, char *argv[]) {
     (when (not (execute (table.concat compile-command " ")))
       (print :failed: (table.concat compile-command " "))
       (os.exit 1))
-    (os.remove lua-c-path)
+    (when (not (os.getenv "FENNEL_DEBUG"))
+      (os.remove lua-c-path))
     (os.exit 0)))
 
 (fn native-path? [path]

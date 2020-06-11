@@ -344,6 +344,13 @@ local function test_macros()
         ["(-?>> :w (. {:w :x}) (. {:x :missing}) (. {:y :z}))"]=nil,
         ["(-?> [:a :b] (table.concat \" \"))"]="a b",
         ["(-?>> \" \" (table.concat [:a :b]))"]="a b",
+        -- let-open should close all handles and return result of body
+        ["(var (fh1 fh2) nil) [(let-open [f1 (io.tmpfile) f2 (io.tmpfile)]\
+          (set [fh1 fh2] [f1 f2]) (f1:write :asdf) (f1:seek :set 0) (f1:read :*a))\
+          (io.type fh1) (io.type fh2)]"]={"asdf", "closed file", "closed file"},
+        -- let-open should propogate errors and still close the file handles
+        ["(var fh nil) (local (ok msg) (pcall #(let-open [f (io.tmpfile)] (set fh f)\
+          (error :bork!)))) [(io.type fh) ok (msg:match :bork!)]"]={"closed file", false, "bork!"},
         -- just a boring old set+fn combo
         ["(require-macros \"test.macros\")\
           (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z"]=12,

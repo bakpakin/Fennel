@@ -2657,11 +2657,13 @@ end
 
 local function searchModule(modulename, pathstring)
     local pathsepesc = escapepat(pkgConfig.pathsep)
-    local pathsplit = string.format("([^%s]*)%s", pathsepesc, escapepat(pkgConfig.pathsep))
-    modulename = modulename:gsub("%.", pkgConfig.dirsep)
-    for path in string.gmatch((pathstring or module.path)..pkgConfig.pathsep, pathsplit) do
-        local filename = path:gsub(escapepat(pkgConfig.pathmark), modulename)
-        local file = io.open(filename, "rb")
+    local pathsplit = string.format("([^%s]*)%s", pathsepesc,
+                                    escapepat(pkgConfig.pathsep))
+    local nodotModule = modulename:gsub("%.", pkgConfig.dirsep)
+    for path in string.gmatch((pathstring or module.path) .. pkgConfig.pathsep, pathsplit) do
+        local filename = path:gsub(escapepat(pkgConfig.pathmark), nodotModule)
+        local filename2 = path:gsub(escapepat(pkgConfig.pathmark), modulename)
+        local file = io.open(filename) or io.open(filename2)
         if(file) then
             file:close()
             return filename

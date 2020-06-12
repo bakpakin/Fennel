@@ -244,6 +244,39 @@ Example:
   (table.concat c ",")) ; => "3,4,5,6"
 ```
 
+### `let-open` bind and auto-close file handles
+
+*(Since ??? TODO: add version before release)*
+
+While Lua will automatically close an open file handle when it's garbage collected,
+GC may not run right away; `let-open` ensures handles are closed immediately, error
+or no, without boilerplate.
+
+The usage is the same as `let`, only every binding should be a file handle or other value
+with a `:close` method. After executing the body, or upon encountering an error, `let-open`
+will invoke `(value:close)` on every bound variable before returning the results.
+
+The body is implicitly wrapped in a function and run with `xpcall` so that all bound
+handles are closed before it re-raises the error.
+
+Example:
+
+```fennel
+; Basic usage
+(let-open [fout (io.open :output.txt :w) fin (io.open :input.txt)]
+  (fout:write "Here is some text!\n")
+  (fin:line)) ; => first line of input.txt
+
+; This demonstrates that the file will also be closed upon error.
+(var fh nil)
+(local (ok err)
+  (pcall #(let-open [file (io.open :test.txt :w)]
+            (set fh file) ; you would normally never do this
+            (error :whoops!))))
+(io.type fh) ; => "closed file"
+[ok err]     ; => [false "<error message and stacktrace>"]
+```
+
 ### `local` declare local
 
 Introduces a new local inside an existing scope. Similar to `let` but

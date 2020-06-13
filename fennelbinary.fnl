@@ -251,7 +251,7 @@ int main(int argc, char *argv[]) {
 (local help (: "
 Usage: %s --compile-binary FILE OUT STATIC_LUA_LIB LUA_INCLUDE_DIR
 
-Compile a binary from your Fennel program. This functionality is very
+Compile a binary from your Fennel program. This functionality is VERY
 experimental and subject to change in future versions!
 
 Requires a C compiler, a copy of liblua, and Lua's dev headers. Implies
@@ -274,9 +274,10 @@ used (default: cc) or set CC_OPTS to pass in compiler options. For example
 set CC_OPTS=-static to generate a binary with static linking.
 
 To include C libraries that contain Lua modules, add --native-module path/to.so,
-and to include C libraries without modules, use --native-librari path/to.so.
+and to include C libraries without modules, use --native-library path/to.so.
+These options are unstable, barely tested, and even more likely to break.
 
-This method is currently limited to programs do not transitively requiring Lua
+This method is currently limited to programs do not transitively require Lua
 modules. Requiring a Lua module directly will work, but requiring a Lua module
 which requires another will fail." :format (. arg 0) (. arg 0)))
 

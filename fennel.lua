@@ -807,6 +807,12 @@ end
 -- repeatedly with the same base and same scope will return existing symbol
 -- rather than generating new one.
 local function autogensym(base, scope)
+    local parts = isMultiSym(base)
+    if(parts) then
+        parts[1] = autogensym(parts[1], scope)
+        return table.concat(parts, parts.multiSymMethodCall and ":" or ".")
+    end
+
     if scope.autogensyms[base] then return scope.autogensyms[base] end
     local mangling = gensym(scope, base:sub(1, -2))
     scope.autogensyms[base] = mangling
@@ -2253,7 +2259,7 @@ local function doQuote (form, scope, parent, runtime)
         -- We should be able to use "%q" for this but Lua 5.1 throws an error
         -- when you try to format nil, because it's extremely bad.
         local filename = form.filename and ('%q'):format(form.filename) or "nil"
-        if deref(form):find("#$") then -- autogensym
+        if deref(form):find("#$") or deref(form):find("#[:.]") then -- autogensym
             return ("sym('%s', nil, {filename=%s, line=%s})"):
                 format(autogensym(deref(form), scope), filename, form.line or "nil")
         else -- prevent non-gensymmed symbols from being bound as an identifier

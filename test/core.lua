@@ -394,6 +394,8 @@ local function test_macros()
         -- Macros returning nil in unquote
         ["(import-macros m :test.macros) (var x 1) (m.inc! x 2) (m.inc! x) x"]=4,
         ["(macro seq? [expr] (sequence? expr)) (seq? [65])"]={65},
+        -- Multisyms and gensyms work together
+        ["(import-macros m :test.macros) (m.multigensym)"]=519,
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)

@@ -808,7 +808,7 @@ end
 -- rather than generating new one.
 local function autogensym(base, scope)
     if scope.autogensyms[base] then return scope.autogensyms[base] end
-    local mangling = gensym(scope, base)
+    local mangling = gensym(scope, base:sub(1, -2))
     scope.autogensyms[base] = mangling
     return mangling
 end

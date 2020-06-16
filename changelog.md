@@ -2,6 +2,7 @@
 
 ## ??? / ???
 
+* Make autogensym symbols omit "#" when appending unique suffix.
 * Add `fennel.searchModule` function to module API
 * Fix a bug causing `include` to ignore compiler options
 * Fix a bug causing `(comment)` to emit a Lua comment with excessive indentation

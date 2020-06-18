@@ -42,14 +42,15 @@ fennel-bin: launcher.fnl fennel
 # Cross-compile to Windows; very experimental:
 fennel-bin.exe: launcher.fnl fennel lua-5.3.5/src/liblua.a
 	CC=i686-w64-mingw32-gcc fennel --compile-binary $< fennel-bin \
-		lua-5.3.5/src/liblua.a $(LUA_INCLUDE_DIR)
+		lua-5.3.5/src/liblua-mingw.a $(LUA_INCLUDE_DIR)
 
 # Sadly git will not work; you have to get the tarball for a working makefile:
 lua-5.3.5: ; curl https://www.lua.org/ftp/lua-5.3.5.tar.gz | tar xz
 
 # install gcc-mingw-w64-i686
-lua-5.3.5/src/liblua.a: lua-5.3.5
+lua-5.3.5/src/liblua-mingw.a: lua-5.3.5
 	make -C lua-5.3.5 mingw CC=i686-w64-mingw32-gcc
+	mv lua-5.3.5/src/liblua.a $@
 
 ci: luacheck testall count
 

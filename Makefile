@@ -20,7 +20,7 @@ count:
 		launcher.fnl
 
 # For the time being, avoid chicken/egg situation thru the old Lua launcher.
-LAUNCHER=./old_launcher.lua
+LAUNCHER=$(LUA) old_launcher.lua
 
 # Precompile fennel libraries
 %.lua: %.fnl fennel.lua

@@ -140,7 +140,7 @@ Run fennel, a lisp programming language for the Lua runtime.
     (set options.pp (require :fennelview))
     (when (not= false options.fennelrc)
       (load-initfile))
-    (print (.. "Welcome to Fennel " fennel.version "!"))
+    (print (.. "Welcome to Fennel " fennel.version " on " _VERSION "!"))
     (when (not= options.useMetadata false)
       (print "Use (doc something) to view documentation."))
     (when (not readline)
@@ -181,7 +181,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
   ["--eval" form] (eval form)
   ["-e" form] (eval form)
-  ["--version"] (print (.. "Fennel " fennel.version))
+  ["--version"] (print (.. "Fennel " fennel.version " on " _VERSION))
   ["--help"] (print help)
   ["-h"] (print help)
   ["-" & args] (dosafely fennel.eval (io.stdin:read :*a))

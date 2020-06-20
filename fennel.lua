@@ -2954,7 +2954,7 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
          (assert body1 "expected body")
          `(if ,condition
               (do ,body1 ,...)))
- :let-open (fn [closable-bindings ...]
+ :with-open (fn [closable-bindings ...]
               "Like `let`, but invokes (v:close) on every binding after evaluating the body.
 The body is evaluated inside `xpcall` so that bound values will be closed upon
 encountering an error before propagating it."
@@ -2962,9 +2962,10 @@ encountering an error before propagating it."
                     closer    `(fn close-handlers# [ok# ...] (if ok# ... (error ... 0)))
                     traceback `(. (or package.loaded.fennel debug) :traceback)]
                 (for [i 1 (# closable-bindings) 2]
+                  (assert (sym? (. closable-bindings i))
+                    "with-open only allows symbols in bindings")
                   (table.insert closer 4 `(: ,(. closable-bindings i) :close)))
-                `(let ,closable-bindings
-                   ,closer
+                `(let ,closable-bindings ,closer
                    (close-handlers# (xpcall ,bodyfn ,traceback)))))
  :partial (fn [f ...]
             "Returns a function with all arguments partially applied to f."

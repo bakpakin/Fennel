@@ -2,6 +2,7 @@
 
 ## ??? / ???
 
+* Add `with-open` macro for auto-closing file handles (#295)
 * Make autogensym symbols omit "#" when appending unique suffix.
 * Fix a bug where autogensyms (using `#`) couldn't be used as multisyms (#294)
 * Add `fennel.searchModule` function to module API

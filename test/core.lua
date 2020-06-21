@@ -298,7 +298,7 @@ local function test_loops()
           (match [1 2] [x y] (+ x y))"]=3,
     }
     for code,expected in pairs(cases) do
-        l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)
+        l.assertEquals(fennel.eval(code), expected, code)
     end
 end
 

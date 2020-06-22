@@ -26,24 +26,6 @@ local ipairs = ipairs
 local tostring = tostring
 local unpack = unpack or table.unpack
 
--- TODO: these root variables should be pseudo-modulized somehow...
-
--- Top level compilation bindings.
-local rootChunk, rootScope, rootOptions
-
--- The resetRoot function needs to be called at every exit point of the compiler
--- including when there's a parse error or compiler error. Introduce it up here
--- so error functions have access to it, and set it when we have values below.
-local resetRoot = nil
-
-local function setResetRoot(oldChunk, oldScope, oldOptions)
-    local oldResetRoot = resetRoot -- this needs to nest!
-    resetRoot = function()
-        rootChunk, rootScope, rootOptions = oldChunk, oldScope, oldOptions
-        resetRoot = oldResetRoot
-    end
-end
-
 --
 -- Main Types and support functions
 --
@@ -140,6 +122,9 @@ local utils = (function()
 
     -- Safely load an environment variable
     local getenv = os and os.getenv or function() return nil end
+
+    local pathTable = {"./?.fnl", "./?/init.fnl"}
+    table.insert(pathTable, getenv("FENNEL_PATH"))
 
     local function debugOn(flag)
         local level = getenv("FENNEL_DEBUG") or ""
@@ -278,6 +263,27 @@ local utils = (function()
         return subopts
     end
 
+    local root = {
+        -- Top level compilation bindings.
+        chunk=nil, scope=nil, options=nil,
+
+        -- The root.reset function needs to be called at every exit point of the
+        -- compiler including when there's a parse error or compiler
+        -- error. This would be better done using dynamic scope, but we don't
+        -- have dynamic scope, so we fake it by ensuring we call this at every
+        -- exit point, including errors.
+        reset=function() end,
+
+        setReset=function(root)
+            local chunk, scope, options = root.chunk, root.scope, root.options
+            local oldResetRoot = root.reset -- this needs to nest!
+            root.reset = function()
+                root.chunk, root.scope, root.options = chunk, scope, options
+                root.reset = oldResetRoot
+            end
+        end,
+    }
+
     return {
         -- basic general table functions:
         stablepairs=stablepairs, allpairs=allpairs, map=map, kvmap=kvmap,
@@ -291,7 +297,8 @@ local utils = (function()
 
         -- other functions:
         isValidLuaIdentifier=isValidLuaIdentifier, luaKeywords=luaKeywords,
-        propagateOptions=propagateOptions, getenv=getenv, debugOn=debugOn,}
+        propagateOptions=propagateOptions, debugOn=debugOn,
+        root=root, path=table.concat(pathTable, ";"),}
 end)()
 
 --
@@ -407,8 +414,8 @@ local parser = (function()
         -- If you add new calls to this function, please update fenneldfriend.fnl
         -- as well to add suggestions for how to fix the new error.
         local function parseError(msg)
-            local source = rootOptions and rootOptions.source
-            if resetRoot then resetRoot() end
+            local source = utils.root.options and utils.root.options.source
+            utils.root.reset()
             local override = options and options["parse-error"]
             if override then override(msg, filename or "unknown", line or "?",
                                       byteindex, source) end
@@ -620,16 +627,17 @@ end)()
 --
 -- Compilation
 --
-local GLOBAL_SCOPE, COMPILER_SCOPE, macroCurrentScope
 
 local compiler = (function()
+    local scopes = {}
+
     -- Create a new Scope, optionally under a parent scope. Scopes are compile time
     -- constructs that are responsible for keeping track of local variables, name
     -- mangling, and macros.  They are accessible to user code via the
     -- 'eval-compiler' special form (may change). They use metatables to implement
     -- nesting.
     local function makeScope(parent)
-        if not parent then parent = GLOBAL_SCOPE end
+        if not parent then parent = scopes.global end
         return {
             unmanglings = setmetatable({}, {
                 __index = parent and parent.unmanglings
@@ -665,33 +673,33 @@ local compiler = (function()
     -- If you add new calls to this function, please update fenneldfriend.fnl
     -- as well to add suggestions for how to fix the new error.
     local function assertCompile(condition, msg, ast)
-        local override = rootOptions and rootOptions["assert-compile"]
+        local override = utils.root.options and utils.root.options["assert-compile"]
         if override then
-            local source = rootOptions and rootOptions.source
+            local source = utils.root.options and utils.root.options.source
             -- don't make custom handlers deal with resetting root; it's error-prone
-            if not condition and resetRoot then resetRoot() end
+            if not condition then utils.root.reset() end
             override(condition, msg, ast, source)
             -- should we fall thru to the default check, or should we allow the
             -- override to swallow the error?
         end
         if not condition then
-            if resetRoot then resetRoot() end
+            utils.root.reset()
             local m = getmetatable(ast)
             local filename = m and m.filename or ast.filename or "unknown"
             local line = m and m.line or ast.line or "?"
             -- if we use regular `assert' we can't provide the `level' argument of 0
             error(string.format("Compile error in '%s' %s:%s: %s",
-                                tostring(utils.isSym(ast[1]) and ast[1][1] or ast[1] or '()'),
+                                tostring(utils.isSym(ast[1]) and ast[1][1] or
+                                             ast[1] or '()'),
                                 filename, line, msg), 0)
         end
         return condition
     end
 
-    GLOBAL_SCOPE = makeScope()
-    GLOBAL_SCOPE.vararg = true
-    COMPILER_SCOPE = makeScope(GLOBAL_SCOPE)
-    -- Save current macro scope; used by gensym, in-scope?, etc
-    macroCurrentScope = GLOBAL_SCOPE
+    scopes.global = makeScope()
+    scopes.global.vararg = true
+    scopes.compiler = makeScope(scopes.global)
+    scopes.macro = scopes.global -- used by gensym, in-scope?, etc
 
     -- Allow printing a string to Lua, also keep as 1 line.
     local serializeSubst = {
@@ -881,7 +889,7 @@ local compiler = (function()
         assertCompile(not isReference or isLocal or globalAllowed(parts[1]),
                       'unknown global in strict mode: ' .. parts[1], symbol)
         if not isLocal then
-            rootScope.refedglobals[parts[1]] = true
+            utils.root.scope.refedglobals[parts[1]] = true
         end
         return utils.expr(combineParts(parts, scope), etype)
     end
@@ -1110,10 +1118,10 @@ local compiler = (function()
                 'macro not found in imported macro module', ast)
         end
         if not macro then return ast end
-        local oldScope = macroCurrentScope
-        macroCurrentScope = scope
+        local oldScope = scopes.macro
+        scopes.macro = scope
         local ok, transformed = pcall(macro, unpack(ast, 2))
-        macroCurrentScope = oldScope
+        scopes.macro = oldScope
         assertCompile(ok, transformed, ast)
         if once or not transformed then return transformed end -- macroexpand-1
         return macroexpand(transformed, scope)
@@ -1415,16 +1423,16 @@ local compiler = (function()
         opts.fallback = function(e)
             return utils.expr(('require(%s)'):format(tostring(e)), 'statement')
         end
-        return GLOBAL_SCOPE.specials['include'](ast, scope, parent, opts)
+        return scopes.global.specials['include'](ast, scope, parent, opts)
     end
 
     local function compileStream(strm, options)
         local opts = utils.copy(options)
         local oldGlobals = allowedGlobals
-        setResetRoot(rootChunk, rootScope, rootOptions)
+        utils.root:setReset()
         allowedGlobals = opts.allowedGlobals
         if opts.indent == nil then opts.indent = '  ' end
-        local scope = opts.scope or makeScope(GLOBAL_SCOPE)
+        local scope = opts.scope or makeScope(scopes.global)
         if opts.requireAsInclude then scope.specials.require = requireInclude end
         local vals = {}
         for ok, val in parser.parser(strm, opts.filename, opts) do
@@ -1432,7 +1440,7 @@ local compiler = (function()
             vals[#vals + 1] = val
         end
         local chunk = {}
-        rootChunk, rootScope, rootOptions = chunk, scope, opts
+        utils.root.chunk, utils.root.scope, utils.root.options = chunk, scope, opts
         for i = 1, #vals do
             local exprs = compile1(vals[i], scope, chunk, {
                 tail = i == #vals,
@@ -1441,7 +1449,7 @@ local compiler = (function()
             keepSideEffects(exprs, chunk, nil, vals[i])
         end
         allowedGlobals = oldGlobals
-        resetRoot()
+        utils.root.reset()
         return flatten(chunk, opts)
     end
 
@@ -1457,17 +1465,17 @@ local compiler = (function()
     local function compile(ast, options)
         local opts = utils.copy(options)
         local oldGlobals = allowedGlobals
-        setResetRoot(rootChunk, rootScope, rootOptions)
+        utils.root:setReset()
         allowedGlobals = opts.allowedGlobals
         if opts.indent == nil then opts.indent = '  ' end
         local chunk = {}
-        local scope = opts.scope or makeScope(GLOBAL_SCOPE)
-        rootChunk, rootScope, rootOptions = chunk, scope, opts
+        local scope = opts.scope or makeScope(scopes.global)
+        utils.root.chunk, utils.root.scope, utils.root.options = chunk, scope, opts
         if opts.requireAsInclude then scope.specials.require = requireInclude end
         local exprs = compile1(ast, scope, chunk, {tail = true})
         keepSideEffects(exprs, chunk, nil, ast)
         allowedGlobals = oldGlobals
-        resetRoot()
+        utils.root.reset()
         return flatten(chunk, opts)
     end
 
@@ -1626,6 +1634,7 @@ local compiler = (function()
 
         -- general functions:
         assert=assertCompile, metadata=makeMetadata(), traceback=traceback,
+        scopes=scopes,
     }
 end)()
 
@@ -1633,12 +1642,8 @@ end)()
 -- Specials and macros
 --
 
--- TODO: these cause circular dependencies between the definition of specials
--- and the evaluation pseudomodule which follows.
-local dofileFennel, module
-
 local specials = (function()
-    local SPECIALS = GLOBAL_SCOPE.specials
+    local SPECIALS = compiler.scopes.global.specials
 
     -- Convert a fennel environment table to a Lua environment table.
     -- This means automatically unmangling globals when getting a value,
@@ -1877,7 +1882,7 @@ local specials = (function()
         compiler.emit(parent, fChunk, ast)
         compiler.emit(parent, 'end', ast)
 
-        if rootOptions.useMetadata then
+        if utils.root.options.useMetadata then
             local args = utils.map(argList, function(v)
                 -- TODO: show destructured args properly instead of replacing
                 return utils.isTable(v) and '"#<table>"' or string.format('"%s"', tostring(v))
@@ -1892,7 +1897,8 @@ local specials = (function()
                                  :gsub('\\', '\\\\'):gsub('\n', '\\n')
                                  :gsub('"', '\\"') .. '"')
             end
-            local metaStr = ('require("%s").metadata'):format(rootOptions.moduleName or "fennel")
+            local metaStr = ('require("%s").metadata'):
+                format(utils.root.options.moduleName or "fennel")
             compiler.emit(parent, string.format('pcall(function() %s:setall(%s, %s) end)',
                                        metaStr, fnName, table.concat(metaFields, ', ')))
         end
@@ -1919,7 +1925,7 @@ local specials = (function()
     end
 
     SPECIALS['doc'] = function(ast, scope, parent)
-        assert(rootOptions.useMetadata, "can't look up doc with metadata disabled.")
+        assert(utils.root.options.useMetadata, "can't look up doc with metadata disabled.")
         compiler.assert(#ast == 2, "expected one argument", ast)
 
         local target = utils.deref(ast[2])
@@ -1932,7 +1938,7 @@ local specials = (function()
             -- and we need to make sure we look it up in the same module it was
             -- declared from.
             return ("print(require('%s').doc(%s, '%s'))")
-                :format(rootOptions.moduleName or "fennel", value, tostring(ast[2]))
+                :format(utils.root.options.moduleName or "fennel", value, tostring(ast[2]))
         end
     end
     docSpecial("doc", {"x"},
@@ -2473,7 +2479,7 @@ local specials = (function()
         local runtime, thisScope = true, scope
         while thisScope do
             thisScope = thisScope.parent
-            if thisScope == COMPILER_SCOPE then runtime = false end
+            if thisScope == compiler.scopes.compiler then runtime = false end
         end
         return compiler.doQuote(ast[2], scope, parent, runtime)
     end
@@ -2486,10 +2492,10 @@ local specials = (function()
             _CHUNK = parent,
             _AST = ast,
             _IS_COMPILER = true,
-            _SPECIALS = GLOBAL_SCOPE.specials,
+            _SPECIALS = compiler.scopes.global.specials,
             _VARARG = utils.varg(),
             -- Expose the module in the compiler
-            fennel = module,
+            fennel = utils.fennelModule,
             unpack = unpack,
 
             -- Useful for macros and meta programming. All of Fennel can be accessed
@@ -2497,21 +2503,23 @@ local specials = (function()
             list = utils.list,
             sym = utils.sym,
             sequence = utils.sequence,
-            gensym = function() return utils.sym(compiler.gensym(macroCurrentScope or scope)) end,
+            gensym = function()
+                return utils.sym(compiler.gensym(compiler.scopes.macro or scope))
+            end,
             ["list?"] = utils.isList,
             ["multi-sym?"] = utils.isMultiSym,
             ["sym?"] = utils.isSym,
             ["table?"] = utils.isTable,
             ["sequence?"] = utils.isSequence,
             ["varg?"] = utils.isVarg,
-            ["get-scope"] = function() return macroCurrentScope end,
+            ["get-scope"] = function() return compiler.scopes.macro end,
             ["in-scope?"] = function(symbol)
-                compiler.assert(macroCurrentScope, "must call from macro", ast)
-                return macroCurrentScope.manglings[tostring(symbol)]
+                compiler.assert(compiler.scopes.macro, "must call from macro", ast)
+                return compiler.scopes.macro.manglings[tostring(symbol)]
             end,
             ["macroexpand"] = function(form)
-                compiler.assert(macroCurrentScope, "must call from macro", ast)
-                return compiler.macroexpand(form, macroCurrentScope)
+                compiler.assert(compiler.scopes.macro, "must call from macro", ast)
+                return compiler.macroexpand(form, compiler.scopes.macro)
             end,
         }, { __index = _ENV or _G })
     end
@@ -2531,7 +2539,8 @@ local specials = (function()
         local pathsplit = string.format("([^%s]*)%s", pathsepesc,
                                         escapepat(pkgConfig.pathsep))
         local nodotModule = modulename:gsub("%.", pkgConfig.dirsep)
-        for path in string.gmatch((pathstring or module.path) .. pkgConfig.pathsep, pathsplit) do
+        for path in string.gmatch((pathstring or utils.path) ..
+                                  pkgConfig.pathsep, pathsplit) do
             local filename = path:gsub(escapepat(pkgConfig.pathmark), nodotModule)
             local filename2 = path:gsub(escapepat(pkgConfig.pathmark), modulename)
             local file = io.open(filename) or io.open(filename2)
@@ -2561,9 +2570,10 @@ local specials = (function()
                                        modname .. " module not found.", ast)
         local env = makeCompilerEnv(ast, scope, parent)
         local globals = macroGlobals(env, currentGlobalNames())
-        return dofileFennel(filename, { env = env, allowedGlobals = globals,
-                                        useMetadata = rootOptions.useMetadata,
-                                        scope = COMPILER_SCOPE })
+        return compiler.dofileFennel(filename,
+                                     { env = env, allowedGlobals = globals,
+                                       useMetadata = utils.root.options.useMetadata,
+                                       scope = compiler.scopes.compiler })
     end
 
     local macroLoaded = {}
@@ -2597,7 +2607,7 @@ local specials = (function()
         local mod = loadCode(code)()
 
         -- Check cache
-        if rootScope.includes[mod] then return rootScope.includes[mod] end
+        if utils.root.scope.includes[mod] then return utils.root.scope.includes[mod] end
 
         -- Find path to source
         local path = searchModule(mod)
@@ -2629,20 +2639,20 @@ local specials = (function()
         compiler.emit(tempChunk, preloadStr, ast)
         compiler.emit(tempChunk, subChunk)
         compiler.emit(tempChunk, 'end', ast)
-        -- Splice tempChunk to begining of rootChunk
-        for i, v in ipairs(tempChunk) do table.insert(rootChunk, i, v) end
+        -- Splice tempChunk to begining of root chunk
+        for i, v in ipairs(tempChunk) do table.insert(utils.root.chunk, i, v) end
 
-        -- For fnl source, compile subChunk AFTER splicing into start of rootChunk.
+        -- For fnl source, compile subChunk AFTER splicing into start of root chunk.
         if isFennel then
-            local subscope = compiler.makeScope(rootScope.parent)
-            if rootOptions.requireAsInclude then
+            local subscope = compiler.makeScope(utils.root.scope.parent)
+            if utils.root.options.requireAsInclude then
                 subscope.specials.require = compiler.requireInclude
             end
             -- parse Fennel src into table of exprs to know which expr is the tail
             local forms, p = {}, parser.parser(parser.stringStream(s), path)
             for _, val in p do table.insert(forms, val) end
             -- Compile the forms into subChunk; compiler.compile1 is necessary for all nested
-            -- includes to be emitted in the same rootChunk in the top-level module
+            -- includes to be emitted in the same root chunk in the top-level module
             for i = 1, #forms do
                 local subopts = i == #forms and {nval=1, tail=true} or {}
                 utils.propagateOptions(opts, subopts)
@@ -2653,7 +2663,7 @@ local specials = (function()
         end
 
         -- Put in cache and return
-        rootScope.includes[mod] = ret
+        utils.root.scope.includes[mod] = ret
         return ret
     end
     docSpecial('include', {'module-name-literal'},
@@ -2661,8 +2671,9 @@ local specials = (function()
             .. 'Lua output. The module must be a string literal and resolvable at compile time.')
 
     local function evalCompiler(ast, scope, parent)
-        local luaSource = compiler.compile(ast, { scope = compiler.makeScope(COMPILER_SCOPE),
-                                                  useMetadata = rootOptions.useMetadata })
+        local luaSource =
+            compiler.compile(ast, { scope = compiler.makeScope(compiler.scopes.compiler),
+                                    useMetadata = utils.root.options.useMetadata })
         local loader = loadCode(luaSource, wrapEnv(makeCompilerEnv(ast, scope, parent)))
         return loader()
     end
@@ -2697,7 +2708,7 @@ local specials = (function()
 end)()
 
 ---
---- Evaluation
+--- Evaluation, repl, public API, and macros
 ---
 
 local function eval(str, options, ...)
@@ -2719,7 +2730,10 @@ local function eval(str, options, ...)
     return loader(...)
 end
 
-dofileFennel = function(filename, options, ...)
+-- This is bad; we have a circular dependency between the specials section and
+-- the evaluation section due to require-macros/import-macros needing to be able
+-- to do this. For now stash it in the compiler table, but we should untangle it
+compiler.dofileFennel = function(filename, options, ...)
     local opts = utils.copy(options)
     if opts.allowedGlobals == nil then
         opts.allowedGlobals = specials.currentGlobalNames(opts.env)
@@ -2731,11 +2745,8 @@ dofileFennel = function(filename, options, ...)
     return eval(source, opts, ...)
 end
 
-local pathTable = {"./?.fnl", "./?/init.fnl"}
-table.insert(pathTable, utils.getenv("FENNEL_PATH"))
-
 -- Everything exported by the module
-module = {
+local module = {
     parser = parser.parser,
     granulate = parser.granulate,
     stringStream = parser.stringStream,
@@ -2754,16 +2765,18 @@ module = {
     list = utils.list,
     sym = utils.sym,
     varg = utils.varg,
+    path = utils.path,
 
     loadCode = specials.loadCode,
-    doc = specials.doc,
     macroLoaded = specials.macroLoaded,
+    doc = specials.doc,
 
     eval = eval,
-    dofile = dofileFennel,
-    path = table.concat(pathTable, ";"),
+    dofile = compiler.dofileFennel,
     version = "0.5.0-dev",
 }
+
+utils.fennelModule = module -- yet another circular dependency =(
 
 -- In order to make this more readable, you can switch your editor to treating
 -- this file as if it were Fennel for the purposes of this section
@@ -2911,8 +2924,8 @@ local replsource = [===[(local (fennel internals) ...)
 
 module.repl = function(options)
     -- functionality the repl needs that isn't part of the public API yet
-    local internals = { rootOptions = rootOptions,
-                        setRootOptions = function(r) rootOptions = r end,
+    local internals = { rootOptions = utils.root.options,
+                        setRootOptions = function(r) utils.root.options = r end,
                         currentGlobalNames = specials.currentGlobalNames,
                         wrapEnv = utils.wrapEnv,
                         allpairs = utils.allpairs,
@@ -2925,14 +2938,14 @@ module.searchModule = specials.searchModule
 module.makeSearcher = function(options)
     return function(modulename)
       -- this will propagate options from the repl but not from eval, because
-      -- eval unsets rootOptions after compiling but before running the actual
+      -- eval unsets utils.root.options after compiling but before running the actual
       -- calls to require.
-      local opts = utils.copy(rootOptions)
+      local opts = utils.copy(utils.root.options)
       for k,v in pairs(options or {}) do opts[k] = v end
       local filename = specials.searchModule(modulename)
       if filename then
          return function(modname)
-            return dofileFennel(filename, opts, modname)
+            return compiler.dofileFennel(filename, opts, modname)
          end
       end
    end
@@ -3220,10 +3233,10 @@ do
     -- purposes of boostrapping the built-in macros here.
     local moduleName = "__fennel-bootstrap__"
     package.preload[moduleName] = function() return module end
-    local env = specials.makeCompilerEnv(nil, COMPILER_SCOPE, {})
+    local env = specials.makeCompilerEnv(nil, compiler.scopes.compiler, {})
     local macros = eval(stdmacros, {
                             env = env,
-                            scope = compiler.makeScope(COMPILER_SCOPE),
+                            scope = compiler.makeScope(compiler.scopes.compiler),
                             -- assume the code to load globals doesn't have any
                             -- mistaken globals, otherwise this can be
                             -- problematic when loading fennel in contexts
@@ -3233,9 +3246,9 @@ do
                             useMetadata = true,
                             filename = "built-ins",
                             moduleName = moduleName })
-    for k,v in pairs(macros) do GLOBAL_SCOPE.macros[k] = v end
+    for k,v in pairs(macros) do compiler.scopes.global.macros[k] = v end
     package.preload[moduleName] = nil
 end
-GLOBAL_SCOPE.macros['λ'] = GLOBAL_SCOPE.macros['lambda']
+compiler.scopes.global.macros['λ'] = compiler.scopes.global.macros['lambda']
 
 return module

@@ -74,13 +74,15 @@ local function kvmap(t, f, out)
     return out
 end
 
-local function allPairs(t)
-    assert(type(t) == 'table', 'allPairs expects a table')
+-- Like pairs, but if the table has an __index metamethod, it will recurisvely
+-- traverse upwards, skipping duplicates, to iterate all inherited properties
+local function allpairs(t)
+    assert(type(t) == 'table', 'allpairs expects a table')
     local seen = {}
-    local function allPairsNext(_, state)
+    local function allpairsNext(_, state)
         local nextState, value = next(t, state)
         if seen[nextState] then
-            return allPairsNext(nil, nextState)
+            return allpairsNext(nil, nextState)
         elseif nextState then
             seen[nextState] = true
             return nextState, value
@@ -88,10 +90,10 @@ local function allPairs(t)
         local meta = getmetatable(t)
         if meta and meta.__index then
             t = meta.__index
-            return allPairsNext(t)
+            return allpairsNext(t)
         end
     end
-    return allPairsNext
+    return allpairsNext
 end
 
 local function deref(self) return self[1] end
@@ -2548,7 +2550,7 @@ local replsource = [===[(local (fennel internals) ...)
   (let [matches []
         input-fragment (text:gsub ".*[%s)(]+" "")]
     (fn add-partials [input tbl prefix] ; add partial key matches in tbl
-      (each [k (internals.allPairs tbl)]
+      (each [k (internals.allpairs tbl)]
         (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
                     (. scope.unmanglings k)
                     k)]
@@ -2648,7 +2650,7 @@ module.repl = function(options)
                         setRootOptions = function(r) rootOptions = r end,
                         currentGlobalNames = currentGlobalNames,
                         wrapEnv = wrapEnv,
-                        allPairs = allPairs,
+                        allpairs = allpairs,
                         map = map }
     return eval(replsource, { correlate = true }, module, internals)(options)
 end

@@ -40,7 +40,7 @@ fennel-bin: launcher.fnl fennel
 	./fennel --compile-binary $< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 # Cross-compile to Windows; very experimental:
-fennel-bin.exe: launcher.fnl fennel lua-5.3.5/src/liblua.a
+fennel-bin.exe: launcher.fnl fennel lua-5.3.5/src/liblua-mingw.a
 	CC=i686-w64-mingw32-gcc fennel --compile-binary $< fennel-bin \
 		lua-5.3.5/src/liblua-mingw.a $(LUA_INCLUDE_DIR)
 
@@ -54,4 +54,8 @@ lua-5.3.5/src/liblua-mingw.a: lua-5.3.5
 
 ci: luacheck testall count
 
-.PHONY: test testall luacheck count ci
+clean:
+	rm -f fennel fennel-bin *_binary.c fennel-bin.exe
+	make -C lua-5.3.5 clean || true # this dir might not exist
+
+.PHONY: test testall luacheck count ci clean

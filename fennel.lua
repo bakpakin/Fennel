@@ -217,6 +217,19 @@ local function copy(from)
    return to
 end
 
+local walkAST
+do
+    local function walk(f, scope, parent, ast, ...)
+        f(scope, parent, ast, ...)
+        if isList(ast) or isSequence(ast) then
+            for i = 1, #ast do walk(f, scope, ast, ast[i], i) end
+        elseif isTable(ast) and not isSym(ast) then
+            for k, v in pairs(ast) do walk(f, scope, ast, v, k) end
+        end
+    end
+    walkAST = function(scope, ast, f) walk(f, scope, nil, ast) return ast end
+end
+
 --
 -- Parser
 --
@@ -524,7 +537,7 @@ local function parser(getbyte, filename, options)
                                 parseError("can't start multisym segment " ..
                                                "with a digit: ".. rawstr)
                             elseif(rawstr:match("[%.:][%.:]") and
-                                   rawstr ~= "..") then
+                                   rawstr ~= ".." and rawstr ~= '$...') then
                                 byteindex = (byteindex - #rawstr +
                                                  rawstr:find("[%.:][%.:]") + 1)
                                 parseError("malformed multisym: " .. rawstr)
@@ -2070,10 +2083,21 @@ SPECIALS["hashfn"] = function(ast, scope, parent)
     fScope.hashfn = true
     local args = {}
     for i = 1, 9 do args[i] = declareLocal(sym('$' .. i), {}, fScope, ast) end
+    walkAST(fScope, ast[2], function(_, parentnode, v, k)
+        if isSym(v) and deref(v) == '$...' then
+            parentnode[k] = VARARG
+            fScope.vararg = true
+        end
+    end)
     -- Compile body
     compile1(ast[2], fScope, fChunk, {tail = true})
     local maxUsed = 0
     for i = 1, 9 do if fScope.symmeta['$' .. i].used then maxUsed = i end end
+    if fScope.vararg then
+        assertCompile(maxUsed == 0, '$ and $... in hashfn is mutually exclusive', ast)
+        args = {deref(VARARG)}
+        maxUsed = 1
+    end
     local argStr = table.concat(args, ', ', 1, maxUsed)
     emit(parent, ('local function %s(%s)'):format(name, argStr), ast)
     emit(parent, fChunk, ast)

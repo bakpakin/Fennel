@@ -2104,7 +2104,7 @@ SPECIALS["hashfn"] = function(ast, scope, parent)
     emit(parent, 'end', ast)
     return expr(name, 'sym')
 end
-docSpecial("hashfn", {"..."}, "Function literal shorthand; args are $1, $2, etc.")
+docSpecial("hashfn", {"..."}, "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
 local function defineArithmeticSpecial(name, zeroArity, unaryPrefix, luaName)
     local paddedOp = ' ' .. (luaName or name) .. ' '

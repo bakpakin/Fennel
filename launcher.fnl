@@ -54,7 +54,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
 (fn handle-load [i]
   (let [file (table.remove arg (+ i 1))]
-    (dosafely fennel.dofile file options [])
+    (dosafely fennel.dofile file options)
     (table.remove arg i)))
 
 (for [i (# arg) 1 -1]
@@ -133,7 +133,7 @@ Run fennel, a lisp programming language for the Lua runtime.
         init (or init (io.open home-initfile :rb))]
     (when init
       (init:close)
-      (dosafely fennel.dofile init-filename options [options]))))
+      (dosafely fennel.dofile init-filename options options fennel))))
 
 (fn repl []
   (let [readline (try-readline (pcall require :readline))]

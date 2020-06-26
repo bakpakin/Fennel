@@ -219,14 +219,14 @@ end
 
 -- Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
 -- When f returns a truthy value, recursively walks the children.
-local walkTree = function(root, f, iterfn)
+local walkTree = function(root, f, customIterator)
     local function walk(iterfn, parent, idx, node)
         if f(idx, node, parent) then
             for k, v in iterfn(node) do walk(iterfn, node, k, v) end
         end
     end
 
-    walk(iterfn or pairs, nil, nil, root)
+    walk(customIterator or pairs, nil, nil, root)
     return root
 end
 

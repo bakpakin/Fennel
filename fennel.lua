@@ -221,13 +221,13 @@ end
 -- When f returns a truthy value, recursively walks the children.
 local walkTree -- function(root, f, iterfn)
 do
-    local function walk(iterfn, f, parent, node, idx)
-        if f(node, idx, parent) then
-            for k, v in iterfn(node) do walk(iterfn, f, node, v, k) end
+    local function walk(iterfn, f, parent, idx, node)
+        if f(idx, node, parent) then
+            for k, v in iterfn(node) do walk(iterfn, f, node, k, v) end
         end
     end
     walkTree = function(root, f, iterfn)
-        walk(iterfn or pairs, f, nil, root)
+        walk(iterfn or pairs, f, nil, nil, root)
         return root
     end
 end
@@ -2086,7 +2086,7 @@ SPECIALS["hashfn"] = function(ast, scope, parent)
     local args = {}
     for i = 1, 9 do args[i] = declareLocal(sym('$' .. i), {}, fScope, ast) end
     -- recursively walk the AST, transforming $... into ...
-    walkTree(ast[2], function(node, idx, parentNode)
+    walkTree(ast[2], function(idx, node, parentNode)
         if isSym(node) and deref(node) == '$...' then
             parentNode[idx], fScope.vararg = VARARG, true
         else -- truthy return value determines whether to traverse children

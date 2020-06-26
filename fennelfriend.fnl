@@ -129,7 +129,10 @@
         "method must be last component"
         ["using a period instead of a colon for field access"
          "removing segments after the colon"
-         "making the method call, then looking up the field on the result"]})
+         "making the method call, then looking up the field on the result"]
+
+        "$ and $... in hashfn are mutually exclusive"
+        ["modifying the hashfn so it only contains $... or $, $1, $2, $3, etc"]})
 
 (local unpack (or _G.unpack table.unpack))
 

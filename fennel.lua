@@ -217,6 +217,21 @@ local function copy(from)
    return to
 end
 
+-- Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
+-- When f returns a truthy value, recursively walks the children.
+local walkTree -- function(root, f, iterfn)
+do
+    local function walk(iterfn, f, parent, idx, node)
+        if f(idx, node, parent) then
+            for k, v in iterfn(node) do walk(iterfn, f, node, k, v) end
+        end
+    end
+    walkTree = function(root, f, iterfn)
+        walk(iterfn or pairs, f, nil, nil, root)
+        return root
+    end
+end
+
 --
 -- Parser
 --
@@ -524,7 +539,7 @@ local function parser(getbyte, filename, options)
                                 parseError("can't start multisym segment " ..
                                                "with a digit: ".. rawstr)
                             elseif(rawstr:match("[%.:][%.:]") and
-                                   rawstr ~= "..") then
+                                   rawstr ~= ".." and rawstr ~= '$...') then
                                 byteindex = (byteindex - #rawstr +
                                                  rawstr:find("[%.:][%.:]") + 1)
                                 parseError("malformed multisym: " .. rawstr)
@@ -2070,17 +2085,30 @@ SPECIALS["hashfn"] = function(ast, scope, parent)
     fScope.hashfn = true
     local args = {}
     for i = 1, 9 do args[i] = declareLocal(sym('$' .. i), {}, fScope, ast) end
+    -- recursively walk the AST, transforming $... into ...
+    walkTree(ast[2], function(idx, node, parentNode)
+        if isSym(node) and deref(node) == '$...' then
+            parentNode[idx], fScope.vararg = VARARG, true
+        else -- truthy return value determines whether to traverse children
+            return isList(node) or isTable(node)
+        end
+    end)
     -- Compile body
     compile1(ast[2], fScope, fChunk, {tail = true})
     local maxUsed = 0
     for i = 1, 9 do if fScope.symmeta['$' .. i].used then maxUsed = i end end
+    if fScope.vararg then
+        assertCompile(maxUsed == 0, '$ and $... in hashfn are mutually exclusive', ast)
+        args = {deref(VARARG)}
+        maxUsed = 1
+    end
     local argStr = table.concat(args, ', ', 1, maxUsed)
     emit(parent, ('local function %s(%s)'):format(name, argStr), ast)
     emit(parent, fChunk, ast)
     emit(parent, 'end', ast)
     return expr(name, 'sym')
 end
-docSpecial("hashfn", {"..."}, "Function literal shorthand; args are $1, $2, etc.")
+docSpecial("hashfn", {"..."}, "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
 local function defineArithmeticSpecial(name, zeroArity, unaryPrefix, luaName)
     local paddedOp = ' ' .. (luaName or name) .. ' '

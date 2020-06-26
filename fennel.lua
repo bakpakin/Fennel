@@ -217,17 +217,19 @@ local function copy(from)
    return to
 end
 
-local walkAST
+-- Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
+-- When f returns a truthy value, recursively walks the children.
+local walkTree -- function(root, f, iterfn)
 do
-    local function walk(f, scope, parent, ast, ...)
-        f(scope, parent, ast, ...)
-        if isList(ast) or isSequence(ast) then
-            for i = 1, #ast do walk(f, scope, ast, ast[i], i) end
-        elseif isTable(ast) and not isSym(ast) then
-            for k, v in pairs(ast) do walk(f, scope, ast, v, k) end
+    local function walk(iterfn, f, parent, node, idx)
+        if f(node, idx, parent) then
+            for k, v in iterfn(node) do walk(iterfn, f, node, v, k) end
         end
     end
-    walkAST = function(scope, ast, f) walk(f, scope, nil, ast) return ast end
+    walkTree = function(root, f, iterfn)
+        walk(iterfn or pairs, f, nil, root)
+        return root
+    end
 end
 
 --
@@ -2083,10 +2085,12 @@ SPECIALS["hashfn"] = function(ast, scope, parent)
     fScope.hashfn = true
     local args = {}
     for i = 1, 9 do args[i] = declareLocal(sym('$' .. i), {}, fScope, ast) end
-    walkAST(fScope, ast[2], function(_, parentnode, v, k)
-        if isSym(v) and deref(v) == '$...' then
-            parentnode[k] = VARARG
-            fScope.vararg = true
+    -- recursively walk the AST, transforming $... into ...
+    walkTree(ast[2], function(node, idx, parentNode)
+        if isSym(node) and deref(node) == '$...' then
+            parentNode[idx], fScope.vararg = VARARG, true
+        else -- truthy return value determines whether to traverse children
+            return isList(node) or isTable(node)
         end
     end)
     -- Compile body
@@ -2094,7 +2098,7 @@ SPECIALS["hashfn"] = function(ast, scope, parent)
     local maxUsed = 0
     for i = 1, 9 do if fScope.symmeta['$' .. i].used then maxUsed = i end end
     if fScope.vararg then
-        assertCompile(maxUsed == 0, '$ and $... in hashfn is mutually exclusive', ast)
+        assertCompile(maxUsed == 0, '$ and $... in hashfn are mutually exclusive', ast)
         args = {deref(VARARG)}
         maxUsed = 1
     end

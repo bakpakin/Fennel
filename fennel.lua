@@ -2927,7 +2927,7 @@ module.repl = function(options)
     local internals = { rootOptions = utils.root.options,
                         setRootOptions = function(r) utils.root.options = r end,
                         currentGlobalNames = specials.currentGlobalNames,
-                        wrapEnv = utils.wrapEnv,
+                        wrapEnv = specials.wrapEnv,
                         allpairs = utils.allpairs,
                         map = utils.map }
     return eval(replsource, { correlate = true }, module, internals)(options)

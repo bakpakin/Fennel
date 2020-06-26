@@ -2,6 +2,7 @@
 
 ## ??? / ???
 
+* Support varargs in hashfn with `$...` (#298)
 * Add `with-open` macro for auto-closing file handles (#295)
 * Add `--native-module` and `--native-library` to `--compile-binary` command
 * Make autogensym symbols omit "#" when appending unique suffix.

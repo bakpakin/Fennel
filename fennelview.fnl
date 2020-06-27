@@ -110,8 +110,9 @@
   (puts self "{")
   (set self.level (+ self.level 1))
   ;; first, output sorted nonsequential keys
-  (each [_ k (ipairs ordered-keys)]
-    (tabify self)
+  (each [i k (ipairs ordered-keys)]
+    (when (or self.table-edges (not= i 1))
+      (tabify self))
     (put-key self k)
     (puts self " ")
     (put-value self (. t k)))
@@ -122,7 +123,8 @@
     (puts self " ")
     (put-value self v))
   (set self.level (- self.level 1))
-  (tabify self)
+  (when self.table-edges
+    (tabify self))
   (puts self "}"))
 
 (fn put-table [self t]
@@ -142,7 +144,7 @@
           (if (and (< 1 (or (. self.appearances t) 0)) self.detect-cycles?)
               (puts self "#<table" id ">")
               (and (= (length non-seq-keys) 0) (= (length t) 0))
-              (puts self "{}")
+              (puts self (if self.empty-as-square "[]" "{}"))
               (= (length non-seq-keys) 0)
               (put-sequential-table self t len)
               :else
@@ -179,6 +181,8 @@ Can take an options table with these keys:
 * :indent (string, default: \"  \") use this string to indent each level
 * :detect-cycles? (boolean, default: true) don't try to traverse a looping table
 * :metamethod? (boolean: default: true) use the __fennelview metamethod if found
+* :table-edges (boolean: default: true) put {} table brackets on their own line
+* :empty-as-square (boolean: default: false) render empty tables as [], not {}
 
 The __fennelview metamethod should take the table being serialized as its first
 argument and a function as its second arg which can be used on table elements to
@@ -191,7 +195,9 @@ continue the fennelview process on them.
                    :indent (or options.indent (if options.one-line "" "  "))
                    :detect-cycles? (not (= false options.detect-cycles?))
                    :metamethod? (not (= false options.metamethod?))
-                   :fennelview #(fennelview $1 options)}]
+                   :fennelview #(fennelview $1 options)
+                   :table-edges (not= options.table-edges false)
+                   :empty-as-square options.empty-as-square}]
     (put-value inspector x)
     (let [str (table.concat inspector.buffer)]
       (if options.one-line (one-line str) str))))

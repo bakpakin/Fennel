@@ -120,8 +120,10 @@ end
 local function put_kv_table(self, t, ordered_keys)
   puts(self, "{")
   self.level = (self.level + 1)
-  for _, k in ipairs(ordered_keys) do
-    tabify(self)
+  for i, k in ipairs(ordered_keys) do
+    if (self["table-edges"] or (i ~= 1)) then
+      tabify(self)
+    end
     put_key(self, k)
     puts(self, " ")
     put_value(self, t[k])
@@ -133,7 +135,9 @@ local function put_kv_table(self, t, ordered_keys)
     put_value(self, v)
   end
   self.level = (self.level - 1)
-  tabify(self)
+  if self["table-edges"] then
+    tabify(self)
+  end
   return puts(self, "}")
 end
 local function put_table(self, t)
@@ -164,7 +168,14 @@ local function put_table(self, t)
     if ((1 < (self.appearances[t] or 0)) and self["detect-cycles?"]) then
       return puts(self, "#<table", id, ">")
     elseif ((#non_seq_keys == 0) and (#t == 0)) then
-      return puts(self, "{}")
+      local function _2_()
+        if self["empty-as-square"] then
+          return "[]"
+        else
+          return "{}"
+        end
+      end
+      return puts(self, _2_())
     elseif (#non_seq_keys == 0) then
       return put_sequential_table(self, t, len)
     elseif "else" then
@@ -202,7 +213,7 @@ local function fennelview(x, options)
       return "  "
     end
   end
-  inspector = {["detect-cycles?"] = not (false == options0["detect-cycles?"]), ["max-ids"] = {}, ["metamethod?"] = not (false == options0["metamethod?"]), appearances = count_table_appearances(x, {}), buffer = {}, depth = (options0.depth or 128), fennelview = _1_, ids = {}, indent = (options0.indent or _2_()), level = 0}
+  inspector = {["detect-cycles?"] = not (false == options0["detect-cycles?"]), ["empty-as-square"] = options0["empty-as-square"], ["max-ids"] = {}, ["metamethod?"] = not (false == options0["metamethod?"]), ["table-edges"] = (options0["table-edges"] ~= false), appearances = count_table_appearances(x, {}), buffer = {}, depth = (options0.depth or 128), fennelview = _1_, ids = {}, indent = (options0.indent or _2_()), level = 0}
   put_value(inspector, x)
   local str = table.concat(inspector.buffer)
   if options0["one-line"] then

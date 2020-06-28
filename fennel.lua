@@ -2852,8 +2852,7 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
     emit(tempChunk, preloadStr, ast)
     emit(tempChunk, subChunk)
     emit(tempChunk, 'end', ast)
-    -- Splice tempChunk to begining of rootChunk
-    for i, v in ipairs(tempChunk) do table.insert(rootChunk, i, v) end
+    table.insert(rootChunk, 1, tempChunk) -- Splice into begining of root
 
     -- For fnl source, compile subChunk AFTER splicing into start of rootChunk.
     if isFennel then

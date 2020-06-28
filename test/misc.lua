@@ -20,46 +20,15 @@ local function test_global_mangling()
 end
 
 local function test_include()
-    local quuxsrc = 'return foo or false\n-- comment in lua'
-    local bazsrc = '[:BAZ 3]\n'
-    local barsrc = ([[
-    (local bar [:BAR 2])
-    (each [_ v (ipairs (include :baz))]
-          (table.insert bar v))
-    bar
-    ]]):gsub("(\n)%s+$", "%1")
-
-    local foosrc = ([[
-    (local foo [:FOO 1])
-    (local quux (include :quux))
-    (local bar (include :bar))
-    {:result (.. "foo:" (table.concat foo "-") "bar:" (table.concat bar "-")) : quux}
-    ]]):gsub("(\n)%s+$", "%1")
-
-    local function spit(path, src)
-        local f = io.open(path, 'w')
-        f:write(src)
-        f:close()
-    end
-
-    -- Write files.
-    spit('quux.lua', quuxsrc)
-    spit('baz.fnl', bazsrc)
-    spit('bar.fnl', barsrc)
-
     local expected = "foo:FOO-1bar:BAR-2-BAZ-3"
-    local ok, out = pcall(fennel.eval, foosrc)
+    local ok, out = pcall(fennel.dofile, "test/mod/foo.fnl")
     l.assertTrue(ok, "Expected foo to work")
     out = out or {}
     l.assertEquals(out.result, expected,
                    "Expected include to have result: " .. expected)
     l.assertFalse(out.quux,
                   "Expected include not to leak upvalues into included modules")
-
-    -- Remove files
-    os.remove('quux.lua')
-    os.remove('baz.fnl')
-    os.remove('bar.fnl')
+    l.assertNil(_G.quux, "Expected include to actually be local")
 end
 
 local function test_env_iteration()

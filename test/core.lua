@@ -536,9 +536,12 @@ local function test_fennelview()
         ["((require :fennelview) (let [t {}] [t t]))"]="[{} #<table 2>]",
         ["((require :fennelview) (let [t {}] [t t]) {:detect-cycles? false})"]=
             "[{} {}]",
-        -- ensure fennelview works on lists and syms
-        ["(eval-compiler (set _G.out ((require :fennelview) '(a {} [1 2])))) _G.out"]=
-            "(a {} [1 2])",
+        -- ensure fennelview works on lists, syms, and sequences
+        ["(eval-compiler (set _G.out ((require :fennelview) '(a {} [] [1 2])))) _G.out"]=
+            "(a {} [] [1 2])",
+        -- the above fails, but the following doesn't??
+        ["(macro show [v] ((require :fennelview) v)) (show (a {} [] [1 2]))"]=
+            "(a {} [] [1 2])",
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)

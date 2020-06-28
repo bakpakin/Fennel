@@ -109,6 +109,10 @@ local function listToString(self, tostring2)
     return '(' .. table.concat(map(safe, tostring2 or tostring), ' ', 1, max) .. ')'
 end
 
+local function sequenceToString(self, tostring2)
+    return string.format('[%s]', listToString(self, tostring2):sub(2, -2))
+end
+
 local SYMBOL_MT = { 'SYMBOL', __tostring = deref, __fennelview = deref }
 local EXPR_MT = { 'EXPR', __tostring = deref }
 local VARARG = setmetatable({ '...' },
@@ -165,7 +169,7 @@ local function sequence(...)
     -- the other types without giving up the ability to set source metadata
     -- on a sequence, (which we need for error reporting) so embed a marker
     -- value in the metatable instead.
-    return setmetatable({...}, {sequence=SEQUENCE_MARKER})
+    return setmetatable({...}, {sequence=SEQUENCE_MARKER, __fennelview=sequenceToString})
 end
 
 -- Create a new expr

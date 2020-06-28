@@ -1363,12 +1363,20 @@ local function destructure(to, from, ast, scope, parent, opts)
         local init = table.concat(inits, ', ')
         local lvalue = table.concat(lvalues, ', ')
 
-        local plen = #parent
+        local plen, plast = #parent, parent[#parent]
         local ret = compile1(from, scope, parent, {target = lvalue})
         if declaration then
+            -- A single leaf emitted at the end of the parent chunk means a
+            -- simple assignment a = x was emitted, and we can just splice
+            -- "local " onto the front of it. However, we can't just check based
+            -- on plen, because some forms (such as include) insert new chunks
+            -- at the top of the parent chunk rather than just at the end; this
+            -- loop checks for this occurance and updates plen to be the index
+            -- of the last thing in the parent before compiling the new value.
+            for pi = plen, #parent do
+                if parent[pi] == plast then plen = pi end
+            end
             if #parent == plen + 1 and parent[#parent].leaf then
-                -- A single leaf emitted means an simple assignment a = x was emitted
-                -- TODO: ^^^ this is not true with include!
                 parent[#parent].leaf = 'local ' .. parent[#parent].leaf
             else
                 table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue ..

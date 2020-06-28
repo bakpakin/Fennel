@@ -2326,12 +2326,16 @@ local function doQuote (form, scope, parent, runtime)
                     ", getmetatable(list()))")
             :format(filename, form.line or "nil", form.bytestart or "nil",
                     mixedConcat(mapped, ", "))
-    -- table
+    -- table and sequence
     elseif type(form) == 'table' then
         local mapped = kvmap(form, entryTransform(q, q))
         local source = getmetatable(form)
         local filename = source.filename and ('%q'):format(source.filename) or "nil"
-        return ("setmetatable({%s}, {filename=%s, line=%s})"):
+        local mt = "{filename=%s, line=%s}"
+        if isSequence(form) then
+            mt = ("setmetatable(%s, getmetatable(sequence()))"):format(mt)
+        end
+        return ("setmetatable({%s}, " .. mt .. ")"):
             format(mixedConcat(mapped, ", "), filename, source and source.line or "nil")
     -- string
     elseif type(form) == 'string' then
@@ -2527,6 +2531,7 @@ local module = {
     mangle = globalMangling,
     unmangle = globalUnmangling,
     list = list,
+    sequence = sequence,
     sym = sym,
     varg = varg,
     scope = makeScope,

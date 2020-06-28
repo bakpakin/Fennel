@@ -22,13 +22,17 @@ end
 local function test_include()
     local expected = "foo:FOO-1bar:BAR-2-BAZ-3"
     local ok, out = pcall(fennel.dofile, "test/mod/foo.fnl")
-    l.assertTrue(ok, "Expected foo to work")
+    l.assertTrue(ok, "Expected foo to run")
     out = out or {}
     l.assertEquals(out.result, expected,
                    "Expected include to have result: " .. expected)
     l.assertFalse(out.quux,
                   "Expected include not to leak upvalues into included modules")
     l.assertNil(_G.quux, "Expected include to actually be local")
+
+    local spliceOk = pcall(fennel.dofile, "test/mod/splice.fnl")
+    l.assertTrue(spliceOk, "Expected splice to run")
+    l.assertNil(_G.q, "Expected include to actually be local")
 end
 
 local function test_env_iteration()

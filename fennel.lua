@@ -1368,6 +1368,7 @@ local function destructure(to, from, ast, scope, parent, opts)
         if declaration then
             if #parent == plen + 1 and parent[#parent].leaf then
                 -- A single leaf emitted means an simple assignment a = x was emitted
+                -- TODO: ^^^ this is not true with include!
                 parent[#parent].leaf = 'local ' .. parent[#parent].leaf
             else
                 table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue ..
@@ -2852,7 +2853,8 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
     emit(tempChunk, preloadStr, ast)
     emit(tempChunk, subChunk)
     emit(tempChunk, 'end', ast)
-    table.insert(rootChunk, 1, tempChunk) -- Splice into begining of root
+    -- Splice tempChunk to begining of rootChunk
+    for i, v in ipairs(tempChunk) do table.insert(rootChunk, i, v) end
 
     -- For fnl source, compile subChunk AFTER splicing into start of rootChunk.
     if isFennel then

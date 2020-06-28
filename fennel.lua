@@ -24,7 +24,7 @@ local assert = assert
 local pairs = pairs
 local ipairs = ipairs
 local tostring = tostring
-local unpack = unpack or table.unpack
+local unpack = _G.unpack or table.unpack
 
 --
 -- Main Types and support functions
@@ -2095,7 +2095,8 @@ SPECIALS["hashfn"] = function(ast, scope, parent)
     -- recursively walk the AST, transforming $... into ...
     walkTree(ast[2], function(idx, node, parentNode)
         if isSym(node) and deref(node) == '$...' then
-            parentNode[idx], fScope.vararg = VARARG, true
+            parentNode[idx] = VARARG
+            fScope.vararg = true
         else -- truthy return value determines whether to traverse children
             return isList(node) or isTable(node)
         end

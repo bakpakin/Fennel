@@ -2,6 +2,7 @@
 package.loaded.fennel = dofile("fennel.lua")
 table.insert(package.loaders or package.searchers, package.loaded.fennel.searcher)
 package.loaded.fennelview = package.loaded.fennel.dofile("fennelview.fnl")
+package.loaded.fennelfriend = package.loaded.fennel.dofile("fennelfriend.fnl")
 
 local lu = require('test.luaunit')
 local runner = lu.LuaUnit:new()

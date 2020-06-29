@@ -2,16 +2,19 @@
 
 ## ??? / ???
 
+* Support varargs in hashfn with `$...` (#298)
 * Add `with-open` macro for auto-closing file handles (#295)
+* Add `--native-module` and `--native-library` to `--compile-binary` command
 * Make autogensym symbols omit "#" when appending unique suffix.
 * Fix a bug where autogensyms (using `#`) couldn't be used as multisyms (#294)
 * Add `fennel.searchModule` function to module API
 * Fix a bug causing `include` to ignore compiler options
 * Fix a bug causing `(comment)` to emit a Lua comment with excessive indentation
+* Fix a bug causing the repl to fail when `$HOME` env var was not set.
 
 ## 0.4.1 / 2020-05-25
 
-* Experimental --compile-binary command (#281)
+* Experimental `--compile-binary` command (#281)
 * Support shebang in all contexts, not just dofile.
 * Pinpoint source in compile errors even when loading from a string
 * Fix a bug where included modules could get included twice (#278)

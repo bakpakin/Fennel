@@ -434,6 +434,8 @@ local function test_hashfn()
         -- Multisyms containing $ arguments
         ["(#$.foo {:foo :bar})"]="bar",
         ["(#$2.foo.bar.baz nil {:foo {:bar {:baz :quux}}})"]="quux",
+        -- Vararg
+        ['(#[(select :# $...) $...] :a :b :c)']={3, 'a','b','c'},
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)

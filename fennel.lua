@@ -24,7 +24,7 @@ local assert = assert
 local pairs = pairs
 local ipairs = ipairs
 local tostring = tostring
-local unpack = unpack or table.unpack
+local unpack = _G.unpack or table.unpack
 
 --
 -- Main Types and support functions
@@ -300,6 +300,19 @@ local utils = (function()
         propagateOptions=propagateOptions, debugOn=debugOn,
         root=root, path=table.concat(pathTable, ";"),}
 end)()
+
+-- Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
+-- When f returns a truthy value, recursively walks the children.
+local walkTree = function(root, f, customIterator)
+    local function walk(iterfn, parent, idx, node)
+        if f(idx, node, parent) then
+            for k, v in iterfn(node) do walk(iterfn, node, k, v) end
+        end
+    end
+
+    walk(customIterator or pairs, nil, nil, root)
+    return root
+end
 
 --
 -- Parser
@@ -593,7 +606,7 @@ local parser = (function()
                                     parseError("can't start multisym segment " ..
                                                    "with a digit: ".. rawstr)
                                 elseif(rawstr:match("[%.:][%.:]") and
-                                       rawstr ~= "..") then
+                                       rawstr ~= ".." and rawstr ~= '$...') then
                                     byteindex = (byteindex - #rawstr +
                                                      rawstr:find("[%.:][%.:]") + 1)
                                     parseError("malformed multisym: " .. rawstr)
@@ -1338,15 +1351,26 @@ local compiler = (function()
             local init = table.concat(inits, ', ')
             local lvalue = table.concat(lvalues, ', ')
 
-            local plen = #parent
+            local plen, plast = #parent, parent[#parent]
             local ret = compile1(from, scope, parent, {target = lvalue})
             if declaration then
+                -- A single leaf emitted at the end of the parent chunk means
+                -- a simple assignment a = x was emitted, and we can just
+                -- splice "local " onto the front of it. However, we can't
+                -- just check based on plen, because some forms (such as
+                -- include) insert new chunks at the top of the parent chunk
+                -- rather than just at the end; this loop checks for this
+                -- occurance and updates plen to be the index of the last
+                -- thing in the parent before compiling the new value.
+                for pi = plen, #parent do
+                    if parent[pi] == plast then plen = pi end
+                end
                 if #parent == plen + 1 and parent[#parent].leaf then
-                    -- A single leaf emitted means an simple assignment a = x was emitted
                     parent[#parent].leaf = 'local ' .. parent[#parent].leaf
                 else
-                    table.insert(parent, plen + 1, { leaf = 'local ' .. lvalue ..
-                                                         ' = ' .. init, ast = ast})
+                    table.insert(parent, plen + 1,
+                                 { leaf = 'local ' .. lvalue .. ' = ' .. init,
+                                   ast = ast})
                 end
             end
             return ret
@@ -2346,17 +2370,32 @@ local specials = (function()
         fScope.hashfn = true
         local args = {}
         for i = 1, 9 do args[i] = compiler.declareLocal(utils.sym('$' .. i), {}, fScope, ast) end
+        -- recursively walk the AST, transforming $... into ...
+        walkTree(ast[2], function(idx, node, parentNode)
+            if utils.isSym(node) and utils.deref(node) == '$...' then
+                parentNode[idx] = utils.varg()
+                fScope.vararg = true
+            else -- truthy return value determines whether to traverse children
+                return utils.isList(node) or utils.isTable(node)
+            end
+        end)
         -- Compile body
         compiler.compile1(ast[2], fScope, fChunk, {tail = true})
         local maxUsed = 0
         for i = 1, 9 do if fScope.symmeta['$' .. i].used then maxUsed = i end end
+        if fScope.vararg then
+            compiler.assert(maxUsed == 0, '$ and $... in hashfn are mutually exclusive', ast)
+            args = {utils.deref(utils.varg())}
+            maxUsed = 1
+        end
         local argStr = table.concat(args, ', ', 1, maxUsed)
         compiler.emit(parent, ('local function %s(%s)'):format(name, argStr), ast)
         compiler.emit(parent, fChunk, ast)
         compiler.emit(parent, 'end', ast)
         return utils.expr(name, 'sym')
     end
-    docSpecial("hashfn", {"..."}, "Function literal shorthand; args are $1, $2, etc.")
+    docSpecial("hashfn", {"..."},
+               "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
     local function defineArithmeticSpecial(name, zeroArity, unaryPrefix, luaName)
         local paddedOp = ' ' .. (luaName or name) .. ' '

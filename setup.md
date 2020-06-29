@@ -44,10 +44,12 @@ the script itself is associated with a version of Fennel.
 1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-0.4.1)
 2. Run `chmod +x fennel-0.4.1` to make it executable
 3. Download [the signature](https://fennel-lang.org/downloads/fennel-0.4.1.asc)
-4. Run `gpg --verify fennel-0.4.1.asc` to verify that the fennel script is from the Fennel creators (recommended)
+4. Run `gpg --verify fennel-0.4.1.asc` to verify that the fennel
+   script is from the Fennel creators (optional but recommended)
 5. Move `fennel-0.4.1` to a directory on your `$PATH`, such as `/usr/local/bin`
 
-**Note**: You can rename the script to `fennel` for convenience.
+**Note**: You can rename the script to `fennel` for convenience. This
+  also makes it easy to keep many versions of Fennel installed at once.
 
 ## Downloading a Fennel binary
 
@@ -60,23 +62,23 @@ having to download Lua.
    - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64.asc))
    - [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-0.4.1-arm32) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-arm32.asc))
    - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe.asc))
-2. Run `chmod +x fennel-0.4.1*` to make it executable
-3. Download the signature and confirm it matches using `gpg --verify fennel-0.4.1*.asc`
+2. Run `chmod +x fennel-0.4.1*` to make it executable (not needed on Windows)
+3. Download the signature and confirm it matches using `gpg --verify fennel-0.4.1*.asc` (optional but recommended)
 4. Move the downloaded binary to a directory on your `$PATH`, such as `/usr/local/bin`
 
 ## Downloading Fennel using LuaRocks
 
 [LuaRocks](https://luarocks.org/) contains a repository of Lua
 software packages. LuaRocks is convenient because it automates the
-downloading, installation, and uninstallation of Lua software packages.
+downloading, installation, updating, and uninstallation of Lua software packages.
 
 ### To download Fennel using LuaRocks
 
 1. Ensure the `luarocks` package is installed on your system
 2. Ensure the `~/.luarocks/bin` directory is added to your shell's `$PATH`
 3. Run one of the following commands:
-    - `luarocks install fennel` to install globally (requires admin or sudo)
-    - `luarocks --local install fennel` to install locally
+    - `luarocks --local install fennel` to install locally (recommended)
+    - `luarocks install fennel` to install globally (requires root or admin)
 4. Run `fennel --help` to confirm the installation succeeded
 
 **Note:** When using `luarocks` with `--local`, you'll need to ensure
@@ -100,9 +102,10 @@ This section consists of the following subsections:
 flexible option, and is recommended. By embedding the Fennel compiler
 in an application, users can write their own extension scripts in
 Fennel to interact with the application, and you can reload during
-development. If the application is more restricted, then compiling
-Fennel code to Lua during the build process and including the Lua
-output in the application may be easier.
+development. If the application is more restricted, (for instance, if
+you can only embed one Lua file into the application and it cannot
+load further files) then compiling Fennel code to Lua during the build
+process and including the Lua output in the application may be easier.
 
 ## Embedding the Fennel compiler in a Lua application
 
@@ -185,7 +188,7 @@ Installing [fennel-mode](https://gitlab.com/technomancy/fennel-mode/)
 gives you syntax highlighting, indentation, paren-matching, a repl,
 reloading, documentation lookup, and jumping to source definitions.
 
-For more information, [click here](https://gitlab.com/technomancy/fennel-mode/-/blob/master/Readme.md)
+For more information, see [the fennel-mode readme](https://gitlab.com/technomancy/fennel-mode/-/blob/master/Readme.md).
 
 ## Adding Fennel support to Vim
 
@@ -202,7 +205,7 @@ and follow the documentation to add fennel as an executable REPL command.
 
 Search in the built-in extension manager for "Fennel" to install
 [the vsc-fennel extension](https://github.com/kongeor/vsc-fennel). At
-the time of this writing it only provides syntax support.
+the time of this writing it only provides syntax highlighting.
 
 # Adding readline support to Fennel
 
@@ -213,11 +216,11 @@ support enables user-friendly features, such as:
 
 - Tab completion on the REPL that can complete on all locals, macros, and special forms
 - A rolling history buffer, which can be navigated, searched (`ctrl+r`), and optionally
-persisted to disk so you can search input from previous REPL sessions.
-- emacs (default) or vi emulation via readline's custom support for better line
+persisted to disk so you can search input from previous REPL sessions
+- emacs (default) or vi key binding emulation via readline's custom support for better line
 navigation
 - Optional use of additional readline features in `~/.inputrc`, such as blinking
-on matched parentheses or color color output (described below)
+on matched parentheses or color output (described below)
 
 ## Requirements for readline support
 
@@ -241,9 +244,9 @@ readline.lua by following the guide
 
 1. Ensure libreadline is installed for the Lua version you intend to use
 2. Run one of the following commands:
-   - `luarocks install readline` (requires admin or sudo)
-   - `luarocks install --local readline`
-   - `luarocks install --lua-version=5.1 readline`
+   - `luarocks install --local readline` (recommended)
+   - `luarocks install --lua-version=5.1 readline` (for a non-default Lua version)
+   - `luarocks install readline` (requires root or admin)
 
 **Note:** If you've installed with the `--local` flag, you may need to ensure your `package.path`
 and `package.cpath` contain its location. See the
@@ -282,10 +285,11 @@ directive your `inputrc`](https://www.gnu.org/software/bash/manual/html_node/Con
 for fennel-only configuration options.
 
 The following example adds these behaviors:
-- Blink on a matching parenthesis when entering `)`. Useful in a Lisp REPL, where
+
+* Blink on a matching parenthesis when entering `)`. Useful in a Lisp REPL, where
 the parens are plentiful!
-- Enable bracketed paste mode for more reliable pasting from clipboard
-- When tab-completing on a term with more than one possible match, display all
+* Enable bracketed paste mode for more reliable pasting from clipboard
+* When tab-completing on a term with more than one possible match, display all
 candidates immediately instead of ringing the bell + requiring a second `<tab>`
 
 ```inputrc
@@ -302,7 +306,7 @@ $endif
 The two main platforms for making games with Fennel are
 [TIC-80](https://tic.computer) and [LÖVE](https://love2d.org/).
 
-TIC-80 is software that acts as a computer in which you can write
+TIC-80 is software that acts as a simulated computer in which you can write
 code, design art, compose music, and lay out maps for games. TIC-80
 also makes it easy for you to publish and share the games you make
 with others. TIC-80 introduces restrictions such as low resolution and
@@ -351,7 +355,8 @@ to see how it's made:
 
 ## Using Fennel with LÖVE
 
-LÖVE has no built-in support for Fennel, so you will need to setup support yourself.
+LÖVE has no built-in support for Fennel, so you will need to setup
+support yourself, similar to [Embedding Fennel](#embedding-fennel) above.
 
 This [project skeleton for LÖVE](https://gitlab.com/alexjgriffith/min-love2d-fennel)
 shows you how to setup support for Fennel and how to setup a

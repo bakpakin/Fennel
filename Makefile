@@ -55,7 +55,14 @@ lua-5.3.5/src/liblua-mingw.a: lua-5.3.5
 ci: luacheck testall count
 
 clean:
-	rm -f fennel fennel-bin *_binary.c fennel-bin.exe
+	rm -f fennel fennel-bin *_binary.c fennel-bin.exe built-ins luacov.*
 	make -C lua-5.3.5 clean || true # this dir might not exist
 
-.PHONY: test testall luacheck count ci clean
+coverage: fennel
+	# need a symlink for the fake 'built-ins' module set on macros in fennel.lua
+	ln -s fennel.lua built-ins && rm -f luacov.*
+	$(LUA) -lluacov test/init.lua && rm -f built-ins
+	@echo "generated luacov.report.out"
+	@echo "Note: 'built-ins' coverage is inaccurate because it isn't a real file."
+
+.PHONY: test testall luacheck count ci clean coverage

@@ -523,7 +523,7 @@ There are a few surprises that might bite seasoned lispers. Most of
 these result necessarily from Fennel's insistence upon imposing zero
 runtime overhead over Lua.
 
-* The arithmetic and comparison operators are not first-class functions
+* The arithmetic and comparison operators are not first-class functions.
   They can behave in surprising ways with multiple-return-valued functions,
   because the number of arguments to them must be known at compile-time.
 

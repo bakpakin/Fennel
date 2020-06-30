@@ -15,14 +15,15 @@ dependencies = {
    "lua >= 5.1"
 }
 build = {
-   type = "builtin",
-   modules = {
-       fennel = "fennel.lua",
-       fennelview = "fennelview.fnl.lua",
+   type = "make",
+   build_variables = {
+       -- Warning: variable CFLAGS was not passed in build_variables
+       CFLAGS = "$(CFLAGS)",
+       LUA = "$(LUA)",
    },
-   install = {
-       bin = {
-           "fennel"
-       }
-   }
+   install_variables = {
+       PREFIX = "$(PREFIX)",
+       BINDIR = "$(BINDIR)",
+       LUADIR = "$(LUADIR)",
+   },
 }

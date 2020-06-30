@@ -1,4 +1,5 @@
 LUA ?= lua
+LUA_VERSION ?= $(shell $(LUA) -e 'v=_VERSION:gsub("^Lua *","");print(v)')
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)

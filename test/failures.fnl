@@ -18,10 +18,8 @@
   "(fn [:huh] 4)" "expected symbol for function parameter"
   "(fn []\n(for [32 34 32] 21))" "2: unable to bind number"
   "(fn [] [...])" "unexpected vararg"
-  "(fn [_x y z] y)" "unused local z"
   "(fn [false] 4)" "expected symbol for function parameter"
   "(fn [nil] 4)" "expected symbol for function parameter"
-  "(fn [xx y] y)" "unused local xx"
   "(fn global [] 1)" "overshadowed"
   "(fn global-caller [] (hey))" "unknown global"
   "(fn)" "expected parameters"
@@ -47,7 +45,6 @@
   "(let [t []] (set t:.x :y))" "malformed multisym: t:.x"
   "(let [t []] (set t::x :y))" "malformed multisym: t::x"
   "(let [t {:a 1}] (+ t.a BAD))" "BAD"
-  "(let [x 1 y 2] y)" "unused local x"
   "(let [x 1 y] 8)" "expected even number of name/value bindings"
   "(let [x 1] (set-forcibly! x 2) (set x 3) x)" "expected var"
   "(let [x 1])" "expected body"
@@ -80,8 +77,7 @@
 (fn test-failures []
   (each [code expected-msg (pairs failures)]
     (let [(ok? msg) (pcall fennel.compileString code
-                           {:allowedGlobals ["pairs" "next" "ipairs"]
-                            :checkUnusedLocals true})]
+                           {:allowedGlobals ["pairs" "next" "ipairs"]})]
       (l.assertFalse ok? (.. "Expected compiling " code " to fail."))
       (l.assertStrContains msg expected-msg))))
 

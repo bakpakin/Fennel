@@ -1,4 +1,10 @@
 LUA ?= lua
+LUA_VERSION ?= $(shell $(LUA) -e 'v=_VERSION:gsub("^Lua *","");print(v)')
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
+
+build: fennel
 
 test: fennel
 	$(LUA) test/init.lua
@@ -65,4 +71,10 @@ coverage: fennel
 	@echo "generated luacov.report.out"
 	@echo "Note: 'built-ins' coverage is inaccurate because it isn't a real file."
 
-.PHONY: test testall luacheck count ci clean coverage
+install: fennel fennel.lua fennelview.lua
+	mkdir -p $(BINDIR) && \
+		cp fennel $(BINDIR)/
+	mkdir -p $(LUADIR) && \
+		for f in fennel.lua fennelview.lua; do cp $$f $(LUADIR)/; done
+
+.PHONY: build test testall luacheck count ci clean coverage install

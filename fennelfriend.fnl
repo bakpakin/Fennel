@@ -10,7 +10,8 @@
         ["removing periods or colons from %s"]
 
         "use of global (.*) is aliased by a local"
-        ["renaming local %s"]
+        ["renaming local %s"
+         "refer to the global using _G.%s instead of %s"]
 
         "local (.*) was overshadowed by a special form or macro"
         ["renaming local %s"]

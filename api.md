@@ -96,6 +96,19 @@ If you install Fennel into `package.searchers` then you can use the
 3rd-party [lume.hotswap][1] function to reload modules that have been
 loaded with `require`.
 
+## Search the path for a module without loading it
+
+```lua
+print(fennel.searchModule("my.mod", package.path))
+```
+
+If you just want to find the file path that a module would resolve to
+without actually loading it, you can use `fennel.searchModule`. The
+first argument is the module name, and the second argument is the path
+string to search. If none is provided, it defaults to Fennel's own path.
+
+Returns `nil` if the module is not found on the path.
+
 ## Compile a string into Lua (can throw errors)
 
 ```lua

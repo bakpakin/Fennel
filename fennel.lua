@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2016-2019 Calvin Rose and contributors
+Copyright (c) 2016-2020 Calvin Rose and contributors
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
@@ -242,6 +242,19 @@ local utils = (function()
 
     local function isQuoted(symbol) return symbol.quoted end
 
+    -- Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
+    -- When f returns a truthy value, recursively walks the children.
+    local walkTree = function(root, f, customIterator)
+        local function walk(iterfn, parent, idx, node)
+            if f(idx, node, parent) then
+                for k, v in iterfn(node) do walk(iterfn, node, k, v) end
+            end
+        end
+
+        walk(customIterator or pairs, nil, nil, root)
+        return root
+    end
+
     local luaKeywords = {
         'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
         'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return',
@@ -287,7 +300,7 @@ local utils = (function()
     return {
         -- basic general table functions:
         stablepairs=stablepairs, allpairs=allpairs, map=map, kvmap=kvmap,
-        copy=copy,
+        copy=copy, walkTree=walkTree,
 
         -- AST functions:
         list=list, sym=sym, sequence=sequence, expr=expr, varg=varg,
@@ -300,19 +313,6 @@ local utils = (function()
         propagateOptions=propagateOptions, debugOn=debugOn,
         root=root, path=table.concat(pathTable, ";"),}
 end)()
-
--- Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
--- When f returns a truthy value, recursively walks the children.
-local walkTree = function(root, f, customIterator)
-    local function walk(iterfn, parent, idx, node)
-        if f(idx, node, parent) then
-            for k, v in iterfn(node) do walk(iterfn, node, k, v) end
-        end
-    end
-
-    walk(customIterator or pairs, nil, nil, root)
-    return root
-end
 
 --
 -- Parser
@@ -2372,7 +2372,7 @@ local specials = (function()
         local args = {}
         for i = 1, 9 do args[i] = compiler.declareLocal(utils.sym('$' .. i), {}, fScope, ast) end
         -- recursively walk the AST, transforming $... into ...
-        walkTree(ast[2], function(idx, node, parentNode)
+        utils.walkTree(ast[2], function(idx, node, parentNode)
             if utils.isSym(node) and utils.deref(node) == '$...' then
                 parentNode[idx] = utils.varg()
                 fScope.vararg = true
@@ -2775,9 +2775,6 @@ end
 -- to do this. For now stash it in the compiler table, but we should untangle it
 compiler.dofileFennel = function(filename, options, ...)
     local opts = utils.copy(options)
-    if opts.allowedGlobals == nil then
-        opts.allowedGlobals = specials.currentGlobalNames(opts.env)
-    end
     local f = assert(io.open(filename, "rb"))
     local source = f:read("*all")
     f:close()
@@ -2809,6 +2806,7 @@ local module = {
 
     loadCode = specials.loadCode,
     macroLoaded = specials.macroLoaded,
+    searchModule = specials.searchModule,
     doc = specials.doc,
 
     eval = eval,
@@ -2972,8 +2970,6 @@ module.repl = function(options)
                         map = utils.map }
     return eval(replsource, { correlate = true }, module, internals)(options)
 end
-
-module.searchModule = specials.searchModule
 
 module.makeSearcher = function(options)
     return function(modulename)

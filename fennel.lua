@@ -1646,6 +1646,7 @@ local compiler = (function()
         -- compiling functions:
         compileString=compileString, compileStream=compileStream,
         compile=compile, compile1=compile1, emit=emit, destructure=destructure,
+        requireInclude=requireInclude,
 
         -- AST functions:
         gensym=gensym, autogensym=autogensym, doQuote=doQuote,

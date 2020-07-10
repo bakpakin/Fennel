@@ -6,10 +6,13 @@ orbs:
 jobs:
   build:
     docker:
-      - image: debian:buster-slim
+      - image: debian:testing
     steps:
       - checkout
-      - run: apt-get update -qq && apt-get install -qq cloc make lua-check luajit lua5.1 lua5.2 lua5.3
+      - run:
+          command: |
+            apt-get update -qq && apt-get install -qq cloc make lua-check \
+              luajit lua5.1 lua5.2 lua5.3 lua5.4
       - run: make ci
   windows:
     executor: windows/default

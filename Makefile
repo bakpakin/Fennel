@@ -14,6 +14,7 @@ testall: fennel
 	@printf 'Testing lua 5.1:\n'  ; lua5.1 test/init.lua
 	@printf "\nTesting lua 5.2:\n"; lua5.2 test/init.lua
 	@printf "\nTesting lua 5.3:\n"; lua5.3 test/init.lua
+	@printf "\nTesting lua 5.4:\n"; lua5.4 test/init.lua
 	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
 luacheck:

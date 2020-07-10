@@ -223,7 +223,8 @@ int main(int argc, char *argv[]) {
 
 (fn native-path? [path]
   (match (path:match "%.(%a+)$")
-    :a path :o path :so path :dylib path))
+    :a path :o path :so path :dylib path
+    _ false))
 
 (fn extract-native-args [args]
   ;; all native libraries go in libraries; those with lua code go in modules too

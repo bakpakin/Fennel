@@ -2579,7 +2579,7 @@ local specials = (function()
         local pathsplit = string.format("([^%s]*)%s", pathsepesc,
                                         escapepat(pkgConfig.pathsep))
         local nodotModule = modulename:gsub("%.", pkgConfig.dirsep)
-        for path in string.gmatch((pathstring or utils.path) ..
+        for path in string.gmatch((pathstring or utils.fennelModule.path) ..
                                   pkgConfig.pathsep, pathsplit) do
             local filename = path:gsub(escapepat(pkgConfig.pathmark), nodotModule)
             local filename2 = path:gsub(escapepat(pkgConfig.pathmark), modulename)

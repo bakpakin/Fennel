@@ -2576,8 +2576,7 @@ local specials = (function()
 
     local function searchModule(modulename, pathstring)
         local pathsepesc = escapepat(pkgConfig.pathsep)
-        local pathsplit = string.format("([^%s]*)%s", pathsepesc,
-                                        escapepat(pkgConfig.pathsep))
+        local pathsplit = string.format("([^%s]*)%s", pathsepesc, pathsepesc)
         local nodotModule = modulename:gsub("%.", pkgConfig.dirsep)
         for path in string.gmatch((pathstring or utils.fennelModule.path) ..
                                   pkgConfig.pathsep, pathsplit) do

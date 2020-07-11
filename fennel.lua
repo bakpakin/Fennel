@@ -1214,7 +1214,7 @@ local compiler = (function()
                     nval = 1
                 })[1]
                 assertCompile(fcallee.type ~= 'literal',
-                              'cannot call literal value', ast)
+                              'cannot call literal value ' .. tostring(ast[1]), ast)
                 fcallee = tostring(fcallee)
                 for i = 2, len do
                     local subexprs = compile1(ast[i], scope, parent, {

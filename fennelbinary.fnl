@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
         out ["  /* native libraries */"]]
     (each [_ path (ipairs native)]
       (each [open (: (shellout (.. nm " " path))
-                     :gmatch "[^dD] _?luaopen_([%a%p%d]+)")]
+                     :gmatch "[^dDt] _?luaopen_([%a%p%d]+)")]
         (table.insert out (: "  int luaopen_%s(lua_State *L);" :format open))
         (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format open))
         (table.insert out (: "  lua_setfield(L, -2, \"%s\");\n"

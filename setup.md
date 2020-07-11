@@ -41,12 +41,12 @@ the script itself is associated with a version of Fennel.
 
 ### To download the fennel script
 
-1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-0.4.1)
-2. Run `chmod +x fennel-0.4.1` to make it executable
-3. Download [the signature](https://fennel-lang.org/downloads/fennel-0.4.1.asc)
-4. Run `gpg --verify fennel-0.4.1.asc` to verify that the fennel
+1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-0.4.2)
+2. Run `chmod +x fennel-0.4.2` to make it executable
+3. Download [the signature](https://fennel-lang.org/downloads/fennel-0.4.2.asc)
+4. Run `gpg --verify fennel-0.4.2.asc` to verify that the fennel
    script is from the Fennel creators (optional but recommended)
-5. Move `fennel-0.4.1` to a directory on your `$PATH`, such as `/usr/local/bin`
+5. Move `fennel-0.4.2` to a directory on your `$PATH`, such as `/usr/local/bin`
 
 **Note**: You can rename the script to `fennel` for convenience. This
   also makes it easy to keep many versions of Fennel installed at once.
@@ -59,11 +59,11 @@ having to download Lua.
 ### To download a Fennel binary
 
 1. Choose one the options below, depending on your system:
-   - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-x86_64.asc))
-   - [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-0.4.1-arm32) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-arm32.asc))
-   - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe) ([signature](https://fennel-lang.org/downloads/fennel-0.4.1-windows32.exe.asc))
-2. Run `chmod +x fennel-0.4.1*` to make it executable (not needed on Windows)
-3. Download the signature and confirm it matches using `gpg --verify fennel-0.4.1*.asc` (optional but recommended)
+   - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-0.4.2-x86_64) ([signature](https://fennel-lang.org/downloads/fennel-0.4.2-x86_64.asc))
+   - [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-0.4.2-arm32) ([signature](https://fennel-lang.org/downloads/fennel-0.4.2-arm32.asc))
+   - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-0.4.2-windows32.exe) ([signature](https://fennel-lang.org/downloads/fennel-0.4.2-windows32.exe.asc))
+2. Run `chmod +x fennel-0.4.2*` to make it executable (not needed on Windows)
+3. Download the signature and confirm it matches using `gpg --verify fennel-0.4.2*.asc` (optional but recommended)
 4. Move the downloaded binary to a directory on your `$PATH`, such as `/usr/local/bin`
 
 ## Downloading Fennel using LuaRocks

@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## ??? / ???
+## 0.4.2 / 2020-07-11
 
 * Fix a bug where multiple `include` calls would splice locals incorrectly
 * Support varargs in hashfn with `$...` (#298)

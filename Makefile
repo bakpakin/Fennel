@@ -5,12 +5,13 @@ BINDIR ?= $(PREFIX)/bin
 LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 
 LUA_SRC=src/fennel/*.lua
-FENNEL_SRC=src/fennel.fnl src/fennel/repl.fnl \
+FENNEL_SRC=src/fennel.fnl src/fennel/repl.fnl src/fennel/utils.fnl \
+		src/fennel/parser.fnl \
 		fennelview.fnl fennelfriend.fnl fennelbinary.fnl launcher.fnl
 
 build: fennel
 
-test: fennel
+test: fennel.lua fennel
 	$(LUA) test/init.lua
 
 testall: export FNL_TEST_OUTPUT ?= text
@@ -32,8 +33,8 @@ count:
 LAUNCHER=$(LUA) old/launcher.lua --add-package-path src/?.lua --add-fennel-path src/?.fnl
 
 # Precompile fennel libraries
-%.lua: %.fnl fennel.lua
-	 $(LAUNCHER) --globals "" --compile $< > $@
+fennelview.lua: fennelview.fnl fennel.lua ; $(LAUNCHER) --globals "" --compile $< > $@
+fennelfriend.lua: fennelfriend.fnl fennel.lua ; $(LAUNCHER) --globals "" --compile $< > $@
 
 # All-in-one pure-lua script:
 fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua fennelbinary.fnl
@@ -41,7 +42,7 @@ fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua fennelbinary.fnl
 	$(LAUNCHER) --globals "" --require-as-include --metadata --compile $< >> $@
 	chmod 755 $@
 
-fennel.lua: src/fennel.fnl $(LUA_SRC)
+fennel.lua: src/fennel.fnl src/fennel/utils.fnl src/fennel/parser.fnl $(LUA_SRC)
 	$(LAUNCHER) --require-as-include --compile $< > $@
 
 # Change these up to swap out the version of Lua or for other operating systems.

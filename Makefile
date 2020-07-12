@@ -78,4 +78,20 @@ install: fennel fennel.lua fennelview.lua
 	mkdir -p $(LUADIR) && \
 		for f in fennel.lua fennelview.lua; do cp $$f $(LUADIR)/; done
 
-.PHONY: build test testall luacheck count ci clean coverage install
+release: fennel fennel-bin fennel-bin.exe
+	grep $(VERSION) fennel.lua
+	grep $(VERSION) changelog.md
+	echo Good to release version $(VERSION)?
+	shell $(read)
+	mkdir -p downloads/
+	mv fennel downloads/fennel-$(VERSION)
+	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
+	mv fennel-bin.exe downloads/fennel-$(VERSION)-windows32.exe
+	gpg -ab downloads/fennel-$(VERSION)
+	gpg -ab downloads/fennel-$(VERSION)-x86_64
+	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
+	echo TODO: compile and upload fennel-$(VERSION)-arm32
+	echo make fennel-bin STATIC_LUA_LIB=/usr/lib/arm-linux-gnueabihf/liblua5.3.a
+	rsync -r downloads/* fennel-lang.org:fennel-lang.org/downloads/
+
+.PHONY: build test testall luacheck count ci clean coverage install release

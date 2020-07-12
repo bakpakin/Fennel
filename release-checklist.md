@@ -14,8 +14,13 @@ is intended for Fennel maintainers.
 8. Create a release in GitHub; paste the changelog for this version.
 9. Upload rock with `luarocks upload rockspecs/fennel-(version)-1.rockspec`.
    Test that the new version can be installed thru LuaRocks.
-10. Update the submodule in the fennel-lang.org repository.
-11. Upload builds to https://fennel-lang.org/downloads, including tarball (TODO: automate)
+10. Upload builds to https://fennel-lang.org/downloads and .asc files (TODO: automate)
+    * fennel-$(VERSION) (`make fennel`)
+    * fennel-$(VERSION)-x86_64 (`make fennel-bin`)
+    * fennel-$(VERSION)-arm32 (`make fennel-bin` on an ARM box)
+    * fennel-$(VERSION)-windows32.exe (`make fennel-bin.exe`)
+    * Fennel-$(VERSION).tgz (get this from github)
+11. Update the submodule in the fennel-lang.org repository.
 12. Announce it on the mailing list. Fennel is now released!
 13. Bump the version in fennel.lua to the next version with a "-dev" suffix; add changelog stub.
 

@@ -252,7 +252,7 @@ Example:
 
 ### `with-open` bind and auto-close file handles
 
-*(Since ??? TODO: add version before release)*
+*(Since 0.4.2)*
 
 While Lua will automatically close an open file handle when it's garbage collected,
 GC may not run right away; `with-open` ensures handles are closed immediately, error

@@ -19,7 +19,8 @@ jobs:
     steps:
       - checkout
       - run: choco install lua53
-      - run: lua53 test/init.lua
+      - run: choco install make
+      - run: make test LUA=lua53
 
 workflows:
   version: 2

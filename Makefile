@@ -4,6 +4,10 @@ PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 
+LUA_SRC=src/fennel/*.lua
+FENNEL_SRC=src/fennel.fnl src/fennel/repl.fnl \
+		fennelview.fnl fennelfriend.fnl fennelbinary.fnl launcher.fnl
+
 build: fennel
 
 test: fennel
@@ -18,16 +22,14 @@ testall: fennel
 	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
 luacheck:
-	luacheck fennel.lua test/init.lua test/mangling.lua \
-		test/misc.lua test/quoting.lua
+	luacheck test/init.lua test/mangling.lua  test/misc.lua test/quoting.lua
 
 count:
-	cloc fennel.lua
-	cloc --force-lang=lisp fennelview.fnl fennelfriend.fnl fennelbinary.fnl \
-		launcher.fnl
+	cloc $(LUA_SRC)
+	cloc --force-lang=lisp $(FENNEL_SRC)
 
 # For the time being, avoid chicken/egg situation thru the old Lua launcher.
-LAUNCHER=$(LUA) old_launcher.lua
+LAUNCHER=$(LUA) old/launcher.lua --add-package-path src/?.lua --add-fennel-path src/?.fnl
 
 # Precompile fennel libraries
 %.lua: %.fnl fennel.lua
@@ -38,6 +40,9 @@ fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua fennelbinary.fnl
 	echo "#!/usr/bin/env $(LUA)" > $@
 	$(LAUNCHER) --globals "" --require-as-include --metadata --compile $< >> $@
 	chmod 755 $@
+
+fennel.lua: src/fennel.fnl $(LUA_SRC)
+	$(LAUNCHER) --require-as-include --compile $< > $@
 
 # Change these up to swap out the version of Lua or for other operating systems.
 STATIC_LUA_LIB ?= /usr/lib/x86_64-linux-gnu/liblua5.3.a

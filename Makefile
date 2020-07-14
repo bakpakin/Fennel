@@ -6,7 +6,7 @@ LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 
 LUA_SRC=src/fennel/*.lua
 FENNEL_SRC=src/fennel.fnl src/fennel/repl.fnl src/fennel/utils.fnl \
-		src/fennel/parser.fnl \
+		src/fennel/parser.fnl src/fennel/compiler.fnl \
 		fennelview.fnl fennelfriend.fnl fennelbinary.fnl launcher.fnl
 
 build: fennel

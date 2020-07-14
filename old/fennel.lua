@@ -2693,7 +2693,7 @@ local specials = (function()
             -- Compile the forms into subChunk; compiler.compile1 is necessary for all nested
             -- includes to be emitted in the same root chunk in the top-level module
             for i = 1, #forms do
-                local subopts = i == #forms and {nval=1, tail=true} or {}
+                local subopts = i == #forms and {nval=1, tail=true} or {nval=0}
                 utils.propagateOptions(opts, subopts)
                 compiler.compile1(forms[i], subscope, subChunk, subopts)
             end

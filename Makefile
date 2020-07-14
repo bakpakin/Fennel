@@ -23,7 +23,7 @@ testall: fennel
 	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
 luacheck:
-	luacheck test/init.lua test/mangling.lua  test/misc.lua test/quoting.lua
+	luacheck $(LUA_SRC) test/init.lua test/mangling.lua  test/misc.lua test/quoting.lua
 
 count:
 	cloc $(LUA_SRC)
@@ -37,13 +37,13 @@ fennelview.lua: fennelview.fnl fennel.lua ; $(LAUNCHER) --globals "" --compile $
 fennelfriend.lua: fennelfriend.fnl fennel.lua ; $(LAUNCHER) --globals "" --compile $< > $@
 
 # All-in-one pure-lua script:
-fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua fennelbinary.fnl
+fennel: launcher.fnl fennelview.lua fennelfriend.lua fennelbinary.fnl
 	echo "#!/usr/bin/env $(LUA)" > $@
-	$(LAUNCHER) --globals "" --require-as-include --metadata --compile $< >> $@
+	$(LAUNCHER) --no-metadata --globals "" --require-as-include --compile $< >> $@
 	chmod 755 $@
 
 fennel.lua: src/fennel.fnl src/fennel/utils.fnl src/fennel/parser.fnl $(LUA_SRC)
-	$(LAUNCHER) --require-as-include --compile $< > $@
+	$(LAUNCHER) --no-metadata --require-as-include --compile $< > $@
 
 # Change these up to swap out the version of Lua or for other operating systems.
 STATIC_LUA_LIB ?= /usr/lib/x86_64-linux-gnu/liblua5.3.a

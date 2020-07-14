@@ -74,8 +74,8 @@ but makes them unlikely. This is the mangling that is exposed to to the world."
   "Reverse a global mangling.
 Takes a Lua identifier and returns the Fennel symbol string that created it."
   (match (: identifier "match" "^__fnl_global__(.*)$")
-    rest (: rest :gsub "_[%da-f][%da-f]"
-            #(string.char (tonumber (: $ "sub" 2) 16)))
+    rest (pick-values 1 (: rest :gsub "_[%da-f][%da-f]"
+                           #(string.char (tonumber (: $ "sub" 2) 16))))
     _ identifier))
 
 (var allowedGlobals nil)
@@ -364,7 +364,6 @@ if opts contains the nval option."
       ;; result anyways.
       []
       exprs))
-
 (fn macroexpand* [ast scope once]
   "Expand macros in the ast. Only do one level if once is true."
   (if (not (utils.isList ast)) ; bail early if not a list
@@ -551,9 +550,9 @@ which we have to do if we don't know."
   * nomulti: disallow multisyms in the destructuring. for (local) and (global)
   * noundef: Don't set undefined bindings. (set)
   * forceglobal: Don't allow local bindings"
-  (let [opts (or opts [])
+  (let [opts (or opts {})
         {: isvar : declaration : nomulti : noundef : forceglobal : forceset} opts
-        setter (or (and declaration "local %s = %s") "%s = %s")
+        setter (if declaration "local %s = %s" "%s = %s")
         newManglings []]
 
     (fn getname [symbol up1]
@@ -585,11 +584,11 @@ which we have to do if we don't know."
     (fn compileTopTarget [lvalues]
       "Compile the outer most form. We can generate better Lua in this case."
       ;; Calculate initial rvalue
-      (let [inits (utils.map lvalues #(or (and (. scope.manglings $) $) "nil"))
+      (let [inits (utils.map lvalues #(if (. scope.manglings $) $ "nil"))
             init (table.concat inits ", ")
-            lvalue (table.concat lvalues ", ")
-            ret (compile1 from scope parent {:target lvalue})]
+            lvalue (table.concat lvalues ", ")]
         (var (plen plast) (values (# parent) (. parent (# parent))))
+        (local ret (compile1 from scope parent {:target lvalue}))
         (when declaration
           ;; A single leaf emitted at the end of the parent chunk means a
           ;; simple assignment a = x was emitted, and we can just splice
@@ -599,12 +598,12 @@ which we have to do if we don't know."
           ;; end; this loop checks for this occurance and updates plen to be
           ;; the index of the last thing in the parent before compiling the
           ;; new value.
-          (for [pi plen (# parent) 1]
+          (for [pi plen (# parent)]
             (when (= (. parent pi) plast)
               (set plen pi)))
           (if (and (= (# parent) (+ plen 1)) (. (. parent (# parent)) "leaf"))
-              (tset (. parent (# parent))
-                    :leaf (.. "local " (. (. parent (# parent)) "leaf")))
+              (tset (. parent (# parent)) :leaf
+                    (.. "local " (. (. parent (# parent)) "leaf")))
               (table.insert parent (+ plen 1)
                             {:ast ast :leaf (.. "local " lvalue " = " init)})))
         ret))

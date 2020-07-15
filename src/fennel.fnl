@@ -20,8 +20,6 @@
 (local specials (require :fennel.specials))
 (local repl (require :fennel.repl))
 
-(local unpack (or _G.unpack table.unpack))
-
 (fn eval [str options ...]
   ;; eval and dofile are considered "live" entry points, so we can assume
   ;; that the globals available at compile time are a reasonable allowed list
@@ -41,18 +39,13 @@
     (set opts.filename nil)
     (loader ...)))
 
-(fn dofile-fennel [filename options ...]
+(fn dofile* [filename options ...]
   (let [opts (utils.copy options)
         f (assert (io.open filename :rb))
         source (f:read :*all)]
     (f:close)
     (set opts.filename filename)
     (eval source opts ...)))
-
-;; This is bad; we have a circular dependency between the specials section and
-;; the evaluation section due to require-macros/import-macros needing to be able
-;; to do this. For now stash it in the compiler table, but we should untangle it
-(set compiler.dofileFennel dofile-fennel)
 
 ;; The public API module we export:
 (local mod {
@@ -79,29 +72,17 @@
             :loadCode specials.loadCode
             :macroLoaded specials.macroLoaded
             :searchModule specials.searchModule
+            :makeSearcher specials.makeSearcher
+            :make_searcher specials.makeSearcher ; backwards-compatibility alias
+            :searcher (specials.makeSearcher)
             :doc specials.doc
 
             :eval eval
-            :dofile dofile-fennel
+            :dofile dofile*
             :version "0.5.0-dev"
 
             :repl repl
             })
-
-(fn mod.makeSearcher [options]
-  "This will allow regular `require` to work with Fennel:
-table.insert(package.loaders, fennel.searcher)"
-  (fn [module-name]
-    (let [opts (utils.copy utils.rootOptions)
-          filename (specials.searchModule module-name)]
-      (each [k v (pairs (or options {}))]
-        (tset opts k v))
-      (if filename
-          (fn [mod-name]
-            (dofile-fennel filename opts mod-name))))))
-
-(set mod.make_searcher mod.makeSearcher) ; backwards-compatibility alias
-(set mod.searcher (mod.makeSearcher))
 
 ;; This is bad; we have a circular dependency between the specials section and
 ;; the evaluation section due to require-macros/import-macros, etc. For now

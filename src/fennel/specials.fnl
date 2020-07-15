@@ -845,6 +845,18 @@ Method name doesn't have to be known at compile-time; if it is, use
           (file:close)
           (lua "return filename"))))))
 
+(fn makeSearcher [options]
+  "This will allow regular `require` to work with Fennel:
+table.insert(package.loaders, fennel.searcher)"
+  (fn [module-name]
+    (let [opts (utils.copy utils.rootOptions)
+          filename (searchModule module-name)]
+      (each [k v (pairs (or options {}))]
+        (tset opts k v))
+      (if filename
+          (fn [mod-name]
+            (utils.fennelModule.dofile filename opts mod-name))))))
+
 (fn macroGlobals [env globals]
   (let [allowed (currentGlobalNames env)]
     (each [_ k (pairs (or globals []))]
@@ -987,5 +999,6 @@ Lua output. The module must be a string literal and resolvable at compile time."
  : macroLoaded
  : makeCompilerEnv
  : searchModule
+ : makeSearcher
  : wrapEnv}
 

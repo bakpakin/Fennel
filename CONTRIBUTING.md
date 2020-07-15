@@ -30,9 +30,7 @@ something that may not be able to get merged.
 * Include a description of the changes.
 * If there are changes to the compiler or the language, please include tests,
   either in one of the existing suites in the `test/` directory or in a new
-  one. If the thing you're testing would cause the compiler to be unable to
-  load tests written in Fennel, write your test in Lua, but otherwise the test
-  should be in Fennel. You can run tests with `make test`.
+  one. You can run tests with `make test`.
 * Make sure that your changes will work on Lua versions 5.1, 5.2, 5.3, 5.4, and
   LuaJIT. Making fennel require LuaJIT or 5.2+ specific features is a
   non-goal of the project. In general, this means target Lua 5.1, but provide

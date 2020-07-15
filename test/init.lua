@@ -1,6 +1,7 @@
--- prevent luarocks-installed fennel from overriding
+-- Ensure we're getting the Fennel we expect, not luarocks or anything
 package.loaded.fennel = dofile("fennel.lua")
-table.insert(package.loaders or package.searchers, package.loaded.fennel.searcher)
+table.insert(package.loaders or package.searchers,
+             package.loaded.fennel.searcher)
 package.loaded.fennelview = package.loaded.fennel.dofile("fennelview.fnl")
 package.loaded.fennelfriend = package.loaded.fennel.dofile("fennelfriend.fnl")
 
@@ -8,34 +9,23 @@ local lu = require('test.luaunit')
 local runner = lu.LuaUnit:new()
 runner:setOutputType(os.getenv('FNL_TEST_OUTPUT') or 'tap')
 
--- attach test modules (which export k/v tables of test fns) as alists
-local function addModule(instances, moduleName)
-    for k, v in pairs(require(moduleName)) do
-        instances[#instances + 1] = {k, v}
-    end
-end
+-- We have to load the tests with the old version of Fennel; otherwise
+-- bugs in the current implementation will prevent the tests from loading!
+local oldfennel = dofile("old/fennel.lua")
 
-local function testAll(testModules)
+local function testall(suites)
     local instances = {}
-    for _, module in ipairs(testModules) do
-        addModule(instances, module)
+    for _, test in ipairs(suites) do
+        -- attach test modules (which export k/v tables of test fns) as alists
+        local suite = oldfennel.dofile("test/" .. test .. ".fnl")
+        for name, testfn in pairs(suite) do
+            table.insert(instances, {name,testfn})
+        end
     end
     return runner:runSuiteByInstances(instances)
 end
 
-testAll({
-    -- these tests need to be in Lua; if anything here breaks
-    -- we can't even load our tests that are written in Fennel.
-    'test.core',
-    'test.mangling',
-    'test.quoting',
-    'test.misc',
-    -- these can be in fennel
-    'test.docstring',
-    'test.fennelview',
-    'test.failures',
-    'test.repl',
-    'test.cli',
-})
+testall({'core', 'mangling', 'quoting', 'misc', 'docstring', 'fennelview',
+         'failures', 'repl', 'cli',})
 
 os.exit(runner.result.notSuccessCount == 0 and 0 or 1)

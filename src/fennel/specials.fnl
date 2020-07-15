@@ -863,10 +863,10 @@ Method name doesn't have to be known at compile-time; if it is, use
                                   (.. modname " module not found.") ast)
         env (makeCompilerEnv ast scope parent)
         globals (macroGlobals env (currentGlobalNames))]
-    (compiler.dofileFennel filename {:allowedGlobals globals
-                                     :env env
-                                     :useMetadata utils.root.options.useMetadata
-                                     :scope compiler.scopes.compiler})))
+    (utils.fennelModule.dofile filename {:allowedGlobals globals
+                                         :env env
+                                         :useMetadata utils.root.options.useMetadata
+                                         :scope compiler.scopes.compiler})))
 
 (local macroLoaded [])
 

@@ -1,5 +1,10 @@
 # Summary of user-visible changes
 
+## 0.5.0 / ???
+
+* The Fennel compiler is now self-hosted and written entirely in Fennel.
+* Fix a bug where top-level expressions in `include` would get skipped.
+
 ## 0.4.2 / 2020-07-11
 
 * Fix a bug where multiple `include` calls would splice locals incorrectly

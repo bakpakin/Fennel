@@ -2693,6 +2693,7 @@ local specials = (function()
             -- Compile the forms into subChunk; compiler.compile1 is necessary for all nested
             -- includes to be emitted in the same root chunk in the top-level module
             for i = 1, #forms do
+                -- NOTE: nval=0 here at the end is the only change since 0.4.2
                 local subopts = i == #forms and {nval=1, tail=true} or {nval=0}
                 utils.propagateOptions(opts, subopts)
                 compiler.compile1(forms[i], subscope, subChunk, subopts)
@@ -2810,7 +2811,7 @@ local module = {
 
     eval = eval,
     dofile = compiler.dofileFennel,
-    version = "0.5.0-dev",
+    version = "0.4.3-dev",
 }
 
 utils.fennelModule = module -- yet another circular dependency =(

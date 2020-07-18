@@ -11,9 +11,11 @@ jobs:
       - checkout
       - run:
           command: |
-            apt-get update -qq && apt-get install -qq cloc make lua-check \
+            apt-get update -qq && apt-get install -qq cloc make git \
               luajit lua5.1 lua5.2 lua5.3 lua5.4
       - run: make ci
+      # Fail the build if the above command changed the checked-in .lua files
+      - run: git diff --quiet
   windows:
     executor: windows/default
     steps:

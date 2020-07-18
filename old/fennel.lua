@@ -3280,7 +3280,7 @@ do
                             -- metamethod. (openresty)
                             allowedGlobals = false,
                             useMetadata = true,
-                            filename = "built-ins",
+                            filename = "src/fennel/macros.fnl",
                             moduleName = moduleName })
     for k,v in pairs(macros) do compiler.scopes.global.macros[k] = v end
     package.preload[moduleName] = nil

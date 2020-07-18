@@ -91,14 +91,14 @@
 (let [builtin-macros (eval-compiler
                        (with-open [f (assert (io.open "src/fennel/macros.fnl"))]
                          (.. "[===[" (f:read "*all") "]===]")))
-      module-name "__fennel-bootstrap__"
+      module-name "fennel.macros"
       _ (tset package.preload module-name #mod)
       env (specials.makeCompilerEnv nil compiler.scopes.compiler {})
       built-ins (eval builtin-macros {:env env
                                       :scope compiler.scopes.compiler
                                       :allowedGlobals false
                                       :useMetadata true
-                                      :filename "fennel.fnl"
+                                      :filename "src/fennel/macros.fnl"
                                       :moduleName module-name})]
   (each [k v (pairs built-ins)]
     (tset compiler.scopes.global.macros k v))

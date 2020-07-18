@@ -48,8 +48,7 @@
     (eval source opts ...)))
 
 ;; The public API module we export:
-(local mod {
-            :list utils.list
+(local mod {:list utils.list
             :sym utils.sym
             :varg utils.varg
             :path utils.path
@@ -81,8 +80,7 @@
             :dofile dofile*
             :version "0.5.0-dev"
 
-            :repl repl
-            })
+            :repl repl})
 
 ;; This is bad; we have a circular dependency between the specials section and
 ;; the evaluation section due to require-macros/import-macros, etc. For now

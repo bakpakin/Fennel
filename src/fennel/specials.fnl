@@ -834,16 +834,19 @@ Method name doesn't have to be known at compile-time; if it is, use
 
 (fn searchModule [modulename pathstring]
   (let [pathsepesc (escapepat pkgConfig.pathsep)
-        pathsplit (string.format "([^%s]*)%s" pathsepesc pathsepesc)
-        nodotModule (: modulename :gsub "%." pkgConfig.dirsep)]
-    (each [path (string.gmatch (.. (or pathstring utils.fennelModule.path)
-                                   pkgConfig.pathsep) pathsplit)]
+        pattern (: "([^%s]*)%s" :format pathsepesc pathsepesc)
+        nodotModule (: modulename :gsub "%." pkgConfig.dirsep)
+        fullpath (.. (or pathstring utils.fennelModule.path) pkgConfig.pathsep)]
+    (fn try-path [path]
       (let [filename (: path :gsub (escapepat pkgConfig.pathmark) nodotModule)
-            filename2 (: path :gsub (escapepat pkgConfig.pathmark) modulename)
-            file (or (io.open filename) (io.open filename2))]
-        (when file
-          (file:close)
-          (lua "return filename"))))))
+            filename2 (: path :gsub (escapepat pkgConfig.pathmark) modulename)]
+        (match (or (io.open filename) (io.open filename2))
+          file (do (file:close) filename))))
+    (fn find-in-path [start]
+      (match (fullpath:match pattern start)
+        path (or (try-path path)
+                 (find-in-path (+ start (# path) 1)))))
+    (find-in-path 1)))
 
 (fn makeSearcher [options]
   "This will allow regular `require` to work with Fennel:

@@ -726,52 +726,51 @@ which we have to do if we don't know."
       (utils.root.reset)
       (flatten chunk opts))))
 
+(fn traceback-frame [info]
+  (if (and (= info.what "C") info.name)
+      (: "  [C]: in function '%s'" :format info.name)
+      (= info.what "C")
+      "  [C]: in ?"
+      (let [remap (. fennelSourcemap info.source)]
+        (when (and remap (. remap info.currentline))
+          ;; And some global info
+          (set info.short_src remap.short_src)
+          ;; Overwrite info with values from the mapping
+          ;; (mapping is now just integer, but may
+          ;; eventually be a table)
+          (set info.currentline (. remap info.currentline)))
+        (if (= info.what "Lua")
+            (: "  %s:%d: in function %s"
+               :format info.short_src info.currentline
+               (if info.name (.. "'" info.name "'") "?"))
+            (= info.short_src "(tail call)")
+            "  (tail call)"
+            (: "  %s:%d: in main chunk"
+               :format info.short_src info.currentline)))))
+
 (fn traceback [msg start]
   "A custom traceback function for Fennel that looks similar to debug.traceback.
-Use with xpcall to produce fennel specific stacktraces."
-  (let [lines []]
-    (var level (or start 2)) ; can be used to skip some frames
-    (when msg
-      (if (or (: msg "find" "^Compile error") (: msg "find" "^Parse error"))
-          (do
-            ;; End users don't want to see compiler stack traces, but when
-            ;; you're hacking on the compiler, export FENNEL_DEBUG=trace
-            (when (not (utils.debugOn "trace"))
-              (lua "return msg"))
-            (table.insert lines msg))
-          (let [newmsg (: msg :gsub "^[^:]*:%d+:%s+" "runtime error: ")]
-            (table.insert lines newmsg))))
-    (table.insert lines "stack traceback:")
-    (while true
-      (local info (debug.getinfo level "Sln"))
-      (when (not info)
-        (lua "break"))
-      (var line nil)
-      (if (= info.what "C")
-          (if info.name
-              (set line (: "  [C]: in function '%s'" :format info.name))
-              (set line "  [C]: in ?"))
-          (do
-            (local remap (. fennelSourcemap info.source))
-            (when (and remap (. remap info.currentline))
-              ;; And some global info
-              (set info.short_src remap.short_src)
-              (local mapping (. remap info.currentline))
-              ;; Overwrite info with values from the mapping (mapping is now
-              ;; just integer, but may eventually be a table)
-              (set info.currentline mapping))
-            (if (= info.what "Lua")
-                (do
-                  (local n (or (and info.name (.. "'" info.name "'")) "?"))
-                  (set line (: "  %s:%d: in function %s"
-                               :format info.short_src info.currentline n)))
-                (= info.short_src "(tail call)")
-                (set line "  (tail call)")
-                (set line (: "  %s:%d: in main chunk"
-                             :format info.short_src info.currentline)))))
-      (table.insert lines line)
-      (set level (+ level 1)))
-    (table.concat lines "\n")))
+Use with xpcall to produce fennel specific stacktraces. Skips frames from the
+compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
+  (let [msg (or msg "")]
+    (if (and (or (: msg :find "^Compile error") (: msg :find "^Parse error"))
+             (not (utils.debugOn "trace")))
+        msg ; skip the trace because it's compiler internals.
+        (let [lines []]
+          (if (or (msg:find "^Compile error") (msg:find "^Parse error"))
+              (table.insert lines msg)
+              (let [newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
+                (table.insert lines newmsg)))
+          (table.insert lines "stack traceback:")
+          (var (done? level) (values false (or start 2)))
+          ;; This would be cleaner factored out into its own recursive
+          ;; function, but that would interfere with the traceback itself!
+          (while (not done?)
+            (match (debug.getinfo level "Sln")
+              nil (set done? true)
+              info (table.insert lines (traceback-frame info)))
+            (set level (+ level 1)))
+          (table.concat lines "\n")))))
 
 (fn entryTransform [fk fv]
   "Make a transformer for key / value table pairs, preserving all numeric keys"

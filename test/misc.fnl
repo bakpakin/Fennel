@@ -1,6 +1,11 @@
 (local l (require :test.luaunit))
-
 (local fennel (require :fennel))
+
+(fn test-traceback []
+  (let [tracer (fennel.dofile "test/mod/tracer.fnl")
+        traceback (tracer)]
+    (l.assertStrContains traceback "tracer.fnl:4:")
+    (l.assertStrContains traceback "tracer.fnl:9:")))
 
 (fn test-leak []
   (l.assertFalse (pcall fennel.eval "(->1 1 (+ 4))" {:allowedGlobals false})
@@ -70,5 +75,6 @@
  : test-global-mangling
  : test-include
  : test-leak
- : test-runtime-quote}
+ : test-runtime-quote
+ : test-traceback}
 

@@ -136,12 +136,10 @@ these new manglings instead of the current manglings."
 
 (fn gensym [scope base]
   "Generates a unique symbol in the scope."
-  (var (append mangling) 0)
-  (while true
+  (var (append mangling) (values 0 (.. (or base "") "_0_")))
+  (while (. scope.unmanglings mangling)
     (set mangling (.. (or base "") "_" append "_"))
-    (set append (+ append 1))
-    (when (not (. scope.unmanglings mangling))
-      (lua :break)))
+    (set append (+ append 1)))
   (tset scope.unmanglings mangling true)
   mangling)
 
@@ -449,9 +447,7 @@ which we have to do if we don't know."
                 (if (not exprs.returned)
                     (set exprs (handleCompileOpts exprs parent opts ast))
                     (or opts.tail opts.target)
-                    (set exprs []))
-                (set exprs.returned true)
-                (lua "return exprs"))
+                    (set exprs [])))
               (and multiSymParts multiSymParts.multiSymMethodCall)
               (let [tableWithMethod (table.concat
                                      [(unpack multiSymParts 1 (- (# multiSymParts) 1))]
@@ -691,7 +687,6 @@ which we have to do if we don't know."
     (when opts.requireAsInclude
       (set scope.specials.require requireInclude))
     (each [ok val (parser.parser strm opts.filename opts)]
-      (when (not ok) (lua "break"))
       (tset vals (+ (# vals) 1) val))
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))

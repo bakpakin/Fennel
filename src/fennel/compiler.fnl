@@ -1,5 +1,7 @@
 (local utils (require "fennel.utils"))
 (local parser (require "fennel.parser"))
+(local friend (require :fennel.friend))
+
 (local unpack (or _G.unpack table.unpack))
 
 (local scopes [])
@@ -25,27 +27,25 @@ implement nesting. "
      :hashfn (and parent parent.hashfn)
      :parent parent}))
 
-;; If you add new calls to this function, please update fennelfriend.fnl
-;; as well to add suggestions for how to fix the new error.
+;; If you add new calls to this function, please update fennel.friend
+;; as well to add suggestions for how to fix the new error!
 (fn assertCompile [condition msg ast]
   "Assert a condition and raise a compile error with line numbers.
 The ast arg should be unmodified so that its first element is the form called."
-  (match (and utils.root.options (. utils.root.options "assert-compile"))
-    override (do (when (not condition) ; don't make custom handlers deal with
-                   (utils.root.reset)) ; resetting root; it's error-prone
-                 (override condition msg ast
-                           (and utils.root.options utils.root.options.source))))
   (when (not condition)
-    (utils.root.reset)
-    (let [m (getmetatable ast)
-          filename (or (and m m.filename) ast.filename "unknown")
-          line (or (and m m.line) ast.line "?")
-          target (tostring (if (utils.isSym (. ast 1))
-                               (utils.deref (. ast 1))
-                               (or (. ast 1) "()")))]
-      ;; if we use regular `assert' we can't provide the `level' argument of 0
-      (error (string.format "Compile error in '%s' %s:%s: %s"
-                            target filename line msg) 0)))
+    (let [{: source : unfriendly} (or utils.root.options {})]
+      (utils.root.reset)
+      (if unfriendly
+          (let [m (getmetatable ast)
+                filename (or (and m m.filename) ast.filename "unknown")
+                line (or (and m m.line) ast.line "?")
+                target (tostring (if (utils.isSym (. ast 1))
+                                     (utils.deref (. ast 1))
+                                     (or (. ast 1) "()")))]
+            ;; if we use regular `assert' we can't set level to 0
+            (error (string.format "Compile error in '%s' %s:%s: %s"
+                                  target filename line msg) 0))
+          (friend.assert-compile condition msg ast source))))
   condition)
 
 (set scopes.global (makeScope))
@@ -362,6 +362,7 @@ if opts contains the nval option."
       ;; result anyways.
       []
       exprs))
+
 (fn macroexpand* [ast scope once]
   "Expand macros in the ast. Only do one level if once is true."
   (if (not (utils.isList ast)) ; bail early if not a list
@@ -686,10 +687,10 @@ which we have to do if we don't know."
       (set opts.indent "  "))
     (when opts.requireAsInclude
       (set scope.specials.require requireInclude))
-    (each [ok val (parser.parser strm opts.filename opts)]
-      (tset vals (+ (# vals) 1) val))
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))
+    (each [ok val (parser.parser strm opts.filename opts)]
+      (tset vals (+ (# vals) 1) val))
     (for [i 1 (# vals) 1]
       (let [exprs (compile1 (. vals i) scope chunk
                             {:nval (or (and (< i (# vals)) 0) nil)
@@ -700,12 +701,7 @@ which we have to do if we don't know."
     (flatten chunk opts)))
 
 (fn compileString [str opts]
-  (let [opts (or opts [])
-        oldSource opts.source]
-    (set opts.source str) ; used by fennelfriend
-    (let [ast (compileStream (parser.stringStream str) opts)]
-      (set opts.source oldSource)
-      ast)))
+  (compileStream (parser.stringStream str) (or opts {})))
 
 (fn compile [ast opts]
   (let [opts (utils.copy opts)

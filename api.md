@@ -22,6 +22,7 @@ usually accept these fields:
   literal or resolvable at compile time, falls back to `require` at runtime. Can be used to
   embed both fennel and Lua modules.
 * `env`: an environment table in which to run the code; see the Lua manual.
+* `unfriendly`: disable friendly compiler/parser error messages.
 
 ## Start a configurable repl
 

@@ -1,4 +1,5 @@
-(local utils (require "fennel.utils"))
+(local utils (require :fennel.utils))
+(local friend (require :fennel.friend))
 (local unpack (or _G.unpack table.unpack))
 
 (fn granulate [getchunk]
@@ -84,16 +85,16 @@ stream is finished."
       (set line (+ line 1)))
     r)
 
-  ;; If you add new calls to this function, please update fennel friend as well
+  ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!
   (fn parseError [msg]
-    (local source (and utils.root.options utils.root.options.source))
-    (utils.root.reset)
-    (local override (and options (. options "parse-error")))
-    (when override
-      (override msg (or filename "unknown") (or line "?") byteindex source))
-    (error (: "Parse error in %s:%s: %s" "format" (or filename "unknown")
-              (or line "?") msg) 0))
+    (let [{: source : unfriendly} (or utils.root.options {})]
+      (utils.root.reset)
+      (if unfriendly
+          (error (: "Parse error in %s:%s: %s" "format" (or filename "unknown")
+                    (or line "?") msg) 0)
+          (friend.parse-error msg (or filename "unknown") (or line "?")
+                              byteindex source))))
 
   (fn parseStream []
     (var (whitespaceSinceDispatch done retval) true)

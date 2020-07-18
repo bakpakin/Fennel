@@ -1,12 +1,10 @@
 -- Ensure we're getting the Fennel we expect, not luarocks or anything
 package.loaded.fennel = dofile("fennel.lua")
-table.insert(package.loaders or package.searchers,
-             package.loaded.fennel.searcher)
+table.insert(package.loaders or package.searchers, package.loaded.fennel.searcher)
 package.loaded.fennelview = package.loaded.fennel.dofile("fennelview.fnl")
-package.loaded.fennelfriend = package.loaded.fennel.dofile("fennelfriend.fnl")
+package.loaded.fennelfriend = package.loaded.fennel.dofile("src/fennel/friend.fnl")
 
-local lu = require('test.luaunit')
-local runner = lu.LuaUnit:new()
+local runner = require("test.luaunit").LuaUnit:new()
 runner:setOutputType(os.getenv('FNL_TEST_OUTPUT') or 'tap')
 
 -- We have to load the tests with the old version of Fennel; otherwise

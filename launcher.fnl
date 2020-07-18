@@ -119,10 +119,6 @@ Run fennel, a lisp programming language for the Lua runtime.
     (readline.set_complete_function repl-completer)
     readline))
 
-;; TODO: generalize this as a plugin instead of hard-coding it
-(each [k v (pairs (require :fennelfriend))]
-  (tset options k v))
-
 (fn load-initfile []
   (let [home (or (os.getenv "HOME") "/")
         xdg-config-home (or (os.getenv "XDG_CONFIG_HOME") (.. home "/.config"))

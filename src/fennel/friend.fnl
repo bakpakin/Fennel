@@ -3,7 +3,7 @@
 
 (fn ast-source [ast]
   (let [m (getmetatable ast)]
-    (if (and m m.filename m.line m) m ast)))
+    (if (and m m.line m) m ast)))
 
 (local suggestions
        {"unexpected multi symbol (.*)"

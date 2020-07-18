@@ -125,8 +125,7 @@ local mylib = require("mylib") -- will compile and load code in mylib.fnl
 
 **Note**: Optionally, if you want the Fennel REPL to print tables
 in a more readable format, you can add `fennelview.fnl` to
-your code repository. For more helpful compiler errors, you can add
-`fennelfriend.fnl` to your code repository.
+your code repository.
 
 ## Performing ahead-of-time compilation
 

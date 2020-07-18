@@ -77,7 +77,8 @@
 (fn test-failures []
   (each [code expected-msg (pairs failures)]
     (let [(ok? msg) (pcall fennel.compileString code
-                           {:allowedGlobals ["pairs" "next" "ipairs"]})]
+                           {:allowedGlobals ["pairs" "next" "ipairs"]
+                            :unfriendly true})]
       (l.assertFalse ok? (.. "Expected compiling " code " to fail."))
       (l.assertStrContains msg expected-msg))))
 
@@ -85,15 +86,16 @@
 ;; output is so subjective. to see a full catalog of suggestions, run the script
 ;; test/bad/friendly.sh and review that output.
 (fn test-suggestions []
-  (let [friend (require :fennelfriend)
-        (_ msg) (pcall fennel.dofile "test/bad/set-local.fnl"
-                       {:assert-compile friend.assert-compile})]
+  (let [(_ msg) (pcall fennel.dofile "test/bad/set-local.fnl")
+        (_ parse-msg) (pcall fennel.dofile "test/bad/odd-table.fnl")]
     ;; show the raw error message
     (l.assertStrContains msg "expected var x")
     ;; offer suggestions
     (l.assertStrContains msg "Try declaring x using var")
     ;; show the code and point out the identifier at fault
     (l.assertStrContains msg "(set x 3)")
-    (l.assertStrContains msg "\n     ^")))
+    (l.assertStrContains msg "\n     ^")
+    ;; parse error
+    (l.assertStrContains parse-msg "{:a 1 :b 2 :c}")))
 
 {: test-failures : test-suggestions}

@@ -898,72 +898,69 @@ table.insert(package.loaders, fennel.searcher)"
 Macro module should return a table of macro functions with string keys.
 Consider using import-macros instead as it is more flexible.")
 
+(fn emit-fennel [src path opts sub-chunk]
+  "Emit Fennel code in src into sub-chunk."
+  (let [subscope (compiler.makeScope utils.root.scope.parent)
+        forms []]
+    (when utils.root.options.requireAsInclude
+      (set subscope.specials.require compiler.requireInclude))
+    ;; parse Fennel src into table of exprs to know which expr is the tail
+    (each [_ val (parser.parser (parser.stringStream src) path)]
+      (table.insert forms val))
+    ;; Compile the forms into sub-chunk; compiler.compile1 is necessary
+    ;; for all nested includes to be emitted in the same root chunk
+    ;; in the top-level module.
+    (for [i 1 (# forms)]
+      (let [subopts (if (= i (# forms)) {:nval 1 :tail true} {:nval 0})]
+        (utils.propagateOptions opts subopts)
+        (compiler.compile1 (. forms i) subscope sub-chunk subopts)))))
+
+(fn include-path [ast opts path mod fennel?]
+  "Helper function for include once we have determined the path to use."
+  (let [src (with-open [f (assert (io.open path))]
+            (: (f:read "*all") :gsub "[\r\n]*$" ""))
+        ;; splice in source and memoize it in compiler AND package.preload
+        ;; so we can include it again without duplication, even in runtime
+        ret (utils.expr (.. "require(\"" mod "\")") "statement")
+        target (: "package.preload[%q]" :format mod)
+        preload-str (.. target " = " target " or function(...)")
+        (temp-chunk sub-chunk) (values [] [])]
+    (compiler.emit temp-chunk preload-str ast)
+    (compiler.emit temp-chunk sub-chunk)
+    (compiler.emit temp-chunk "end" ast)
+    ;; Splice temp-chunk to begining of root chunk
+    (each [i v (ipairs temp-chunk)]
+      (table.insert utils.root.chunk i v))
+
+    ;; For fennel source, compile sub-chunk AFTER splicing into start of
+    ;; root chunk.
+    (if fennel?
+        (emit-fennel src path opts sub-chunk)
+        ;; For Lua source, simply emit src into the loaders's body
+        (compiler.emit sub-chunk src ast))
+
+    ;; Put in cache and return
+    (tset utils.root.scope.includes mod ret)
+    ret))
+
 (fn SPECIALS.include [ast scope parent opts]
   (compiler.assert (= (# ast) 2) "expected one argument" ast)
   (let [modexpr (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1)]
-    (when (or (not= modexpr.type "literal") (not= (: (. modexpr 1) "byte") 34))
-      (if opts.fallback
-          (lua "return opts.fallback(modexpr)")
-          (compiler.assert false
-                           "module name must resolve to string literal" ast)))
-    (let [mod ((loadCode (.. "return " (. modexpr 1))))]
-      (when (. utils.root.scope.includes mod) ; check cache
-        (lua "return utils.root.scope.includes[mod]"))
-
-      ;; find path to source
-      (var path (searchModule mod))
-      (var isFennel true)
-      (when (not path)
-        (set isFennel false)
-        (set path (searchModule mod package.path))
-        (when (not path)
-          (if opts.fallback
-              (lua "return opts.fallback(modexpr)")
-              (compiler.assert false (.. "module not found " mod) ast))))
-
-      ;; read source
-      (let [f (io.open path)
-            s (: (: f "read" "*all") :gsub "[\r\n]*$" "")
-            _ (: f "close")
-
-            ;; splice in source and memoize it in compiler AND package.preload
-            ;; so we can include it again without duplication, even in runtime
-            ret (utils.expr (.. "require(\"" mod "\")") "statement")
-            target (: "package.preload[%q]" :format mod)
-            preloadStr (.. target " = " target " or function(...)")
-            (tempChunk subChunk) (values [] [])]
-        (compiler.emit tempChunk preloadStr ast)
-        (compiler.emit tempChunk subChunk)
-        (compiler.emit tempChunk "end" ast)
-        ;; Splice tempChunk to begining of root chunk
-        (each [i v (ipairs tempChunk)]
-          (table.insert utils.root.chunk i v))
-
-        ;; For fennel source, compile subChunk AFTER splicing into start of
-        ;; root chunk.
-        (if isFennel
-            (let [subscope (compiler.makeScope utils.root.scope.parent)
-                  forms []]
-              (when utils.root.options.requireAsInclude
-                (set subscope.specials.require compiler.requireInclude))
-              ;; parse Fennel src into table of exprs to know which expr is
-              ;; the tail
-              (each [_ val (parser.parser (parser.stringStream s) path)]
-                (table.insert forms val))
-              ;; Compile the forms into subChunk; compiler.compile1 is
-              ;; necessary for all nested includes to be emitted in
-              ;; the same root chunk in the top-level module
-              (for [i 1 (# forms)]
-                (let [subopts (or (and (= i (# forms)) {:nval 1
-                                                        :tail true}) {:nval 0})]
-                  (utils.propagateOptions opts subopts)
-                  (compiler.compile1 (. forms i) subscope subChunk subopts))))
-            ;; For Lua source, simply emit src into the loaders's body
-            (compiler.emit subChunk s ast))
-
-        ;; Put in cache and return
-        (tset utils.root.scope.includes mod ret)
-        ret))))
+    (if (or (not= modexpr.type "literal") (not= (: (. modexpr 1) :byte) 34))
+        (if opts.fallback
+            (opts.fallback modexpr)
+            (compiler.assert false "module name must be string literal" ast))
+        (let [mod ((loadCode (.. "return " (. modexpr 1))))]
+          (or (. utils.root.scope.includes mod) ; check cache
+              ;; Find path to Fennel or Lua source
+              (match (searchModule mod) ; try fennel path first
+                fennel-path (include-path ast opts fennel-path mod true)
+                ;; then search for a lua module
+                _ (let [lua-path (searchModule mod package.path)]
+                    (if lua-path (include-path ast opts lua-path mod false)
+                        opts.fallback (opts.fallback modexpr)
+                        (compiler.assert false (.. "module not found " mod)
+                                         ast)))))))))
 
 (docSpecial
  "include" ["module-name-literal"]

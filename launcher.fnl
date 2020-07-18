@@ -171,13 +171,13 @@ Run fennel, a lisp programming language for the Lua runtime.
                                     (os.exit 1)))
                             (f:close)))
   ["--compile-binary" filename out
-   static-lua lua-include-dir & args] (let [bin (require :fennelbinary)]
+   static-lua lua-include-dir & args] (let [bin (require :fennel.binary)]
                                         (set options.filename filename)
                                         (set options.requireAsInclude true)
                                         (bin.compile filename out
                                                      static-lua lua-include-dir
                                                      options args))
-  ["--compile-binary"] (print (. (require :fennelbinary) :help))
+  ["--compile-binary"] (print (. (require :fennel.binary) :help))
 
   ["--eval" form] (eval form)
   ["-e" form] (eval form)

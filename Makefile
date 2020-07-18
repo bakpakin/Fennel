@@ -5,7 +5,7 @@ BINDIR ?= $(PREFIX)/bin
 LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 
 SRC=src/fennel.fnl $(wildcard src/fennel/*.fnl)
-EXTRA_SRC=fennelview.fnl fennelfriend.fnl fennelbinary.fnl launcher.fnl
+EXTRA_SRC=fennelview.fnl fennelfriend.fnl launcher.fnl
 
 build: fennel
 
@@ -32,7 +32,7 @@ fennelview.lua: fennelview.fnl fennel.lua ; $(LAUNCHER) --compile $< > $@
 fennelfriend.lua: fennelfriend.fnl fennel.lua ; $(LAUNCHER) --compile $< > $@
 
 # All-in-one pure-lua script:
-fennel: launcher.fnl $(SRC) fennelview.lua fennelfriend.lua fennelbinary.fnl
+fennel: launcher.fnl $(SRC) fennelview.lua fennelfriend.lua
 	echo "#!/usr/bin/env $(LUA)" > $@
 	$(LAUNCHER) --no-metadata --require-as-include --compile $< >> $@
 	chmod 755 $@

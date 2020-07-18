@@ -324,7 +324,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
 
 (docSpecial "var" ["name" "val"] "Introduce new mutable local.")
 
-;; TODO: replace this with a macro emitting do+local
+
 (fn SPECIALS.let [ast scope parent opts]
   (let [bindings (. ast 2)
         preSyms []]

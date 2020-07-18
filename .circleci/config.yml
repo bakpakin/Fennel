@@ -19,11 +19,14 @@ jobs:
     steps:
       - checkout
       - run: choco install lua53
-      - run: lua53 test/init.lua
+      - run: choco install make
+      - run: make test LUA=lua53
 
 workflows:
   version: 2
   all:
     jobs:
       - build
-      - windows
+# Something wrong with make on Windows currently:
+# https://app.circleci.com/pipelines/github/bakpakin/Fennel/320/workflows/75550128-9cdc-4afe-b2c4-9aa66d379eba/jobs/1032/steps
+#      - windows

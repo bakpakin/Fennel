@@ -4,9 +4,12 @@ PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 
+SRC=src/fennel.fnl $(wildcard src/fennel/*.fnl)
+EXTRA_SRC=fennelview.fnl fennelfriend.fnl fennelbinary.fnl launcher.fnl
+
 build: fennel
 
-test: fennel
+test: fennel.lua fennel
 	$(LUA) test/init.lua
 
 testall: export FNL_TEST_OUTPUT ?= text
@@ -17,27 +20,25 @@ testall: fennel
 	@printf "\nTesting lua 5.4:\n"; lua5.4 test/init.lua
 	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
-luacheck:
-	luacheck fennel.lua test/init.lua test/mangling.lua \
-		test/misc.lua test/quoting.lua
-
 count:
-	cloc fennel.lua
-	cloc --force-lang=lisp fennelview.fnl fennelfriend.fnl fennelbinary.fnl \
-		launcher.fnl
+	cloc --force-lang=lisp $(SRC) # core compiler
+	cloc --force-lang=lisp $(EXTRA_SRC) # libraries and launcher
 
-# For the time being, avoid chicken/egg situation thru the old Lua launcher.
-LAUNCHER=$(LUA) old_launcher.lua
+# Avoid chicken/egg situation using the old Lua launcher.
+LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl --globals "_G,_ENV"
 
 # Precompile fennel libraries
-%.lua: %.fnl fennel.lua
-	 $(LAUNCHER) --globals "" --compile $< > $@
+fennelview.lua: fennelview.fnl fennel.lua ; $(LAUNCHER) --compile $< > $@
+fennelfriend.lua: fennelfriend.fnl fennel.lua ; $(LAUNCHER) --compile $< > $@
 
 # All-in-one pure-lua script:
-fennel: launcher.fnl fennel.lua fennelview.lua fennelfriend.lua fennelbinary.fnl
+fennel: launcher.fnl $(SRC) fennelview.lua fennelfriend.lua fennelbinary.fnl
 	echo "#!/usr/bin/env $(LUA)" > $@
-	$(LAUNCHER) --globals "" --require-as-include --metadata --compile $< >> $@
+	$(LAUNCHER) --no-metadata --require-as-include --compile $< >> $@
 	chmod 755 $@
+
+fennel.lua: $(SRC)
+	$(LAUNCHER) --no-metadata --require-as-include --compile $< > $@
 
 # Change these up to swap out the version of Lua or for other operating systems.
 STATIC_LUA_LIB ?= /usr/lib/x86_64-linux-gnu/liblua5.3.a
@@ -59,10 +60,10 @@ lua-5.3.5/src/liblua-mingw.a: lua-5.3.5
 	make -C lua-5.3.5 mingw CC=i686-w64-mingw32-gcc
 	mv lua-5.3.5/src/liblua.a $@
 
-ci: luacheck testall count
+ci: testall count
 
 clean:
-	rm -f fennel fennel-bin *_binary.c fennel-bin.exe built-ins luacov.*
+	rm -f fennel.lua fennel fennel-bin *_binary.c fennel-bin.exe built-ins luacov.*
 	make -C lua-5.3.5 clean || true # this dir might not exist
 
 coverage: fennel
@@ -94,4 +95,4 @@ release: fennel fennel-bin fennel-bin.exe
 	echo make fennel-bin STATIC_LUA_LIB=/usr/lib/arm-linux-gnueabihf/liblua5.3.a
 	rsync -r downloads/* fennel-lang.org:fennel-lang.org/downloads/
 
-.PHONY: build test testall luacheck count ci clean coverage install release
+.PHONY: build test testall count ci clean coverage install release

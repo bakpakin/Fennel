@@ -8,3 +8,5 @@ fennelfriend.lua linguist-generated
 
 # External/vendored deps checked into the repo
 test/luaunit.lua linguist-vendored
+old/launcher.lua linguist-vendored
+old/fennel.lua linguist-vendored

@@ -194,7 +194,7 @@ if they have already been declared via declareLocal"
       ;; then we need to check for allowed globals
       (assertCompile (or (not isReference) isLocal (globalAllowed (. parts 1)))
                      (.. "unknown global in strict mode: " (. parts 1)) symbol)
-      (when (not isLocal)
+      (when (and allowedGlobals (not isLocal))
         (tset utils.root.scope.refedglobals (. parts 1) true))
       (utils.expr (combineParts parts scope) etype))))
 

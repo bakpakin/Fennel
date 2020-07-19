@@ -4,8 +4,7 @@ PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 
-SRC=src/fennel.fnl $(wildcard src/fennel/*.fnl)
-EXTRA_SRC=fennelview.fnl launcher.fnl
+SRC=src/fennel.fnl fennelview.fnl $(wildcard src/fennel/*.fnl)
 
 build: fennel
 
@@ -20,9 +19,8 @@ testall: fennel
 	@printf "\nTesting lua 5.4:\n"; lua5.4 test/init.lua
 	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
-count:
-	cloc --force-lang=lisp $(SRC) # core compiler
-	cloc --force-lang=lisp $(EXTRA_SRC) # libraries and launcher
+count: ; cloc --force-lang=lisp $(SRC) # core compiler
+
 
 # Avoid chicken/egg situation using the old Lua launcher.
 LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl --globals "_G,_ENV"
@@ -31,7 +29,7 @@ LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl --globals "_G,_ENV"
 fennelview.lua: fennelview.fnl fennel.lua ; $(LAUNCHER) --compile $< > $@
 
 # All-in-one pure-lua script:
-fennel: launcher.fnl $(SRC) fennelview.lua
+fennel: src/launcher.fnl $(SRC) fennelview.lua
 	echo "#!/usr/bin/env $(LUA)" > $@
 	$(LAUNCHER) --no-metadata --require-as-include --compile $< >> $@
 	chmod 755 $@
@@ -43,11 +41,11 @@ fennel.lua: $(SRC)
 STATIC_LUA_LIB ?= /usr/lib/x86_64-linux-gnu/liblua5.3.a
 LUA_INCLUDE_DIR ?= /usr/include/lua5.3
 
-fennel-bin: launcher.fnl fennel
+fennel-bin: src/launcher.fnl fennel
 	./fennel --compile-binary $< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 # Cross-compile to Windows; very experimental:
-fennel-bin.exe: launcher.fnl fennel lua-5.3.5/src/liblua-mingw.a
+fennel-bin.exe: src/launcher.fnl fennel lua-5.3.5/src/liblua-mingw.a
 	CC=i686-w64-mingw32-gcc fennel --compile-binary $< fennel-bin \
 		lua-5.3.5/src/liblua-mingw.a $(LUA_INCLUDE_DIR)
 

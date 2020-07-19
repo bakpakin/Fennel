@@ -17,7 +17,8 @@ This document consists of the following sections:
 
 # Downloading Fennel
 
-Downloading Fennel on your computer allows you to run Fennel scripts.
+Downloading Fennel on your computer allows you to run Fennel code and
+compile to Lua:
 
 See the options below for downloading Fennel:
 
@@ -33,11 +34,11 @@ won't need to download Fennel if you already have TIC-80 installed.
 Downloading the `fennel` script allows you to place the script in
 convenient locations for running Fennel code.
 
-This method assumes you have Lua 5.1, 5.2, 5.3, or LuaJIT installed on your
-system.
+This method assumes you have Lua 5.1, 5.2, 5.3, 5.4, or LuaJIT
+installed on your system.
 
-This method requires you to manually update the `fennel` script, as
-the script itself is associated with a version of Fennel.
+This method requires you to manually update the `fennel` script when
+you want to use a newer version that has come out.
 
 ### To download the fennel script
 
@@ -48,13 +49,14 @@ the script itself is associated with a version of Fennel.
    script is from the Fennel creators (optional but recommended)
 5. Move `fennel-0.4.2` to a directory on your `$PATH`, such as `/usr/local/bin`
 
-**Note**: You can rename the script to `fennel` for convenience. This
-  also makes it easy to keep many versions of Fennel installed at once.
+**Note**: You can rename the script to `fennel` for convenience. Or
+  you can leave the version in the name, which makes it easy to keep
+  many versions of Fennel installed at once.
 
 ## Downloading a Fennel binary
 
 Downloading a Fennel binary allows you to run Fennel on your computer without
-having to download Lua.
+having to download Lua, if you are on a supported platform.
 
 ### To download a Fennel binary
 
@@ -89,9 +91,11 @@ for more information.
 
 # Embedding Fennel
 
-Fennel code can be embedded inside of Lua applications by including the
-Fennel compiler inside of a Lua application, or by performing
-ahead-of-time compilation.
+Fennel code can be embedded inside of applications that support Lua
+either by including the Fennel compiler inside of the application,
+or by performing ahead-of-time compilation. Embedding Fennel in a
+program that doesn't already support Lua is possible but outside the
+scope of this document.
 
 This section consists of the following subsections:
 

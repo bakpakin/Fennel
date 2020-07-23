@@ -25,6 +25,7 @@ See the options below for downloading Fennel:
 * [Downloading the fennel script](#downloading-the-fennel-script)
 * [Downloading a Fennel binary](#downloading-a-fennel-binary)
 * [Downloading Fennel using LuaRocks](#downloading-fennel-using-luarocks)
+* [Downloading Fennel using Homebrew](#downloading-fennel-using-homebrew)
 
 **Tip**: Fennel comes included in [TIC-80](https://tic.computer), so you
 won't need to download Fennel if you already have TIC-80 installed.
@@ -88,6 +89,19 @@ you have a `$PATH` which contains the LuaRocks `bin/` directory. You can add
 `eval $(luarocks path --bin)` to your shell's init file to do this. See the
 [LuaRocks path docs](https://github.com/luarocks/luarocks/wiki/path)
 for more information.
+
+## Downloading Fennel using Homebrew
+
+> [Homebrew](https://brew.sh/) aims to be the missing package manager
+> for macOS (and Linux). Its primary goal is to be useful to as many
+> people as possible, while remaining maintainable to a professional,
+> high standard by a small group of volunteers.
+
+### To download Fennel using Homebrew
+
+1. Ensure the `brew` package is installed on your system
+2. Run `brew install fennel` to install `fennel`
+3. Run `fennel --help` to confirm the installation succeeded
 
 # Embedding Fennel
 

@@ -269,35 +269,35 @@ camelCase targets
 - zeroArity
 
 /src/fennel/utils.fnl
-- :allowedGlobals
-- :useMetadata
-- EXPR_MT
-- LIST_MT
-- SEQUENCE_MARKER
-- SEQUENCE_MT
-- SYMBOL_MT
-- allpairsNext
-- customIterator
-- debugOn
-- isExpr
-- isList
-- isMultiSym
-- isQuoted
-- isSequence
-- isSym
-- isTable
-- isValidLuaIdentifier
-- isVarg
-- lastChar
-- listToString
-- luaKeywords
-- nextState
-- nilSym
-- parts.multiSymMethodCall
-- propagateOptions
-- propagatedOptions
-- root.setReset
-- walkTree
+- :allowedGlobals [CHECK]
+- :useMetadata [CHECK]
+- EXPR_MT [CHECK]
+- LIST_MT [CHECK]
+- SEQUENCE_MARKER [CHECK]
+- SEQUENCE_MT [CHECK]
+- SYMBOL_MT [CHECK]
+- allpairsNext [CHECK]
+- customIterator [CHECK]
+- debugOn [CHECK]
+- isExpr [CHECK]
+- isList [CHECK]
+- isMultiSym [CHECK]
+- isQuoted [CHECK]
+- isSequence [CHECK]
+- isSym [CHECK]
+- isTable [CHECK]
+- isValidLuaIdentifier [CHECK]
+- isVarg [CHECK]
+- lastChar [CHECK]
+- listToString [CHECK]
+- luaKeywords [CHECK]
+- nextState [CHECK]
+- nilSym [CHECK]
+- parts.multiSymMethodCall [CHECK]
+- propagateOptions [CHECK]
+- propagatedOptions [CHECK]
+- root.setReset [CHECK]
+- walkTree [CHECK]
 
 
 ******************************************************************************

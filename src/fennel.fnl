@@ -28,12 +28,12 @@
   ;; sets up _G in such a way that all the globals are available thru
   ;; the __index meta method, but as far as pairs is concerned it's empty.
   (let [opts (utils.copy options)
-        _ (when (and (= opts.allowedGlobals nil)
+        _ (when (and (= opts.allowed-globals nil)
                      (not (getmetatable opts.env)))
-            (set opts.allowedGlobals (specials.currentGlobalNames opts.env)))
-        env (and opts.env (specials.wrapEnv opts.env))
-        lua-source (compiler.compileString str opts)
-        loader (specials.loadCode lua-source env
+            (set opts.allowed-globals (specials.current-global-names opts.env)))
+        env (and opts.env (specials.wrap-env opts.env))
+        lua-source (compiler.compile-string str opts)
+        loader (specials.load-code lua-source env
                                   (if opts.filename
                                       (.. "@" opts.filename) str))]
     (set opts.filename nil)
@@ -55,25 +55,25 @@
 
             :parser parser.parser
             :granulate parser.grandulate
-            :stringStream parser.stringStream
+            :string-stream parser.string-stream
 
             :compile compiler.compile
-            :compileString compiler.compileString
-            :compileStream compiler.compileStream
+            :compile-string compiler.compile-string
+            :compile-stream compiler.compile-stream
             :compile1 compiler.compile1
             :traceback compiler.traceback
-            :mangle compiler.globalMangling
-            :unmangle compiler.globalUnmangling
+            :mangle compiler.global-mangling
+            :unmangle compiler.global-unmangling
             :metadata compiler.metadata
-            :scope compiler.makeScope
+            :scope compiler.make-scope
             :gensym compiler.gensym
 
-            :loadCode specials.loadCode
-            :macroLoaded specials.macroLoaded
-            :searchModule specials.searchModule
-            :makeSearcher specials.makeSearcher
-            :make_searcher specials.makeSearcher ; backwards-compatibility alias
-            :searcher (specials.makeSearcher)
+            :load-code specials.load-code
+            :macro-loaded specials.macro-loaded
+            :search-module specials.search-module
+            :make-searcher specials.make-searcher
+            :make_searcher specials.make-searcher ; backwards-compatibility alias
+            :searcher (specials.make-searcher)
             :doc specials.doc
 
             :eval eval
@@ -85,7 +85,7 @@
 ;; This is bad; we have a circular dependency between the specials section and
 ;; the evaluation section due to require-macros/import-macros, etc. For now
 ;; stash it in the utils table, but we should untangle it
-(set utils.fennelModule mod)
+(set utils.fennel-module mod)
 
 ;; Load the built-in macros from macros.fnl.
 (let [builtin-macros (eval-compiler
@@ -93,13 +93,13 @@
                          (.. "[===[" (f:read "*all") "]===]")))
       module-name "fennel.macros"
       _ (tset package.preload module-name #mod)
-      env (specials.makeCompilerEnv nil compiler.scopes.compiler {})
+      env (specials.make-compiler-env nil compiler.scopes.compiler {})
       built-ins (eval builtin-macros {:env env
                                       :scope compiler.scopes.compiler
-                                      :allowedGlobals false
-                                      :useMetadata true
+                                      :allowed-globals false
+                                      :use-metadata true
                                       :filename "src/fennel/macros.fnl"
-                                      :moduleName module-name})]
+                                      :module-name module-name})]
   (each [k v (pairs built-ins)]
     (tset compiler.scopes.global.macros k v))
   (set compiler.scopes.global.macros.λ compiler.scopes.global.macros.lambda)

@@ -29,34 +29,31 @@ camelCase targets
 -----------------
 
 /src/fennel.fnl
-- :allowedGlobals
-- :compileStream
-- :compileString
-- :loadCode
-- :macroLoaded
-- :makeSearcher
-- :make_searcher
-- :moduleName
-- :searchModule
-- :stringStream
-- :useMetadata
-- compiler.compileStream
-- compiler.compileString
-- compiler.compileString
-- compiler.globalMangling
-- compiler.globalUnmangling
-- compiler.makeScope
-- opts.allowedGlobals
-- parser.stringStream
-- specials.currentGlobalNames
-- specials.loadCode
-- specials.loadCode
-- specials.macroLoaded
-- specials.makeCompilerEnv
-- specials.makeSearcher
-- specials.searchModule
-- specials.wrapEnv
-- utils.fennelModule
+- :allowedGlobals [CHECK]
+- :compileStream [CHECK]
+- :compileString [CHECK]
+- :loadCode [CHECK]
+- :macroLoaded [CHECK]
+- :makeSearcher [CHECK]
+- :moduleName [CHECK]
+- :searchModule [CHECK]
+- :stringStream [CHECK]
+- :useMetadata [CHECK]
+- compiler.compileStream [CHECK]
+- compiler.compileString [CHECK]
+- compiler.globalMangling [CHECK]
+- compiler.globalUnmangling [CHECK]
+- compiler.makeScope [CHECK]
+- opts.allowedGlobals [CHECK]
+- parser.stringStream [CHECK]
+- specials.currentGlobalNames [CHECK]
+- specials.loadCode [CHECK]
+- specials.macroLoaded [CHECK]
+- specials.makeCompilerEnv [CHECK]
+- specials.makeSearcher [CHECK]
+- specials.searchModule [CHECK]
+- specials.wrapEnv [CHECK]
+- utils.fennelModule [CHECK]
 
 /src/launcher.fnl
 - fennel.compileString

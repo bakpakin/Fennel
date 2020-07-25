@@ -144,16 +144,16 @@ camelCase targets
 - fennel.compileString [CHECK]
 
 /src/fennel/parser.fnl
-- :stackSize
-- forceNumber
-- loadFn
-- numberWithStrippedUnderscores
-- parseError
-- parseStream
-- parserState
-- stringStream
-- utils.isSym
-- whitespaceSinceDispatch
+- :stackSize [CHECK]
+- forceNumber [CHECK]
+- loadFn [CHECK]
+- numberWithStrippedUnderscores [CHECK]
+- parseError [CHECK]
+- parseStream [CHECK]
+- parserState [CHECK]
+- stringStream [CHECK]
+- utils.isSym [CHECK]
+- whitespaceSinceDispatch [CHECK]
 
 /src/fennel/repl.fnl
 - :moduleName

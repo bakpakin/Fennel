@@ -8,14 +8,14 @@ Also returns a second function to clear the buffer in the byte stream"
   (var c "")
   (var index 1)
   (var done false)
-  (values (fn [parserState]
+  (values (fn [parser-state]
             (when (not done)
               (if (<= index (# c))
                   (let [b (: c "byte" index)]
                     (set index (+ index 1))
                     b)
                   (do
-                    (set c (getchunk parserState))
+                    (set c (getchunk parser-state))
                     (when (or (not c) (= c ""))
                       (set done true)
                       (lua "return nil"))
@@ -23,7 +23,7 @@ Also returns a second function to clear the buffer in the byte stream"
                     (: c "byte" 1)))))
           (fn [] (set c ""))))
 
-(fn stringStream [str]
+(fn string-stream [str]
   "Convert a string into a stream of bytes."
   (let [str (: str "gsub" "^#![^\n]*\n" "")] ; remove shebang
     (var index 1)
@@ -79,7 +79,7 @@ stream is finished."
     (var r nil)
     (if lastb
         (set (r lastb) (values lastb nil))
-        (set r (getbyte {:stackSize (# stack)})))
+        (set r (getbyte {:stack-size (# stack)})))
     (set byteindex (+ byteindex 1))
     (when (= r 10)
       (set line (+ line 1)))
@@ -87,7 +87,7 @@ stream is finished."
 
   ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!
-  (fn parseError [msg]
+  (fn parse-error [msg]
     (let [{: source : unfriendly} (or utils.root.options {})]
       (utils.root.reset)
       (if unfriendly
@@ -96,28 +96,28 @@ stream is finished."
           (friend.parse-error msg (or filename "unknown") (or line "?")
                               byteindex source))))
 
-  (fn parseStream []
-    (var (whitespaceSinceDispatch done retval) true)
+  (fn parse-stream []
+    (var (whitespace-since-dispatch done retval) true)
     (fn dispatch [v]
       "Dispatch when we complete a value"
       (if (= (# stack) 0)
           (do
             (set retval v)
             (set done true)
-            (set whitespaceSinceDispatch false))
+            (set whitespace-since-dispatch false))
           (. (. stack (# stack)) "prefix")
           (do
             (local stacktop (. stack (# stack)))
             (tset stack (# stack) nil)
             (dispatch (utils.list (utils.sym stacktop.prefix) v)))
           (do
-            (set whitespaceSinceDispatch false)
+            (set whitespace-since-dispatch false)
             (table.insert (. stack (# stack)) v))))
 
     (fn badend []
       "Throw nice error when we expect more characters but reach end of stream."
       (let [accum (utils.map stack "closer")]
-        (parseError (: "expected closing delimiter%s %s" :format
+        (parse-error (: "expected closing delimiter%s %s" :format
                        (or (and (= (# stack) 1) "") "s")
                        (string.char (unpack accum))))))
     (while true ; main parse loop
@@ -125,7 +125,7 @@ stream is finished."
       (while true ; skip whitespace
         (set b (getb))
         (when (and b (iswhitespace b))
-          (set whitespaceSinceDispatch true))
+          (set whitespace-since-dispatch true))
         (when (or (not b) (not (iswhitespace b)))
           (lua "break")))
 
@@ -141,8 +141,8 @@ stream is finished."
               (lua "break")))
           (= (type (. delims b)) :number) ; opening delimiter
           (do
-            (when (not whitespaceSinceDispatch)
-              (parseError (.. "expected whitespace before opening delimiter "
+            (when (not whitespace-since-dispatch)
+              (parse-error (.. "expected whitespace before opening delimiter "
                               (string.char b))))
             (table.insert stack (setmetatable {:bytestart byteindex
                                                :closer (. delims b)
@@ -152,11 +152,11 @@ stream is finished."
           (. delims b) ; closing delimiter
           (do
             (when (= (# stack) 0)
-              (parseError (.. "unexpected closing delimiter " (string.char b))))
+              (parse-error (.. "unexpected closing delimiter " (string.char b))))
             (local last (. stack (# stack)))
             (var val (values))
             (when (not= last.closer b)
-              (parseError (.. "mismatched closing delimiter " (string.char b)
+              (parse-error (.. "mismatched closing delimiter " (string.char b)
                               ", expected " (string.char last.closer))))
             (set last.byteend byteindex) ; set closing byte index
             (if (= b 41)
@@ -173,13 +173,13 @@ stream is finished."
                 (do
                   (when (not= (% (# last) 2) 0)
                     (set byteindex (- byteindex 1))
-                    (parseError "expected even number of values in table literal"))
+                    (parse-error "expected even number of values in table literal"))
                   (set val [])
                   (setmetatable val last) ; see note above about source data
                   (for [i 1 (# last) 2]
                     (when (and (= (tostring (. last i)) ":")
-                               (utils.isSym (. last (+ i 1)))
-                               (utils.isSym (. last i)))
+                               (utils.is-sym (. last (+ i 1)))
+                               (utils.is-sym (. last i)))
                       (tset last i (tostring (. last (+ i 1)))))
                     (tset val (. last i) (. last (+ i 1))))))
             (tset stack (# stack) nil)
@@ -205,16 +205,16 @@ stream is finished."
             (tset stack (# stack) nil)
             (let [raw (string.char (unpack chars))
                   formatted (raw:gsub "[\1-\31]" (fn [c] (.. "\\" (: c "byte"))))
-                  loadFn ((or _G.loadstring load)
+                  load-fn ((or _G.loadstring load)
                           (: "return %s" :format formatted))]
-              (dispatch (loadFn))))
+              (dispatch (load-fn))))
           (. prefixes b)
           (do ; expand prefix byte into wrapping form eg. '`a' into '(quote a)'
             (table.insert stack {:prefix (. prefixes b)})
             (let [nextb (getb)]
               (when (iswhitespace nextb)
                 (when (not= b 35)
-                  (parseError "invalid whitespace after quoting prefix"))
+                  (parse-error "invalid whitespace after quoting prefix"))
                 (tset stack (# stack) nil)
                 (dispatch (utils.sym "#")))
               (ungetb nextb)))
@@ -240,22 +240,22 @@ stream is finished."
                 ;; for backwards-compatibility, special-case allowance
                 ;; of ~= but all other uses of ~ are disallowed
                 (and (rawstr:match "^~") (not= rawstr "~="))
-                (parseError "illegal character: ~")
-                (let [forceNumber (: rawstr "match" "^%d")
-                      numberWithStrippedUnderscores (: rawstr "gsub" "_" "")]
+                (parse-error "illegal character: ~")
+                (let [force-number (: rawstr "match" "^%d")
+                      number-with-stripped-underscores (: rawstr "gsub" "_" "")]
                   (var x nil)
-                  (if forceNumber
-                      (set x (or (tonumber numberWithStrippedUnderscores)
-                                 (parseError (.. "could not read number \""
+                  (if force-number
+                      (set x (or (tonumber number-with-stripped-underscores)
+                                 (parse-error (.. "could not read number \""
                                                  rawstr "\""))))
                       (do
-                        (set x (tonumber numberWithStrippedUnderscores))
+                        (set x (tonumber number-with-stripped-underscores))
                         (when (not x)
                           (if (: rawstr "match" "%.[0-9]")
                               (do
                                 (set byteindex (+ (+ (- byteindex (# rawstr))
                                                      (rawstr:find "%.[0-9]")) 1))
-                                (parseError (.. "can't start multisym segment "
+                                (parse-error (.. "can't start multisym segment "
                                                 "with a digit: " rawstr)))
                               (and (: rawstr "match" "[%.:][%.:]")
                                    (not= rawstr "..")
@@ -263,22 +263,22 @@ stream is finished."
                               (do
                                 (set byteindex (+ (- byteindex (# rawstr)) 1
                                                   (: rawstr "find" "[%.:][%.:]")))
-                                (parseError (.. "malformed multisym: " rawstr)))
+                                (parse-error (.. "malformed multisym: " rawstr)))
                               (rawstr:match ":.+[%.:]")
                               (do
                                 (set byteindex (+ (- byteindex (# rawstr))
                                                   (: rawstr "find" ":.+[%.:]")))
-                                (parseError (.. "method must be last component "
+                                (parse-error (.. "method must be last component "
                                                 "of multisym: " rawstr)))
                               (set x (utils.sym rawstr nil {:byteend byteindex
                                                             :bytestart bytestart
                                                             :filename filename
                                                             :line line}))))))
                   (dispatch x))))
-          (parseError (.. "illegal character: " (string.char b))))
+          (parse-error (.. "illegal character: " (string.char b))))
       (when done
         (lua "break")))
     (values true retval))
-  (values parseStream (fn [] (set stack []))))
+  (values parse-stream (fn [] (set stack []))))
 
-{: granulate : parser : stringStream}
+{: granulate : parser : string-stream}

@@ -917,6 +917,7 @@ Consider using import-macros instead as it is more flexible.")
 
 (fn include-path [ast opts path mod fennel?]
   "Helper function for include once we have determined the path to use."
+  (tset utils.root.scope.includes mod :fnl/loading)
   (let [src (with-open [f (assert (io.open path))]
             (: (f:read "*all") :gsub "[\r\n]*$" ""))
         ;; splice in source and memoize it in compiler AND package.preload
@@ -943,6 +944,12 @@ Consider using import-macros instead as it is more flexible.")
     (tset utils.root.scope.includes mod ret)
     ret))
 
+(fn include-circular-fallback [mod modexpr fallback ast]
+  "If a circular include is detected, fall back to require if possible."
+  (when (= (. utils.root.scope.includes mod) :fnl/loading) ; circular include
+    (compiler.assert fallback "circular include detected" ast)
+    (fallback modexpr)))
+
 (fn SPECIALS.include [ast scope parent opts]
   (compiler.assert (= (# ast) 2) "expected one argument" ast)
   (let [modexpr (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1)]
@@ -951,7 +958,8 @@ Consider using import-macros instead as it is more flexible.")
             (opts.fallback modexpr)
             (compiler.assert false "module name must be string literal" ast))
         (let [mod ((loadCode (.. "return " (. modexpr 1))))]
-          (or (. utils.root.scope.includes mod) ; check cache
+          (or (include-circular-fallback mod modexpr opts.fallback ast)
+              (. utils.root.scope.includes mod) ; check cache
               ;; Find path to Fennel or Lua source
               (match (searchModule mod) ; try fennel path first
                 fennel-path (include-path ast opts fennel-path mod true)

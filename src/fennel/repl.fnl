@@ -4,7 +4,7 @@
 (local specials (require :fennel.specials))
 
 (fn default-read-chunk [parser-state]
-  (io.write (if (< 0 parser-state.stackSize) ".." ">> "))
+  (io.write (if (< 0 parser-state.stack-size) ".." ">> "))
   (io.flush)
   (let [input (io.read)]
     (and input (.. input "\n"))))
@@ -78,15 +78,15 @@
 (fn repl [options]
   (let [old-root-options utils.root.options
         env (if options.env
-                (utils.wrapEnv options.env)
+                (utils.wrap-env options.env)
                 (setmetatable {} {:__index (or _G._ENV _G)}))
-        save-locals? (and (not= options.saveLocals false)
+        save-locals? (and (not= options.save-locals false)
                           env.debug env.debug.getlocal)
         opts {}
         _ (each [k v (pairs options)] (tset opts k v))
-        read-chunk (or opts.readChunk default-read-chunk)
-        on-values (or opts.onValues default-on-values)
-        on-error (or opts.onError default-on-error)
+        read-chunk (or opts.read-chunk default-read-chunk)
+        on-values (or opts.on-values default-on-values)
+        on-error (or opts.on-error default-on-error)
         pp (or opts.pp tostring)
         ;; make parser
         (byte-stream clear-stream) (parser.granulate read-chunk)
@@ -95,15 +95,15 @@
                                       (let [c (byte-stream parser-state)]
                                         (tset chars (+ (# chars) 1) c)
                                         c)))
-        scope (compiler.makeScope)]
+        scope (compiler.make-scope)]
 
     ;; use metadata unless we've specifically disabled it
-    (set opts.useMetadata (not= options.useMetadata false))
-    (when (= opts.allowedGlobals nil)
-      (set opts.allowedGlobals (specials.currentGlobalNames opts.env)))
+    (set opts.use-metadata (not= options.use-metadata false))
+    (when (= opts.allowed-globals nil)
+      (set opts.allowed-globals (specials.current-global-names opts.env)))
 
-    (when opts.registerCompleter
-      (opts.registerCompleter (partial completer env scope)))
+    (when opts.register-completer
+      (opts.register-completer (partial completer env scope)))
 
     (fn loop []
       (each [k (pairs chars)] (tset chars k nil))
@@ -119,8 +119,8 @@
               (match (pcall compiler.compile x {:correlate opts.correlate
                                                 :source src-string
                                                 :scope scope
-                                                :useMetadata opts.useMetadata
-                                                :moduleName opts.moduleName
+                                                :use-metadata opts.use-metadata
+                                                :module-name opts.module-name
                                                 :assert-compile opts.assert-compile
                                                 :parse-error opts.parse-error})
                 (false msg) (do (clear-stream)
@@ -128,7 +128,7 @@
                 (true source) (let [source (if save-locals?
                                                (splice-save-locals env source)
                                                source)
-                                    (lua-ok? loader) (pcall specials.loadCode
+                                    (lua-ok? loader) (pcall specials.load-code
                                                             source env)]
                                 (if (not lua-ok?)
                                     (do (clear-stream)

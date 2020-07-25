@@ -156,22 +156,21 @@ camelCase targets
 - whitespaceSinceDispatch [CHECK]
 
 /src/fennel/repl.fnl
-- :moduleName
-- :useMetadata
-- compiler.makeScope
-- options.saveLocals
-- opts.allowedGlobals
-- opts.moduleName
-- opts.onError
-- opts.onValues
-- opts.readChunk
-- opts.registerCompleter
-- opts.useMetadata
-- opts.useMetadata
-- parser-state.stackSize
-- specials.currentGlobalNames
-- specials.loadCode
-- utils.wrapEnv
+- :moduleName [CHECK]
+- :useMetadata [CHECK]
+- compiler.makeScope [CHECK]
+- options.saveLocals [CHECK]
+- opts.allowedGlobals [CHECK]
+- opts.moduleName [CHECK]
+- opts.onError [CHECK]
+- opts.onValues [CHECK]
+- opts.readChunk [CHECK]
+- opts.registerCompleter [CHECK]
+- opts.useMetadata [CHECK]
+- parser-state.stackSize [CHECK]
+- specials.currentGlobalNames [CHECK]
+- specials.loadCode [CHECK]
+- utils.wrapEnv [CHECK]
 
 /src/fennel/specials.fnl
 - :allowedGlobals [CHECK]

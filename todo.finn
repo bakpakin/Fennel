@@ -70,11 +70,6 @@ camelCase targets
 - options.requireAsInclude
 - options.useMetadata
 - parser-state.stackSize
-- readline.save_history
-- readline.set_complete_function
-- readline.set_completion_append_character
-- readline.set_options
-- readline.set_readline_name
 
 /src/fennel/binary.fnl
 - fennel.compileString

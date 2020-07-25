@@ -1,0 +1,305 @@
+/* vim: set filetype=finn: */
+
+todo
+====
+
+prompt [1]
+----------
+
+- | When we ported the compiler to being self-hosted, we kept all the
+  | identifier names the same as the old Lua implementation, (using
+  | camelCase) but what we really want is to use kebab-case everywhere
+  | we can.
+  |
+  | This applies to everything in the compiler except the public API,
+  | (the mod table in the src/fennel.fnl file) which we can't change
+  | for compatibility reasons.
+  |
+  | This can be done one file at a time for the most part. If anyone
+  | wants to get started hacking on the compiler, this could be a good
+  | way to dip your toe in the water since it's very straightforward
+  | but it will touch a lot of the code in simple ways.
+  |
+  | Note that changing the name of locals can be done in a way that just
+  | affects a single file, but when changing the module exports at the
+  | bottom of the file, the consumers of that module will need to be
+  | updated as well.
+
+camelCase targets
+-----------------
+
+/src/fennel.fnl
+- :allowedGlobals
+- :compileStream
+- :compileString
+- :loadCode
+- :macroLoaded
+- :makeSearcher
+- :make_searcher
+- :moduleName
+- :searchModule
+- :stringStream
+- :useMetadata
+- compiler.compileStream
+- compiler.compileString
+- compiler.compileString
+- compiler.globalMangling
+- compiler.globalUnmangling
+- compiler.makeScope
+- opts.allowedGlobals
+- parser.stringStream
+- specials.currentGlobalNames
+- specials.loadCode
+- specials.loadCode
+- specials.macroLoaded
+- specials.makeCompilerEnv
+- specials.makeSearcher
+- specials.searchModule
+- specials.wrapEnv
+- utils.fennelModule
+
+/src/launcher.fnl
+- fennel.compileString
+- fennel.make_searcher
+- options.allowedGlobals
+- options.checkUnusedLocals
+- options.no_searcher
+- options.readChunk
+- options.registerCompleter
+- options.requireAsInclude
+- options.requireAsInclude
+- options.useMetadata
+- parser-state.stackSize
+- readline.save_history
+- readline.set_complete_function
+- readline.set_completion_append_character
+- readline.set_options
+- readline.set_readline_name
+
+/src/fennel/binary.fnl
+- fennel.compileString
+
+/src/fennel/compiler.fnl
+- allowedGlobals
+- applyManglings
+- assertCompile
+- checkBindingValid
+- combineParts
+- compileStream
+- compileString
+- compileTopTarget
+- declareLocal
+- doQuote
+- entryTransform
+- fennelSourcemap
+- flattenChunk
+- flattenChunkCorrelated
+- globalAllowed
+- globalMangling
+- globalUnmangling
+- handleCompileOpts
+- inMacroModule
+- isLocal
+- isReference
+- keepSideEffects
+- kvLen
+- lastLine
+- leftNames
+- localMangling
+- mainChunk
+- makeMetadata
+- makeScope
+- makeShortSrc
+- methodToCall
+- mixedConcat
+- multiSymParts
+- multiSymParts.multiSymMethodCall
+- newAST
+- newChunk
+- newManglings
+- oldGlobals
+- oldScope
+- opts.requireAsInclude
+- parser.stringStream
+- parts.multiSymMethodCall
+- requireInclude
+- serializeString
+- serializeSubst
+- short_src
+- symbolToExpression
+- tableWithMethod
+- tempManglings
+- utils.debugOn
+- utils.isExpr
+- utils.isList
+- utils.isMultiSym
+- utils.isQuoted
+- utils.isSym
+- utils.isTable
+- utils.isValidLuaIdentifier
+- utils.isVarg
+- utils.luaKeywords
+- utils.root:setReset
+- writeOtherValues
+
+/src/fennel/friend.fnl
+- parseError
+
+/src/fennel/macros.fnl
+- fennel.compileString
+
+/src/fennel/parser.fnl
+- :stackSize
+- forceNumber
+- loadFn
+- numberWithStrippedUnderscores
+- parseError
+- parseStream
+- parserState
+- stringStream
+- utils.isSym
+- whitespaceSinceDispatch
+
+/src/fennel/repl.fnl
+- :moduleName
+- :useMetadata
+- compiler.makeScope
+- options.saveLocals
+- opts.allowedGlobals
+- opts.moduleName
+- opts.onError
+- opts.onValues
+- opts.readChunk
+- opts.registerCompleter
+- opts.useMetadata
+- opts.useMetadata
+- parser-state.stackSize
+- specials.currentGlobalNames
+- specials.loadCode
+- utils.wrapEnv
+
+/src/fennel/specials.fnl
+- :allowedGlobals
+- :useMetadata
+- addMacros
+- argList
+- argNameList
+- argStr
+- bindVars
+- bindingSym
+- bodyOpts
+- chainOp
+- compileBody
+- compileDo
+- compiler.applyManglings
+- compiler.declareLocal
+- compiler.doQuote
+- compiler.globalMangling
+- compiler.globalUnmangling
+- compiler.keepSideEffects
+- compiler.makeScope
+- compiler.requireInclude
+- compiler.symbolToExpression
+- condLine
+- currentGlobalNames
+- defineArithmeticSpecial
+- defineComparatorSpecial
+- defineUnarySpecial
+- destructureBinding
+- doScope
+- docSpecial
+- elseBranch
+- evalCompiler
+- fChunk
+- fScope
+- fnName
+- getArgName
+- hasElse
+- innerTail
+- innerTarget
+- isLocalFn
+- lastBuffer
+- loadCode
+- loadMacros
+- luaName
+- macroGlobals
+- macroLoaded
+- makeCompilerEnv
+- makeSearcher
+- maxUsed
+- metaFields
+- metaStr
+- multi.multiSymMethodCall
+- newManglings
+- nextBuffer
+- nodotModule
+- oldFirst
+- outerTail
+- outerTarget
+- paddedOp
+- parentNode
+- parser.stringStream
+- pkgConfig
+- preSyms
+- rangeArgs
+- searchModule
+- specialOrMacro
+- subChunk
+- subScope
+- targetExprs
+- thisScope
+- unaryPrefix
+- utils.fennelModule
+- utils.fennelModule.dofile
+- utils.fennelModule.path
+- utils.isList
+- utils.isMultiSym
+- utils.isSequence
+- utils.isSym
+- utils.isTable
+- utils.isValidLuaIdentifier
+- utils.isVarg
+- utils.propagateOptions
+- utils.root.options.moduleName
+- utils.root.options.requireAsInclude
+- utils.root.options.useMetadata
+- utils.walkTree
+- valNames
+- wrapEnv
+- zeroArity
+
+/src/fennel/utils.fnl
+- :allowedGlobals
+- :useMetadata
+- EXPR_MT
+- LIST_MT
+- SEQUENCE_MARKER
+- SEQUENCE_MT
+- SYMBOL_MT
+- allpairsNext
+- customIterator
+- debugOn
+- isExpr
+- isList
+- isMultiSym
+- isQuoted
+- isSequence
+- isSym
+- isTable
+- isValidLuaIdentifier
+- isVarg
+- lastChar
+- listToString
+- luaKeywords
+- nextState
+- nilSym
+- parts.multiSymMethodCall
+- propagateOptions
+- propagatedOptions
+- root.setReset
+- walkTree
+
+
+******************************************************************************
+
+[1]: https://github.com/bakpakin/Fennel/issues/310

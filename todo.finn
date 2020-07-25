@@ -138,7 +138,7 @@ camelCase targets
 - writeOtherValues [CHECK]
 
 /src/fennel/friend.fnl
-- parseError
+- parseError [CHECK]
 
 /src/fennel/macros.fnl
 - fennel.compileString

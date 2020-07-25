@@ -207,7 +207,7 @@
   condition)
 
 (fn parse-error [msg filename line bytestart source]
-  "A drop-in replacement for the internal parseError with friendly messages."
+  "A drop-in replacement for the internal parse-error with friendly messages."
   (error (friendly-msg (: "Parse error in %s:%s\n  %s" :format filename line msg)
                        {: filename : line : bytestart} source) 0))
 

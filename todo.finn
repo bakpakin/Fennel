@@ -174,94 +174,94 @@ camelCase targets
 - utils.wrapEnv
 
 /src/fennel/specials.fnl
-- :allowedGlobals
-- :useMetadata
-- addMacros
-- argList
-- argNameList
-- argStr
-- bindVars
-- bindingSym
-- bodyOpts
-- chainOp
-- compileBody
-- compileDo
-- compiler.applyManglings
-- compiler.declareLocal
-- compiler.doQuote
-- compiler.globalMangling
-- compiler.globalUnmangling
-- compiler.keepSideEffects
-- compiler.makeScope
-- compiler.requireInclude
-- compiler.symbolToExpression
-- condLine
-- currentGlobalNames
-- defineArithmeticSpecial
-- defineComparatorSpecial
-- defineUnarySpecial
-- destructureBinding
-- doScope
-- docSpecial
-- elseBranch
-- evalCompiler
-- fChunk
-- fScope
-- fnName
-- getArgName
-- hasElse
-- innerTail
-- innerTarget
-- isLocalFn
-- lastBuffer
-- loadCode
-- loadMacros
-- luaName
-- macroGlobals
-- macroLoaded
-- makeCompilerEnv
-- makeSearcher
-- maxUsed
-- metaFields
-- metaStr
-- multi.multiSymMethodCall
-- newManglings
-- nextBuffer
-- nodotModule
-- oldFirst
-- outerTail
-- outerTarget
-- paddedOp
-- parentNode
-- parser.stringStream
-- pkgConfig
-- preSyms
-- rangeArgs
-- searchModule
-- specialOrMacro
-- subChunk
-- subScope
-- targetExprs
-- thisScope
-- unaryPrefix
-- utils.fennelModule
-- utils.fennelModule.dofile
-- utils.fennelModule.path
-- utils.isList
-- utils.isMultiSym
-- utils.isSequence
-- utils.isSym
-- utils.isTable
-- utils.isValidLuaIdentifier
-- utils.isVarg
-- utils.propagateOptions
-- utils.root.options.moduleName
-- utils.root.options.requireAsInclude
-- utils.root.options.useMetadata
-- utils.walkTree
-- valNames
-- wrapEnv
-- zeroArity
+- :allowedGlobals [CHECK]
+- :useMetadata [CHECK]
+- addMacros [CHECK]
+- argList [CHECK]
+- argNameList [CHECK]
+- argStr [CHECK]
+- bindVars [CHECK]
+- bindingSym [CHECK]
+- bodyOpts [CHECK]
+- chainOp [CHECK]
+- compileBody [CHECK]
+- compileDo [CHECK]
+- compiler.applyManglings [CHECK]
+- compiler.declareLocal [CHECK]
+- compiler.doQuote [CHECK]
+- compiler.globalMangling [CHECK]
+- compiler.globalUnmangling [CHECK]
+- compiler.keepSideEffects [CHECK]
+- compiler.makeScope [CHECK]
+- compiler.requireInclude [CHECK]
+- compiler.symbolToExpression [CHECK]
+- condLine [CHECK]
+- currentGlobalNames [CHECK]
+- defineArithmeticSpecial [CHECK]
+- defineComparatorSpecial [CHECK]
+- defineUnarySpecial [CHECK]
+- destructureBinding [CHECK]
+- doScope [CHECK]
+- docSpecial [CHECK]
+- elseBranch [CHECK]
+- evalCompiler [CHECK]
+- fChunk [CHECK]
+- fScope [CHECK]
+- fnName [CHECK]
+- getArgName [CHECK]
+- hasElse [CHECK]
+- innerTail [CHECK]
+- innerTarget [CHECK]
+- isLocalFn [CHECK]
+- lastBuffer [CHECK]
+- loadCode [CHECK]
+- loadMacros [CHECK]
+- luaName [CHECK]
+- macroGlobals [CHECK]
+- macroLoaded [CHECK]
+- makeCompilerEnv [CHECK]
+- makeSearcher [CHECK]
+- maxUsed [CHECK]
+- metaFields [CHECK]
+- metaStr [CHECK]
+- multi.multiSymMethodCall [CHECK]
+- newManglings [CHECK]
+- nextBuffer [CHECK]
+- nodotModule [CHECK]
+- oldFirst [CHECK]
+- outerTail [CHECK]
+- outerTarget [CHECK]
+- paddedOp [CHECK]
+- parentNode [CHECK]
+- parser.stringStream [CHECK]
+- pkgConfig [CHECK]
+- preSyms [CHECK]
+- rangeArgs [CHECK]
+- searchModule [CHECK]
+- specialOrMacro [CHECK]
+- subChunk [CHECK]
+- subScope [CHECK]
+- targetExprs [CHECK]
+- thisScope [CHECK]
+- unaryPrefix [CHECK]
+- utils.fennelModule [CHECK]
+- utils.fennelModule.dofile [CHECK]
+- utils.fennelModule.path [CHECK]
+- utils.isList [CHECK]
+- utils.isMultiSym [CHECK]
+- utils.isSequence [CHECK]
+- utils.isSym [CHECK]
+- utils.isTable [CHECK]
+- utils.isValidLuaIdentifier [CHECK]
+- utils.isVarg [CHECK]
+- utils.propagateOptions [CHECK]
+- utils.root.options.moduleName [CHECK]
+- utils.root.options.requireAsInclude [CHECK]
+- utils.root.options.useMetadata [CHECK]
+- utils.walkTree [CHECK]
+- valNames [CHECK]
+- wrapEnv [CHECK]
+- zeroArity [CHECK]
 
 /src/fennel/utils.fnl
 - :allowedGlobals [CHECK]

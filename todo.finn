@@ -72,7 +72,7 @@ camelCase targets
 - parser-state.stackSize
 
 /src/fennel/binary.fnl
-- fennel.compileString
+- fennel.compileString [CHECK]
 
 /src/fennel/compiler.fnl
 - allowedGlobals [CHECK]

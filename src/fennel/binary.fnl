@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
   (let [f (if (= filename "-")
               io.stdin
               (assert (io.open filename :rb)))
-        lua-code (fennel.compileString (f:read :*a) options)]
+        lua-code (fennel.compile-string (f:read :*a) options)]
     (f:close)
     lua-code))
 
@@ -181,7 +181,7 @@ int main(int argc, char *argv[]) {
                     (: :gsub "[\\/]" "."))
         dotpath-noextension (or (dotpath:match "(.+)%.") dotpath)
         fennel-loader (: (macrodebug (loader) :do) :format dotpath-noextension)
-        lua-loader (fennel.compileString fennel-loader)]
+        lua-loader (fennel.compile-string fennel-loader)]
     (c-shim:format (string->c-hex-literal lua-loader)
                    basename-noextension
                    (string->c-hex-literal (compile-fennel filename options))

@@ -6,7 +6,7 @@
 
 (local scopes [])
 
-(fn makeScope [parent]
+(fn make-scope [parent]
   "Create a new Scope, optionally under a parent scope.
 Scopes are compile time constructs that are responsible for keeping track of
 local variables, name mangling, and macros.  They are accessible to user code
@@ -29,7 +29,7 @@ implement nesting. "
 
 ;; If you add new calls to this function, please update fennel.friend
 ;; as well to add suggestions for how to fix the new error!
-(fn assertCompile [condition msg ast]
+(fn assert-compile [condition msg ast]
   "Assert a condition and raise a compile error with line numbers.
 The ast arg should be unmodified so that its first element is the form called."
   (when (not condition)
@@ -39,7 +39,7 @@ The ast arg should be unmodified so that its first element is the form called."
           (let [m (getmetatable ast)
                 filename (or (and m m.filename) ast.filename "unknown")
                 line (or (and m m.line) ast.line "?")
-                target (tostring (if (utils.isSym (. ast 1))
+                target (tostring (if (utils.is-sym (. ast 1))
                                      (utils.deref (. ast 1))
                                      (or (. ast 1) "()")))]
             ;; if we use regular `assert' we can't set level to 0
@@ -48,29 +48,29 @@ The ast arg should be unmodified so that its first element is the form called."
           (friend.assert-compile condition msg ast source))))
   condition)
 
-(set scopes.global (makeScope))
+(set scopes.global (make-scope))
 (set scopes.global.vararg true)
-(set scopes.compiler (makeScope scopes.global))
+(set scopes.compiler (make-scope scopes.global))
 (set scopes.macro scopes.global)
 
 ;; Allow printing a string to Lua, also keep as 1 line.
-(local serializeSubst {"\a" "\\a" "\b" "\\b" "\t" "\\t"
+(local serialize-subst {"\a" "\\a" "\b" "\\b" "\t" "\\t"
                        "\n" "n" "\v" "\\v" "\f" "\\f"})
 
-(fn serializeString [str]
+(fn serialize-string [str]
   (-> (: "%q" :format str)
-      (: :gsub "." serializeSubst)
+      (: :gsub "." serialize-subst)
       (: :gsub "[€-ÿ]" #(.. "\\" (: $ "byte")))))
 
-(fn globalMangling [str]
+(fn global-mangling [str]
   "Mangler for global symbols. Does not protect against collisions,
 but makes them unlikely. This is the mangling that is exposed to to the world."
-  (if (utils.isValidLuaIdentifier str)
+  (if (utils.is-valid-lua-identifier str)
       str
       (.. "__fnl_global__"
           (: str :gsub "[^%w]" #(: "_%02x" :format (: $ "byte"))))))
 
-(fn globalUnmangling [identifier]
+(fn global-unmangling [identifier]
   "Reverse a global mangling.
 Takes a Lua identifier and returns the Fennel symbol string that created it."
   (match (: identifier "match" "^__fnl_global__(.*)$")
@@ -78,29 +78,29 @@ Takes a Lua identifier and returns the Fennel symbol string that created it."
                            #(string.char (tonumber (: $ "sub" 2) 16))))
     _ identifier))
 
-(var allowedGlobals nil)
+(var allowed-globals nil)
 
-(fn globalAllowed [name]
+(fn global-allowed [name]
   "If there's a provided list of allowed globals, don't let references thru that
 aren't on the list. This list is set at the compiler entry points of compile
-and compileStream."
-  (var found? (not allowedGlobals))
-  (if (not allowedGlobals)
+and compile-stream."
+  (var found? (not allowed-globals))
+  (if (not allowed-globals)
       true
-      (do (each [_ g (ipairs allowedGlobals)]
+      (do (each [_ g (ipairs allowed-globals)]
             (when (= g name)
               (set found? true)))
           found?)))
 
-(fn localMangling [str scope ast tempManglings]
+(fn local-mangling [str scope ast temp-manglings]
   "Creates a symbol from a string by mangling it. ensures that the generated
 symbol is unique if the input string is unique in the scope."
   (var append 0)
   (var mangling str)
-  (assertCompile (not (utils.isMultiSym str))
+  (assert-compile (not (utils.is-multi-sym str))
                  (.. "unexpected multi symbol " str) ast)
   ;; Mapping mangling to a valid Lua identifier
-  (when (or (. utils.luaKeywords mangling) (: mangling "match" "^%d"))
+  (when (or (. utils.lua-keywords mangling) (: mangling "match" "^%d"))
     (set mangling (.. "_" mangling)))
   (set mangling (-> mangling
                     (: :gsub "-" "_")
@@ -111,27 +111,27 @@ symbol is unique if the input string is unique in the scope."
       (set mangling (.. raw append))
       (set append (+ append 1)))
     (tset scope.unmanglings mangling str)
-    (let [manglings (or tempManglings scope.manglings)]
+    (let [manglings (or temp-manglings scope.manglings)]
       (tset manglings str mangling))
     mangling))
 
-(fn applyManglings [scope newManglings ast]
+(fn apply-manglings [scope new-manglings ast]
   "Calling this function will mean that further compilation in scope will use
 these new manglings instead of the current manglings."
-  (each [raw mangled (pairs newManglings)]
-    (assertCompile (not (. scope.refedglobals mangled))
+  (each [raw mangled (pairs new-manglings)]
+    (assert-compile (not (. scope.refedglobals mangled))
                    (.. "use of global " raw " is aliased by a local") ast)
     (tset scope.manglings raw mangled)))
 
-(fn combineParts [parts scope]
+(fn combine-parts [parts scope]
   "Combine parts of a symbol."
-  (var ret (or (. scope.manglings (. parts 1)) (globalMangling (. parts 1))))
+  (var ret (or (. scope.manglings (. parts 1)) (global-mangling (. parts 1))))
   (for [i 2 (# parts) 1]
-    (if (utils.isValidLuaIdentifier (. parts i))
-        (if (and parts.multiSymMethodCall (= i (# parts)))
+    (if (utils.is-valid-lua-identifier (. parts i))
+        (if (and parts.multi-sym-method-call (= i (# parts)))
             (set ret (.. ret ":" (. parts i)))
             (set ret (.. ret "." (. parts i))))
-        (set ret (.. ret "[" (serializeString (. parts i)) "]"))))
+        (set ret (.. ret "[" (serialize-string (. parts i)) "]"))))
   ret)
 
 (fn gensym [scope base]
@@ -147,56 +147,56 @@ these new manglings instead of the current manglings."
   "Generates a unique symbol in the scope based on the base name. Calling
 repeatedly with the same base and same scope will return existing symbol
 rather than generating new one."
-  (match (utils.isMultiSym base)
+  (match (utils.is-multi-sym base)
     parts (do (tset parts 1 (autogensym (. parts 1) scope))
-              (table.concat parts (or (and parts.multiSymMethodCall ":") ".")))
+              (table.concat parts (or (and parts.multi-sym-method-call ":") ".")))
     _ (or (. scope.autogensyms base)
           (let [mangling (gensym scope (: base "sub" 1 (- 2)))]
             (tset scope.autogensyms base mangling)
             mangling))))
 
-(fn checkBindingValid [symbol scope ast]
+(fn check-binding-valid [symbol scope ast]
   "Check to see if a symbol will be overshadowed by a special."
   (let [name (utils.deref symbol)]
-    (assertCompile (not (or (. scope.specials name) (. scope.macros name)))
+    (assert-compile (not (or (. scope.specials name) (. scope.macros name)))
                    (: "local %s was overshadowed by a special form or macro"
                       :format name) ast)
-    (assertCompile (not (utils.isQuoted symbol))
+    (assert-compile (not (utils.is-quoted symbol))
                    (: "macro tried to bind %s without gensym" :format name)
                    symbol)))
 
-(fn declareLocal [symbol meta scope ast tempManglings]
+(fn declare-local [symbol meta scope ast temp-manglings]
   "Declare a local symbol"
-  (checkBindingValid symbol scope ast)
+  (check-binding-valid symbol scope ast)
   (let [name (utils.deref symbol)]
-    (assertCompile (not (utils.isMultiSym name))
+    (assert-compile (not (utils.is-multi-sym name))
                    (.. "unexpected multi symbol " name) ast)
     (tset scope.symmeta name meta)
-    (localMangling name scope ast tempManglings)))
+    (local-mangling name scope ast temp-manglings)))
 
-(fn symbolToExpression [symbol scope isReference]
+(fn symbol-to-expression [symbol scope is-reference]
   "Convert symbol to Lua code. Will only work for local symbols
-if they have already been declared via declareLocal"
+if they have already been declared via declare-local"
   (var name (. symbol 1))
-  (let [multiSymParts (utils.isMultiSym name)]
+  (let [multi-sym-parts (utils.is-multi-sym name)]
     (when scope.hashfn
       (when (= name "$") (set name "$1"))
-      (when multiSymParts
-        (when (= (. multiSymParts 1) "$")
-          (tset multiSymParts 1 "$1")
-          (set name (table.concat multiSymParts ".")))))
-    (let [parts (or multiSymParts [name])
+      (when multi-sym-parts
+        (when (= (. multi-sym-parts 1) "$")
+          (tset multi-sym-parts 1 "$1")
+          (set name (table.concat multi-sym-parts ".")))))
+    (let [parts (or multi-sym-parts [name])
           etype (or (and (> (# parts) 1) "expression") "sym")
-          isLocal (. scope.manglings (. parts 1))]
-      (when (and isLocal (. scope.symmeta (. parts 1)))
+          is-local (. scope.manglings (. parts 1))]
+      (when (and is-local (. scope.symmeta (. parts 1)))
         (tset (. scope.symmeta (. parts 1)) "used" true))
       ;; if it's a reference and not a symbol which introduces a new binding
       ;; then we need to check for allowed globals
-      (assertCompile (or (not isReference) isLocal (globalAllowed (. parts 1)))
+      (assert-compile (or (not is-reference) is-local (global-allowed (. parts 1)))
                      (.. "unknown global in strict mode: " (. parts 1)) symbol)
-      (when (and allowedGlobals (not isLocal))
+      (when (and allowed-globals (not is-local))
         (tset utils.root.scope.refedglobals (. parts 1) true))
-      (utils.expr (combineParts parts scope) etype))))
+      (utils.expr (combine-parts parts scope) etype))))
 
 (fn emit [chunk out ast]
   "Emit Lua code."
@@ -212,18 +212,18 @@ if they have already been declared via declareLocal"
            (not (. (. chunk (- (# chunk) 1)) "leaf"))
            (= (. (. chunk (# chunk)) "leaf") "end"))
       (let [kid (peephole (. chunk (- (# chunk) 1)))
-            newChunk {:ast chunk.ast}]
+            new-chunk {:ast chunk.ast}]
         (for [i 1 (- (# chunk) 3) 1]
-          (table.insert newChunk (peephole (. chunk i))))
+          (table.insert new-chunk (peephole (. chunk i))))
         (for [i 1 (# kid) 1]
-          (table.insert newChunk (. kid i)))
-        newChunk)
+          (table.insert new-chunk (. kid i)))
+        new-chunk)
       (utils.map chunk peephole)))
 
-(fn flattenChunkCorrelated [mainChunk]
+(fn flatten-chunk-correlated [main-chunk]
   "Correlate line numbers in input with line numbers in output."
-  (fn flatten [chunk out lastLine file]
-    (var last-line lastLine)
+  (fn flatten [chunk out last-line file]
+    (var last-line last-line)
     (if chunk.leaf
         (tset out last-line (.. (or (. out last-line) "") " " chunk.leaf))
         (each [_ subchunk (ipairs chunk)]
@@ -234,13 +234,13 @@ if they have already been declared via declareLocal"
             (set last-line (flatten subchunk out last-line file)))))
     last-line)
   (let [out []
-        last (flatten mainChunk out 1 mainChunk.file)]
+        last (flatten main-chunk out 1 main-chunk.file)]
     (for [i 1 last]
       (when (= (. out i) nil)
         (tset out i "")))
     (table.concat out "\n")))
 
-(fn flattenChunk [sm chunk tab depth]
+(fn flatten-chunk [sm chunk tab depth]
   "Flatten a tree of indented Lua source code lines.
 Tab is what is used to indent a block."
   (if chunk.leaf
@@ -253,7 +253,7 @@ Tab is what is used to indent a block."
                   true "  " false "" tab tab nil "")]
         (fn parter [c]
           (when (or c.leaf (> (# c) 0))
-            (var sub (flattenChunk sm c tab (+ depth 1)))
+            (var sub (flatten-chunk sm c tab (+ depth 1)))
             (when (> depth 0)
               (set sub (.. tab (: sub :gsub "\n" (.. "\n" tab)))))
             sub))
@@ -264,9 +264,9 @@ Tab is what is used to indent a block."
 ;; being mapped as the key, prepended with '@' if it is a filename (like
 ;; debug.getinfo returns for source).  The value is an array of mappings for
 ;; each line.
-(local fennelSourcemap [])
+(local fennel-sourcemap [])
 
-(fn makeShortSrc [source]
+(fn make-short-src [source]
   (let [source (: source :gsub "\n" " ")]
     (if (<= (# source) 49)
         (.. "[fennel \"" source "\"]")
@@ -276,24 +276,24 @@ Tab is what is used to indent a block."
   "Return Lua source and source map table."
   (let [chunk (peephole chunk)]
     (if options.correlate
-        (values (flattenChunkCorrelated chunk) [])
+        (values (flatten-chunk-correlated chunk) [])
         (let [sm []
-              ret (flattenChunk sm chunk options.indent 0)]
+              ret (flatten-chunk sm chunk options.indent 0)]
           (when sm
-            (var (key short_src) nil)
+            (var (key short-src) nil)
             (if options.filename
                 (do
-                  (set short_src options.filename)
-                  (set key (.. "@" short_src)))
+                  (set short-src options.filename)
+                  (set key (.. "@" short-src)))
                 (do
                   (set key ret)
-                  (set short_src (makeShortSrc (or options.source ret)))))
-            (set sm.short_src short_src)
+                  (set short-src (make-short-src (or options.source ret)))))
+            (set sm.short-src short-src)
             (set sm.key key)
-            (tset fennelSourcemap key sm))
+            (tset fennel-sourcemap key sm))
           (values ret sm)))))
 
-(fn makeMetadata []
+(fn make-metadata []
   "Make module-wide state table for metadata."
   (setmetatable
    [] {:__index {:get (fn [self tgt key]
@@ -304,12 +304,12 @@ Tab is what is used to indent a block."
                         (tset (. self tgt) key value)
                         tgt)
                  :setall (fn [self tgt ...]
-                           (let [kvLen (select "#" ...)
+                           (let [kv-len (select "#" ...)
                                  kvs [...]]
-                             (when (not= (% kvLen 2) 0)
+                             (when (not= (% kv-len 2) 0)
                                (error "metadata:setall() expected even number of k/v pairs"))
                              (tset self tgt (or (. self tgt) []))
-                             (for [i 1 kvLen 2]
+                             (for [i 1 kv-len 2]
                                (tset (. self tgt) (. kvs i) (. kvs (+ i 1))))
                              tgt))}
        :__mode "k"}))
@@ -318,7 +318,7 @@ Tab is what is used to indent a block."
   "Convert expressions to Lua string."
   (table.concat (utils.map exprs 1) ", "))
 
-(fn keepSideEffects [exprs chunk start ast]
+(fn keep-side-effects [exprs chunk start ast]
   "Compile side effects for a chunk."
   (let [start (or start 1)]
     (for [j start (# exprs) 1]
@@ -332,7 +332,7 @@ Tab is what is used to indent a block."
               (emit chunk (or (and (= (: code "byte") 40)
                                    (.. "do end " code)) code) ast)))))))
 
-(fn handleCompileOpts [exprs parent opts ast]
+(fn handle-compile-opts [exprs parent opts ast]
   "Does some common handling of returns and register targets for special
 forms. Also ensures a list expression has an acceptable number of expressions
 if opts contains the nval option."
@@ -342,7 +342,7 @@ if opts contains the nval option."
       (when (not= n len)
         (if (> len n)
             (do ; drop extra
-              (keepSideEffects exprs parent (+ n 1) ast)
+              (keep-side-effects exprs parent (+ n 1) ast)
               (for [i (+ n 1) len 1]
                 (tset exprs i nil)))
             (for [i (+ (# exprs) 1) n 1] ; pad with nils
@@ -365,28 +365,28 @@ if opts contains the nval option."
 
 (fn macroexpand* [ast scope once]
   "Expand macros in the ast. Only do one level if once is true."
-  (if (not (utils.isList ast)) ; bail early if not a list
+  (if (not (utils.is-list ast)) ; bail early if not a list
       ast
-      (let [multiSymParts (utils.isMultiSym (. ast 1))]
-        (var macro* (and (utils.isSym (. ast 1))
+      (let [multi-sym-parts (utils.is-multi-sym (. ast 1))]
+        (var macro* (and (utils.is-sym (. ast 1))
                          (. scope.macros (utils.deref (. ast 1)))))
-        (when (and (not macro*) multiSymParts)
-          (var inMacroModule nil)
+        (when (and (not macro*) multi-sym-parts)
+          (var in-macro-module nil)
           (set macro* scope.macros)
-          (for [i 1 (# multiSymParts) 1]
-            (set macro* (and (utils.isTable macro*)
-                             (. macro* (. multiSymParts i))))
+          (for [i 1 (# multi-sym-parts) 1]
+            (set macro* (and (utils.is-table macro*)
+                             (. macro* (. multi-sym-parts i))))
             (when macro*
-              (set inMacroModule true)))
-          (assertCompile (or (not inMacroModule) (= (type macro*) "function"))
+              (set in-macro-module true)))
+          (assert-compile (or (not in-macro-module) (= (type macro*) "function"))
                          "macro not found in imported macro module" ast))
         (if (not macro*)
             ast
-            (let [oldScope scopes.macro
+            (let [old-scope scopes.macro
                   _ (set scopes.macro scope)
                   (ok transformed) (pcall macro* (unpack ast 2))]
-              (set scopes.macro oldScope)
-              (assertCompile ok transformed ast)
+              (set scopes.macro old-scope)
+              (assert-compile ok transformed ast)
               (if (or once (not transformed))
                   transformed
                   (macroexpand* transformed scope)))))))
@@ -424,13 +424,13 @@ which we have to do if we don't know."
         ;; expand any top-level macros before parsing and emitting Lua
         ast (macroexpand* ast scope)]
     (var exprs [])
-    (if (utils.isList ast) ; function call or special form
+    (if (utils.is-list ast) ; function call or special form
         (let [len (# ast)
               first (. ast 1)
-              multiSymParts (utils.isMultiSym first)
-              special (and (utils.isSym first)
+              multi-sym-parts (utils.is-multi-sym first)
+              special (and (utils.is-sym first)
                            (. scope.specials (utils.deref first)))]
-          (assertCompile (> (# ast) 0)
+          (assert-compile (> (# ast) 0)
                          "expected a function, macro, or special to call" ast)
           (if special
               (do
@@ -440,29 +440,29 @@ which we have to do if we don't know."
                 ;; or expressions
                 (when (= (type exprs) "string")
                   (set exprs (utils.expr exprs "expression")))
-                (when (utils.isExpr exprs)
+                (when (utils.is-expr exprs)
                   (set exprs [exprs]))
                 ;; Unless the special form explicitly handles the target, tail,
                 ;; and nval properties, (indicated via the 'returned' flag),
                 ;; handle these options.
                 (if (not exprs.returned)
-                    (set exprs (handleCompileOpts exprs parent opts ast))
+                    (set exprs (handle-compile-opts exprs parent opts ast))
                     (or opts.tail opts.target)
                     (set exprs [])))
-              (and multiSymParts multiSymParts.multiSymMethodCall)
-              (let [tableWithMethod (table.concat
-                                     [(unpack multiSymParts 1 (- (# multiSymParts) 1))]
+              (and multi-sym-parts multi-sym-parts.multi-sym-method-call)
+              (let [table-with-method (table.concat
+                                     [(unpack multi-sym-parts 1 (- (# multi-sym-parts) 1))]
                                      ".")
-                    methodToCall (. multiSymParts (# multiSymParts))
-                    newAST (utils.list (utils.sym ":" scope)
-                                       (utils.sym tableWithMethod scope)
-                                       methodToCall)]
+                    method-to-call (. multi-sym-parts (# multi-sym-parts))
+                    new-ast (utils.list (utils.sym ":" scope)
+                                       (utils.sym table-with-method scope)
+                                       method-to-call)]
                 (for [i 2 len 1]
-                  (tset newAST (+ (# newAST) 1) (. ast i)))
-                (set exprs (compile1 newAST scope parent opts)))
+                  (tset new-ast (+ (# new-ast) 1) (. ast i)))
+                (set exprs (compile1 new-ast scope parent opts)))
               (let [fargs []] ; regular function call
                 (var fcallee (. (compile1 (. ast 1) scope parent {:nval 1}) 1))
-                (assertCompile (not= fcallee.type "literal")
+                (assert-compile (not= fcallee.type "literal")
                                (.. "cannot call literal value "
                                    (tostring (. ast 1))) ast)
                 (set fcallee (tostring fcallee))
@@ -476,54 +476,54 @@ which we have to do if we don't know."
                         (for [j 2 (# subexprs) 1]
                           (tset fargs (+ (# fargs) 1) (. subexprs j)))
                         ;; Emit sub expression only for side effects
-                        (keepSideEffects subexprs parent 2 (. ast i)))))
+                        (keep-side-effects subexprs parent 2 (. ast i)))))
                 (let [call (: "%s(%s)" :format (tostring fcallee) (exprs1 fargs))]
-                  (set exprs (handleCompileOpts [(utils.expr call "statement")]
+                  (set exprs (handle-compile-opts [(utils.expr call "statement")]
                                                 parent opts ast))))))
-        (utils.isVarg ast)
+        (utils.is-varg ast)
         (do
-          (assertCompile scope.vararg "unexpected vararg" ast)
-          (set exprs (handleCompileOpts [(utils.expr "..." "varg")]
+          (assert-compile scope.vararg "unexpected vararg" ast)
+          (set exprs (handle-compile-opts [(utils.expr "..." "varg")]
                                         parent opts ast)))
-        (utils.isSym ast)
-        (let [multiSymParts (utils.isMultiSym ast)]
+        (utils.is-sym ast)
+        (let [multi-sym-parts (utils.is-multi-sym ast)]
           (var e nil)
-          (assertCompile (not (and multiSymParts multiSymParts.multiSymMethodCall))
+          (assert-compile (not (and multi-sym-parts multi-sym-parts.multi-sym-method-call))
                          "multisym method calls may only be in call position" ast)
           ;; Handle nil as special symbol - it resolves to the nil literal
           ;; rather than being unmangled. Alternatively, we could remove it
           ;; from the lua keywords table.
           (if (= (. ast 1) "nil")
               (set e (utils.expr "nil" "literal"))
-              (set e (symbolToExpression ast scope true)))
-          (set exprs (handleCompileOpts [e] parent opts ast)))
+              (set e (symbol-to-expression ast scope true)))
+          (set exprs (handle-compile-opts [e] parent opts ast)))
         (or (= (type ast) "nil") (= (type ast) "boolean"))
-        (set exprs (handleCompileOpts [(utils.expr (tostring ast) "literal")]
+        (set exprs (handle-compile-opts [(utils.expr (tostring ast) "literal")]
                                       parent opts))
         (= (type ast) "number")
         (do
           (local n (: "%.17g" :format ast))
-          (set exprs (handleCompileOpts [(utils.expr n "literal")] parent opts)))
+          (set exprs (handle-compile-opts [(utils.expr n "literal")] parent opts)))
         (= (type ast) "string")
         (do
-          (local s (serializeString ast))
-          (set exprs (handleCompileOpts [(utils.expr s "literal")] parent opts)))
+          (local s (serialize-string ast))
+          (set exprs (handle-compile-opts [(utils.expr s "literal")] parent opts)))
         (= (type ast) "table")
         (let [buffer []]
           (for [i 1 (# ast) 1] ; write numeric keyed values
             (let [nval (and (not= i (# ast)) 1)]
               (tset buffer (+ (# buffer) 1)
                     (exprs1 (compile1 (. ast i) scope parent {:nval nval})))))
-          (fn writeOtherValues [k]
+          (fn write-other-values [k]
             (when (or (not= (type k) "number")
                       (not= (math.floor k) k)
                       (< k 1) (> k (# ast)))
-              (if (and (= (type k) "string") (utils.isValidLuaIdentifier k))
+              (if (and (= (type k) "string") (utils.is-valid-lua-identifier k))
                   [k k]
                   (let [[compiled] (compile1 k scope parent {:nval 1})
                         kstr (.. "[" (tostring compiled) "]")]
                     [kstr k]))))
-          (let [keys (doto (utils.kvmap ast writeOtherValues)
+          (let [keys (doto (utils.kvmap ast write-other-values)
                        (table.sort (fn [a b] (< (. a 1) (. b 1)))))]
             (utils.map keys (fn [k]
                               (let [v (tostring (. (compile1 (. ast (. k 2))
@@ -531,10 +531,10 @@ which we have to do if we don't know."
                                                              {:nval 1}) 1))]
                                 (: "%s = %s" :format (. k 1) v)))
                        buffer))
-          (set exprs (handleCompileOpts
+          (set exprs (handle-compile-opts
                       [(utils.expr (.. "{" (table.concat buffer ", ") "}")
                                    "expression")] parent opts ast)))
-        (assertCompile false
+        (assert-compile false
                        (.. "could not compile value of type " (type ast)) ast))
     (set exprs.returned true)
     exprs))
@@ -550,35 +550,35 @@ which we have to do if we don't know."
   (let [opts (or opts {})
         {: isvar : declaration : nomulti : noundef : forceglobal : forceset} opts
         setter (if declaration "local %s = %s" "%s = %s")
-        newManglings []]
+        new-manglings []]
 
     (fn getname [symbol up1]
       "Get Lua source for symbol, and check for errors"
       (let [raw (. symbol 1)]
-        (assertCompile (not (and nomulti (utils.isMultiSym raw)))
+        (assert-compile (not (and nomulti (utils.is-multi-sym raw)))
                        (.. "unexpected multi symbol " raw) up1)
         (if declaration
-            (declareLocal symbol {:var isvar} scope symbol newManglings)
-            (let [parts (or (utils.isMultiSym raw) [raw])
+            (declare-local symbol {:var isvar} scope symbol new-manglings)
+            (let [parts (or (utils.is-multi-sym raw) [raw])
                   meta (. scope.symmeta (. parts 1))]
               (when (and (= (# parts) 1) (not forceset))
-                (assertCompile (not (and forceglobal meta))
+                (assert-compile (not (and forceglobal meta))
                                (: "global %s conflicts with local"
                                   :format (tostring symbol)) symbol)
-                (assertCompile (not (and meta (not meta.var)))
+                (assert-compile (not (and meta (not meta.var)))
                                (.. "expected var " raw) symbol)
-                (assertCompile (or meta (not noundef))
+                (assert-compile (or meta (not noundef))
                                (.. "expected local " (. parts 1)) symbol))
               (when forceglobal
-                (assertCompile (not (. scope.symmeta (. scope.unmanglings raw)))
+                (assert-compile (not (. scope.symmeta (. scope.unmanglings raw)))
                                (.. "global " raw " conflicts with local") symbol)
-                (tset scope.manglings raw (globalMangling raw))
-                (tset scope.unmanglings (globalMangling raw) raw)
-                (when allowedGlobals
-                  (table.insert allowedGlobals raw)))
-              (. (symbolToExpression symbol scope) 1)))))
+                (tset scope.manglings raw (global-mangling raw))
+                (tset scope.unmanglings (global-mangling raw) raw)
+                (when allowed-globals
+                  (table.insert allowed-globals raw)))
+              (. (symbol-to-expression symbol scope) 1)))))
 
-    (fn compileTopTarget [lvalues]
+    (fn compile-top-target [lvalues]
       "Compile the outer most form. We can generate better Lua in this case."
       ;; Calculate initial rvalue
       (let [inits (utils.map lvalues #(if (. scope.manglings $) $ "nil"))
@@ -607,13 +607,13 @@ which we have to do if we don't know."
 
     (fn destructure1 [left rightexprs up1 top]
       "Recursive auxiliary function"
-      (if (and (utils.isSym left) (not= (. left 1) "nil"))
+      (if (and (utils.is-sym left) (not= (. left 1) "nil"))
           (let [lname (getname left up1)]
-            (checkBindingValid left scope left)
+            (check-binding-valid left scope left)
             (if top
-                (compileTopTarget [lname])
+                (compile-top-target [lname])
                 (emit parent (: setter :format lname (exprs1 rightexprs)) left)))
-          (utils.isTable left) ; table destructuring
+          (utils.is-table left) ; table destructuring
           (let [s (gensym scope)]
             (var right (if top
                            (exprs1 (compile1 from scope parent))
@@ -622,9 +622,9 @@ which we have to do if we don't know."
               (set right "nil"))
             (emit parent (: "local %s = %s" :format s right) left)
             (each [k v (utils.stablepairs left)]
-              (if (and (utils.isSym (. left k)) (= (. (. left k) 1) "&"))
+              (if (and (utils.is-sym (. left k)) (= (. (. left k) 1) "&"))
                   (do
-                    (assertCompile (and (= (type k) "number")
+                    (assert-compile (and (= (type k) "number")
                                         (not (. left (+ k 2))))
                                    "expected rest argument before last parameter"
                                    left)
@@ -633,60 +633,60 @@ which we have to do if we don't know."
                       (destructure1 (. left (+ k 1)) [subexpr] left)
                       (lua "return")))
                   (do ; TODO: yikes
-                    (when (and (utils.isSym k)
+                    (when (and (utils.is-sym k)
                                (= (tostring k) ":")
-                               (utils.isSym v))
+                               (utils.is-sym v))
                       (set-forcibly! k (tostring v)))
                     (when (not= (type k) "number")
-                      (set-forcibly! k (serializeString k)))
+                      (set-forcibly! k (serialize-string k)))
                     (let [subexpr (utils.expr (: "%s[%s]" :format s k)
                                               "expression")]
                       (destructure1 v [subexpr] left))))))
-          (utils.isList left) ;; values destructuring
-          (let [(leftNames tables) (values [] [])]
+          (utils.is-list left) ;; values destructuring
+          (let [(left-names tables) (values [] [])]
             (each [i name (ipairs left)]
               (var symname nil)
-              (if (utils.isSym name) ; binding directly to a name
+              (if (utils.is-sym name) ; binding directly to a name
                   (set symname (getname name up1))
                   (do ; further destructuring of tables inside values
                     (set symname (gensym scope))
                     (tset tables i [name (utils.expr symname "sym")])))
-              (table.insert leftNames symname))
+              (table.insert left-names symname))
             (if top
-                (compileTopTarget leftNames)
-                (let [lvalue (table.concat leftNames ", ")
+                (compile-top-target left-names)
+                (let [lvalue (table.concat left-names ", ")
                       setting (: setter :format lvalue (exprs1 rightexprs))]
                   (emit parent setting left)))
             ;; recurse if left-side tables found
             (each [_ pair (utils.stablepairs tables)]
               (destructure1 (. pair 1) [(. pair 2)] left)))
-          (assertCompile false (: "unable to bind %s %s" :format
+          (assert-compile false (: "unable to bind %s %s" :format
                                   (type left) (tostring left))
                          (or (and (= (type (. up1 2)) "table") (. up1 2)) up1)))
       (when top
         {:returned true}))
 
     (let [ret (destructure1 to nil ast true)]
-      (applyManglings scope newManglings ast)
+      (apply-manglings scope new-manglings ast)
       ret)))
 
-(fn requireInclude [ast scope parent opts]
+(fn require-include [ast scope parent opts]
   (fn opts.fallback [e]
     (utils.expr (: "require(%s)" :format (tostring e)) "statement"))
   (scopes.global.specials.include ast scope parent opts))
 
-(fn compileStream [strm options]
+(fn compile-stream [strm options]
   (let [opts (utils.copy options)
-        oldGlobals allowedGlobals
-        scope (or opts.scope (makeScope scopes.global))
+        old-globals allowed-globals
+        scope (or opts.scope (make-scope scopes.global))
         vals []
         chunk []]
-    (utils.root:setReset)
-    (set allowedGlobals opts.allowedGlobals)
+    (utils.root:set-reset)
+    (set allowed-globals opts.allowed-globals)
     (when (= opts.indent nil)
       (set opts.indent "  "))
-    (when opts.requireAsInclude
-      (set scope.specials.require requireInclude))
+    (when opts.require-as-include
+      (set scope.specials.require require-include))
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))
     (each [ok val (parser.parser strm opts.filename opts)]
@@ -695,30 +695,30 @@ which we have to do if we don't know."
       (let [exprs (compile1 (. vals i) scope chunk
                             {:nval (or (and (< i (# vals)) 0) nil)
                              :tail (= i (# vals))})]
-        (keepSideEffects exprs chunk nil (. vals i))))
-    (set allowedGlobals oldGlobals)
+        (keep-side-effects exprs chunk nil (. vals i))))
+    (set allowed-globals old-globals)
     (utils.root.reset)
     (flatten chunk opts)))
 
-(fn compileString [str opts]
-  (compileStream (parser.stringStream str) (or opts {})))
+(fn compile-string [str opts]
+  (compile-stream (parser.string-stream str) (or opts {})))
 
 (fn compile [ast opts]
   (let [opts (utils.copy opts)
-        oldGlobals allowedGlobals
+        old-globals allowed-globals
         chunk []
-        scope (or opts.scope (makeScope scopes.global))]
-    (utils.root:setReset)
-    (set allowedGlobals opts.allowedGlobals)
+        scope (or opts.scope (make-scope scopes.global))]
+    (utils.root:set-reset)
+    (set allowed-globals opts.allowed-globals)
     (when (= opts.indent nil)
       (set opts.indent "  "))
-    (when opts.requireAsInclude
-      (set scope.specials.require requireInclude))
+    (when opts.require-as-include
+      (set scope.specials.require require-include))
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))
     (let [exprs (compile1 ast scope chunk {:tail true})]
-      (keepSideEffects exprs chunk nil ast)
-      (set allowedGlobals oldGlobals)
+      (keep-side-effects exprs chunk nil ast)
+      (set allowed-globals old-globals)
       (utils.root.reset)
       (flatten chunk opts))))
 
@@ -727,22 +727,22 @@ which we have to do if we don't know."
       (: "  [C]: in function '%s'" :format info.name)
       (= info.what "C")
       "  [C]: in ?"
-      (let [remap (. fennelSourcemap info.source)]
+      (let [remap (. fennel-sourcemap info.source)]
         (when (and remap (. remap info.currentline))
           ;; And some global info
-          (set info.short_src remap.short_src)
+          (set info.short-src remap.short-src)
           ;; Overwrite info with values from the mapping
           ;; (mapping is now just integer, but may
           ;; eventually be a table)
           (set info.currentline (. remap info.currentline)))
         (if (= info.what "Lua")
             (: "  %s:%d: in function %s"
-               :format info.short_src info.currentline
+               :format info.short-src info.currentline
                (if info.name (.. "'" info.name "'") "?"))
-            (= info.short_src "(tail call)")
+            (= info.short-src "(tail call)")
             "  (tail call)"
             (: "  %s:%d: in main chunk"
-               :format info.short_src info.currentline)))))
+               :format info.short-src info.currentline)))))
 
 (fn traceback [msg start]
   "A custom traceback function for Fennel that looks similar to debug.traceback.
@@ -750,7 +750,7 @@ Use with xpcall to produce fennel specific stacktraces. Skips frames from the
 compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
   (let [msg (or msg "")]
     (if (and (or (: msg :find "^Compile error") (: msg :find "^Parse error"))
-             (not (utils.debugOn "trace")))
+             (not (utils.debug-on "trace")))
         msg ; skip the trace because it's compiler internals.
         (let [lines []]
           (if (or (msg:find "^Compile error") (msg:find "^Parse error"))
@@ -768,7 +768,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
             (set level (+ level 1)))
           (table.concat lines "\n")))))
 
-(fn entryTransform [fk fv]
+(fn entry-transform [fk fv]
   "Make a transformer for key / value table pairs, preserving all numeric keys"
   (fn [k v] (if (= (type k) "number")
                 (values k (fv v))
@@ -776,7 +776,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
 
 (fn no [] "Consume everything and return nothing." nil)
 
-(fn mixedConcat [t joiner]
+(fn mixed-concat [t joiner]
   (let [seen []]
     (var (ret s) (values "" ""))
     (each [k v (ipairs t)]
@@ -789,18 +789,18 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         (set s joiner)))
     ret))
 
-(fn doQuote [form scope parent runtime]
+(fn do-quote [form scope parent runtime]
   "Expand a quoted form into a data literal, evaluating unquote"
-  (fn q [x] (doQuote x scope parent runtime))
-  (if (utils.isVarg form) ; vararg
+  (fn q [x] (do-quote x scope parent runtime))
+  (if (utils.is-varg form) ; vararg
       (do
-        (assertCompile (not runtime)
+        (assert-compile (not runtime)
                        "quoted ... may only be used at compile time" form)
         "_VARARG")
-      (utils.isSym form) ; symbol
+      (utils.is-sym form) ; symbol
       (let [filename (if form.filename (: "%q" :format form.filename) :nil)
             symstr (utils.deref form)]
-        (assertCompile (not runtime)
+        (assert-compile (not runtime)
                        "symbols may only be used at compile time" form)
         ;; We should be able to use "%q" for this but Lua 5.1 throws an error
         ;; when you try to format nil, because it's extremely bad.
@@ -810,16 +810,16 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
             ;; prevent non-gensymed symbols from being bound as an identifier
             (: "sym('%s', nil, {quoted=true, filename=%s, line=%s})"
                :format symstr filename (or form.line :nil))))
-      (and (utils.isList form) ; unquote
-           (utils.isSym (. form 1))
+      (and (utils.is-list form) ; unquote
+           (utils.is-sym (. form 1))
            (= (utils.deref (. form 1)) :unquote))
       (let [payload (. form 2)
             res (unpack (compile1 payload scope parent))]
         (. res 1))
-      (utils.isList form) ; list
-      (let [mapped (utils.kvmap form (entryTransform no q))
+      (utils.is-list form) ; list
+      (let [mapped (utils.kvmap form (entry-transform no q))
             filename (if form.filename (: "%q" :format form.filename) :nil)]
-        (assertCompile (not runtime)
+        (assert-compile (not runtime)
                        "lists may only be used at compile time" form)
         ;; Constructing a list and then adding file/line data to it triggers a
         ;; bug where it changes the value of # for lists that contain nils in
@@ -829,29 +829,29 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         (: (.. "setmetatable({filename=%s, line=%s, bytestart=%s, %s}"
                ", getmetatable(list()))")
            :format filename (or form.line :nil) (or form.bytestart :nil)
-           (mixedConcat mapped ", ")))
+           (mixed-concat mapped ", ")))
       (= (type form) "table") ; table
-      (let [mapped (utils.kvmap form (entryTransform q q))
+      (let [mapped (utils.kvmap form (entry-transform q q))
             source (getmetatable form)
             filename (if source.filename (: "%q" :format source.filename) :nil)]
         (: "setmetatable({%s}, {filename=%s, line=%s})"
-           :format (mixedConcat mapped ", ") filename
+           :format (mixed-concat mapped ", ") filename
            (if source source.line :nil)))
       (= (type form) "string")
-      (serializeString form)
+      (serialize-string form)
       (tostring form)))
 
 {;; compiling functions
- : compile : compile1 : compileStream : compileString : emit : destructure
- : requireInclude
+ : compile : compile1 : compile-stream : compile-string : emit : destructure
+ : require-include
 
  ;; AST functions
- : autogensym : gensym : doQuote : globalMangling : globalUnmangling
- : applyManglings :macroexpand macroexpand*
+ : autogensym : gensym : do-quote : global-mangling : global-unmangling
+ : apply-manglings :macroexpand macroexpand*
 
  ;; scope functions
- : declareLocal : makeScope : keepSideEffects : symbolToExpression
+ : declare-local : make-scope : keep-side-effects : symbol-to-expression
 
  ;; general
- :assert assertCompile : scopes : traceback :metadata (makeMetadata)
+ :assert assert-compile : scopes : traceback :metadata (make-metadata)
  }

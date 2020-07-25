@@ -75,67 +75,67 @@ camelCase targets
 - fennel.compileString
 
 /src/fennel/compiler.fnl
-- allowedGlobals
-- applyManglings
-- assertCompile
-- checkBindingValid
-- combineParts
-- compileStream
-- compileString
-- compileTopTarget
-- declareLocal
-- doQuote
-- entryTransform
-- fennelSourcemap
-- flattenChunk
-- flattenChunkCorrelated
-- globalAllowed
-- globalMangling
-- globalUnmangling
-- handleCompileOpts
-- inMacroModule
-- isLocal
-- isReference
-- keepSideEffects
-- kvLen
-- lastLine
-- leftNames
-- localMangling
-- mainChunk
-- makeMetadata
-- makeScope
-- makeShortSrc
-- methodToCall
-- mixedConcat
-- multiSymParts
-- multiSymParts.multiSymMethodCall
-- newAST
-- newChunk
-- newManglings
-- oldGlobals
-- oldScope
-- opts.requireAsInclude
-- parser.stringStream
-- parts.multiSymMethodCall
-- requireInclude
-- serializeString
-- serializeSubst
-- short_src
-- symbolToExpression
-- tableWithMethod
-- tempManglings
-- utils.debugOn
-- utils.isExpr
-- utils.isList
-- utils.isMultiSym
-- utils.isQuoted
-- utils.isSym
-- utils.isTable
-- utils.isValidLuaIdentifier
-- utils.isVarg
-- utils.luaKeywords
-- utils.root:setReset
-- writeOtherValues
+- allowedGlobals [CHECK]
+- applyManglings [CHECK]
+- assertCompile [CHECK]
+- checkBindingValid [CHECK]
+- combineParts [CHECK]
+- compileStream [CHECK]
+- compileString [CHECK]
+- compileTopTarget [CHECK]
+- declareLocal [CHECK]
+- doQuote [CHECK]
+- entryTransform [CHECK]
+- fennelSourcemap [CHECK]
+- flattenChunk [CHECK]
+- flattenChunkCorrelated [CHECK]
+- globalAllowed [CHECK]
+- globalMangling [CHECK]
+- globalUnmangling [CHECK]
+- handleCompileOpts [CHECK]
+- inMacroModule [CHECK]
+- isLocal [CHECK]
+- isReference [CHECK]
+- keepSideEffects [CHECK]
+- kvLen [CHECK]
+- lastLine [CHECK]
+- leftNames [CHECK]
+- localMangling [CHECK]
+- mainChunk [CHECK]
+- makeMetadata [CHECK]
+- makeScope [CHECK]
+- makeShortSrc [CHECK]
+- methodToCall [CHECK]
+- mixedConcat [CHECK]
+- multiSymParts [CHECK]
+- multiSymParts.multiSymMethodCall [CHECK]
+- newAST [CHECK]
+- newChunk [CHECK]
+- newManglings [CHECK]
+- oldGlobals [CHECK]
+- oldScope [CHECK]
+- opts.requireAsInclude [CHECK]
+- parser.stringStream [CHECK]
+- parts.multiSymMethodCall [CHECK]
+- requireInclude [CHECK]
+- serializeString [CHECK]
+- serializeSubst [CHECK]
+- short_src [CHECK]
+- symbolToExpression [CHECK]
+- tableWithMethod [CHECK]
+- tempManglings [CHECK]
+- utils.debugOn [CHECK]
+- utils.isExpr [CHECK]
+- utils.isList [CHECK]
+- utils.isMultiSym [CHECK]
+- utils.isQuoted [CHECK]
+- utils.isSym [CHECK]
+- utils.isTable [CHECK]
+- utils.isValidLuaIdentifier [CHECK]
+- utils.isVarg [CHECK]
+- utils.luaKeywords [CHECK]
+- utils.root:setReset [CHECK]
+- writeOtherValues [CHECK]
 
 /src/fennel/friend.fnl
 - parseError

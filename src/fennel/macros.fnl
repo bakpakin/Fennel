@@ -177,7 +177,7 @@ Example:
     ;; macros from subscope to scope.
     (local scope (get-scope))
     (local subscope (fennel.scope scope))
-    (fennel.compileString (string.format "(require-macros %q)"
+    (fennel.compile-string (string.format "(require-macros %q)"
                                          modname)
                           {:scope subscope})
     (if (sym? binding)

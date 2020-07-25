@@ -141,7 +141,7 @@ camelCase targets
 - parseError [CHECK]
 
 /src/fennel/macros.fnl
-- fennel.compileString
+- fennel.compileString [CHECK]
 
 /src/fennel/parser.fnl
 - :stackSize

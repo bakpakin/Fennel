@@ -196,7 +196,7 @@
     (table.concat out "\n")))
 
 (fn assert-compile [condition msg ast source]
-  "A drop-in replacement for the internal assertCompile with friendly messages."
+  "A drop-in replacement for the internal assert-compile with friendly messages."
   (when (not condition)
     (let [{: filename : line} (ast-source ast)]
       (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format

@@ -200,7 +200,7 @@ the number of expected arguments."
                                    fn-name (table.concat arg-name-list ", ")) ast))
       (compiler.emit parent f-chunk ast)
       (compiler.emit parent "end" ast)
-      (when utils.root.options.use-metadata
+      (when utils.root.options.useMetadata
         ;; TODO: show destructured args properly instead of replacing
         (let [args (utils.map arg-list (fn [v] (if (utils.is-table v)
                                                   "\"#<table>\""
@@ -215,7 +215,7 @@ the number of expected arguments."
                                                   (: :gsub "\n" "\\n")
                                                   (: :gsub "\"" "\\\"")) "\"")))
           (let [meta-str (: "require(\"%s\").metadata"
-                           :format (or utils.root.options.module-name "fennel"))]
+                           :format (or utils.root.options.moduleName "fennel"))]
             (compiler.emit parent (: "pcall(function() %s:setall(%s, %s) end)"
                                      :format meta-str fn-name
                                      (table.concat meta-fields ", ")))))))
@@ -240,7 +240,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
     (tostring (. ast 3))))
 
 (fn SPECIALS.doc [ast scope parent]
-  (assert utils.root.options.use-metadata
+  (assert utils.root.options.useMetadata
           "can't look up doc with metadata disabled.")
   (compiler.assert (= (# ast) 2) "expected one argument" ast)
   (let [target (utils.deref (. ast 2))
@@ -253,7 +253,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
           ;; and we need to make sure we look it up in the same module it was
           ;; declared from.
           (: "print(require('%s').doc(%s, '%s'))" :format
-             (or utils.root.options.module-name "fennel") value
+             (or utils.root.options.moduleName "fennel") value
              (tostring (. ast 2)))))))
 
 (doc-special
@@ -878,9 +878,9 @@ table.insert(package.loaders, fennel.searcher)"
                                   (.. modname " module not found.") ast)
         env (make-compiler-env ast scope parent)
         globals (macro-globals env (current-global-names))]
-    (utils.fennel-module.dofile filename {:allowed-globals globals
+    (utils.fennel-module.dofile filename {:allowedGlobals globals
                                          :env env
-                                         :use-metadata utils.root.options.use-metadata
+                                         :useMetadata utils.root.options.useMetadata
                                          :scope compiler.scopes.compiler})))
 
 (local macro-loaded [])
@@ -977,7 +977,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
 
 (fn eval-compiler* [ast scope parent]
   (let [scope (compiler.make-scope compiler.scopes.compiler)
-        luasrc (compiler.compile ast {:use-metadata utils.root.options.use-metadata
+        luasrc (compiler.compile ast {:useMetadata utils.root.options.useMetadata
                                    :scope scope})
         loader (load-code luasrc (wrap-env (make-compiler-env ast scope parent)))]
     (loader)))

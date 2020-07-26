@@ -682,10 +682,10 @@ which we have to do if we don't know."
         vals []
         chunk []]
     (utils.root:set-reset)
-    (set allowed-globals opts.allowed-globals)
+    (set allowed-globals opts.allowedGlobals)
     (when (= opts.indent nil)
       (set opts.indent "  "))
-    (when opts.require-as-include
+    (when opts.requireAsInclude
       (set scope.specials.require require-include))
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))
@@ -709,10 +709,10 @@ which we have to do if we don't know."
         chunk []
         scope (or opts.scope (make-scope scopes.global))]
     (utils.root:set-reset)
-    (set allowed-globals opts.allowed-globals)
+    (set allowed-globals opts.allowedGlobals)
     (when (= opts.indent nil)
       (set opts.indent "  "))
-    (when opts.require-as-include
+    (when opts.requireAsInclude
       (set scope.specials.require require-include))
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))

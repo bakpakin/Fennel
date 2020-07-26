@@ -28,9 +28,9 @@
   ;; sets up _G in such a way that all the globals are available thru
   ;; the __index meta method, but as far as pairs is concerned it's empty.
   (let [opts (utils.copy options)
-        _ (when (and (= opts.allowed-globals nil)
+        _ (when (and (= opts.allowedGlobals nil)
                      (not (getmetatable opts.env)))
-            (set opts.allowed-globals (specials.current-global-names opts.env)))
+            (set opts.allowedGlobals (specials.current-global-names opts.env)))
         env (and opts.env (specials.wrap-env opts.env))
         lua-source (compiler.compile-string str opts)
         loader (specials.load-code lua-source env
@@ -103,10 +103,10 @@
       env (specials.make-compiler-env nil compiler.scopes.compiler {})
       built-ins (eval builtin-macros {:env env
                                       :scope compiler.scopes.compiler
-                                      :allowed-globals false
-                                      :use-metadata true
+                                      :allowedGlobals false
+                                      :useMetadata true
                                       :filename "src/fennel/macros.fnl"
-                                      :module-name module-name})]
+                                      :moduleName module-name})]
   (each [k v (pairs built-ins)]
     (tset compiler.scopes.global.macros k v))
   (set compiler.scopes.global.macros.λ compiler.scopes.global.macros.lambda)

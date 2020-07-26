@@ -80,13 +80,13 @@
         env (if options.env
                 (utils.wrap-env options.env)
                 (setmetatable {} {:__index (or _G._ENV _G)}))
-        save-locals? (and (not= options.save-locals false)
+        save-locals? (and (not= options.saveLocals false)
                           env.debug env.debug.getlocal)
         opts {}
         _ (each [k v (pairs options)] (tset opts k v))
-        read-chunk (or opts.read-chunk default-read-chunk)
-        on-values (or opts.on-values default-on-values)
-        on-error (or opts.on-error default-on-error)
+        read-chunk (or opts.readChunk default-read-chunk)
+        on-values (or opts.onValues default-on-values)
+        on-error (or opts.onError default-on-error)
         pp (or opts.pp tostring)
         ;; make parser
         (byte-stream clear-stream) (parser.granulate read-chunk)
@@ -98,12 +98,12 @@
         scope (compiler.make-scope)]
 
     ;; use metadata unless we've specifically disabled it
-    (set opts.use-metadata (not= options.use-metadata false))
-    (when (= opts.allowed-globals nil)
-      (set opts.allowed-globals (specials.current-global-names opts.env)))
+    (set opts.useMetadata (not= options.useMetadata false))
+    (when (= opts.allowedGlobals nil)
+      (set opts.allowedGlobals (specials.current-global-names opts.env)))
 
-    (when opts.register-completer
-      (opts.register-completer (partial completer env scope)))
+    (when opts.registerCompleter
+      (opts.registerCompleter (partial completer env scope)))
 
     (fn loop []
       (each [k (pairs chars)] (tset chars k nil))
@@ -119,10 +119,10 @@
               (match (pcall compiler.compile x {:correlate opts.correlate
                                                 :source src-string
                                                 :scope scope
-                                                :use-metadata opts.use-metadata
-                                                :module-name opts.module-name
-                                                :assert-compile opts.assert-compile
-                                                :parse-error opts.parse-error})
+                                                :useMetadata opts.useMetadata
+                                                :moduleName opts.moduleName
+                                                :assert-compile opts.assertCompile
+                                                :parse-error opts.parseError})
                 (false msg) (do (clear-stream)
                                 (on-error "Compile" msg))
                 (true source) (let [source (if save-locals?

@@ -48,9 +48,9 @@ Run fennel, a lisp programming language for the Lua runtime.
     val))
 
 (fn allow-globals [global-names]
-  (set options.allowed-globals [])
+  (set options.allowedGlobals [])
   (each [g (global-names:gmatch "([^,]+),?")]
-    (table.insert options.allowed-globals g)))
+    (table.insert options.allowedGlobals g)))
 
 (fn handle-load [i]
   (let [file (table.remove arg (+ i 1))]
@@ -59,7 +59,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
 (for [i (# arg) 1 -1]
   (match (. arg i)
-    "--no-searcher" (do (set options.no-searcher true)
+    "--no-searcher" (do (set options.no_searcher true)
                         (table.remove arg i))
     "--indent" (do (set options.indent (table.remove arg (+ i 1)))
                    (when (= options.indent "false")
@@ -77,22 +77,22 @@ Run fennel, a lisp programming language for the Lua runtime.
                         (table.remove arg i))
     "--correlate" (do (set options.correlate true)
                       (table.remove arg i))
-    "--check-unused-locals" (do (set options.check-unused-locals true)
+    "--check-unused-locals" (do (set options.checkUnusedLocals true)
                                 (table.remove arg i))
     "--globals" (do (allow-globals (table.remove arg (+ i 1)))
                     (each [global-name (pairs _G)]
-                      (table.insert options.allowed-globals global-name))
+                      (table.insert options.allowedGlobals global-name))
                     (table.remove arg i))
     "--globals-only" (do (allow-globals (table.remove arg (+ i 1)))
                          (table.remove arg i))
-    "--require-as-include" (do (set options.require-as-include true)
+    "--require-as-include" (do (set options.requireAsInclude true)
                                (table.remove arg i))
-    "--metadata" (do (set options.use-metadata true)
+    "--metadata" (do (set options.useMetadata true)
                      (table.remove arg i))
-    "--no-metadata" (do (set options.use-metadata false)
+    "--no-metadata" (do (set options.useMetadata false)
                         (table.remove arg i))))
 
-(when (not options.no-searcher)
+(when (not options.no_searcher)
   (let [opts []]
     (each [k v (pairs options)]
       (tset opts k v))
@@ -104,12 +104,12 @@ Run fennel, a lisp programming language for the Lua runtime.
     (when readline.set_readline_name
       (readline.set_readline_name "fennel"))
     (readline.set_options {:keeplines 1000 :histfile ""})
-    (fn options.read-chunk [parser-state]
+    (fn options.readChunk [parser-state]
       (let [prompt (if (< 0 parser-state.stack-size) ".. " ">> ")
             str (readline.readline prompt)]
         (if str (.. str "\n"))))
     (var completer nil)
-    (fn options.register-completer [repl-completer]
+    (fn options.registerCompleter [repl-completer]
       (set completer repl-completer))
     (fn repl-completer [text from to]
       (if completer
@@ -137,7 +137,7 @@ Run fennel, a lisp programming language for the Lua runtime.
     (when (not= false options.fennelrc)
       (load-initfile))
     (print (.. "Welcome to Fennel " fennel.version " on " _VERSION "!"))
-    (when (not= options.use-metadata false)
+    (when (not= options.useMetadata false)
       (print "Use (doc something) to view documentation."))
     (when (not readline)
       (print "Try installing readline via luarocks for a better repl experience."))
@@ -169,7 +169,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   ["--compile-binary" filename out
    static-lua lua-include-dir & args] (let [bin (require :fennel.binary)]
                                         (set options.filename filename)
-                                        (set options.require-as-include true)
+                                        (set options.requireAsInclude true)
                                         (bin.compile filename out
                                                      static-lua lua-include-dir
                                                      options args))

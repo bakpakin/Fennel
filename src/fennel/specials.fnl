@@ -975,7 +975,7 @@ Consider using import-macros instead as it is more flexible.")
  "Like require but load the target module during compilation and embed it in the
 Lua output. The module must be a string literal and resolvable at compile time.")
 
-(fn eval-compiler [ast scope parent]
+(fn eval-compiler* [ast scope parent]
   (let [scope (compiler.make-scope compiler.scopes.compiler)
         luasrc (compiler.compile ast {:use-metadata utils.root.options.use-metadata
                                    :scope scope})
@@ -984,7 +984,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
 
 (fn SPECIALS.macros [ast scope parent]
   (compiler.assert (= (# ast) 2) "Expected one table argument" ast)
-  (add-macros (eval-compiler (. ast 2) scope parent) ast scope parent))
+  (add-macros (eval-compiler* (. ast 2) scope parent) ast scope parent))
 
 (doc-special
  "macros" ["{:macro-name-1 (fn [...] ...) ... :macro-name-N macro-body-N}"]
@@ -993,7 +993,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
 (fn SPECIALS.eval-compiler [ast scope parent]
   (let [old-first (. ast 1)]
     (tset ast 1 (utils.sym "do"))
-    (let [val (eval-compiler ast scope parent)]
+    (let [val (eval-compiler* ast scope parent)]
       (tset ast 1 old-first)
       val)))
 

@@ -56,17 +56,16 @@ camelCase targets
 - utils.fennelModule [CHECK]
 
 /src/launcher.fnl
-- fennel.compileString
-- fennel.make_searcher
-- options.allowedGlobals
-- options.checkUnusedLocals
-- options.no_searcher
-- options.readChunk
-- options.registerCompleter
-- options.requireAsInclude
-- options.requireAsInclude
-- options.useMetadata
-- parser-state.stackSize
+- fennel.compileString [CHECK]
+- fennel.make_searcher [CHECK]
+- options.allowedGlobals [CHECK]
+- options.checkUnusedLocals [CHECK]
+- options.no_searcher [CHECK]
+- options.readChunk [CHECK]
+- options.registerCompleter [CHECK]
+- options.requireAsInclude [CHECK]
+- options.useMetadata [CHECK]
+- parser-state.stackSize [CHECK]
 
 /src/fennel/binary.fnl
 - fennel.compileString [CHECK]

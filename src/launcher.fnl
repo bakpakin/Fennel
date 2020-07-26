@@ -48,9 +48,9 @@ Run fennel, a lisp programming language for the Lua runtime.
     val))
 
 (fn allow-globals [global-names]
-  (set options.allowedGlobals [])
+  (set options.allowed-globals [])
   (each [g (global-names:gmatch "([^,]+),?")]
-    (table.insert options.allowedGlobals g)))
+    (table.insert options.allowed-globals g)))
 
 (fn handle-load [i]
   (let [file (table.remove arg (+ i 1))]
@@ -59,7 +59,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
 (for [i (# arg) 1 -1]
   (match (. arg i)
-    "--no-searcher" (do (set options.no_searcher true)
+    "--no-searcher" (do (set options.no-searcher true)
                         (table.remove arg i))
     "--indent" (do (set options.indent (table.remove arg (+ i 1)))
                    (when (= options.indent "false")
@@ -77,39 +77,39 @@ Run fennel, a lisp programming language for the Lua runtime.
                         (table.remove arg i))
     "--correlate" (do (set options.correlate true)
                       (table.remove arg i))
-    "--check-unused-locals" (do (set options.checkUnusedLocals true)
+    "--check-unused-locals" (do (set options.check-unused-locals true)
                                 (table.remove arg i))
     "--globals" (do (allow-globals (table.remove arg (+ i 1)))
                     (each [global-name (pairs _G)]
-                      (table.insert options.allowedGlobals global-name))
+                      (table.insert options.allowed-globals global-name))
                     (table.remove arg i))
     "--globals-only" (do (allow-globals (table.remove arg (+ i 1)))
                          (table.remove arg i))
-    "--require-as-include" (do (set options.requireAsInclude true)
+    "--require-as-include" (do (set options.require-as-include true)
                                (table.remove arg i))
-    "--metadata" (do (set options.useMetadata true)
+    "--metadata" (do (set options.use-metadata true)
                      (table.remove arg i))
-    "--no-metadata" (do (set options.useMetadata false)
+    "--no-metadata" (do (set options.use-metadata false)
                         (table.remove arg i))))
 
-(when (not options.no_searcher)
+(when (not options.no-searcher)
   (let [opts []]
     (each [k v (pairs options)]
       (tset opts k v))
     (table.insert (or package.loaders package.searchers)
-                  (fennel.make_searcher opts))))
+                  (fennel.make-searcher opts))))
 
 (fn try-readline [ok readline]
   (when ok
     (when readline.set_readline_name
       (readline.set_readline_name "fennel"))
     (readline.set_options {:keeplines 1000 :histfile ""})
-    (fn options.readChunk [parser-state]
-      (let [prompt (if (< 0 parser-state.stackSize) ".. " ">> ")
+    (fn options.read-chunk [parser-state]
+      (let [prompt (if (< 0 parser-state.stack-size) ".. " ">> ")
             str (readline.readline prompt)]
         (if str (.. str "\n"))))
     (var completer nil)
-    (fn options.registerCompleter [repl-completer]
+    (fn options.register-completer [repl-completer]
       (set completer repl-completer))
     (fn repl-completer [text from to]
       (if completer
@@ -137,7 +137,7 @@ Run fennel, a lisp programming language for the Lua runtime.
     (when (not= false options.fennelrc)
       (load-initfile))
     (print (.. "Welcome to Fennel " fennel.version " on " _VERSION "!"))
-    (when (not= options.useMetadata false)
+    (when (not= options.use-metadata false)
       (print "Use (doc something) to view documentation."))
     (when (not readline)
       (print "Try installing readline via luarocks for a better repl experience."))
@@ -158,7 +158,7 @@ Run fennel, a lisp programming language for the Lua runtime.
                           (let [f (if (= filename "-")
                                       io.stdin
                                       (assert (io.open filename :rb)))
-                                (ok val) (xpcall #(fennel.compileString
+                                (ok val) (xpcall #(fennel.compile-string
                                                    (f:read :*a) options)
                                                  fennel.traceback)]
                             (if ok
@@ -169,7 +169,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   ["--compile-binary" filename out
    static-lua lua-include-dir & args] (let [bin (require :fennel.binary)]
                                         (set options.filename filename)
-                                        (set options.requireAsInclude true)
+                                        (set options.require-as-include true)
                                         (bin.compile filename out
                                                      static-lua lua-include-dir
                                                      options args))

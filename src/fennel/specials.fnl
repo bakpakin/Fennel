@@ -902,7 +902,7 @@ Consider using import-macros instead as it is more flexible.")
   "Emit Fennel code in src into sub-chunk."
   (let [subscope (compiler.make-scope utils.root.scope.parent)
         forms []]
-    (when utils.root.options.require-as-include
+    (when utils.root.options.requireAsInclude
       (set subscope.specials.require compiler.require-include))
     ;; parse Fennel src into table of exprs to know which expr is the tail
     (each [_ val (parser.parser (parser.string-stream src) path)]

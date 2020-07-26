@@ -852,7 +852,7 @@ Method name doesn't have to be known at compile-time; if it is, use
   "This will allow regular `require` to work with Fennel:
 table.insert(package.loaders, fennel.searcher)"
   (fn [module-name]
-    (let [opts (utils.copy utils.rootOptions)
+    (let [opts (utils.copy utils.root.options)
           filename (searchModule module-name)]
       (each [k v (pairs (or options {}))]
         (tset opts k v))

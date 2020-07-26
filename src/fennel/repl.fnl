@@ -121,8 +121,8 @@
                                                 :scope scope
                                                 :useMetadata opts.useMetadata
                                                 :moduleName opts.moduleName
-                                                :assert-compile opts.assertCompile
-                                                :parse-error opts.parseError})
+                                                :assert-compile opts.assert-compile
+                                                :parse-error opts.parse-error})
                 (false msg) (do (clear-stream)
                                 (on-error "Compile" msg))
                 (true source) (let [source (if save-locals?

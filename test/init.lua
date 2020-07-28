@@ -23,7 +23,11 @@ local function testall(suites)
     return runner:runSuiteByInstances(instances)
 end
 
-testall({'core', 'mangling', 'quoting', 'misc', 'docstring', 'fennelview',
-         'failures', 'repl', 'cli',})
+if(#arg == 0) then
+   testall({'core', 'mangling', 'quoting', 'misc', 'docstring', 'fennelview',
+            'failures', 'repl', 'cli',})
+else
+   testall(arg)
+end
 
 os.exit(runner.result.notSuccessCount == 0 and 0 or 1)

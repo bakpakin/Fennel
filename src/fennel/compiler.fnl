@@ -288,7 +288,7 @@ Tab is what is used to indent a block."
                 (do
                   (set key ret)
                   (set short-src (make-short-src (or options.source ret)))))
-            (set sm.short-src short-src)
+            (set sm.short_src short-src)
             (set sm.key key)
             (tset fennel-sourcemap key sm))
           (values ret sm)))))
@@ -736,13 +736,13 @@ which we have to do if we don't know."
           ;; eventually be a table)
           (set info.currentline (. remap info.currentline)))
         (if (= info.what "Lua")
-            (: "  %s:%d: in function %s"
-               :format info.short-src info.currentline
+            (string.format "  %s:%d: in function %s"
+                           info.short_src info.currentline
                (if info.name (.. "'" info.name "'") "?"))
             (= info.short-src "(tail call)")
             "  (tail call)"
-            (: "  %s:%d: in main chunk"
-               :format info.short-src info.currentline)))))
+            (string.format "  %s:%d: in main chunk"
+                           info.short_src info.currentline)))))
 
 (fn traceback [msg start]
   "A custom traceback function for Fennel that looks similar to debug.traceback.

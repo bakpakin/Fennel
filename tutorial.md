@@ -20,8 +20,17 @@ but Fennel's own [Lua Primer][14] is shorter and covers the highlights.
 
 Use `fn` to make functions. If you provide an optional name, the
 function will be bound to that name in local scope; otherwise it is
-simply an anonymous value. The argument list is provided in square
-brackets. The final value is returned.
+simply an anonymous value.
+
+> A brief note on naming: identifiers are typically lowercase
+> separated by dashes (aka "kebab-case"). They may contain digits too, but
+> must start with a letter or underscore. You can also use the question mark
+> (typically for functions that return a true or false, ex., `at-max-velocity?`).
+> Underscores (`_`) are often used to name a variable that we don't plan
+> on using (see "destructuring" below).
+
+The argument list is provided in square brackets. The final value is
+returned.
 
 (If you've never used a lisp before, the main thing to note is that
 the function or macro being called goes *inside* the parens, not

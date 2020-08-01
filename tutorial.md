@@ -27,7 +27,7 @@ simply an anonymous value.
 > must start with a letter or underscore. You can also use the question mark
 > (typically for functions that return a true or false, ex., `at-max-velocity?`).
 > Underscores (`_`) are often used to name a variable that we don't plan
-> on using (see "destructuring" below).
+> on using (seen further down when we cover "destructuring").
 
 The argument list is provided in square brackets. The final value is
 returned.

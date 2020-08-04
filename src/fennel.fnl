@@ -54,7 +54,7 @@
             :path utils.path
 
             :parser parser.parser
-            :granulate parser.grandulate
+            :granulate parser.granulate
             :string-stream parser.string-stream
             :stringStream parser.string-stream ; backwards-compatibility alias
 

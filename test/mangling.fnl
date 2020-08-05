@@ -14,9 +14,8 @@
       (l.assertEquals v manglek)
       (l.assertEquals k unmanglev)))
   ;; adding an env for evaluation causes global mangling rules to apply
-  ;; (l.assertTrue (fennel.eval "(global mangled-name true) mangled-name"
-  ;;                            {:env {}}))
-  )
+  (l.assertTrue (fennel.eval "(global mangled-name true) mangled-name"
+                             {:env {}})))
 
 {: test-mangling}
 

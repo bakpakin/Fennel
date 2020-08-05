@@ -17,7 +17,7 @@ will see its values updated as expected, regardless of mangling rules."
                       (. env key)))
        :__newindex (fn [_ key value]
                      (if (= (type key) "string")
-                         (tset env (compiler.global-mangling key) value)
+                         (tset env (compiler.global-unmangling key) value)
                          (tset env key value)))
        ;; checking the __pairs metamethod won't work automatically in Lua 5.1
        ;; sadly, but it's important for 5.2+ and can be done manually in 5.1

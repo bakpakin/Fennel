@@ -2,6 +2,7 @@
 
 ## 0.5.0 / ???
 
+* Fix a bug where global mangling would break when used with at environment.
 * The Fennel compiler is now self-hosted and written entirely in Fennel.
 * Fix a bug where top-level expressions in `include` would get skipped.
 

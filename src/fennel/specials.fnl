@@ -851,14 +851,14 @@ Method name doesn't have to be known at compile-time; if it is, use
 (fn make-searcher [options]
   "This will allow regular `require` to work with Fennel:
 table.insert(package.loaders, fennel.searcher)"
-  (fn [module-name]
-    (let [opts (utils.copy utils.root.options)
-          filename (search-module module-name)]
-      (each [k v (pairs (or options {}))]
-        (tset opts k v))
-      (if filename
-          (fn [mod-name]
-            (utils.fennel-module.dofile filename opts mod-name))))))
+  (let [opts (utils.copy utils.root.options)]
+    (each [k v (pairs (or options {}))]
+      (tset opts k v))
+    (fn [module-name]
+      (let [filename (search-module module-name)]
+        (if filename
+            (fn [mod-name]
+              (utils.fennel-module.dofile filename opts mod-name)))))))
 
 (fn macro-globals [env globals]
   (let [allowed (current-global-names env)]

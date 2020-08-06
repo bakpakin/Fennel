@@ -285,10 +285,6 @@ other parameters that can be set via
 See the [documentation on the readline init file](https://www.gnu.org/software/bash/manual/html_node/Readline-Init-File.html)
 for the full set of options and a sample inputrc.
 
-As of Fennel 0.4.0 and readline.lua 2.6, you can make use of a [conditional
-directive your `inputrc`](https://www.gnu.org/software/bash/manual/html_node/Conditional-Init-Constructs.html#Conditional-Init-Constructs)
-for fennel-only configuration options.
-
 The following example adds these behaviors:
 
   * Blink on a matching parenthesis when entering `)`. Useful in a Lisp REPL, where
@@ -297,14 +293,17 @@ The following example adds these behaviors:
   * When tab-completing on a term with more than one possible match, display all
     candidates immediately instead of ringing the bell + requiring a second `<tab>`
 
+Create a `~/.inputrc` file with the following contents:
+
 ```inputrc
-# requires Fennel >= 0.4.0 and readline.lua >= 2.6
-$if fennel
-  set enable-bracketed-paste on
-  set blink-matching-paren on
-  set show-all-if-ambiguous on
-$endif
+set enable-bracketed-paste on
+set blink-matching-paren on
+set show-all-if-ambiguous on
 ```
+
+As of Fennel 0.4.0 and readline.lua 2.6, you can make use of a [conditional
+directive your `inputrc`](https://www.gnu.org/software/bash/manual/html_node/Conditional-Init-Constructs.html#Conditional-Init-Constructs)
+if you would like certain settings to only apply to Fennel.
 
 ## Making games with Fennel
 

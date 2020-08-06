@@ -392,11 +392,11 @@ whatever entry was at that key before.
 
 ## Error handling
 
-Error handling in Lua has two forms. Functions in Lua can return any
-number of values, and most functions which can fail will indicate
-failure by using two return values: `nil` followed by a failure
-message string. You can interact with this style of function in Fennel
-by destructuring with parens instead of square brackets:
+Errors in Lua have two forms they can take. Functions in Lua can
+return any number of values, and most functions which can fail will
+indicate failure by using two return values: `nil` followed by a
+failure message string. You can interact with this style of function
+in Fennel by destructuring with parens instead of square brackets:
 
 ```fennel
 (let [(f msg) (io.open "file" "rb")]
@@ -408,7 +408,7 @@ by destructuring with parens instead of square brackets:
       (print (.. "Could not open file: " msg))))
 ```
 
-You can write your own function which returns multiple values with `values`:
+You can write your own function which returns multiple values with `values`.
 
 ```fennel
 (fn use-file [filename]
@@ -417,11 +417,18 @@ You can write your own function which returns multiple values with `values`:
       (values nil (.. "Invalid filename: " filename))))
 ```
 
-If you detect a serious error that needs to be signaled beyond just
-the calling function, you can use `error` for that. This will
+**Note**: while errors are the most reason to return multiple values
+from a function, it can be used in other cases as well. This is one of
+the most complex things about Lua and a full discussion is out of
+scope for this tutorial, but it's [covered well elsewhere](https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/).
+
+The problem with this type of error is that it does not compose well;
+the error status must be propagated all the way along the call chain
+from inner to outer. To address this, you can use `error`. This will
 terminate the whole process unless it's within a protected call,
-similar to the way throwing an exception works in many languages. You
-can make a protected call with `pcall`:
+similar to the way in other languages where throwing an exception will
+stop the program unless it is within a try/catch. You can make a
+protected call with `pcall`:
 
 ```fennel
 (let [(ok? val-or-msg) (pcall potentially-disastrous-call filename)]
@@ -585,7 +592,7 @@ name, replace the slashes with dots, and remove the extension, then pass
 that to `require`. For instance, a file called `lib/ui/menu.lua` would be
 read when loading the module `lib.ui.menu`.
 
-Out of the box `require` doesn't work with Fennel files, but you can
+Out of the box `require` only works with Lua files, not Fennel, but you can
 add an entry to Lua's `package.searchers` (`package.loaders` in Lua 5.1)
 to support it:
 

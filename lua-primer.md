@@ -1,18 +1,48 @@
 # Lua Primer
 
-While you're learning, it's a good idea to keep the
-[Lua reference manual][1] open in a tab to refer to; it is
-indispensable. However, if you want the short version, here are the
-most important parts of Lua you'll need to get started. This is meant
-to give a very brief overview and let you know where in the manual to
-look for further details, not to teach Lua.
+Once you've finished reading the tutorial, you may be wondering about
+the relationship between Fennel and Lua. If you have never programmed
+in Lua before, don't fear! It is one of the simplest programming
+languages ever. It's possible to learn Fennel without writing any Lua
+code, but for certain concepts there's no substitute for the Lua
+documentation.
 
-Note that this is a complete list of all globals in standard Lua,
-though it doesn't explain all the functions inside every top-level
-module. Other Lua runtimes or embedded contexts usually introduce
-things that aren't covered here.
+The book Programming in Lua is a great introduction.
+[The first edition][6] is available for free online and is still
+relevant. However, if you have programmed before in other languages,
+you might benefit by focusing on specific areas where Lua is
+substantially different.
 
-## Important functions
+Lua's types include:
+
+* [nil][7]: represents nothing, treated like false in conditionals
+* [booleans][8]: true and false
+* [numbers][9]: double-precision floating point only until integers added in 5.3
+* [strings][10]: immutable, may contain arbitrary binary data
+* [tables][11]: the only data structure
+* [coroutines][12]: a mechanism for pre-emptive multitasking
+* [userdata][13]: representing types that come from C code
+
+Of these, tables are by far the most complex as well as being the most
+different from what you may be used to in other languages. The most
+important consideration is that tables are used for both sequential
+data (aka lists, vectors, or arrays) as well as associative data (aka
+maps, dictionaries, or hashes). The same table can be used in both
+roles; whether a table is sequential or associative is not an inherent
+property of the table itself but determined by a given piece of code
+interacts with the table. Iterating over a table with `ipairs` will
+treat it as an array, while `pairs` will treat it as an unordered
+key/value map.
+
+The [Lua reference manual][1] covers the entire language (including
+details of newer versions) in a more terse form which you may find
+more convenient when looking for specific things. The rest of this
+document provides a very brief overview of the standard library.
+
+Other Lua runtimes or embedded contexts usually introduce things that
+aren't covered here.
+
+## Important top-level functions
 
 * `tonumber`: converts its string argument to a number; takes optional base
 * `tostring`: converts its argument to a string
@@ -152,3 +182,11 @@ These are used for loading Lua code. The `load*` functions return a
 [3]: http://leafo.net/guides/setfenv-in-lua52-and-above.html
 [4]: https://www.lua.org/pil/13.html
 [5]: http://leafo.net/posts/itchio-and-coroutines.html
+[6]: https://www.lua.org/pil/contents.html
+[7]: https://www.lua.org/pil/2.1.html
+[8]: https://www.lua.org/pil/2.2.html
+[9]: https://www.lua.org/pil/2.3.html
+[10]: https://www.lua.org/pil/2.4.html
+[11]: https://www.lua.org/pil/11.html
+[12]: https://www.lua.org/pil/9.1.html
+[13]: https://www.lua.org/pil/28.html

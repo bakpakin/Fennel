@@ -291,13 +291,15 @@ and lacking args will be nil, use lambda for arity-checked functions."))
 (fn SPECIALS.global [ast scope parent]
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:forceglobal true
-                                                              :nomulti true}))
+                                                              :nomulti true})
+  nil)
 
 (doc-special "global" ["name" "val"] "Set name as a global with val.")
 
 (fn SPECIALS.set [ast scope parent]
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
-  (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:noundef true}))
+  (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:noundef true})
+  nil)
 
 (doc-special
  "set" ["name" "val"]
@@ -305,13 +307,16 @@ and lacking args will be nil, use lambda for arity-checked functions."))
 
 (fn set-forcibly!* [ast scope parent]
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
-  (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:forceset true}))
+  (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:forceset true})
+  nil)
+
 (tset SPECIALS :set-forcibly! set-forcibly!*)
 
 (fn local* [ast scope parent]
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:declaration true
-                                                              :nomulti true}))
+                                                              :nomulti true})
+  nil)
 (tset SPECIALS "local" local*)
 
 (doc-special "local" ["name" "val"] "Introduce new top-level immutable local.")
@@ -320,7 +325,8 @@ and lacking args will be nil, use lambda for arity-checked functions."))
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:declaration true
                                                               :isvar true
-                                                              :nomulti true}))
+                                                              :nomulti true})
+  nil)
 
 (doc-special "var" ["name" "val"] "Introduce new mutable local.")
 

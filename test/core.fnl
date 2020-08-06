@@ -212,7 +212,8 @@
                "(let [x (if 3 4 5)] x)" 4
                "(select \"#\" (if (= 1 (- 3 2)) (values 1 2 3 4 5) :onevalue))" 5
                (.. "(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) "
-                   "(xyz (if (and c1 c2) true false) 52))") 52}]
+                   "(xyz (if (and c1 c2) true false) 52))") 52
+               "(let [t {} _ (set t.field :let-side)] t.field)" :let-side}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

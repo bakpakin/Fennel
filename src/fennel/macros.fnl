@@ -130,7 +130,8 @@ that argument name begins with ?."
         has-docstring? (and (> (# args) docstring-position)
                             (= :string (type (. args docstring-position))))
         arity-check-position (- 4 (if has-internal-name? 0 1)
-                                (if has-docstring? 0 1))]
+                                (if has-docstring? 0 1))
+        empty-body? (< (# args) arity-check-position)]
     (fn check! [a]
       (if (table? a)
           (each [_ a (pairs a)]
@@ -144,9 +145,11 @@ that argument name begins with ?."
                                     :format ,(tostring a)
                                     ,(or a.filename "unknown")
                                     ,(or a.line "?"))))))
-    (assert (> (length args) 1) "expected body expression")
+    (assert (= :table (type arglist)) "expected arg list")
     (each [_ a (ipairs arglist)]
       (check! a))
+    (if empty-body?
+        (table.insert args (sym :nil)))
     `(fn ,(unpack args))))
 
 (fn macro [name ...]

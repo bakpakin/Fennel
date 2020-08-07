@@ -30,7 +30,7 @@
   "(global good (fn [] nil)) (good) (BAD)" "BAD"
   "(global let 1)" "overshadowed"
   "(hey)" "unknown global"
-  "(lambda [x])" "expected body"
+  "(lambda x)" "expected arg list"
   "(let [:x 1] 1)" "unable to bind"
   "(let [[a & c d] [1 2]] c)" "rest argument before last parameter"
   "(let [b 9\nq (.)] q)" "2: expected table argument"

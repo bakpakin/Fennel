@@ -1,7 +1,7 @@
 # What to change on versioned releases of Fennel
 
-This document contains a checklist for releasing a Fennel version to luarocks. This document
-is intended for Fennel maintainers.
+This document contains a checklist for releasing a new Fennel
+version. This document is intended for Fennel maintainers.
 
 1. Update and date changelog.md; update version number in fennel.lua.
 2. Create rockspec by copying an old rockspec. Make sure luarocks version

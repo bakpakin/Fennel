@@ -24,6 +24,10 @@ usually accept these fields:
 * `env`: an environment table in which to run the code; see the Lua manual.
 * `unfriendly`: disable friendly compiler/parser error messages.
 
+Note that only the `fennel` module is part of the public API. The
+other modules (`fennel.utils`, `fennel.compiler`, etc) should be
+considered compiler internals subject to change.
+
 ## Start a configurable repl
 
 ```lua

@@ -69,6 +69,8 @@
                   (string.match e \"Missing argument x\"))" "Missing argument x"
                ;; lambda arity checks skip argument names starting with ?
                "(let [(ok val) (pcall (λ [?x] (+ (or ?x 1) 8)))] (and ok val))" 9
+               ;; lambda with no body returns nil
+               "(if (= nil ((lambda [a]) 1)) :lambda-works)" :lambda-works
                ;; closures can set vars they close over
                "(var a 11) (let [f (fn [] (set a (+ a 2)))] (f) (f) a)" 15
                ;; nested functions

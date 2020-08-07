@@ -2,10 +2,11 @@
 
 ## 0.5.0 / ???
 
-* Fix a bug where global mangling would break when used with at environment.
+* Fix a bug where lambdas with no body would return true instead of nil.
+* Fix a bug where global mangling would break when used with an environment.
 * Fix a bug where globals tracking would lose track of allowed list.
-* The Fennel compiler is now self-hosted and written entirely in Fennel.
 * Fix a bug where top-level expressions in `include` would get skipped.
+* The Fennel compiler is now self-hosted and written entirely in Fennel!
 
 ## 0.4.2 / 2020-07-11
 

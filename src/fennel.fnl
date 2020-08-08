@@ -85,7 +85,7 @@
 
             :eval eval
             :dofile dofile*
-            :version "0.5.0-dev"
+            :version "0.5.0"
 
             :repl repl})
 

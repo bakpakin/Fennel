@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.5.0 / ???
+## 0.5.0 / 2020-08-08
 
 * Fix a bug where lambdas with no body would return true instead of nil.
 * Fix a bug where global mangling would break when used with an environment.

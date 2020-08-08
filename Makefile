@@ -86,6 +86,7 @@ release: fennel fennel-bin fennel-bin.exe
 	gpg -ab downloads/fennel-$(VERSION)-x86_64
 	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
 	echo TODO: compile and upload fennel-$(VERSION)-arm32
+	echo TODO: upload release tarball to fennel-lang.org with fennel/fennel.lua
 	echo make fennel-bin STATIC_LUA_LIB=/usr/lib/arm-linux-gnueabihf/liblua5.3.a
 	rsync -r downloads/* fennel-lang.org:fennel-lang.org/downloads/
 

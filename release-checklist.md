@@ -18,3 +18,6 @@ This document is intended for Fennel maintainers.
 12. Announce it on the mailing list. Fennel is now released!
 13. Bump the version in fennel.lua to the next version with a "-dev" suffix; add changelog stub.
 
+## ARM build:
+
+    STATIC_LUA_LIB=/usr/lib/arm-linux-gnueabihf/liblua5.3.a make fennel-bin

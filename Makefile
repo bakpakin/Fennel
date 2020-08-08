@@ -76,8 +76,6 @@ install: fennel fennel.lua fennelview.lua
 release: fennel fennel-bin fennel-bin.exe
 	grep $(VERSION) fennel.lua
 	grep $(VERSION) changelog.md
-	echo Good to release version $(VERSION)?
-	shell $(read)
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel-bin downloads/fennel-$(VERSION)-x86_64

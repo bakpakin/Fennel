@@ -1,5 +1,6 @@
 /fennel
 /fennel.lua
+/downloads
 
 # Used to compile the Windows build
 /lua-5.3.5/

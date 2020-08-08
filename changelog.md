@@ -6,6 +6,7 @@
 * Fix a bug where global mangling would break when used with an environment.
 * Fix a bug where globals tracking would lose track of allowed list.
 * Fix a bug where top-level expressions in `include` would get skipped.
+* The "fennelfriend" module is now incorporated into the compiler, not separate.
 * The Fennel compiler is now self-hosted and written entirely in Fennel!
 
 ## 0.4.2 / 2020-07-11

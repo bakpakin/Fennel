@@ -73,19 +73,32 @@ install: fennel fennel.lua fennelview.lua
 	mkdir -p $(LUADIR) && \
 		for f in fennel.lua fennelview.lua; do cp $$f $(LUADIR)/; done
 
-release: fennel fennel-bin fennel-bin.exe
-	grep $(VERSION) fennel.lua
-	grep $(VERSION) changelog.md
+# Release-related tasks:
+
+ARM_HOST=deck3
+
+fennel-arm32:
+	ssh $(ARM_HOST) "cd src/fennel && git fetch && git checkout $(VERSION) && \
+    STATIC_LUA_LIB=/usr/lib/arm-linux-gnueabihf/liblua5.3.a make fennel-bin"
+	scp $(ARM_HOST):src/fennel/fennel-bin $@
+
+fennel.tar.gz: README.md LICENSE fennel fennel.lua fennelview.lua $(SRC)
+	mkdir fennel-$(VERSION)
+	cp -r $^ fennel-$(VERSION)
+	tar czf $@ fennel-$(VERSION)
+
+release: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
 	mv fennel-bin.exe downloads/fennel-$(VERSION)-windows32.exe
+	mv fennel-arm32 downloads/fennel-$(VERSION)-arm32
+	mv fennel.tar.gz downloads/fennel-$(VERSION).tar.gz
 	gpg -ab downloads/fennel-$(VERSION)
 	gpg -ab downloads/fennel-$(VERSION)-x86_64
 	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
-	echo TODO: compile and upload fennel-$(VERSION)-arm32
-	echo TODO: upload release tarball to fennel-lang.org with fennel/fennel.lua
-	echo make fennel-bin STATIC_LUA_LIB=/usr/lib/arm-linux-gnueabihf/liblua5.3.a
+	gpg -ab downloads/fennel-$(VERSION)-arm32
+	gpg -ab downloads/fennel-$(VERSION).tar.gz
 	rsync -r downloads/* fennel-lang.org:fennel-lang.org/downloads/
 
 .PHONY: build test testall count ci clean coverage install release

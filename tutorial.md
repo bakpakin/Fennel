@@ -573,7 +573,7 @@ code just the same as they would be from Lua.
 
 ## Modules and multiple files
 
-You can use the `require` function to load code from Lua files.
+You can use the `require` function to load code from other files.
 
 ```fennel
 (let [lume (require :lume)
@@ -582,32 +582,27 @@ You can use the `require` function to load code from Lua files.
   (lume.map tbl (partial plus 2))) ; -> [54 101 414 656]
 ```
 
-Modules in Lua are simply tables which contain functions and other values.
-The last value in a Fennel file will be used as the value of the
-module. (Technically this can be any value, not just a table.)
+Modules in Fennel and Lua are simply tables which contain functions
+and other values.  The last value in a Fennel file will be used as the
+value of the whole module. Technically this can be any value, not just a
+table, but using a table is best.
 
-By default, modules are looked up by looking thru all the directories on
-`package.path`. To require a module that's in a subdirectory, take the file
-name, replace the slashes with dots, and remove the extension, then pass
-that to `require`. For instance, a file called `lib/ui/menu.lua` would be
-read when loading the module `lib.ui.menu`.
+To require a module that's in a subdirectory, take the file name,
+replace the slashes with dots, and remove the extension, then pass
+that to `require`. For instance, a file called `lib/ui/menu.lua` would
+be read when loading the module `lib.ui.menu`.
 
-Out of the box `require` only works with Lua files, not Fennel, but you can
-add an entry to Lua's `package.searchers` (`package.loaders` in Lua 5.1)
+When you run your program with the `fennel` command, you can call
+`require` to load Fennel or Lua modules. But in other contexts (such
+as compiling to Lua and then using the `lua` command, or in programs
+that embed Lua) it will not know about Fennel modules. You need to add
+an entry to Lua's `package.searchers` (`package.loaders` in Lua 5.1)
 to support it:
 
 ```lua
 local fennel = require "fennel"
 table.insert(package.loaders or package.searchers, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
-```
-
-Or if you're doing it from Fennel code:
-
-```fennel
-(local fennel (require :fennel))
-(table.insert (or package.loaders package.searchers) fennel.searcher)
-(local mylib (require :mylib))
 ```
 
 Once you add this, `require` will work on Fennel files just like it

@@ -65,7 +65,7 @@ The ast arg should be unmodified so that its first element is the form called."
 (fn global-mangling [str]
   "Mangler for global symbols. Does not protect against collisions,
 but makes them unlikely. This is the mangling that is exposed to to the world."
-  (if (utils.is-valid-lua-identifier str)
+  (if (utils.valid-lua-identifier? str)
       str
       (.. "__fnl_global__"
           (: str :gsub "[^%w]" #(: "_%02x" :format (: $ "byte"))))))
@@ -127,7 +127,7 @@ these new manglings instead of the current manglings."
   "Combine parts of a symbol."
   (var ret (or (. scope.manglings (. parts 1)) (global-mangling (. parts 1))))
   (for [i 2 (# parts) 1]
-    (if (utils.is-valid-lua-identifier (. parts i))
+    (if (utils.valid-lua-identifier? (. parts i))
         (if (and parts.multi-sym-method-call (= i (# parts)))
             (set ret (.. ret ":" (. parts i)))
             (set ret (.. ret "." (. parts i))))
@@ -518,7 +518,7 @@ which we have to do if we don't know."
             (when (or (not= (type k) "number")
                       (not= (math.floor k) k)
                       (< k 1) (> k (# ast)))
-              (if (and (= (type k) "string") (utils.is-valid-lua-identifier k))
+              (if (and (= (type k) "string") (utils.valid-lua-identifier? k))
                   [k k]
                   (let [[compiled] (compile1 k scope parent {:nval 1})
                         kstr (.. "[" (tostring compiled) "]")]

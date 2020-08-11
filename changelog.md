@@ -2,6 +2,9 @@
 
 ## 0.5.1 / ???
 
+* Fix a bug where method calls would early-evaluate their receiver.
+* Fix a bug where multi-arity comparisons would early-evaluate their arguments.
+
 ## 0.5.0 / 2020-08-08
 
 * Fix a bug where lambdas with no body would return true instead of nil.

@@ -136,15 +136,15 @@ that argument name begins with ?."
       (if (table? a)
           (each [_ a (pairs a)]
             (check! a))
-          (and (not (: (tostring a) :match "^?"))
+          (and (not (string.match (tostring a) "^?"))
                (not= (tostring a) "&")
                (not= (tostring a) "..."))
           (table.insert args arity-check-position
                         `(assert (not= nil ,a)
-                                 (: "Missing argument %s on %s:%s"
-                                    :format ,(tostring a)
-                                    ,(or a.filename "unknown")
-                                    ,(or a.line "?"))))))
+                                 (string.format "Missing argument %s on %s:%s"
+                                                ,(tostring a)
+                                                ,(or a.filename "unknown")
+                                                ,(or a.line "?"))))))
     (assert (= :table (type arglist)) "expected arg list")
     (each [_ a (ipairs arglist)]
       (check! a))
@@ -222,7 +222,7 @@ introduce for the duration of the body if it does match."
         (sym? pattern)
         (let [wildcard? (= (tostring pattern) "_")]
           (if (not wildcard?) (tset unifications (tostring pattern) val))
-          (values (if (or wildcard? (: (tostring pattern) :find "^?"))
+          (values (if (or wildcard? (string.find (tostring pattern) "^?"))
                       true `(not= ,(sym :nil) ,val))
                   [pattern val]))
         ;; guard clause

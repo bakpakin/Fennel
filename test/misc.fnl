@@ -70,11 +70,20 @@
     (l.assertNotNil broken-code "code should compile")
     (l.assertError broken-code "code should fail at runtime")))
 
+(fn test-short-circuit []
+  (let [method-code "(var shorted? false)
+              (fn set-shorted! [] (set shorted? true) {:f! (fn [])})
+              (and false (: (set-shorted!) :f!))
+              shorted?"
+        comparator-code "(and false (< 1 (error :nein!) 3))"]
+    (l.assertFalse (fennel.eval method-code))
+    (l.assertFalse (fennel.eval comparator-code))))
+
 {: test-empty-values
  : test-env-iteration
  : test-global-mangling
  : test-include
  : test-leak
  : test-runtime-quote
- : test-traceback}
-
+ : test-traceback
+ : test-short-circuit}

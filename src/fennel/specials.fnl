@@ -271,7 +271,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
           (for [i 3 len 1]
             (var index (. ast i))
             (if (and (= (type index) "string")
-                     (utils.is-valid-lua-identifier index))
+                     (utils.valid-lua-identifier? index))
                 (table.insert indices (.. "." index))
                 (do
                   (set index (. (compiler.compile1 index scope parent {:nval 1})
@@ -570,43 +570,51 @@ order, but can be used with any iterator.")
  "Numeric loop construct.
 Evaluates body once for each value between start and stop (inclusive).")
 
-(fn once [val ast scope parent]
-  (if (or (= val.type "statement") (= val.type "expression"))
-      (let [s (compiler.gensym scope)]
-        (compiler.emit parent (: "local %s = %s" :format s (tostring val)) ast)
-        (utils.expr s "sym"))
-      val))
+(fn native-method-call [ast scope parent target args]
+  "Prefer native Lua method calls when method name is a valid Lua identifier."
+  (let [[_ _ method-string] ast
+        call-string (if (or (= target.type :literal) (= target.type :expression))
+                        "(%s):%s(%s)"
+                        "%s:%s(%s)")]
+    (utils.expr (string.format call-string (tostring target) method-string
+                               (table.concat args ", ")) "statement")))
+
+(fn nonnative-method-call [ast scope parent target args]
+  "When we don't have to protect against double-evaluation, it's not so bad."
+  (let [method-string (tostring (. (compiler.compile1 (. ast 3) scope parent
+                                                      {:nval 1}) 1))]
+    (table.insert args (tostring target))
+    (utils.expr (string.format "%s[%s](%s)" (tostring target) method-string
+                               (tostring target)
+                               (table.concat args ", ")) "statement")))
+
+(fn double-eval-protected-method-call [ast scope parent target args]
+  "When double-evaluation is a concern, we have to wrap an IIFE."
+  (let [method-string (tostring (. (compiler.compile1 (. ast 3) scope parent
+                                                      {:nval 1}) 1))
+        call "(function(tgt, m, ...) return tgt[m](tgt, ...) end)(%s, %s)"]
+    (table.insert args method-string)
+    (utils.expr (string.format call (tostring target) (table.concat args ", "))
+                "statement")))
 
 (fn method-call [ast scope parent]
-  (compiler.assert (>= (# ast) 3) "expected at least 2 arguments" ast)
-  ;; Compile object
-  (var objectexpr (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))
-  (var (methodident methodstring) false)
-  (if (and (= (type (. ast 3)) "string") (utils.is-valid-lua-identifier (. ast 3)))
-      (do
-        (set methodident true)
-        (set methodstring (. ast 3)))
-      (do
-        (set methodstring (tostring (. (compiler.compile1 (. ast 3) scope parent
-                                                          {:nval 1}) 1)))
-        (set objectexpr (once objectexpr (. ast 2) scope parent))))
-  (let [args []] ; compile arguments
-    (for [i 4 (# ast) 1]
+  (compiler.assert (< 2 (# ast)) "expected at least 2 arguments" ast)
+  (let [[target] (compiler.compile1 (. ast 2) scope parent {:nval 1})
+        args []]
+    (for [i 4 (# ast)]
       (let [subexprs (compiler.compile1 (. ast i) scope parent
-                                        {:nval (if (not= i (# ast)) 1 nil)})]
+                                        {:nval (if (not= i (# ast)) 1)})]
         (utils.map subexprs tostring args)))
-    (var fstring nil)
-    (if (not methodident)
-        (do ; make object the first argument
-          (table.insert args 1 (tostring objectexpr))
-          (set fstring (if (= objectexpr.type "sym")
-                           "%s[%s](%s)"
-                           "(%s)[%s](%s)")))
-        (or (= objectexpr.type "literal") (= objectexpr.type "expression"))
-        (set fstring "(%s):%s(%s)")
-        (set fstring "%s:%s(%s)"))
-    (utils.expr (: fstring :format (tostring objectexpr) methodstring
-                   (table.concat args ", ")) "statement")))
+    (if (and (= (type (. ast 3)) :string) (utils.valid-lua-identifier? (. ast 3)))
+        (native-method-call ast scope parent target args)
+        (= target.type :sym)
+        (nonnative-method-call ast scope parent target args)
+        ;; When the target is an expression, we can't use the naive
+        ;; nonnative-method-call approach, because it will cause the target
+        ;; to be evaluated twice. This is fine if it's a symbol but if it's
+        ;; the result of a function call, that function could have side-effects.
+        ;; See test-short-circuit in test/misc.fnl for an example of the problem.
+        (double-eval-protected-method-call ast scope parent target args))))
 
 (tset SPECIALS ":" method-call)
 
@@ -723,30 +731,44 @@ Method name doesn't have to be known at compile-time; if it is, use
 (doc-special ".." ["a" "b" "..."]
             "String concatenation operator; works the same as Lua but accepts more arguments.")
 
-(fn define-comparator-special [name realop chain-op]
-  (let [op (or realop name)]
+(fn native-comparator [op [_ lhs-ast rhs-ast] scope parent]
+  "Naively compile a binary comparison to Lua."
+  (let [[lhs] (compiler.compile1 lhs-ast scope parent {:nval 1})
+        [rhs] (compiler.compile1 rhs-ast scope parent {:nval 1})]
+    (string.format "(%s %s %s)" (tostring lhs) op (tostring rhs))))
+
+(fn double-eval-protected-comparator [op chain-op ast scope parent]
+  "Compile a multi-arity comparison to a binary Lua comparison."
+  (let [arglist [] comparisons [] vals []
+        chain (string.format " %s " (or chain-op "and"))]
+    (for [i 2 (# ast)]
+      (table.insert arglist (tostring (compiler.gensym scope)))
+      (table.insert vals (tostring (. (compiler.compile1 (. ast i) scope parent
+                                                         {:nval 1}) 1))))
+    (for [i 1 (- (# arglist) 1)]
+      (table.insert comparisons (string.format "(%s %s %s)"
+                                               (. arglist i) op
+                                               (. arglist (+ i 1)))))
+    ;; The function call here introduces some overhead, but it is the only way
+    ;; to compile this safely while preventing both double-evaluation of
+    ;; side-effecting values and early evaluation of values which should never
+    ;; happen in the case of a short-circuited call. See test-short-circuit in
+    ;; test/misc.fnl for an example of the problem.
+    (string.format "(function(%s) return %s end)(%s)"
+                   (table.concat arglist ",")
+                   (table.concat comparisons chain)
+                   (table.concat vals ","))))
+
+(fn define-comparator-special [name lua-op chain-op]
+  (let [op (or lua-op name)]
     (fn opfn [ast scope parent]
-      (local len (# ast))
-      (compiler.assert (> len 2) "expected at least two arguments" ast)
-      (local lhs (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))
-      (var lastval (. (compiler.compile1 (. ast 3) scope parent {:nval 1}) 1))
-      (when (> len 3) ; avoid double-eval by adding locals for side-effects
-        (set lastval (once lastval (. ast 3) scope parent)))
-      (var out (: "(%s %s %s)" :format (tostring lhs) op (tostring lastval)))
-      (when (> len 3)
-        (for [i 4 len] ; variadic comparison
-          (let [nextval (once (. (compiler.compile1 (. ast i)
-                                                    scope parent
-                                                    {:nval 1}) 1)
-                              (. ast i) scope parent)]
-            (set out (: (.. out " %s (%s %s %s)") :format (or chain-op "and")
-                        (tostring lastval) op (tostring nextval)))
-            (set lastval nextval)))
-        (set out (.. "(" out ")")))
-      out)
+      (compiler.assert (< 2 (# ast)) "expected at least two arguments" ast)
+      (if (= 3 (# ast))
+          (native-comparator op ast scope parent)
+          (double-eval-protected-comparator op chain-op ast scope parent)))
     (tset SPECIALS name opfn))
   (doc-special name ["a" "b" "..."]
-     "Comparison operator; works the same as Lua but accepts more arguments."))
+               "Comparison operator; works the same as Lua but accepts more arguments."))
 
 (define-comparator-special ">")
 (define-comparator-special "<")

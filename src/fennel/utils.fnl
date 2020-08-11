@@ -206,7 +206,7 @@ When f returns a truthy value, recursively walks the children."
 (each [i v (ipairs lua-keywords)]
   (tset lua-keywords v i))
 
-(fn is-valid-lua-identifier [str]
+(fn valid-lua-identifier? [str]
   (and (str:match "^[%a_][%w_]*$") (not (. lua-keywords str))))
 
 (local propagated-options [:allowedGlobals :indent :correlate :useMetadata :env])
@@ -233,7 +233,7 @@ has options calls down into compile."
  : is-expr : is-list : is-multi-sym : is-sequence : is-sym : is-table : is-varg
 
  ;; other
- : is-valid-lua-identifier : lua-keywords
+ : valid-lua-identifier? : lua-keywords
  : propagate-options : root : debug-on
  :path (table.concat (doto ["./?.fnl" "./?/init.fnl"]
                        (table.insert (getenv "FENNEL_PATH"))) ";")}

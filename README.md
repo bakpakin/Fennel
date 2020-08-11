@@ -53,7 +53,7 @@ haven't been released, and makes contributing to Fennel easier.
 
 1. `cd` to a directory in which you want to download Fennel, such as
    `~/src`
-2. Run `git clone https://github.com/bakpakin/Fennel`
+2. Run `git clone https://git.sr.ht/~technomancy/fennel`
 3. Run `cd Fennel`
 4. Run `make fennel` to create a standalone script called `fennel`
 5. Copy or link the `fennel` script to a directory on your `$PATH`, such as `/usr/local/bin`
@@ -105,7 +105,7 @@ Lua is much more readily-available than it is for Fennel.
 * Join the `#fennel` chat [thru IRC on Freenode][9] or [on Matrix][11]
 * The [mailing list][5] has slower-paced discussion and announcements
 * You can browse and edit [the Wiki][7]
-* Build: [![CircleCI](https://circleci.com/gh/bakpakin/Fennel.svg?style=svg)][8]
+* [Build][8]
 
 ## License
 
@@ -119,6 +119,6 @@ Released under the [MIT license](LICENSE).
 [4]: http://luajit.org/ext_ffi_tutorial.html
 [5]: https://lists.sr.ht/%7Etechnomancy/fennel
 [7]: https://github.com/bakpakin/Fennel/wiki
-[8]: https://circleci.com/gh/bakpakin/Fennel
+[8]: https://builds.sr.ht/~technomancy/fennel
 [9]: https://webchat.freenode.net/
 [11]: https://matrix.to/#/!rnpLWzzTijEUDhhtjW:matrix.org?via=matrix.org

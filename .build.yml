@@ -1,0 +1,15 @@
+image: debian/testing
+packages:
+  - lua5.1
+  - lua5.2
+  - lua5.3
+  - lua5.4
+  - luajit
+  - make
+  - cloc
+  - git
+tasks:
+- build: |
+    cd fennel
+    make ci
+    git diff --quiet

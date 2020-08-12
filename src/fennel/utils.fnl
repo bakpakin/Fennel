@@ -49,6 +49,12 @@ Optionally takes a target table to insert the mapped values into."
       (tset to k v))
     to))
 
+(fn member? [x tbl n]
+  (match (. tbl (or n 1))
+    x true
+    nil false
+    _ (member? x tbl (+ (or n 1) 1))))
+
 (fn allpairs [tbl]
   "Like pairs, but if the table has an __index metamethod, it will recurisvely
 traverse upwards, skipping duplicates, to iterate all inherited properties"
@@ -74,7 +80,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 
 (var nil-sym nil) ; haven't defined sym yet; create this later
 
-(fn list-to-string [self tostring2]
+(fn list->string [self tostring2]
   (var (safe max) (values [] 0))
   (each [k (pairs self)]
     (when (and (= (type k) "number") (> k max))
@@ -83,25 +89,25 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
     (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
   (.. "(" (table.concat (map safe (or tostring2 tostring)) " " 1 max) ")"))
 
-(local SYMBOL-MT {1 "SYMBOL" :__fennelview deref :__tostring deref})
-(local EXPR-MT {1 "EXPR" :__tostring deref})
-(local LIST-MT {1 "LIST" :__fennelview list-to-string :__tostring list-to-string})
-(local SEQUENCE-MARKER ["SEQUENCE"])
-(local VARARG (setmetatable ["..."]
+(local symbol-mt {1 "SYMBOL" :__fennelview deref :__tostring deref})
+(local expr-mt {1 "EXPR" :__tostring deref})
+(local list-mt {1 "LIST" :__fennelview list->string :__tostring list->string})
+(local sequence-marker ["SEQUENCE"])
+(local vararg (setmetatable ["..."]
                             {1 "VARARG" :__fennelview deref :__tostring deref}))
 
 (local getenv (or (and os os.getenv) (fn [] nil)))
 
-(fn debug-on [flag]
+(fn debug-on? [flag]
   (let [level (or (getenv "FENNEL_DEBUG") "")]
-    (or (= level "all") (: level "find" flag))))
+    (or (= level "all") (level:find flag))))
 
 (fn list [...]
   "Create a new list. Lists are a compile-time construct in Fennel; they are
 represented as tables with a special marker metatable. They only come from
 the parser, and they represent code which comes from reading a paren form;
 they are specifically not cons cells."
-  (setmetatable [...] LIST-MT))
+  (setmetatable [...] list-mt))
 
 (fn sym [str scope source]
   "Create a new symbol. Symbols are a compile-time construct in Fennel and are
@@ -111,7 +117,7 @@ file, line, etc that they came from."
     (each [k v (pairs (or source []))]
       (when (= (type k) "string")
         (tset s k v)))
-    (setmetatable s SYMBOL-MT)))
+    (setmetatable s symbol-mt)))
 
 (set nil-sym (sym "nil"))
 
@@ -123,7 +129,7 @@ except when certain macros need to look for binding forms, etc specifically."
   ;; the other types without giving up the ability to set source metadata
   ;; on a sequence, (which we need for error reporting) so embed a marker
   ;; value in the metatable instead.
-  (setmetatable [...] {:sequence SEQUENCE-MARKER}))
+  (setmetatable [...] {:sequence sequence-marker}))
 
 (fn expr [strcode etype]
   "Create a new expression. etype should be one of:
@@ -133,61 +139,60 @@ except when certain macros need to look for binding forms, etc specifically."
   :statement Same as expression, but is also a valid statement (function calls)
   :vargs varargs symbol
   :sym symbol reference"
-  (setmetatable {:type etype 1 strcode} EXPR-MT))
+  (setmetatable {:type etype 1 strcode} expr-mt))
 
-(fn varg [] VARARG)
+(fn varg [] vararg)
 
-;; TODO: rename these to expr?, varg?, etc once all callers are fennelized
-(fn is-expr [x]
+(fn expr? [x]
   "Checks if an object is an expression. Returns the object if it is."
-  (and (= (type x) "table") (= (getmetatable x) EXPR-MT) x))
+  (and (= (type x) "table") (= (getmetatable x) expr-mt) x))
 
-(fn is-varg [x]
+(fn varg? [x]
   "Checks if an object is the vararg symbol. Returns the object if is."
-  (and (= x VARARG) x))
+  (and (= x vararg) x))
 
-(fn is-list [x]
+(fn list? [x]
   "Checks if an object is a list. Returns the object if is."
-  (and (= (type x) "table") (= (getmetatable x) LIST-MT) x))
+  (and (= (type x) "table") (= (getmetatable x) list-mt) x))
 
-(fn is-sym [x]
+(fn sym? [x]
   "Checks if an object is a symbol. Returns the object if it is."
-  (and (= (type x) "table") (= (getmetatable x) SYMBOL-MT) x))
+  (and (= (type x) "table") (= (getmetatable x) symbol-mt) x))
 
-(fn is-table [x]
+(fn table? [x]
   "Checks if an object any kind of table, EXCEPT list or symbol or vararg."
   (and (= (type x) "table")
-       (not= x VARARG)
-       (not= (getmetatable x) LIST-MT)
-       (not= (getmetatable x) SYMBOL-MT)
+       (not= x vararg)
+       (not= (getmetatable x) list-mt)
+       (not= (getmetatable x) symbol-mt)
        x))
 
-(fn is-sequence [x]
+(fn sequence? [x]
   "Checks if an object is a sequence (created with a [] literal)"
   (let [mt (and (= (type x) "table") (getmetatable x))]
-    (and mt (= mt.sequence SEQUENCE-MARKER) x)))
+    (and mt (= mt.sequence sequence-marker) x)))
 
-(fn is-multi-sym [str]
+(fn multi-sym? [str]
   "A multi symbol is a symbol that is actually composed of two or more symbols
 using dot syntax. The main differences from normal symbols is that they can't
 be declared local, and they may have side effects on invocation (metatables)."
-  (if (is-sym str) (is-multi-sym (tostring str))
+  (if (sym? str) (multi-sym? (tostring str))
       (not= (type str) "string") false
       (let [parts []]
         (each [part (str:gmatch "[^%.%:]+[%.%:]?")]
-          (local last-char (: part "sub" (- 1)))
-          (when (= last-char ":")
-            (set parts.multi-sym-method-call true))
-          (if (or (= last-char ":") (= last-char "."))
-              (tset parts (+ (# parts) 1) (: part "sub" 1 (- 2)))
-              (tset parts (+ (# parts) 1) part)))
+          (let [last-char (part:sub (- 1))]
+            (when (= last-char ":")
+              (set parts.multi-sym-method-call true))
+            (if (or (= last-char ":") (= last-char "."))
+                (tset parts (+ (# parts) 1) (part:sub 1 (- 2)))
+                (tset parts (+ (# parts) 1) part))))
         (and (> (# parts) 0) (or (: str "match" "%.") (: str "match" ":"))
-             (not (: str "match" "%.%."))
-             (not= (: str "byte") (string.byte "."))
-             (not= (: str "byte" (- 1)) (string.byte "."))
+             (not (str:match "%.%."))
+             (not= (str:byte) (string.byte "."))
+             (not= (str:byte (- 1)) (string.byte "."))
              parts))))
 
-(fn is-quoted [symbol] symbol.quoted)
+(fn quoted? [symbol] symbol.quoted)
 
 (fn walk-tree [root f custom-iterator]
   "Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
@@ -200,8 +205,8 @@ When f returns a truthy value, recursively walks the children."
   root)
 
 (local lua-keywords ["and" "break" "do" "else" "elseif" "end" "false" "for"
-                    "function" "if" "in" "local" "nil" "not" "or" "repeat"
-                    "return" "then" "true" "until" "while"])
+                     "function" "if" "in" "local" "nil" "not" "or" "repeat"
+                     "return" "then" "true" "until" "while"])
 
 (each [i v (ipairs lua-keywords)]
   (tset lua-keywords v i))
@@ -226,14 +231,13 @@ has options calls down into compile."
          (values new-root.chunk new-root.scope new-root.options new-root.reset))))
 
 {;; general table functions
- : allpairs : stablepairs : copy : kvmap : map : walk-tree
+ : allpairs : stablepairs : copy : kvmap : map : walk-tree : member?
 
  ;; AST functions
- : list : sequence : sym : varg : deref : expr : is-quoted
- : is-expr : is-list : is-multi-sym : is-sequence : is-sym : is-table : is-varg
+ : list : sequence : sym : varg : deref : expr
+ : expr? : list? : multi-sym? : sequence? : sym? : table? : varg? : quoted?
 
  ;; other
  : valid-lua-identifier? : lua-keywords
- : propagate-options : root : debug-on
- :path (table.concat (doto ["./?.fnl" "./?/init.fnl"]
-                       (table.insert (getenv "FENNEL_PATH"))) ";")}
+ : propagate-options : root : debug-on?
+ :path (table.concat ["./?.fnl" "./?/init.fnl" (getenv "FENNEL_PATH")] ";")}

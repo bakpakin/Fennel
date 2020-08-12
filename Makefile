@@ -19,8 +19,7 @@ testall: fennel
 	@printf "\nTesting lua 5.4:\n"; lua5.4 test/init.lua
 	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
-count: ; cloc --force-lang=lisp $(SRC) # core compiler
-
+count: ; cloc --force-lang=lisp $(SRC)
 
 # Avoid chicken/egg situation using the old Lua launcher.
 LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl --globals "_G,_ENV"

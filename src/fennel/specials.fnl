@@ -143,11 +143,11 @@ the number of expected arguments."
             "Return multiple values from a function. Must be in tail position.")
 
 (fn SPECIALS.fn [ast scope parent]
-  (var (index fn-name is-local-fn docstring) (values 2 (utils.is-sym (. ast 2))))
+  (var (index fn-name is-local-fn docstring) (values 2 (utils.sym? (. ast 2))))
   (let [f-scope (doto (compiler.make-scope scope)
                  (tset :vararg false))
         f-chunk []
-        multi (and fn-name (utils.is-multi-sym (. fn-name 1)))]
+        multi (and fn-name (utils.multi-sym? (. fn-name 1)))]
     (compiler.assert (or (not multi) (not multi.multi-sym-method-call))
                      (.. "unexpected multi symbol " (tostring fn-name))
                      (. ast index))
@@ -161,21 +161,21 @@ the number of expected arguments."
         (do (set is-local-fn true)
             (set fn-name (compiler.gensym scope))))
 
-    (let [arg-list (compiler.assert (utils.is-table (. ast index))
+    (let [arg-list (compiler.assert (utils.table? (. ast index))
                                    "expected parameters"
                                    (if (= (type (. ast index)) "table")
                                        (. ast index) ast))]
       (fn get-arg-name [i name]
-        (if (utils.is-varg name)
+        (if (utils.varg? name)
             (do (compiler.assert (= i (# arg-list))
                                  "expected vararg as last parameter" (. ast 2))
                 (set f-scope.vararg true)
                 "...")
-            (and (utils.is-sym name)
+            (and (utils.sym? name)
                  (not= (utils.deref name) "nil")
-                 (not (utils.is-multi-sym (utils.deref name))))
+                 (not (utils.multi-sym? (utils.deref name))))
             (compiler.declare-local name [] f-scope ast)
-            (utils.is-table name)
+            (utils.table? name)
             (let [raw (utils.sym (compiler.gensym scope))
                   declared (compiler.declare-local raw [] f-scope ast)]
               (compiler.destructure name raw ast f-scope f-chunk {:declaration true
@@ -202,7 +202,7 @@ the number of expected arguments."
       (compiler.emit parent "end" ast)
       (when utils.root.options.useMetadata
         ;; TODO: show destructured args properly instead of replacing
-        (let [args (utils.map arg-list (fn [v] (if (utils.is-table v)
+        (let [args (utils.map arg-list (fn [v] (if (utils.table? v)
                                                   "\"#<table>\""
                                                   (: "\"%s\"" :format
                                                      (tostring v)))))
@@ -278,7 +278,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
                                 1))
                   (table.insert indices (.. "[" (tostring index) "]")))))
           ;; Extra parens are needed for table literals.
-          (if (utils.is-table (. ast 2))
+          (if (utils.table? (. ast 2))
               (.. "(" (tostring (. lhs 1)) ")" (table.concat indices))
               (.. (tostring (. lhs 1)) (table.concat indices)))))))
 
@@ -334,7 +334,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
 (fn SPECIALS.let [ast scope parent opts]
   (let [bindings (. ast 2)
         pre-syms []]
-    (compiler.assert (or (utils.is-list bindings) (utils.is-table bindings))
+    (compiler.assert (or (utils.list? bindings) (utils.table? bindings))
                      "expected binding table" ast)
     (compiler.assert (= (% (# bindings) 2) 0)
                      "expected even number of name/value bindings" (. ast 2))
@@ -481,7 +481,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
 
 (fn SPECIALS.each [ast scope parent]
   (compiler.assert (>= (# ast) 3) "expected body expression" (. ast 1))
-  (let [binding (compiler.assert (utils.is-table (. ast 2))
+  (let [binding (compiler.assert (utils.table? (. ast 2))
                                  "expected binding table" ast)
         iter (table.remove binding (# binding)) ; last item is iterator call
         destructures []
@@ -489,7 +489,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
         sub-scope (compiler.make-scope scope)]
 
     (fn destructure-binding [v]
-      (if (utils.is-sym v)
+      (if (utils.sym? v)
           (compiler.declare-local v [] sub-scope ast new-manglings)
           (let [raw (utils.sym (compiler.gensym sub-scope))]
             (tset destructures raw v)
@@ -543,13 +543,13 @@ order, but can be used with any iterator.")
  "The classic while loop. Evaluates body until a condition is non-truthy.")
 
 (fn for* [ast scope parent]
-  (let [ranges (compiler.assert (utils.is-table (. ast 2))
+  (let [ranges (compiler.assert (utils.table? (. ast 2))
                                 "expected binding table" ast)
         binding-sym (table.remove (. ast 2) 1)
         sub-scope (compiler.make-scope scope)
         range-args []
         chunk []]
-    (compiler.assert (utils.is-sym binding-sym)
+    (compiler.assert (utils.sym? binding-sym)
                      (: "unable to bind %s %s" :format
                         (type binding-sym) (tostring binding-sym)) (. ast 2))
     (compiler.assert (>= (# ast) 3)
@@ -647,11 +647,11 @@ Method name doesn't have to be known at compile-time; if it is, use
 
     ;; recursively walk the AST, transforming $... into ...
     (fn walker [idx node parent-node]
-      (if (and (utils.is-sym node) (= (utils.deref node) "$..."))
+      (if (and (utils.sym? node) (= (utils.deref node) "$..."))
           (do
             (tset parent-node idx (utils.varg))
             (set f-scope.vararg true))
-          (or (utils.is-list node) (utils.is-table node))))
+          (or (utils.list? node) (utils.table? node))))
     (utils.walk-tree (. ast 2) walker)
     ;; compile body
     (compiler.compile1 (. ast 2) f-scope f-chunk {:tail true})
@@ -823,14 +823,14 @@ Method name doesn't have to be known at compile-time; if it is, use
 
                  ;; AST functions
                  :list utils.list
-                 :list? utils.is-list
-                 :multi-sym? utils.is-multi-sym
+                 :list? utils.list?
+                 :multi-sym? utils.multi-sym?
                  :sequence utils.sequence
-                 :sequence? utils.is-sequence
+                 :sequence? utils.sequence?
                  :sym utils.sym
-                 :sym? utils.is-sym
-                 :table? utils.is-table
-                 :varg? utils.is-varg
+                 :sym? utils.sym?
+                 :table? utils.table?
+                 :varg? utils.varg?
 
                  ;; scoping functions
                  :gensym (fn [] (utils.sym (compiler.gensym
@@ -895,7 +895,7 @@ table.insert(package.loaders, fennel.searcher)"
     allowed))
 
 (fn add-macros [macros* ast scope]
-  (compiler.assert (utils.is-table macros*) "expected macros to be table" ast)
+  (compiler.assert (utils.table? macros*) "expected macros to be table" ast)
   (each [k v (pairs macros*)]
     (compiler.assert (= (type v) "function")
                      "expected each macro to be function" ast)

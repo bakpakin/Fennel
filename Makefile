@@ -41,7 +41,8 @@ STATIC_LUA_LIB ?= /usr/lib/x86_64-linux-gnu/liblua5.3.a
 LUA_INCLUDE_DIR ?= /usr/include/lua5.3
 
 fennel-bin: src/launcher.fnl fennel
-	./fennel --compile-binary $< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
+	./fennel --add-fennel-path src/?.fnl --compile-binary $< $@ \
+		$(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 # Cross-compile to Windows; very experimental:
 fennel-bin.exe: src/launcher.fnl fennel lua-5.3.5/src/liblua-mingw.a
@@ -81,7 +82,8 @@ fennel-arm32:
     STATIC_LUA_LIB=/usr/lib/arm-linux-gnueabihf/liblua5.3.a make fennel-bin"
 	scp $(ARM_HOST):src/fennel/fennel-bin $@
 
-fennel.tar.gz: README.md LICENSE fennel fennel.lua fennelview.lua $(SRC)
+fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua fennelview.lua \
+		Makefile fennelview.fnl $(SRC)
 	mkdir fennel-$(VERSION)
 	cp -r $^ fennel-$(VERSION)
 	tar czf $@ fennel-$(VERSION)

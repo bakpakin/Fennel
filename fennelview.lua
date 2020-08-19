@@ -24,7 +24,7 @@ local type_order = {["function"] = 5, boolean = 2, number = 1, string = 3, table
 local function sort_keys(a, b)
   local ta = type(a)
   local tb = type(b)
-  if ((ta == tb) and (ta ~= "boolean") and ((ta == "string") or (ta == "number"))) then
+  if ((ta == tb) and ((ta == "string") or (ta == "number"))) then
     return (a < b)
   else
     local dta = type_order[a]

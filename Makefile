@@ -11,6 +11,7 @@ build: fennel
 test: fennel.lua fennel
 	$(LUA) test/init.lua
 
+testall: export FNL_TESTALL = 1
 testall: export FNL_TEST_OUTPUT ?= text
 testall: fennel
 	@printf 'Testing lua 5.1:\n'  ; lua5.1 test/init.lua

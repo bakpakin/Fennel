@@ -67,9 +67,12 @@ Run fennel, a lisp programming language for the Lua runtime.
     (let [ok (os.execute (table.concat cmd " "))]
       (os.exit (if ok 0 1) true))))
 
+;; check for --lua first to ensure its child process retains all flags
+(for [i (# arg) 1 -1]
+  (match (. arg i) "--lua" (handle-lua i)))
+
 (for [i (# arg) 1 -1]
   (match (. arg i)
-    "--lua" (handle-lua i)
     "--no-searcher" (do (set options.no_searcher true)
                         (table.remove arg i))
     "--indent" (do (set options.indent (table.remove arg (+ i 1)))

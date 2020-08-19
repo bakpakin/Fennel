@@ -59,13 +59,12 @@
     (values keys sequence-length)))
 
 (fn count-table-appearances [t appearances]
-  (if (= (type t) "table")
-      (when (not (. appearances t))
-        (tset appearances t 1)
-        (each [k v (pairs t)]
-          (count-table-appearances k appearances)
-          (count-table-appearances v appearances)))
-      (when (and t (= t t)) ; no nans please
+  (when (= (type t) "table")
+    (if (not (. appearances t))
+        (do (tset appearances t 1)
+            (each [k v (pairs t)]
+              (count-table-appearances k appearances)
+              (count-table-appearances v appearances)))
         (tset appearances t (+ (or (. appearances t) 0) 1))))
   appearances)
 
@@ -141,9 +140,9 @@
           ;; fancy metatable stuff can result in self.appearances not including
           ;; a table, so if it's not found, assume we haven't seen it; we can't
           ;; do cycle detection in that case.
-          (if (and (< 1 (or (. self.appearances t) 0)) self.detect-cycles?)
-              (puts self "#<table" id ">")
-              (and (= (length non-seq-keys) 0) (= (length t) 0))
+          (when (and (< 1 (or (. self.appearances t) 0)) self.detect-cycles?)
+            (puts self "<" id ">"))
+          (if (and (= (length non-seq-keys) 0) (= (length t) 0))
               (puts self (if self.empty-as-square "[]" "{}"))
               (= (length non-seq-keys) 0)
               (put-sequential-table self t len)

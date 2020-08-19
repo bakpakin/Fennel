@@ -1,0 +1,34 @@
+version: 2.1
+
+orbs:
+  windows: circleci/windows@2.2.0
+
+jobs:
+  build:
+    docker:
+      - image: debian:testing
+    steps:
+      - checkout
+      - run:
+          command: |
+            apt-get update -qq && apt-get install -qq cloc make git \
+              luajit lua5.1 lua5.2 lua5.3 lua5.4
+      - run: make ci
+      # Fail the build if the above command changed the checked-in .lua files
+      - run: git diff --quiet
+  windows:
+    executor: windows/default
+    steps:
+      - checkout
+      - run: choco install lua53
+      - run: choco install make
+      - run: make test LUA=lua53
+
+workflows:
+  version: 2
+  all:
+    jobs:
+      - build
+# Something wrong with make on Windows currently:
+# https://app.circleci.com/pipelines/github/bakpakin/Fennel/320/workflows/75550128-9cdc-4afe-b2c4-9aa66d379eba/jobs/1032/steps
+#      - windows

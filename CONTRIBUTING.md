@@ -29,6 +29,9 @@ For large changes, please discuss it first either on the mailing list,
 IRC/Matrix channel, or in the issue tracker before sinking time and effort into
 something that may not be able to get merged.
 
+* Branch off the `main` branch. The contents of this branch should be
+  the same on Sourcehut as they are on the Github mirror. But make
+  sure that `main` on your copy of the repo matches upstream.
 * Include a description of the changes.
 * If there are changes to the compiler or the language, please include
   tests. You can run tests with `make test`.

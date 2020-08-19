@@ -33,7 +33,7 @@
 
 (fn sort-keys [a b]
   (let [ta (type a) tb (type b)]
-    (if (and (= ta tb) (not= ta "boolean")
+    (if (and (= ta tb)
              (or (= ta "string") (= ta "number")))
         (< a b)
         (let [dta (. type-order a)

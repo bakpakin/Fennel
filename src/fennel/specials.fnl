@@ -269,14 +269,12 @@ and lacking args will be nil, use lambda for arity-checked functions."))
         (tostring (. lhs 1))
         (let [indices []]
           (for [i 3 len 1]
-            (var index (. ast i))
-            (if (and (= (type index) "string")
-                     (utils.valid-lua-identifier? index))
-                (table.insert indices (.. "." index))
-                (do
-                  (set index (. (compiler.compile1 index scope parent {:nval 1})
-                                1))
-                  (table.insert indices (.. "[" (tostring index) "]")))))
+            (let [index (. ast i)]
+              (if (and (= (type index) :string)
+                       (utils.valid-lua-identifier? index))
+                  (table.insert indices (.. "." index))
+                  (let [[index] (compiler.compile1 index scope parent {:nval 1})]
+                    (table.insert indices (.. "[" (tostring index) "]"))))))
           ;; Extra parens are needed for table literals.
           (if (utils.table? (. ast 2))
               (.. "(" (tostring (. lhs 1)) ")" (table.concat indices))
@@ -632,19 +630,25 @@ Method name doesn't have to be known at compile-time; if it is, use
 
 (doc-special "comment" ["..."] "Comment which will be emitted in Lua output.")
 
+(fn hashfn-max-used [f-scope i max]
+  (let [max (if (. f-scope.symmeta (.. "$" i) :used) i max)]
+    (if (< i 9)
+        (hashfn-max-used f-scope (+ i 1) max)
+        max)))
+
 (fn SPECIALS.hashfn [ast scope parent]
   (compiler.assert (= (# ast) 2) "expected one argument" ast)
   (let [f-scope (doto (compiler.make-scope scope)
-                 (tset :vararg false)
-                 (tset :hashfn true))
+                  (tset :vararg false)
+                  (tset :hashfn true))
         f-chunk []
         name (compiler.gensym scope)
-        symbol (utils.sym name)]
+        symbol (utils.sym name)
+        args []]
     (compiler.declare-local symbol [] scope ast)
-    (var args [])
     (for [i 1 9]
-      (tset args i (compiler.declare-local (utils.sym (.. "$" i)) [] f-scope ast)))
-
+      (tset args i (compiler.declare-local (utils.sym (.. "$" i))
+                                           [] f-scope ast)))
     ;; recursively walk the AST, transforming $... into ...
     (fn walker [idx node parent-node]
       (if (and (utils.sym? node) (= (utils.deref node) "$..."))
@@ -655,20 +659,18 @@ Method name doesn't have to be known at compile-time; if it is, use
     (utils.walk-tree (. ast 2) walker)
     ;; compile body
     (compiler.compile1 (. ast 2) f-scope f-chunk {:tail true})
-    (var max-used 0)
-    (for [i 1 9 1]
-      (when (. (. f-scope.symmeta (.. "$" i)) "used")
-        (set max-used i)))
-    (when f-scope.vararg
-      (compiler.assert (= max-used 0)
-                       "$ and $... in hashfn are mutually exclusive" ast)
-      (set args [(utils.deref (utils.varg))])
-      (set max-used 1))
-    (local arg-str (table.concat args ", " 1 max-used))
-    (compiler.emit parent (: "local function %s(%s)" :format name arg-str) ast)
-    (compiler.emit parent f-chunk ast)
-    (compiler.emit parent "end" ast)
-    (utils.expr name "sym")))
+    (let [max-used (hashfn-max-used f-scope 1 0)]
+      (when f-scope.vararg
+        (compiler.assert (= max-used 0)
+                         "$ and $... in hashfn are mutually exclusive" ast))
+      (let [arg-str (if f-scope.vararg
+                        (utils.deref (utils.varg))
+                        (table.concat args ", " 1 max-used))]
+        (compiler.emit parent (string.format "local function %s(%s)"
+                                             name arg-str) ast)
+        (compiler.emit parent f-chunk ast)
+        (compiler.emit parent "end" ast)
+        (utils.expr name "sym")))))
 
 (doc-special "hashfn" ["..."]
             "Function literal shorthand; args are either $... OR $1, $2, etc.")

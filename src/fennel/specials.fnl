@@ -140,83 +140,89 @@ the number of expected arguments."
 (doc-special "values" ["..."]
             "Return multiple values from a function. Must be in tail position.")
 
+(fn set-fn-metadata [arg-list docstring parent fn-name]
+  (when utils.root.options.useMetadata
+    ;; TODO: show destructured args properly instead of replacing
+    (let [args (utils.map arg-list (fn [v] (if (utils.table? v)
+                                               "\"#<table>\""
+                                               (: "\"%s\"" :format
+                                                  (tostring v)))))
+          meta-fields ["\"fnl/arglist\"" (.. "{" (table.concat args ", ") "}")]]
+      (when docstring
+        (table.insert meta-fields "\"fnl/docstring\"")
+        (table.insert meta-fields (.. "\"" (-> docstring
+                                               (: :gsub "%s+$" "")
+                                               (: :gsub "\\" "\\\\")
+                                               (: :gsub "\n" "\\n")
+                                               (: :gsub "\"" "\\\"")) "\"")))
+      (let [meta-str (: "require(\"%s\").metadata"
+                        :format (or utils.root.options.moduleName "fennel"))]
+        (compiler.emit parent (: "pcall(function() %s:setall(%s, %s) end)"
+                                 :format meta-str fn-name
+                                 (table.concat meta-fields ", ")))))))
+
+(fn get-fn-name [ast scope fn-name multi]
+  (if (and fn-name (not= (. fn-name 1) :nil))
+      (values (if (not multi)
+                  (compiler.declare-local fn-name [] scope ast)
+                  (. (compiler.symbol-to-expression fn-name scope) 1))
+              (not multi)
+              3)
+      (values (compiler.gensym scope) true 2)))
+
 (fn SPECIALS.fn [ast scope parent]
-  (var (index fn-name is-local-fn docstring) (values 2 (utils.sym? (. ast 2))))
   (let [f-scope (doto (compiler.make-scope scope)
-                 (tset :vararg false))
+                  (tset :vararg false))
         f-chunk []
-        multi (and fn-name (utils.multi-sym? (. fn-name 1)))]
+        fn-name (utils.sym? (. ast 2))
+        multi (and fn-name (utils.multi-sym? (. fn-name 1)))
+        (fn-name local-fn? index) (get-fn-name ast scope fn-name multi)]
     (compiler.assert (or (not multi) (not multi.multi-sym-method-call))
                      (.. "unexpected multi symbol " (tostring fn-name))
                      (. ast index))
 
-    (if (and fn-name (not= (. fn-name 1) "nil"))
-        (do (set is-local-fn (not multi))
-            (if is-local-fn
-                (set fn-name (compiler.declare-local fn-name [] scope ast))
-                (set fn-name (. (compiler.symbol-to-expression fn-name scope) 1)))
-            (set index (+ index 1)))
-        (do (set is-local-fn true)
-            (set fn-name (compiler.gensym scope))))
+    (fn get-arg-name [arg-count i name]
+      (if (utils.varg? name)
+          (do (compiler.assert (= i arg-count)
+                               "expected vararg as last parameter" (. ast 2))
+              (set f-scope.vararg true)
+              "...")
+          (and (utils.sym? name)
+               (not= (utils.deref name) "nil")
+               (not (utils.multi-sym? (utils.deref name))))
+          (compiler.declare-local name [] f-scope ast)
+          (utils.table? name)
+          (let [raw (utils.sym (compiler.gensym scope))
+                declared (compiler.declare-local raw [] f-scope ast)]
+            (compiler.destructure name raw ast f-scope f-chunk {:declaration true
+                                                                :nomulti true})
+            declared)
+          (compiler.assert false
+                           (: "expected symbol for function parameter: %s"
+                              :format (tostring name)) (. ast 2))))
 
     (let [arg-list (compiler.assert (utils.table? (. ast index))
-                                   "expected parameters"
-                                   (if (= (type (. ast index)) "table")
-                                       (. ast index) ast))]
-      (fn get-arg-name [i name]
-        (if (utils.varg? name)
-            (do (compiler.assert (= i (# arg-list))
-                                 "expected vararg as last parameter" (. ast 2))
-                (set f-scope.vararg true)
-                "...")
-            (and (utils.sym? name)
-                 (not= (utils.deref name) "nil")
-                 (not (utils.multi-sym? (utils.deref name))))
-            (compiler.declare-local name [] f-scope ast)
-            (utils.table? name)
-            (let [raw (utils.sym (compiler.gensym scope))
-                  declared (compiler.declare-local raw [] f-scope ast)]
-              (compiler.destructure name raw ast f-scope f-chunk {:declaration true
-                                                                :nomulti true})
-              declared)
-            (compiler.assert false
-                             (: "expected symbol for function parameter: %s"
-                                :format (tostring name)) (. ast 2))))
-      (local arg-name-list (utils.kvmap arg-list get-arg-name))
-      (when (and (= (type (. ast (+ index 1))) "string") (< (+ index 1) (# ast)))
-        (set index (+ index 1))
-        (set docstring (. ast index)))
+                                    "expected parameters"
+                                    (if (= (type (. ast index)) "table")
+                                        (. ast index) ast))
+          arg-name-list (utils.kvmap arg-list (partial get-arg-name (# arg-list)))
+          (index docstring) (if (and (= (type (. ast (+ index 1))) :string)
+                                     (< (+ index 1) (# ast)))
+                                (values (+ index 1) (. ast (+ index 1)))
+                                (values index nil))]
 
       (for [i (+ index 1) (# ast) 1]
         (compiler.compile1 (. ast i) f-scope f-chunk
                            {:nval (or (and (not= i (# ast)) 0) nil)
                             :tail (= i (# ast))}))
-      (if is-local-fn
+      (if local-fn?
           (compiler.emit parent (: "local function %s(%s)" :format
                                    fn-name (table.concat arg-name-list ", ")) ast)
           (compiler.emit parent (: "%s = function(%s)" :format
                                    fn-name (table.concat arg-name-list ", ")) ast))
       (compiler.emit parent f-chunk ast)
       (compiler.emit parent "end" ast)
-      (when utils.root.options.useMetadata
-        ;; TODO: show destructured args properly instead of replacing
-        (let [args (utils.map arg-list (fn [v] (if (utils.table? v)
-                                                  "\"#<table>\""
-                                                  (: "\"%s\"" :format
-                                                     (tostring v)))))
-              meta-fields ["\"fnl/arglist\"" (.. "{" (table.concat args ", ") "}")]]
-          (when docstring
-            (table.insert meta-fields "\"fnl/docstring\"")
-            (table.insert meta-fields (.. "\"" (-> docstring
-                                                  (: :gsub "%s+$" "")
-                                                  (: :gsub "\\" "\\\\")
-                                                  (: :gsub "\n" "\\n")
-                                                  (: :gsub "\"" "\\\"")) "\"")))
-          (let [meta-str (: "require(\"%s\").metadata"
-                           :format (or utils.root.options.moduleName "fennel"))]
-            (compiler.emit parent (: "pcall(function() %s:setall(%s, %s) end)"
-                                     :format meta-str fn-name
-                                     (table.concat meta-fields ", ")))))))
+      (set-fn-metadata arg-list docstring parent fn-name))
     (utils.expr fn-name "sym")))
 
 (doc-special "fn" ["name?" "args" "docstring?" "..."]
@@ -371,36 +377,32 @@ and lacking args will be nil, use lambda for arity-checked functions."))
  "Set the value of a table field. Can take additional keys to set
 nested values, but all parents must contain an existing table.")
 
+(fn calculate-target [scope opts]
+  (if (not (or opts.tail opts.target opts.nval))
+      (values :iife true nil)
+      (and opts.nval (not= opts.nval 0) (not opts.target))
+      (let [accum []
+            target-exprs []]
+        ;; We need to create a target
+        (for [i 1 opts.nval 1]
+          (let [s (compiler.gensym scope)]
+            (tset accum i s)
+            (tset target-exprs i (utils.expr s :sym))))
+        (values :target opts.tail (table.concat accum ", ") target-exprs))
+      (values :none opts.tail opts.target)))
+
 (fn if* [ast scope parent opts]
   (let [do-scope (compiler.make-scope scope)
         branches []
-        has-else (and (> (# ast) 3) (= (% (# ast) 2) 0))]
-    (var else-branch nil)
-    ;; Calculate some external stuff. Optimizes for tail calls and what not
-    (var (wrapper inner-tail inner-target target-exprs) (values))
-    (if (or opts.tail opts.target opts.nval)
-        (if (and opts.nval (not= opts.nval 0) (not opts.target))
-            (let [accum []]
-              ;; We need to create a target
-              (set target-exprs [])
-              (for [i 1 opts.nval 1]
-                (let [s (compiler.gensym scope)]
-                  (tset accum i s)
-                  (tset target-exprs i (utils.expr s "sym"))))
-              (set (wrapper inner-tail inner-target)
-                   (values "target" opts.tail (table.concat accum ", "))))
-            (set (wrapper inner-tail inner-target)
-                 (values "none" opts.tail opts.target)))
-        (set (wrapper inner-tail inner-target) (values "iife" true nil)))
+        (wrapper inner-tail inner-target target-exprs) (calculate-target scope opts)
+        body-opts {:nval opts.nval :tail inner-tail :target inner-target}]
 
-    ;; compile bodies and conditions
-    (local body-opts {:nval opts.nval :tail inner-tail :target inner-target})
     (fn compile-body [i]
       (let [chunk []
             cscope (compiler.make-scope do-scope)]
         (compiler.keep-side-effects (compiler.compile1 (. ast i) cscope chunk
-                                                     body-opts) chunk nil
-                                                     (. ast i))
+                                                       body-opts) chunk nil
+                                                       (. ast i))
         {:chunk chunk :scope cscope}))
 
     (for [i 2 (- (# ast) 1) 2]
@@ -413,11 +415,10 @@ nested values, but all parents must contain an existing table.")
         (set branch.nested (and (not= i 2) (= (next condchunk nil) nil)))
         (table.insert branches branch)))
 
-    (when has-else
-      (set else-branch (compile-body (# ast))))
-
     ;; Emit code
-    (let [s (compiler.gensym scope)
+    (let [has-else? (and (> (# ast) 3) (= (% (# ast) 2) 0))
+          else-branch (and has-else? (compile-body (# ast)))
+          s (compiler.gensym scope)
           buffer []]
       (var last-buffer buffer)
       (for [i 1 (# branches)]
@@ -425,8 +426,8 @@ nested values, but all parents must contain an existing table.")
               fstr (if (not branch.nested) "if %s then" "elseif %s then")
               cond (tostring branch.cond)
               cond-line (if (and (= cond :true) branch.nested (= i (# branches)))
-                           :else
-                           (: fstr :format cond))]
+                            :else
+                            (: fstr :format cond))]
           (if branch.nested
               (compiler.emit last-buffer branch.condchunk ast)
               (each [_ v (ipairs branch.condchunk)]
@@ -435,14 +436,14 @@ nested values, but all parents must contain an existing table.")
           (compiler.emit last-buffer branch.chunk ast)
           (if (= i (# branches))
               (do
-                (if has-else
+                (if has-else?
                     (do (compiler.emit last-buffer "else" ast)
                         (compiler.emit last-buffer else-branch.chunk ast))
                     ;; TODO: Consolidate use of cond-line ~= "else" with has-else
-                    (and inner-target (not= cond-line "else"))
+                    (and inner-target (not= cond-line :else))
                     (do (compiler.emit last-buffer "else" ast)
                         (compiler.emit last-buffer (: "%s = nil" :format
-                                                     inner-target) ast)))
+                                                      inner-target) ast)))
                 (compiler.emit last-buffer "end" ast))
               (not (. (. branches (+ i 1)) "nested"))
               (let [next-buffer []]
@@ -450,14 +451,15 @@ nested values, but all parents must contain an existing table.")
                 (compiler.emit last-buffer next-buffer ast)
                 (compiler.emit last-buffer "end" ast)
                 (set last-buffer next-buffer)))))
-      (if (= wrapper "iife")
+      ;; Emit if
+      (if (= wrapper :iife)
           (let [iifeargs (or (and scope.vararg "...") "")]
             (compiler.emit parent (: "local function %s(%s)" :format
                                      (tostring s) iifeargs) ast)
             (compiler.emit parent buffer ast)
             (compiler.emit parent "end" ast)
             (utils.expr (: "%s(%s)" :format (tostring s) iifeargs) :statement))
-          (= wrapper "none") ; Splice result right into code
+          (= wrapper :none) ; Splice result right into code
           (do (for [i 1 (# buffer) 1]
                 (compiler.emit parent (. buffer i) ast))
               {:returned true})

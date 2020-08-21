@@ -2,6 +2,7 @@
 
 ## 0.5.1 / ???
 
+* Expose `list?` and `sym?` in compiler API.
 * Fix a bug where method calls would early-evaluate their receiver.
 * Fix a bug where multi-arity comparisons would early-evaluate their arguments.
 * Add `--lua` CLI flag for specifying a custom Lua command/executable. (#324)

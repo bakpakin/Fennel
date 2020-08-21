@@ -49,7 +49,9 @@
 
 ;; The public API module we export:
 (local mod {:list utils.list
+            :list? utils.list?
             :sym utils.sym
+            :sym? utils.sym?
             :varg utils.varg
             :path utils.path
 

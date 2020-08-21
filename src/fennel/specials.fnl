@@ -75,51 +75,49 @@ By default, start is 2."
   (let [start (or start 2)
         sub-scope (or sub-scope (compiler.make-scope scope))
         chunk (or chunk [])
-        len (# ast)]
-    (var outer-target opts.target)
-    (var outer-tail opts.tail)
-    (var retexprs {:returned true})
+        len (# ast)
+        retexprs {:returned true}]
+
+    (fn compile-body [outer-target outer-tail outer-retexprs]
+      (if (< len start)
+          ;; In the unlikely event we do a do with no arguments
+          (compiler.compile1 nil sub-scope chunk {:tail outer-tail
+                                                  :target outer-target})
+          ;; There will be side-effects
+          (for [i start len]
+            (let [subopts {:nval (or (and (not= i len) 0) opts.nval)
+                           :tail (or (and (= i len) outer-tail) nil)
+                           :target (or (and (= i len) outer-target) nil)}
+                  _ (utils.propagate-options opts subopts)
+                  subexprs (compiler.compile1 (. ast i) sub-scope chunk subopts)]
+              (when (not= i len)
+                (compiler.keep-side-effects subexprs parent nil (. ast i))))))
+      (compiler.emit parent chunk ast)
+      (compiler.emit parent "end" ast)
+      (or outer-retexprs retexprs))
 
     ;; See if we need special handling to get the return values of the do block
-    (if (and (not outer-target)
-             (not= opts.nval 0)
-             (not outer-tail))
-        (if opts.nval
-            ;; generate a local target
-            (let [syms []]
-              (for [i 1 opts.nval 1]
-                (local s (or (and pre-syms (. pre-syms i)) (compiler.gensym scope)))
-                (tset syms i s)
-                (tset retexprs i (utils.expr s "sym")))
-              (set outer-target (table.concat syms ", "))
-              (compiler.emit parent (: "local %s" :format outer-target) ast)
-              (compiler.emit parent "do" ast))
-            ;; we will use an IIFE for the do
-            (let [fname (compiler.gensym scope)
-                  fargs (or (and scope.vararg "...") "")]
-              (compiler.emit parent (: "local function %s(%s)" :format
-                                       fname fargs) ast)
-              (set retexprs (utils.expr (.. fname "(" fargs ")") "statement"))
-              (set outer-tail true)
-              (set outer-target nil)))
-        (compiler.emit parent "do" ast))
-    ;; Compile the body
-    (if (< len start)
-        ;; In the unlikely event we do a do with no arguments
-        (compiler.compile1 nil sub-scope chunk {:tail outer-tail
-                                               :target outer-target})
-        ;; There will be side-effects
-        (for [i start len]
-          (let [subopts {:nval (or (and (not= i len) 0) opts.nval)
-                         :tail (or (and (= i len) outer-tail) nil)
-                         :target (or (and (= i len) outer-target) nil)}]
-            (utils.propagate-options opts subopts)
-            (local subexprs (compiler.compile1 (. ast i) sub-scope chunk subopts))
-            (when (not= i len)
-              (compiler.keep-side-effects subexprs parent nil (. ast i))))))
-    (compiler.emit parent chunk ast)
-    (compiler.emit parent "end" ast)
-    retexprs))
+    (if (or opts.target (= opts.nval 0) opts.tail)
+        (do (compiler.emit parent "do" ast)
+            (compile-body opts.target opts.tail))
+        opts.nval
+        ;; generate a local target
+        (let [syms []]
+          (for [i 1 opts.nval 1]
+            (let [s (or (and pre-syms (. pre-syms i)) (compiler.gensym scope))]
+              (tset syms i s)
+              (tset retexprs i (utils.expr s "sym"))))
+          (let [outer-target (table.concat syms ", ")]
+            (compiler.emit parent (string.format "local %s" outer-target) ast)
+            (compiler.emit parent "do" ast)
+            (compile-body outer-target opts.tail)))
+        ;; we will use an IIFE for the do
+        (let [fname (compiler.gensym scope)
+              fargs (if scope.vararg "..." "")]
+          (compiler.emit parent (string.format "local function %s(%s)"
+                                               fname fargs) ast)
+          (compile-body nil true
+                        (utils.expr (.. fname "(" fargs ")") :statement))))))
 
 (doc-special "do" ["..."] "Evaluate multiple forms; return last value.")
 

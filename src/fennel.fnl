@@ -46,7 +46,7 @@
 (fn dofile* [filename options ...]
   (let [opts (utils.copy options)
         f (assert (io.open filename :rb))
-        source (f:read :*all)]
+        source (assert (f:read :*all) (.. "Could not read " filename))]
     (f:close)
     (set opts.filename filename)
     (eval source opts ...)))

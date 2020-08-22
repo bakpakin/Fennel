@@ -84,7 +84,7 @@
 (fn repl [options]
   (let [old-root-options utils.root.options
         env (if options.env
-                (utils.wrap-env options.env)
+                (specials.wrap-env options.env)
                 (setmetatable {} {:__index (or _G._ENV _G)}))
         save-locals? (and (not= options.saveLocals false)
                           env.debug env.debug.getlocal)

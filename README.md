@@ -76,7 +76,7 @@ run a Fennel file anywhere on your system.
 
 ## Differences from other lisp languages
 
-* Lua VM can be embedded in other programs with only 180kb
+* Its VM can be embedded in other programs with only 180kb
 * Access to [excellent FFI][4]
 * LuaJIT consistently ranks at the top of performance shootouts
 * Inherits aggressively simple semantics from Lua; easy to learn

@@ -77,6 +77,12 @@ compilation.
 .B \-\-load \fIFILE\fP
 Load the specified file before any command is run.
 .TP
+.B \-\-compile-binary \fIFILE\fP \fIOUT\fP \fILUA_LIB\fP \fILUA_DIR\fP
+Compile FILE to a standalone binary OUT using LUA_LIB and the Lua
+header files in LUA_DIR. See
+.B \-\-compile-binary \-\-help
+for details.
+.TP
 .B \-h, \-\-help
 Print a help message and exit
 .TP

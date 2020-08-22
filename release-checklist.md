@@ -5,6 +5,7 @@ This document is intended for Fennel maintainers.
 ## Preparing the tag
 
 1. Update and date changelog.md; update version number in fennel.lua.
+   Check for changes which need to be mentioned in help text or man page.
 2. Create rockspec by copying an old rockspec. Make sure luarocks version
    matches the file name exactly and the tgz URL is updated.
 3. Make sure tests pass for all versions of Lua and the linter is OK (`make ci`)

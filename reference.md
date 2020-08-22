@@ -391,7 +391,7 @@ two distinct concepts with similar names.)
 
 Sets a global variable to a new value. Note that there is no
 distinction between introducing a new global and changing the value of
-an existing one.
+an existing one. This supports destructuring and multiple-value binding.
 
 Example:
 
@@ -399,8 +399,8 @@ Example:
 (global prettyprint (fn [x] (print (view x))))
 ```
 
-
-Supports destructuring and multiple-value binding.
+Note that every global is also exposed on the `_G` table, which can
+often be a better choice than using `global`.
 
 ### `var` declare local variable
 

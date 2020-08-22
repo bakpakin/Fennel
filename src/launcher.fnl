@@ -1,3 +1,5 @@
+;; This is the command-line entry point for Fennel.
+
 (local fennel (require :fennel))
 (local unpack (or _G.unpack table.unpack))
 

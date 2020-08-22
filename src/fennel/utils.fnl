@@ -1,6 +1,11 @@
+;; This module contains mostly general-purpose table-related functionality that
+;; you might expect to see in a standard library in most langugaes, as well as
+;; the definitions of several core compiler types. It could be split into two
+;; distinct modules along those lines.
+
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
-  pairs is already stable, but on 5.3 every run gives different ordering."
+  pairs is already stable, but on 5.3+ every run gives different ordering."
   (let [keys []
         succ []]
     (each [k (pairs t)]

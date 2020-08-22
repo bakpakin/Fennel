@@ -14,6 +14,10 @@
 ;; CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 ;; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+;; This module ties everything else together; it's the public interface of
+;; the compiler. All other modules should be considered implementation details
+;; subject to change.
+
 (local utils (require :fennel.utils))
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))

@@ -1,3 +1,7 @@
+;; This module contains all the built-in Fennel macros. Unlike all the other
+;; modules that are loaded by the old bootstrap compiler, this runs in the
+;; compiler scope of the version of the compiler being defined.
+
 ;; The code for these macros is somewhat idiosyncratic because it cannot use any
 ;; macros which have not yet been defined.
 

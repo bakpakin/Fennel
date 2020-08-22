@@ -1,3 +1,7 @@
+;; This module compiles Fennel modules into standalone executable programs.
+;; It can be considered "downstream" of the rest of the compiler and is somewhat
+;; independent.
+
 ;; based on https://github.com/ers35/luastatic/
 (local fennel (require :fennel))
 

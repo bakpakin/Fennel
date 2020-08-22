@@ -1,5 +1,6 @@
-;; an assert-compile function which tries to show where the error occurred
-;; and what to do about it!
+;; This module contains functions that handle errors during parsing and
+;; compilation and attempt to enrich them by suggesting fixes.
+;; It can be disabled to fall back to the regular terse errors.
 
 (fn ast-source [ast]
   (let [m (getmetatable ast)]

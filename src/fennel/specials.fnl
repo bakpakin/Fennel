@@ -1,3 +1,7 @@
+;; This module contains all the special forms; all built in Fennel constructs
+;; which cannot be implemented as macros. It also contains some core compiler
+;; functionality which is kept in this module for circularity reasons.
+
 (local utils (require "fennel.utils"))
 (local parser (require "fennel.parser"))
 (local compiler (require "fennel.compiler"))

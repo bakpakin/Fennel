@@ -1,3 +1,6 @@
+;; This module is responsible for turning bytes of source code into an AST
+;; data structure.
+
 (local utils (require :fennel.utils))
 (local friend (require :fennel.friend))
 (local unpack (or _G.unpack table.unpack))

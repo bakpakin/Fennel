@@ -1,3 +1,9 @@
+;; This module is the read/eval/print loop; for coding Fennel interactively.
+
+;; The most complex thing it does is locals-saving, which allows locals to be
+;; preserved in between "chunks"; by default Lua throws away all locals after
+;; evaluating each piece of input.
+
 (local utils (require :fennel.utils))
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))

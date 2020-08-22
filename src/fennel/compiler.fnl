@@ -1,3 +1,7 @@
+;; This is the core compiler module responsible for taking a parsed AST
+;; and turning it into Lua code. Main entry points are `compile` (which
+;; takes an AST), `compile-stream` and `compile-string`.
+
 (local utils (require "fennel.utils"))
 (local parser (require "fennel.parser"))
 (local friend (require :fennel.friend))

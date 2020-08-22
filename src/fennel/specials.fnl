@@ -595,7 +595,7 @@ Evaluates body once for each value between start and stop (inclusive).")
   (let [method-string (tostring (. (compiler.compile1 (. ast 3) scope parent
                                                       {:nval 1}) 1))
         call "(function(tgt, m, ...) return tgt[m](tgt, ...) end)(%s, %s)"]
-    (table.insert args method-string)
+    (table.insert args 1 method-string)
     (utils.expr (string.format call (tostring target) (table.concat args ", "))
                 "statement")))
 

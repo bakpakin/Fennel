@@ -22,6 +22,11 @@ usually accept these fields:
   literal or resolvable at compile time, falls back to `require` at runtime. Can be used to
   embed both fennel and Lua modules.
 * `env`: an environment table in which to run the code; see the Lua manual.
+* `compiler-env`: an environment table in which to run compiler-scoped code
+  for macro definitions and `eval-compiler` calls. Internal Fennel functions
+  such as `list`, `sym`, etc. will be exposed in addition to this table.
+  Defaults to a table containing limited known-safe globals. Pass `_G` to 
+  disable sandboxing.
 * `unfriendly`: disable friendly compiler/parser error messages.
 
 Note that only the `fennel` module is part of the public API. The

@@ -47,9 +47,9 @@ Optionally takes a target table to insert the mapped values into."
           (tset out korv v))))
     out))
 
-(fn copy [from]
+(fn copy [from to]
   "Returns a shallow copy of its table argument. Returns an empty table on nil."
-  (let [to []]
+  (let [to (or to [])]
     (each [k v (pairs (or from []))]
       (tset to k v))
     to))
@@ -219,7 +219,8 @@ When f returns a truthy value, recursively walks the children."
 (fn valid-lua-identifier? [str]
   (and (str:match "^[%a_][%w_]*$") (not (. lua-keywords str))))
 
-(local propagated-options [:allowedGlobals :indent :correlate :useMetadata :env])
+(local propagated-options [:allowedGlobals :indent :correlate :useMetadata
+                           :env :compiler-env])
 
 (fn propagate-options [options subopts]
   "Certain options should always get propagated onwards when a function that

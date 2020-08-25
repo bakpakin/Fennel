@@ -219,64 +219,6 @@
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
-(fn test-macros []
-  (let [cases {"(-> (+ 85 21) (+ 1) (- 99))" 8
-               "(-> 1234 (string.reverse) (string.upper))" "4321"
-               "(-> 1234 string.reverse string.upper)" "4321"
-               "(->> (+ 85 21) (+ 1) (- 99))" (- 8)
-               "(-?> [:a :b] (table.concat \" \"))" "a b"
-               "(-?> {:a {:b {:c :z}}} (. :a) (. :b) (. :c))" "z"
-               "(-?> {:a {:b {:c :z}}} (. :a) (. :missing) (. :c))" nil
-               "(-?>> \" \" (table.concat [:a :b]))" "a b"
-               "(-?>> :w (. {:w :x}) (. {:x :missing}) (. {:y :z}))" nil
-               "(-?>> :w (. {:w :x}) (. {:x :y}) (. {:y :z}))" "z"
-               "(eval-compiler
-             (tset _SPECIALS \"reverse-it\" (fn [ast scope parent opts]
-               (tset ast 1 \"do\")
-               (for [i 2 (math.ceil (/ (length ast) 2))]
-                 (let [a (. ast i) b (. ast (- (length ast) (- i 2)))]
-                   (tset ast (- (length ast) (- i 2)) a)
-                   (tset ast i b)))
-               (_SPECIALS.do ast scope parent opts))))
-           (reverse-it 1 2 3 4 5 6)" 1
-               "(eval-compiler (set tbl.nest ``nest))
-          (tostring tbl.nest)" "(quote nest)"
-               "(import-macros m :test.macros) (m.multigensym)" 519
-               "(import-macros m :test.macros) (var x 1) (m.inc! x 2) (m.inc! x) x" 4
-               "(import-macros test :test.macros {:inc INC} :test.macros)
-          (INC (test.inc 5))" 7
-               "(import-macros {:defn1 defn : ->1} :test.macros)
-          (defn join [sep ...] (table.concat [...] sep))
-          (join :: :num (->1 5 (* 2) (+ 8)))" "num:18"
-               "(let [x [1]]
-            (doto x (table.insert 2) (table.insert 3)) (table.concat x))" "123"
-               "(macro five [] 5) (five)" 5
-               "(macro greet [] :Hi!) (greet)" "Hi!"
-               "(macro seq? [expr] (sequence? expr)) (seq? [65])" [65]
-               "(macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided" 952
-               "(macros {:m (fn [y] `(let [xa# 1] (+ xa# ,y)))}) (m 4)" 5
-               "(macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)" 18
-               "(macros {:when2 (fn [c val] `(when ,c ,val))})
-          (when2 true :when2)" "when2"
-               "(macros {:when3 (fn [c val] `(do (when ,c ,val)))})
-          (when3 true :when3)" "when3"
-               "(macros {:x (fn [] `(fn [...] (+ 1 1)))}) ((x))" 2
-               "(macros {:yes (fn [] true) :no (fn [] false)}) [(yes) (no)]" [true false]
-               "(require-macros \"test.macros\")
-          (->1 9 (+ 2) (* 11))" 121
-               "(require-macros \"test.macros\")
-          (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z" 12
-               "(var (fh1 fh2) nil) [(with-open [f1 (io.tmpfile) f2 (io.tmpfile)]
-          (set [fh1 fh2] [f1 f2]) (f1:write :asdf) (f1:seek :set 0) (f1:read :*a))
-          (io.type fh1) (io.type fh2)]" ["asdf" "closed file" "closed file"]
-               "(var fh nil) (local (ok msg) (pcall #(with-open [f (io.tmpfile)] (set fh f)
-          (error :bork!)))) [(io.type fh) ok (msg:match :bork!)]" ["closed file" false "bork!"]
-               "[(with-open [proc1 (io.popen \"echo hi\") proc2 (io.popen \"echo bye\")]
-            (values (proc1:read) (proc2:read)))]" ["hi" "bye"]}]
-    (each [code expected (pairs cases)]
-      (l.assertEquals (fennel.eval code {:correlate true}) expected code))
-    (fennel.eval "(eval-compiler (set _SPECIALS.reverse-it nil))")))
-
 (fn test-hashfn []
   (let [cases {"(#$.foo {:foo :bar})" "bar"
                "(#$2.foo.bar.baz nil {:foo {:bar {:baz :quux}}})" "quux"
@@ -299,6 +241,17 @@
                "bazquux"}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
+
+(fn test-with-open []
+  (let [cases {"(var (fh1 fh2) nil) [(with-open [f1 (io.tmpfile) f2 (io.tmpfile)]
+          (set [fh1 fh2] [f1 f2]) (f1:write :asdf) (f1:seek :set 0) (f1:read :*a))
+          (io.type fh1) (io.type fh2)]" ["asdf" "closed file" "closed file"]
+               "(var fh nil) (local (ok msg) (pcall #(with-open [f (io.tmpfile)] (set fh f)
+          (error :bork!)))) [(io.type fh) ok (msg:match :bork!)]" ["closed file" false "bork!"]
+               "[(with-open [proc1 (io.popen \"echo hi\") proc2 (io.popen \"echo bye\")]
+            (values (proc1:read) (proc2:read)))]" ["hi" "bye"]}]
+    (each [code expected (pairs cases)]
+      (l.assertEquals (fennel.eval code) expected code))))
 
 (fn test-match []
   (let [cases {"(let [_ :bar] (match :foo _ :should-match :foo :no))" "should-match"
@@ -361,7 +314,8 @@
                 _G.out"
                "(a {} [1 2])"}]
     (each [code expected (pairs cases)]
-      (l.assertEquals (fennel.eval code {:correlate true}) expected code))
+      (l.assertEquals (fennel.eval code {:correlate true :compiler-env _G})
+                      expected code))
     (let [mt (setmetatable [] {:__fennelview (fn [] "META")})]
       (l.assertEquals ((require "fennelview") mt) "META"))))
 
@@ -377,7 +331,7 @@
  : test-hashfn
  : test-if
  : test-loops
- : test-macros
+ : test-with-open
  : test-match
  : test-method_calls
  : test-parsing}

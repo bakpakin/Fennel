@@ -2,6 +2,7 @@
 
 ## 0.5.1 / ???
 
+* Add plugin system.
 * Fix a bug where repls would fail when provided with an overridden env.
 * Expose `list?` and `sym?` in compiler API.
 * Fix a bug where method calls would early-evaluate their receiver.

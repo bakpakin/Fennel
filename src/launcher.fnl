@@ -40,7 +40,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
   If ~/.fennelrc exists, loads it before launching a repl.")
 
-(local options [])
+(local options {:plugins []})
 
 (fn dosafely [f ...]
   (let [args [...]
@@ -106,7 +106,11 @@ Run fennel, a lisp programming language for the Lua runtime.
     "--metadata" (do (set options.useMetadata true)
                      (table.remove arg i))
     "--no-metadata" (do (set options.useMetadata false)
-                        (table.remove arg i))))
+                        (table.remove arg i))
+    "--plugin" (let [plugin (fennel.dofile (table.remove arg (+ i 1))
+                                           {:env :_COMPILER})]
+                 (table.insert options.plugins 1 plugin)
+                 (table.remove arg i))))
 
 (when (not options.no_searcher)
   (let [opts []]

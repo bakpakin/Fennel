@@ -120,6 +120,7 @@ By default, start is 2."
               fargs (if scope.vararg "..." "")]
           (compiler.emit parent (string.format "local function %s(%s)"
                                                fname fargs) ast)
+          (utils.hook :do ast sub-scope)
           (compile-body nil true
                         (utils.expr (.. fname "(" fargs ")") :statement))))))
 
@@ -227,6 +228,7 @@ the number of expected arguments."
       (compiler.emit parent f-chunk ast)
       (compiler.emit parent "end" ast)
       (set-fn-metadata arg-list docstring parent fn-name))
+    (utils.hook :fn ast f-scope)
     (utils.expr fn-name "sym")))
 
 (doc-special "fn" ["name?" "args" "docstring?" "..."]
@@ -826,6 +828,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 
                  :fennel utils.fennel-module
                  :unpack unpack
+                 :assert-compile compiler.assert
 
                  ;; AST functions
                  :list utils.list

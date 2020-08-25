@@ -993,7 +993,7 @@ Example:
 
 This prints all the functions available in compiler scope.
 
-### Compiler API
+### Compiler Environment
 
 Inside `eval-compiler`, `macros`, or `macro` blocks, as well as
 `import-macros` modules, these functions are visible to your code.
@@ -1015,6 +1015,9 @@ and a metatable that the compiler uses to distinguish them. You can use
 * `gensym` - generates a unique symbol for use in macros.
 * `varg?` - is this a `...` symbol which indicates var args?
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
+
+* `assert-compile` - works like `assert` but takes a list/symbol as its third
+  argument in order to provide pinpointed error messages.
 
 These functions can be used from within macros only, not from any
 `eval-compiler` call:

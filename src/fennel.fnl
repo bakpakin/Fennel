@@ -35,7 +35,11 @@
         _ (when (and (= opts.allowedGlobals nil)
                      (not (getmetatable opts.env)))
             (set opts.allowedGlobals (specials.current-global-names opts.env)))
-        env (and opts.env (specials.wrap-env opts.env))
+        ;; This is ... not great. Should we expose make-compiler-env in the API?
+        env (if (= opts.env :_COMPILER)
+                (specials.wrap-env (specials.make-compiler-env
+                                    nil compiler.scopes.compiler {}))
+                (and opts.env (specials.wrap-env opts.env)))
         lua-source (compiler.compile-string str opts)
         loader (specials.load-code lua-source env
                                   (if opts.filename

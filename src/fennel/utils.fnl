@@ -235,6 +235,12 @@ has options calls down into compile."
     (set (root.chunk root.scope root.options root.reset)
          (values chunk scope options reset))))
 
+(fn hook [event ...]
+  (when (and root.options root.options.plugins)
+    (each [_ plugin (ipairs root.options.plugins)]
+      (match (. plugin event)
+        f (f ...)))))
+
 {;; general table functions
  : allpairs : stablepairs : copy : kvmap : map : walk-tree : member?
 
@@ -243,6 +249,6 @@ has options calls down into compile."
  : expr? : list? : multi-sym? : sequence? : sym? : table? : varg? : quoted?
 
  ;; other
- : valid-lua-identifier? : lua-keywords
+ : valid-lua-identifier? : lua-keywords : hook
  : propagate-options : root : debug-on?
  :path (table.concat ["./?.fnl" "./?/init.fnl" (getenv "FENNEL_PATH")] ";")}

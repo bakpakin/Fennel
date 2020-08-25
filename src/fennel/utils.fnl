@@ -230,10 +230,10 @@ has options calls down into compile."
 
 (local root {:chunk nil :scope nil :options nil :reset (fn [])})
 
-(fn root.set-reset [new-root]
+(fn root.set-reset [{: chunk : scope : options : reset}]
   (fn root.reset []
     (set (root.chunk root.scope root.options root.reset)
-         (values new-root.chunk new-root.scope new-root.options new-root.reset))))
+         (values chunk scope options reset))))
 
 {;; general table functions
  : allpairs : stablepairs : copy : kvmap : map : walk-tree : member?

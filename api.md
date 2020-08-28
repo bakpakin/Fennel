@@ -243,4 +243,42 @@ that environment, in a way that's portable across any Lua 5.1+ version.
 local f = fennel.loadCode(luaCode, { x = y }, "myfile.lua")
 ```
 
+## Plugins
+
+Fennel's plugin system is extremely experimental and exposes internals of
+the compiler in ways that no other part of the compiler does. It should be
+considered unstable; changes to the compiler in future versions are likely
+to break plugins, and each plugin should only be assumed to work with
+specific versions of the compiler that they're tested against. The
+backwards-compatibility guarantees of the rest of Fennel **do not apply** to
+plugins.
+
+Compiler plugins allow the functionality of the compiler to be extended in
+various ways. A plugin is a module containing various functions in fields
+named after different compiler extension points. When the compiler hits an
+extension point, it will call each plugin's function for that extension
+point, if provided, with various arguments; usually the AST in question and
+the scope table.
+
+* `symbol-to-expression`
+* `call`
+* `do`
+* `fn`
+* `destructure`
+
+The `destructure` extension point is different because instead of just
+taking `ast` and `scope` it takes a `from` which is the AST for the value
+being destructured and a `to` AST which is the AST for the form being
+destructured to. This is most commonly a symbol but can be a list or a table.
+
+The `scope` argument is a table containing all the compiler's information
+about the current scope. Most of the tables here look up values in their
+parent scopes if they do not contain a key.
+
+Plugins are activated by passing the `--plugin` argument on the command line,
+which should be a path to a Fennel file containing a module that has some of
+the functions listed above. If you're using the compiler programmatically,
+you can include a `:plugins` table in the `options` table to most compiler
+entry point functions.
+
 [1]: https://github.com/rxi/lume#lumehotswapmodname

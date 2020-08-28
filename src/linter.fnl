@@ -17,6 +17,8 @@
 
 ;; Still, pretty neat, huh?
 
+;; This file is provided as an example and is not part of Fennel's public API.
+
 (fn save-require-meta [from to scope]
   "When destructuring, save module name if local is bound to a `require' call.
 Doesn't do any linting on its own; just saves the data for other linters."

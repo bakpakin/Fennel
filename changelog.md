@@ -1,7 +1,13 @@
 # Summary of user-visible changes
 
-## 0.5.1 / ???
+## 0.6.0 / ???
 
+This release introduces the plugin system as well as starting to
+sandbox the compiler environment for safer code loading. Nothing is
+blocked yet, but it emits warnings when macros use functionality that
+is not considered safe; future versions will prevent this.
+
+* Add plugin system.
 * Sandbox compiler environment and emit a warning when it leaks.
 * Fix a bug where repls would fail when provided with an overridden env.
 * Expose `list?` and `sym?` in compiler API.
@@ -11,14 +17,19 @@
 
 ## 0.5.0 / 2020-08-08
 
+This release features a version of the Fennel compiler that is
+self-hosted and written entirely in Fennel!
+
 * Fix a bug where lambdas with no body would return true instead of nil.
 * Fix a bug where global mangling would break when used with an environment.
 * Fix a bug where globals tracking would lose track of allowed list.
 * Fix a bug where top-level expressions in `include` would get skipped.
 * The "fennelfriend" module is now incorporated into the compiler, not separate.
-* The Fennel compiler is now self-hosted and written entirely in Fennel!
 
 ## 0.4.2 / 2020-07-11
+
+This release mostly includes small bug fixes but also adds the
+`with-open` macro for automating closing file handles, etc.
 
 * Fix a bug where multiple `include` calls would splice locals incorrectly
 * Support varargs in hashfn with `$...` (#298)
@@ -32,6 +43,9 @@
 
 ## 0.4.1 / 2020-05-25
 
+This release mostly includes small bug fixes, but also introduces a very
+experimental command for compiling standalone executables.
+
 * Experimental `--compile-binary` command (#281)
 * Support shebang in all contexts, not just dofile
 * Pinpoint source in compile errors even when loading from a string
@@ -40,6 +54,12 @@
 * Fix a bug in macros returning forms of a different length from their input (#276)
 
 ## 0.4.0 / 2020-05-12
+
+This release adds support for Lua 5.3's bitwise operators as well as a
+new way of importing macro modules. It also adds `pick-values` and
+`pick-args` for a little more flexibility around function args and
+return values. The compiler now tries to emit friendlier errors that
+suggest fixes for problems.
 
 * Add `import-macros` for more flexible macro module loading (#269)
 * Ensure deterministic compiler output (#257)
@@ -55,6 +75,8 @@
 
 ## 0.3.2 / 2020-01-14
 
+This release mostly contains small bug fixes.
+
 * Fix a bug where `include` could not be nested without repetition (#214)
 * Fix a bug where globals checking would mistakenly flag locals (#213)
 * Fix a bug that would cause incorrect filenames in error messages (#208)
@@ -62,6 +84,8 @@
 * Dissallow naming a local the same as global in some contexts
 
 ## 0.3.1 / 2019-12-17
+
+This release mostly contains small bug fixes.
 
 * Look for init file for repl in XDG config dirs as well as ~/.fennelrc (#193)
 * Add support for `--load FILE` argument to command-line launcher (#193)

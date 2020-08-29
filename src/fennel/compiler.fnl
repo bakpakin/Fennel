@@ -187,6 +187,7 @@ rather than generating new one."
 (fn symbol-to-expression [symbol scope reference?]
   "Convert symbol to Lua code. Will only work for local symbols
 if they have already been declared via declare-local"
+  (utils.hook :symbol-to-expression symbol scope reference?)
   (let [name (. symbol 1)
         multi-sym-parts (utils.multi-sym? name)
         name (or (hashfn-arg-name name multi-sym-parts scope) name)]
@@ -412,6 +413,7 @@ if opts contains the nval option."
         exprs)))
 
 (fn compile-call [ast scope parent opts compile1]
+  (utils.hook :call ast scope)
   (let [len (# ast)
         first (. ast 1)
         multi-sym-parts (utils.multi-sym? first)
@@ -678,6 +680,7 @@ which we have to do if we don't know."
         {:returned true}))
 
     (let [ret (destructure1 to nil ast true)]
+      (utils.hook :destructure from to scope)
       (apply-manglings scope new-manglings ast)
       ret)))
 

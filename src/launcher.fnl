@@ -9,7 +9,7 @@ Usage: fennel [FLAG] [FILE]
 Run fennel, a lisp programming language for the Lua runtime.
 
   --repl                  : Command to launch an interactive repl session
-  --compile FILES         : Command to compile files and write Lua to stdout
+  --compile FILES         : Command to AOT compile files, writing Lua to stdout
   --eval SOURCE (-e)      : Command to evaluate source code and print the result
 
   --no-searcher           : Skip installing package.searchers entry
@@ -25,6 +25,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --load FILE (-l)        : Load the specified FILE before executing the command
   --lua LUA_EXE           : Run in a child process with LUA_EXE (experimental)
   --no-fennelrc           : Skip loading ~/.fennelrc when launching repl
+  --plugin FILE           : Activate the compiler plugin in FILE
   --compile-binary FILE
       OUT LUA_LIB LUA_DIR : Compile FILE to standalone binary OUT (experimental)
   --compile-binary --help : Display further help for compiling binaries
@@ -32,6 +33,9 @@ Run fennel, a lisp programming language for the Lua runtime.
 
   --help (-h)             : Display this text
   --version (-v)          : Show version
+
+  Globals are not checked when doing AOT (ahead-of-time) compilation unless
+  the --globals-only flag is provided.
 
   Metadata is typically considered a development feature and is not recommended
   for production. It is used for docstrings and enabled by default in the REPL.
@@ -41,7 +45,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
   If ~/.fennelrc exists, loads it before launching a repl.")
 
-(local options [])
+(local options {:plugins []})
 
 (fn dosafely [f ...]
   (let [args [...]
@@ -109,7 +113,11 @@ Run fennel, a lisp programming language for the Lua runtime.
     "--no-metadata" (do (set options.useMetadata false)
                         (table.remove arg i))
     "--no-compiler-sandbox" (do (set options.compiler-env _G)
-                                (table.remove arg i))))
+                                (table.remove arg i))
+    "--plugin" (let [plugin (fennel.dofile (table.remove arg (+ i 1))
+                                           {:env :_COMPILER})]
+                 (table.insert options.plugins 1 plugin)
+                 (table.remove arg i))))
 
 (when (not options.no_searcher)
   (let [opts []]

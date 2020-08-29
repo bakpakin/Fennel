@@ -998,6 +998,12 @@ This prints all the functions available in compiler scope.
 Inside `eval-compiler`, `macros`, or `macro` blocks, as well as
 `import-macros` modules, these functions are visible to your code.
 
+As of 0.6.0 the compiler will warn you if you try to use globals outside a
+certain predetermined safe list in a macro; this will turn into an error in a
+future version of Fennel. You can disable this warning by providing the
+command-line argument `--no-sandbox-compiler` or by passing `{:compiler-env
+_G}` in the options table when invoking the compiler programmatically.
+
 Note that lists are compile-time concepts that don't exist at runtime; they
 are implemented as regular tables which have a special metatable to
 distinguish them from regular tables defined with square or curly

@@ -1,6 +1,7 @@
 /fennel
 /fennel.lua
 /downloads
+/scratch.fnl
 
 # Used to compile the Windows build
 /lua-5.3.5/

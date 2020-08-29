@@ -28,6 +28,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --compile-binary FILE
       OUT LUA_LIB LUA_DIR : Compile FILE to standalone binary OUT (experimental)
   --compile-binary --help : Display further help for compiling binaries
+  --no-sandbox-compiler   : Do not limit compiler environment to minimal sandbox
 
   --help (-h)             : Display this text
   --version (-v)          : Show version
@@ -106,7 +107,9 @@ Run fennel, a lisp programming language for the Lua runtime.
     "--metadata" (do (set options.useMetadata true)
                      (table.remove arg i))
     "--no-metadata" (do (set options.useMetadata false)
-                        (table.remove arg i))))
+                        (table.remove arg i))
+    "--no-compiler-sandbox" (do (set options.compiler-env _G)
+                                (table.remove arg i))))
 
 (when (not options.no_searcher)
   (let [opts []]

@@ -812,6 +812,32 @@ Method name doesn't have to be known at compile-time; if it is, use
 (doc-special "quote" ["x"]
             "Quasiquote the following form. Only works in macro/compiler scope.")
 
+(local already-warned? {})
+
+(local compile-env-warning
+       (.. "WARNING: Attempting to %s %s in compile"
+           " scope.\nIn future versions of Fennel this will not"
+           " be allowed without the\n--no-compiler-sandbox flag"
+           " or passing :compiler-env _G in options.\n"))
+
+(fn compiler-env-warn [env key]
+  "Warn once when allowing a global that the sandbox would normally block."
+  (let [v (. _G key)]
+    (when (and v io io.stderr (not (. already-warned? key)))
+      (tset already-warned? key true)
+      ;; Make this an error in a future release!
+      (io.stderr:write (compile-env-warning:format "use global" key)))
+    v))
+
+;; Note that this is not yet the safe compiler env! Enforcing a compiler sandbox
+;; is a breaking change, so we need to do it in a way that warns for several
+;; releases before enforcing the sandbox.
+(local safe-compiler-env
+       (setmetatable {: table : math : string : pairs : ipairs : assert : error
+                      : select : tostring : tonumber : pcall : xpcall : next
+                      : print : type :bit _G.bit : setmetatable : getmetatable}
+                     {:__index compiler-env-warn}))
+
 (fn make-compiler-env [ast scope parent]
   (setmetatable {:_AST ast ; state of compiler
                  :_CHUNK parent
@@ -820,12 +846,7 @@ Method name doesn't have to be known at compile-time; if it is, use
                  :_SPECIALS compiler.scopes.global.specials
                  :_VARARG (utils.varg)
 
-                 ;; Useful for macros and meta programming. All of
-                 ;; Fennel can be accessed via fennel.myfun, for example
-                 ;; (fennel.eval "(print 1)").
-
-                 :fennel utils.fennel-module
-                 :unpack unpack
+                 :unpack unpack ; compatibilty alias
 
                  ;; AST functions
                  :list utils.list
@@ -852,7 +873,9 @@ Method name doesn't have to be known at compile-time; if it is, use
                    (compiler.assert compiler.scopes.macro
                                     "must call from macro" ast)
                    (compiler.macroexpand form compiler.scopes.macro))}
-                {:__index (or _ENV _G)}))
+                {:__index (match utils.root.options
+                            {: compiler-env} compiler-env
+                            safe-compiler-env)}))
 
 ;; have search-module use package.config to process package.path (windows compat)
 (local cfg (string.gmatch package.config "([^\n]+)"))
@@ -900,6 +923,37 @@ table.insert(package.loaders, fennel.searcher)"
       (table.insert allowed k))
     allowed))
 
+(fn compiler-env-domodule [modname env ?ast]
+  (let [filename (compiler.assert (search-module modname)
+                                  (.. modname " module not found.") ?ast)
+        globals (macro-globals env (current-global-names))]
+    (utils.fennel-module.dofile filename {:allowedGlobals globals
+                                          :env env
+                                          :useMetadata utils.root.options.useMetadata
+                                          :scope compiler.scopes.compiler})))
+
+;; This is the compile-env equivalent of package.loaded. It's used by
+;; require-macros and import-macros, but also by require when used from within
+;; default compiler scope.
+(local macro-loaded {})
+
+(fn metadata-only-fennel [modname]
+  "Let limited Fennel module thru just for purposes of compiling docstrings."
+  (if (or (= modname "fennel.macros")
+          (and package package.loaded (. package.loaded modname)
+               (= (. package.loaded modname :metadata) compiler.metadata)))
+      {:metadata compiler.metadata}))
+
+(fn safe-compiler-env.require [modname]
+  "This is a replacement for require for use in macro contexts.
+It ensures that compile-scoped modules are loaded differently from regular
+modules in the compiler environment."
+  (or (. macro-loaded modname)
+      (metadata-only-fennel modname)
+      (let [mod (compiler-env-domodule modname safe-compiler-env)]
+        (tset macro-loaded modname mod)
+        mod)))
+
 (fn add-macros [macros* ast scope]
   (compiler.assert (utils.table? macros*) "expected macros to be table" ast)
   (each [k v (pairs macros*)]
@@ -907,23 +961,12 @@ table.insert(package.loaders, fennel.searcher)"
                      "expected each macro to be function" ast)
     (tset scope.macros k v)))
 
-(fn load-macros [modname ast scope parent]
-  (let [filename (compiler.assert (search-module modname)
-                                  (.. modname " module not found.") ast)
-        env (make-compiler-env ast scope parent)
-        globals (macro-globals env (current-global-names))]
-    (utils.fennel-module.dofile filename {:allowedGlobals globals
-                                         :env env
-                                         :useMetadata utils.root.options.useMetadata
-                                         :scope compiler.scopes.compiler})))
-
-(local macro-loaded [])
-
 (fn SPECIALS.require-macros [ast scope parent]
   (compiler.assert (= (# ast) 2) "Expected one module name argument" ast)
   (let [modname (. ast 2)]
     (when (not (. macro-loaded modname))
-      (tset macro-loaded modname (load-macros modname ast scope parent)))
+      (let [env (make-compiler-env ast scope parent)]
+        (tset macro-loaded modname (compiler-env-domodule modname env ast))))
     (add-macros (. macro-loaded modname) ast scope parent)))
 
 (doc-special
@@ -1010,11 +1053,11 @@ Consider using import-macros instead as it is more flexible.")
 Lua output. The module must be a string literal and resolvable at compile time.")
 
 (fn eval-compiler* [ast scope parent]
-  (let [scope (compiler.make-scope compiler.scopes.compiler)
-        luasrc (compiler.compile ast {:useMetadata utils.root.options.useMetadata
-                                   :scope scope})
-        loader (load-code luasrc (wrap-env (make-compiler-env ast scope parent)))]
-    (loader)))
+  (let [env (make-compiler-env ast scope parent)
+        opts (utils.copy utils.root.options)]
+    (set opts.scope (compiler.make-scope compiler.scopes.compiler))
+    (set opts.allowedGlobals (macro-globals env (current-global-names)))
+    ((load-code (compiler.compile ast opts) (wrap-env env)))))
 
 (fn SPECIALS.macros [ast scope parent]
   (compiler.assert (= (# ast) 2) "Expected one table argument" ast)

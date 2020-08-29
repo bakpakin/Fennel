@@ -107,6 +107,7 @@
       module-name "fennel.macros"
       _ (tset package.preload module-name #mod)
       env (specials.make-compiler-env nil compiler.scopes.compiler {})
+      _ (set env.fennel mod)
       built-ins (eval builtin-macros {:env env
                                       :scope compiler.scopes.compiler
                                       :allowedGlobals false

@@ -25,7 +25,7 @@ end
 
 if(#arg == 0) then
    testall({'core', 'mangling', 'quoting', 'misc', 'docstring', 'fennelview',
-            'failures', 'repl', 'cli',})
+            'failures', 'repl', 'cli', 'macro'})
 else
    testall(arg)
 end

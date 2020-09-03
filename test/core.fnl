@@ -303,7 +303,7 @@
   (let [cases {"((require :fennelview) (let [t {}] [t t]) {:detect-cycles? false})"
                "[{} {}]"
                "((require :fennelview) (let [t {}] [t t]))"
-               "[{} #<table 2>]"
+               "[<2>{} #<table 2>]"
                "((require :fennelview) {:a 1 :b 52})"
                "{
   :a 1

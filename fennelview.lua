@@ -24,7 +24,7 @@ local type_order = {["function"] = 5, boolean = 2, number = 1, string = 3, table
 local function sort_keys(a, b)
   local ta = type(a)
   local tb = type(b)
-  if ((ta == tb) and (ta ~= "boolean") and ((ta == "string") or (ta == "number"))) then
+  if ((ta == tb) and ((ta == "string") or (ta == "number"))) then
     return (a < b)
   else
     local dta = type_order[a]
@@ -66,9 +66,7 @@ local function count_table_appearances(t, appearances)
         count_table_appearances(k, appearances)
         count_table_appearances(v, appearances)
       end
-    end
-  else
-    if (t and (t == t)) then
+    else
       appearances[t] = ((appearances[t] or 0) + 1)
     end
   end
@@ -166,16 +164,17 @@ local function put_table(self, t)
     local non_seq_keys, len = get_nonsequential_keys(t)
     local id = get_id(self, t)
     if ((1 < (self.appearances[t] or 0)) and self["detect-cycles?"]) then
-      return puts(self, "#<table", id, ">")
-    elseif ((#non_seq_keys == 0) and (#t == 0)) then
-      local function _2_()
+      puts(self, "<", id, ">")
+    end
+    if ((#non_seq_keys == 0) and (#t == 0)) then
+      local function _3_()
         if self["empty-as-square"] then
           return "[]"
         else
           return "{}"
         end
       end
-      return puts(self, _2_())
+      return puts(self, _3_())
     elseif (#non_seq_keys == 0) then
       return put_sequential_table(self, t, len)
     elseif "else" then

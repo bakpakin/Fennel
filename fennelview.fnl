@@ -129,7 +129,7 @@
 (fn put-table [self t]
   (let [metamethod (and self.metamethod? (-?> t getmetatable (. :__fennelview)))]
     (if (and (already-visited? self t) self.detect-cycles?)
-        (puts self "#<table " (get-id self t) ">")
+        (puts self "#<table @" (get-id self t) ">")
         (>= self.level self.depth)
         (puts self "{...}")
         metamethod
@@ -141,7 +141,7 @@
           ;; a table, so if it's not found, assume we haven't seen it; we can't
           ;; do cycle detection in that case.
           (when (and (< 1 (or (. self.appearances t) 0)) self.detect-cycles?)
-            (puts self "<" id ">"))
+            (puts self "@" id))
           (if (and (= (length non-seq-keys) 0) (= (length t) 0))
               (puts self (if self.empty-as-square "[]" "{}"))
               (= (length non-seq-keys) 0)

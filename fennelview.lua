@@ -155,7 +155,7 @@ local function put_table(self, t)
   end
   metamethod = (self["metamethod?"] and _1_())
   if (already_visited_3f(self, t) and self["detect-cycles?"]) then
-    return puts(self, "#<table ", get_id(self, t), ">")
+    return puts(self, "#<table @", get_id(self, t), ">")
   elseif (self.level >= self.depth) then
     return puts(self, "{...}")
   elseif metamethod then
@@ -164,7 +164,7 @@ local function put_table(self, t)
     local non_seq_keys, len = get_nonsequential_keys(t)
     local id = get_id(self, t)
     if ((1 < (self.appearances[t] or 0)) and self["detect-cycles?"]) then
-      puts(self, "<", id, ">")
+      puts(self, "@", id)
     end
     if ((#non_seq_keys == 0) and (#t == 0)) then
       local function _3_()

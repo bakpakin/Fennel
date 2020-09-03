@@ -179,38 +179,35 @@ the number of expected arguments."
   (let [f-scope (doto (compiler.make-scope scope)
                   (tset :vararg false))
         f-chunk []
-        fn-name (utils.sym? (. ast 2))
-        multi (and fn-name (utils.multi-sym? (. fn-name 1)))
-        (fn-name local-fn? index) (get-fn-name ast scope fn-name multi)]
+        fn-sym (utils.sym? (. ast 2))
+        multi (and fn-sym (utils.multi-sym? (. fn-sym 1)))
+        (fn-name local-fn? index) (get-fn-name ast scope fn-sym multi)
+        arg-list (compiler.assert (utils.table? (. ast index))
+                                  "expected parameters table" ast)]
     (compiler.assert (or (not multi) (not multi.multi-sym-method-call))
-                     (.. "unexpected multi symbol " (tostring fn-name))
-                     (. ast index))
+                     (.. "unexpected multi symbol " (tostring fn-name)) fn-sym)
 
-    (fn get-arg-name [arg-count i name]
-      (if (utils.varg? name)
-          (do (compiler.assert (= i arg-count)
-                               "expected vararg as last parameter" (. ast 2))
+    (fn get-arg-name [arg]
+      (if (utils.varg? arg)
+          (do (compiler.assert (= arg (. arg-list (# arg-list)))
+                               "expected vararg as last parameter" ast)
               (set f-scope.vararg true)
               "...")
-          (and (utils.sym? name)
-               (not= (utils.deref name) "nil")
-               (not (utils.multi-sym? (utils.deref name))))
-          (compiler.declare-local name [] f-scope ast)
-          (utils.table? name)
+          (and (utils.sym? arg)
+               (not= (utils.deref arg) "nil")
+               (not (utils.multi-sym? (utils.deref arg))))
+          (compiler.declare-local arg [] f-scope ast)
+          (utils.table? arg)
           (let [raw (utils.sym (compiler.gensym scope))
                 declared (compiler.declare-local raw [] f-scope ast)]
-            (compiler.destructure name raw ast f-scope f-chunk {:declaration true
-                                                                :nomulti true})
+            (compiler.destructure arg raw ast f-scope f-chunk {:declaration true
+                                                               :nomulti true})
             declared)
           (compiler.assert false
                            (: "expected symbol for function parameter: %s"
-                              :format (tostring name)) (. ast 2))))
+                              :format (tostring arg)) (. ast 2))))
 
-    (let [arg-list (compiler.assert (utils.table? (. ast index))
-                                    "expected parameters"
-                                    (if (= (type (. ast index)) "table")
-                                        (. ast index) ast))
-          arg-name-list (utils.kvmap arg-list (partial get-arg-name (# arg-list)))
+    (let [arg-name-list (utils.map arg-list get-arg-name)
           (index docstring) (if (and (= (type (. ast (+ index 1))) :string)
                                      (< (+ index 1) (# ast)))
                                 (values (+ index 1) (. ast (+ index 1)))

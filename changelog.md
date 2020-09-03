@@ -7,6 +7,7 @@ sandbox the compiler environment for safer code loading. Nothing is
 blocked yet, but it emits warnings when macros use functionality that
 is not considered safe; future versions will prevent this.
 
+* Fix a bug where long arglists could get jumbled.
 * Add plugin system.
 * Sandbox compiler environment and emit a warning when it leaks.
 * Fix a bug where repls would fail when provided with an overridden env.

@@ -100,6 +100,9 @@
                "(let [add (fn [x y z] (+ x y z)) f2 (partial add 1 2)] (f2 6))" 9
                "(let [add (fn [x y] (+ x y)) add2 (partial add)] (add2 99 2))" 101
                "(let [add (fn [x y] (+ x y)) inc (partial add 1)] (inc 99))" 100
+
+               ;; many args
+               "((fn f [a sin cos radC cx cy x y limit dis] sin) 8 529)" 529
                }]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))

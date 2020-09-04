@@ -1,12 +1,13 @@
 # Summary of user-visible changes
 
-## 0.6.0 / ???
+## 0.6.0 / 2020-09-03
 
 This release introduces the plugin system as well as starting to
 sandbox the compiler environment for safer code loading. Nothing is
 blocked yet, but it emits warnings when macros use functionality that
 is not considered safe; future versions will prevent this.
 
+* Change table reference notation in fennelview to use `@`.
 * Fix a bug where long arglists could get jumbled.
 * Add plugin system.
 * Sandbox compiler environment and emit a warning when it leaks.

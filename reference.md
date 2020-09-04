@@ -1005,11 +1005,10 @@ command-line argument `--no-sandbox-compiler` or by passing `{:compiler-env
 _G}` in the options table when invoking the compiler programmatically.
 
 Note that lists are compile-time concepts that don't exist at runtime; they
-are implemented as regular tables which have a special metatable to
-distinguish them from regular tables defined with square or curly
-brackets. Similarly symbols are tables with a string entry for their name
-and a metatable that the compiler uses to distinguish them. You can use
-`tostring` to get the name of a symbol.
+are implemented as tables which have a special metatable to distinguish them
+from regular tables defined with square or curly brackets. Similarly symbols
+are tables with a string entry for their name and a marker metatable. You
+can use `tostring` to get the name of a symbol.
 
 * `list` - return a list, which is a special kind of table used for code
 * `sym` - turn a string into a symbol
@@ -1021,6 +1020,7 @@ and a metatable that the compiler uses to distinguish them. You can use
 * `gensym` - generates a unique symbol for use in macros.
 * `varg?` - is this a `...` symbol which indicates var args?
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
+* `gensym` - generate a guaranteed-unique symbol
 
 * `assert-compile` - works like `assert` but takes a list/symbol as its third
   argument in order to provide pinpointed error messages.

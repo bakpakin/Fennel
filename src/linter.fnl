@@ -1,8 +1,8 @@
 ;; An example of some possible linters using Fennel's --plugin option.
 
-;; The linters here can only function on static module use. For instance, this
-;; code can be checked because they use static field access on a local directly
-;; bound to a require call:
+;; The first two linters here can only function on static module
+;; use. For instance, this code can be checked because they use static
+;; field access on a local directly bound to a require call:
 
 ;; (local m (require :mymodule))
 ;; (print m.field) ; fails if mymodule lacks a :field field

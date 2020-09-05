@@ -309,6 +309,10 @@ pattern/body clauses to find one where the pattern matches the value,
 and evaluates the corresponding body. Pattern matching can be thought
 of as a combination of destructuring and conditionals.
 
+**Note**: Lua also has "patterns" which are matched against strings
+similar to how regular expressions work in other languages; these are
+two distinct concepts with similar names.
+
 Example:
 
 ```fennel
@@ -383,9 +387,9 @@ matching against multiple values) but the second thing in the parens
 is the `?` symbol. Each form following this marker is a condition;
 all the conditions must evaluate to true for that pattern to match.
 
-(Note that Lua also has "patterns" which are matched against strings
-similar to how regular expressions work in other languages; these are
-two distinct concepts with similar names.)
+**Note:**: The `match` macro can be used in place of the `if-let` macro
+from Clojure. The reason Fennel doesn't have `if-let` is that `match`
+makes it redundant.
 
 ### `global` set global variable
 

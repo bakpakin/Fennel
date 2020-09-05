@@ -8,6 +8,7 @@ This document is intended for Fennel maintainers.
    Check for changes which need to be mentioned in help text or man page.
 2. Create rockspec by copying an old rockspec. Make sure luarocks version
    matches the file name exactly and the tgz URL is updated.
+   (one time: change the rockspec to look for tar.gz instead of tgz and lowercase)
 3. Make sure tests pass for all versions of Lua and the linter is OK (`make ci`)
 4. Update the download links in `setup.md`.
 5. Commit above changes.

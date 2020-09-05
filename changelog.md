@@ -1,5 +1,9 @@
 # Summary of user-visible changes
 
+## 0.6.1 / ???
+
+* ???
+
 ## 0.6.0 / 2020-09-03
 
 This release introduces the plugin system as well as starting to

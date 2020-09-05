@@ -101,6 +101,6 @@ release: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz
 	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
 	gpg -ab downloads/fennel-$(VERSION)-arm32
 	gpg -ab downloads/fennel-$(VERSION).tar.gz
-	rsync -r downloads/* fennel-lang.org:fennel-lang.org/downloads/
+	rsync -r downloads/* fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
 .PHONY: build test testall count ci clean coverage install release

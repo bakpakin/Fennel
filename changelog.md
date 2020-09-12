@@ -2,6 +2,7 @@
 
 ## 0.6.1 / ???
 
+* Correct `--no-sandbox-compiler` to `--no-compiler-sandbox` in help/docs.
 * Fix a bug in `:` when used with methods that are not valid Lua names.
 
 ## 0.6.0 / 2020-09-03

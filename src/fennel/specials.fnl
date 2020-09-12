@@ -584,10 +584,9 @@ Evaluates body once for each value between start and stop (inclusive).")
   "When we don't have to protect against double-evaluation, it's not so bad."
   (let [method-string (tostring (. (compiler.compile1 (. ast 3) scope parent
                                                       {:nval 1}) 1))]
-    (table.insert args (tostring target))
-    (utils.expr (string.format "%s[%s](%s)" (tostring target) method-string
+    (utils.expr (string.format "%s[%s](%s, %s)" (tostring target) method-string
                                (tostring target)
-                               (table.concat args ", ")) "statement")))
+                               (table.concat args ", ")) :statement)))
 
 (fn double-eval-protected-method-call [ast scope parent target args]
   "When double-evaluation is a concern, we have to wrap an IIFE."

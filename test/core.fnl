@@ -90,6 +90,8 @@
 
                ;; method calls work
                "(: :hello :find :e)" 2
+               ;; method calls work on identifiers that aren't valid lua
+               "(let [f {:+ #(+ $2 $3 $4)}] (f:+ 1 2 9))" 12
                ;; method calls don't double up side effects
                "(var a 0) (let [f (fn [] (set a (+ a 1)) :hi)] (: (f) :find :h)) a" 1
 

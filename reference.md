@@ -274,7 +274,7 @@ Example:
 ;; Basic usage
 (with-open [fout (io.open :output.txt :w) fin (io.open :input.txt)]
   (fout:write "Here is some text!\n")
-  (fin:line)) ; => first line of input.txt
+  ((fin:lines))) ; => first line of input.txt
 
 ;; This demonstrates that the file will also be closed upon error.
 (var fh nil)

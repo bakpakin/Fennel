@@ -112,8 +112,11 @@ process and including the Lua output in the application may be easier.
 The Fennel compiler can be added to your code repository, and then
 loaded from Lua.
 
- 1. Add `fennel.lua` to your code repository
- 2. Add the following lines to your Lua code:
+ 1. Get the `fennel.lua` library. You can get this from a
+    [release tarball](https://fennel-lang.org/downloads/Fennel-0.6.0.tgz)
+    or by running `make` in a source checkout.
+ 2. Add `fennel.lua` to your code repository.
+ 3. Add the following lines to your Lua code:
 
 ```lua
 local fennel = require("fennel")
@@ -121,10 +124,11 @@ table.insert(package.loaders or package.searchers, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
+Be sure to use the library and not the file for the entire `fennel` compiler.
+
 **Note**: Optionally, if you want the Fennel REPL to print tables
 in a more readable format, you can add `fennelview.fnl` to
 your code repository.
-
 
 ### Performing ahead-of-time compilation
 

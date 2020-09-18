@@ -612,53 +612,6 @@ which is distinct from `package.path` used to find Lua modules). The
 path usually includes an entry to let you load things relative to the
 current directory by default.
 
-## Embedding
-
-Lua is most commonly used to embed inside other applications, and
-Fennel is no different. The simplest thing to do is include Fennel the
-output from `fennel --compile` as part of your overall application's
-build process. However, the Fennel compiler is very small, and
-including it into your codebase means that you can embed a Fennel repl
-inside your application or support reloading from disk, allowing a
-much more pleasant interactive development cycle.
-
-Here is an example of embedding the Fennel compiler inside a
-[LÖVE][13] game written in Lua to allow live reloads:
-
-```lua
-local fennel = require("fennel")
--- mycode.fnl ends in a line like this:
--- {:draw (fn [] ...) :update (fn [dt] ...)}
-local mycode = fennel.dofile("mycode.fnl")
-
-love.update = function(dt)
-  mycode.update(dt)
-  -- other updates
-end
-
-love.draw = function()
-  mycode.draw()
-  -- other drawing
-end
-
-love.keypressed = function(key)
-  if(key == "f5") then -- support reloading
-    for k,v in pairs(fennel.dofile("mycode.fnl")) do
-      mycode[k] = v
-    end
-  else
-    -- other key handling
-  end
-end
-
-```
-
-You can add `fennel.lua` as a single file to your project, but if you also
-add `fennelview.fnl` then when you use a Fennel repl you'll get results
-rendered much more nicely. Running `(local view (require :fennelview))`
-will get you a `view` function which turns any table into a fennel-syntax
-string rendering of that table for debugging.
-
 [1]: http://www.defmacro.org/ramblings/lisp.html
 [2]: http://danmidwood.com/content/2014/11/21/animated-paredit.html
 [3]: https://www.lua.org/manual/5.1/
@@ -673,3 +626,4 @@ string rendering of that table for debugging.
 [12]: http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/
 [13]: https://love2d.org
 [14]: https://fennel-lang.org/lua-primer
+

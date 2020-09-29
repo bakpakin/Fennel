@@ -583,9 +583,9 @@ Evaluates body once for each value between start and stop (inclusive).")
 (fn nonnative-method-call [ast scope parent target args]
   "When we don't have to protect against double-evaluation, it's not so bad."
   (let [method-string (tostring (. (compiler.compile1 (. ast 3) scope parent
-                                                      {:nval 1}) 1))]
-    (utils.expr (string.format "%s[%s](%s, %s)" (tostring target) method-string
-                               (tostring target)
+                                                      {:nval 1}) 1))
+        args [(tostring target) (unpack args)]]
+    (utils.expr (string.format "%s[%s](%s)" (tostring target) method-string
                                (table.concat args ", ")) :statement)))
 
 (fn double-eval-protected-method-call [ast scope parent target args]

@@ -833,7 +833,8 @@ Method name doesn't have to be known at compile-time; if it is, use
 (local safe-compiler-env
        (setmetatable {: table : math : string : pairs : ipairs : assert : error
                       : select : tostring : tonumber : pcall : xpcall : next
-                      : print : type :bit _G.bit : setmetatable : getmetatable}
+                      : print : type :bit _G.bit : setmetatable : getmetatable
+                      : rawget : rawset : rawlen : rawequal}
                      {:__index compiler-env-warn}))
 
 (fn make-compiler-env [ast scope parent]

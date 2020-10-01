@@ -110,8 +110,9 @@
                          (.. "[===[" (f:read "*all") "]===]")))
       module-name "fennel.macros"
       _ (tset package.preload module-name #mod)
-      env (specials.make-compiler-env nil compiler.scopes.compiler {})
-      _ (set env.fennel mod)
+      env (doto (specials.make-compiler-env nil compiler.scopes.compiler {})
+                (tset :require require) ; for macrodebug to require fennelview
+                (tset :fennel mod))
       built-ins (eval builtin-macros {:env env
                                       :scope compiler.scopes.compiler
                                       :allowedGlobals false

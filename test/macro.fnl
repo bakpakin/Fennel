@@ -70,8 +70,26 @@
       (l.assertEquals (fennel.eval code) expected code))
     (l.assertEquals (fennel.eval g-using {:compiler-env _G}) 952)))
 
+(fn test-macrodebug []
+  (let [eval-normalize #(-> (pick-values 1 (fennel.eval $1 $2))
+                            (: :gsub "table: 0x[0-9a-f]+" "#<TABLE>")
+                            (: :gsub "\n%s*" ""))
+        code "(macrodebug (when (= 1 1) (let [x :X] {: x})) true)"
+        expected-fennelview "(if (= 1 1) (do (let [x \"X\"] {:x x})))"
+        expected-no-fennelview "(if (= 1 1) (do (let #<TABLE> #<TABLE>)))"]
+    (l.assertEquals (eval-normalize code) expected-fennelview)
+    (let [fennelview package.loaded.fennelview
+          fennel-path fennel.path
+          package-path package.path]
+      (set (package.loaded.fennelview fennel.path package.path)
+           (values nil "" ""))
+      (l.assertEquals (eval-normalize code) expected-no-fennelview)
+      (set (package.loaded.fennelview fennel.path package.path)
+           (values fennelview fennel-path package-path)))))
+
 {: test-arrows
  : test-import-macros
  : test-require-macros
  : test-eval-compiler
- : test-inline-macros}
+ : test-inline-macros
+ : test-macrodebug}

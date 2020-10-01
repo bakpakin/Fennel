@@ -4,6 +4,8 @@
 
 * Correct `--no-sandbox-compiler` to `--no-compiler-sandbox` in help/docs.
 * Fix a bug in `:` when used with methods that are not valid Lua names.
+* Fix a bug where compiler sandboxing causes macrodebug to always fail to load
+fennelview, falling back to the less readable `tostring` output
 
 ## 0.6.0 / 2020-09-03
 

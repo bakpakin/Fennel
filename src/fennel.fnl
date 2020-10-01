@@ -112,6 +112,7 @@
       _ (tset package.preload module-name #mod)
       env (doto (specials.make-compiler-env nil compiler.scopes.compiler {})
                 (tset :require require) ; for macrodebug to require fennelview
+                (tset :utils utils) ; for import-macros to propagate compile opts
                 (tset :fennel mod))
       built-ins (eval builtin-macros {:env env
                                       :scope compiler.scopes.compiler

@@ -186,7 +186,8 @@ Example:
     (local subscope (fennel.scope scope))
     (fennel.compile-string (string.format "(require-macros %q)"
                                          modname)
-                          {:scope subscope})
+                          {:scope subscope
+                           :compiler-env utils.root.options.compiler-env})
     (if (sym? binding)
         ;; bind whole table of macros to table bound to symbol
         (do (tset scope.macros (. binding 1) {})

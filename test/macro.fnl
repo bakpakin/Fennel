@@ -39,11 +39,15 @@
               (INC (test.inc 5))"
         rename "(import-macros {:defn1 defn : ->1} :test.macros)
                 (defn join [sep ...] (table.concat [...] sep))
-                (join :: :num (->1 5 (* 2) (+ 8)))"]
+                (join :: :num (->1 5 (* 2) (+ 8)))"
+        unsandboxed "(import-macros {: unsandboxed} :test.macros)
+                     (unsandboxed)"]
     (l.assertEquals (fennel.eval multigensym) 519)
     (l.assertEquals (fennel.eval inc) 4)
     (l.assertEquals (fennel.eval inc2) 7)
-    (l.assertEquals (fennel.eval rename) "num:18")))
+    (l.assertEquals (fennel.eval rename) "num:18")
+    (l.assertEquals (fennel.eval unsandboxed {:compiler-env _G})
+                    "[\"no\" \"sandbox\"]") ))
 
 (fn test-require-macros []
   (let [arrow "(require-macros \"test.macros\") (->1 9 (+ 2) (* 11))"

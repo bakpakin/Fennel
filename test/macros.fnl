@@ -14,4 +14,5 @@
  :multigensym (fn []
                 `(let [x# {:abc (fn [] 518)}
                        y# {:one 1}]
-                   (+ (x#:abc) y#.one)))}
+                   (+ (x#:abc) y#.one)))
+ :unsandboxed (fn [] ((require :fennelview) [:no :sandbox]))}

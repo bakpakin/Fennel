@@ -2,10 +2,10 @@
 
 ## 0.6.1 / ???
 
-* Correct `--no-sandbox-compiler` to `--no-compiler-sandbox` in help/docs.
-* Fix a bug in `:` when used with methods that are not valid Lua names.
-* Fix a bug where compiler sandboxing causes macrodebug to always fail to load
-fennelview, falling back to the less readable `tostring` output
+* Fix a bug where `--no-compiler-sandbox` did not apply in `import-macros`
+* Fix a bug where compiler sandboxing makes `macrodebug` fail to print correctly
+* Correct `--no-sandbox-compiler` to `--no-compiler-sandbox` in help/docs
+* Fix a bug in `:` when used with methods that are not valid Lua names
 
 ## 0.6.0 / 2020-09-03
 
@@ -14,7 +14,7 @@ sandbox the compiler environment for safer code loading. Nothing is
 blocked yet, but it emits warnings when macros use functionality that
 is not considered safe; future versions will prevent this.
 
-* Change table reference notation in fennelview to use `@`.
+* Change table reference notation in fennelview to use `@`
 * Fix a bug where long arglists could get jumbled.
 * Add plugin system.
 * Sandbox compiler environment and emit a warning when it leaks.

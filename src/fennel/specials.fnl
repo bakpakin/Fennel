@@ -940,7 +940,8 @@ table.insert(package.loaders, fennel.searcher)"
 (fn metadata-only-fennel [modname]
   "Let limited Fennel module thru just for purposes of compiling docstrings."
   (if (or (= modname "fennel.macros")
-          (and package package.loaded (. package.loaded modname)
+          (and package package.loaded
+               (= :table (type (. package.loaded modname)))
                (= (. package.loaded modname :metadata) compiler.metadata)))
       {:metadata compiler.metadata}))
 

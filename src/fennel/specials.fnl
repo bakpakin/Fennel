@@ -834,7 +834,7 @@ Method name doesn't have to be known at compile-time; if it is, use
        (setmetatable {: table : math : string : pairs : ipairs : assert : error
                       : select : tostring : tonumber : pcall : xpcall : next
                       : print : type :bit _G.bit : setmetatable : getmetatable
-                      : rawget : rawset : rawlen : rawequal}
+                      : rawget : rawset : rawequal :rawlen _G.rawlen}
                      {:__index compiler-env-warn}))
 
 (fn make-compiler-env [ast scope parent]

@@ -9,7 +9,7 @@ Any time a function takes an `options` table argument, that table will
 usually accept these fields:
 
 * `allowedGlobals`: a sequential table of strings of the names of globals which
-  the compiler will allow references to.
+  the compiler will allow references to. Set to false to disable checks.
 * `correlate`: when this is truthy, Fennel attempts to emit Lua where the line
   numbers match up with the Fennel input code; useful for situation where code
   that isn't under your control will print the stack traces.

@@ -102,14 +102,12 @@ stream is finished."
     (var (whitespace-since-dispatch done? retval) true)
     (fn dispatch [v]
       "Dispatch when we complete a value"
-      (if (= (# stack) 0)
-          (set (retval done? whitespace-since-dispatch) (values v true false))
-          (. stack (# stack) "prefix")
-          (let [stacktop (. stack (# stack))]
-            (tset stack (# stack) nil)
-            (dispatch (utils.list (utils.sym stacktop.prefix) v)))
-          (do (set whitespace-since-dispatch false)
-              (table.insert (. stack (# stack)) v))))
+      (match (. stack (# stack))
+        nil (set (retval done? whitespace-since-dispatch) (values v true false))
+        {: prefix} (do (table.remove stack)
+                       (dispatch (utils.list (utils.sym prefix) v)))
+        top (do (set whitespace-since-dispatch false)
+                (table.insert top v))))
 
     (fn badend []
       "Throw nice error when we expect more characters but reach end of stream."

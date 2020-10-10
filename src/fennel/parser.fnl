@@ -15,13 +15,11 @@ Also returns a second function to clear the buffer in the byte stream"
                   (let [b (c:byte index)]
                     (set index (+ index 1))
                     b)
-                  (do
-                    (set c (getchunk parser-state))
-                    (when (or (not c) (= c ""))
-                      (set done? true)
-                      (lua "return nil"))
-                    (set index 2)
-                    (c:byte 1)))))
+                  (match (getchunk parser-state)
+                    (char ? (not= char "")) (do (set c char)
+                                                (set index 1)
+                                                (c:byte))
+                    _ (set done? true)))))
           (fn [] (set c ""))))
 
 (fn string-stream [str]
@@ -113,17 +111,17 @@ stream is finished."
       "Throw nice error when we expect more characters but reach end of stream."
       (let [accum (utils.map stack "closer")]
         (parse-error (string.format "expected closing delimiter%s %s"
-                                    (or (and (= (# stack) 1) "") "s")
+                                    (if (= (# stack) 1) "" "s")
                                     (string.char (unpack accum))))))
 
+    (fn skip-whitespace [b]
+      (if (and b (whitespace? b))
+          (do (set whitespace-since-dispatch true)
+              (skip-whitespace (getb)))
+          b))
+
     (while true ; main parse loop
-      (var b nil)
-      (while true ; skip whitespace
-        (set b (getb))
-        (when (and b (whitespace? b))
-          (set whitespace-since-dispatch true))
-        (when (or (not b) (not (whitespace? b)))
-          (lua "break")))
+      (var b (skip-whitespace (getb)))
 
       (when (not b)
         (when (> (# stack) 0)

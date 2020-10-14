@@ -31,8 +31,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
 (fn check-module-fields [symbol scope]
   "When referring to a field in a local that's a module, make sure it exists."
   (let [[module-local field] (or (multi-sym? symbol) [])
-        module-name (and module-local (. scope.symmeta
-                                         (tostring module-local) :required))
+        module-name (-?> scope.symmeta (. (tostring f-local)) (. :required))
         module (and module-name (require module-name))]
     (assert-compile (or (= module nil) (not= (. module field) nil))
                     (string.format "Missing field %s in module %s"
@@ -45,7 +44,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
   (let [arity (# args)
         last-arg (. args arity)
         [f-local field] (or (multi-sym? f) [])
-        module-name (and f-local (. scope.symmeta (tostring f-local) :required))
+        module-name (-?> scope.symmeta (. (tostring f-local)) (. :required))
         module (and module-name (require module-name))]
     (when (and (arity-check? module) debug debug.getinfo
                (not (varg? last-arg)) (not (list? last-arg)))

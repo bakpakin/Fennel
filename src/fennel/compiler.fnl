@@ -658,13 +658,14 @@ which we have to do if we don't know."
           (utils.list? left) ;; values destructuring
           (let [(left-names tables) (values [] [])]
             (each [i name (ipairs left)]
-              (var symname nil)
               (if (utils.sym? name) ; binding directly to a name
-                  (set symname (getname name up1))
-                  (do ; further destructuring of tables inside values
-                    (set symname (gensym scope))
-                    (tset tables i [name (utils.expr symname "sym")])))
-              (table.insert left-names symname))
+                  ;; TODO: this is too early to declare the local; see
+                  ;; https://todo.sr.ht/~technomancy/fennel/12
+                  (table.insert left-names (getname name up1))
+                  (let [symname (gensym scope)]
+                    ;; further destructuring of tables inside values
+                    (table.insert left-names symname)
+                    (tset tables i [name (utils.expr symname "sym")]))))
             (if top
                 (compile-top-target left-names)
                 (let [lvalue (table.concat left-names ", ")

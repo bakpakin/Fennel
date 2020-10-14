@@ -24,6 +24,15 @@
 (local specials (require :fennel.specials))
 (local repl (require :fennel.repl))
 
+(fn get-env [env]
+  (if (= env :_COMPILER)
+      (let [env (specials.make-compiler-env nil compiler.scopes.compiler {})
+            mt (getmetatable env)]
+        ;; remove sandboxing; linting won't work with it
+        (set mt.__index _G)
+        (specials.wrap-env env))
+      (and env (specials.wrap-env env))))
+
 (fn eval [str options ...]
   ;; eval and dofile are considered "live" entry points, so we can assume
   ;; that the globals available at compile time are a reasonable allowed list
@@ -36,10 +45,7 @@
                      (not (getmetatable opts.env)))
             (set opts.allowedGlobals (specials.current-global-names opts.env)))
         ;; This is ... not great. Should we expose make-compiler-env in the API?
-        env (if (= opts.env :_COMPILER)
-                (specials.wrap-env (specials.make-compiler-env
-                                    nil compiler.scopes.compiler {}))
-                (and opts.env (specials.wrap-env opts.env)))
+        env (get-env opts.env)
         lua-source (compiler.compile-string str opts)
         loader (specials.load-code lua-source env
                                   (if opts.filename

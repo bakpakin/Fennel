@@ -570,7 +570,9 @@ which we have to do if we don't know."
         (assert-compile (not (and nomulti (utils.multi-sym? raw)))
                        (.. "unexpected multi symbol " raw) up1)
         (if declaration
-            (declare-local symbol {:var isvar} scope symbol new-manglings)
+            ;; Technically this is too early to declare the local, but leaving
+            ;; out the meta table and setting it later works around the problem.
+            (declare-local symbol nil scope symbol new-manglings)
             (let [parts (or (utils.multi-sym? raw) [raw])
                   meta (. scope.symmeta (. parts 1))]
               (when (and (= (# parts) 1) (not forceset))
@@ -624,7 +626,11 @@ which we have to do if we don't know."
             (check-binding-valid left scope left)
             (if top
                 (compile-top-target [lname])
-                (emit parent (setter:format lname (exprs1 rightexprs)) left)))
+                (emit parent (setter:format lname (exprs1 rightexprs)) left))
+            ;; We have to declare meta for the left *after* compiling the right
+            ;; see https://todo.sr.ht/~technomancy/fennel/12
+            (when declaration
+              (tset scope.symmeta (utils.deref left) {:var isvar})))
           (utils.table? left) ; table destructuring
           (let [s (gensym scope)]
             (var right (if top
@@ -659,8 +665,6 @@ which we have to do if we don't know."
           (let [(left-names tables) (values [] [])]
             (each [i name (ipairs left)]
               (if (utils.sym? name) ; binding directly to a name
-                  ;; TODO: this is too early to declare the local; see
-                  ;; https://todo.sr.ht/~technomancy/fennel/12
                   (table.insert left-names (getname name up1))
                   (let [symname (gensym scope)]
                     ;; further destructuring of tables inside values
@@ -671,6 +675,9 @@ which we have to do if we don't know."
                 (let [lvalue (table.concat left-names ", ")
                       setting (setter:format lvalue (exprs1 rightexprs))]
                   (emit parent setting left)))
+            (when declaration
+              (each [_ sym (ipairs left)]
+                (tset scope.symmeta (utils.deref sym) {:var isvar})))
             ;; recurse if left-side tables found
             (each [_ pair (utils.stablepairs tables)]
               (destructure1 (. pair 1) [(. pair 2)] left)))

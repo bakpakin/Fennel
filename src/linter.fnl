@@ -69,5 +69,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
 {:destructure save-require-meta
  :symbol-to-expression check-module-fields
  :call arity-check-call
+ ;; Note that this will only check unused args inside functions and let blocks,
+ ;; not top-level locals of a chunk.
  :fn check-unused
  :do check-unused}

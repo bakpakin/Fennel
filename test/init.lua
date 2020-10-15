@@ -5,7 +5,7 @@ package.loaded.fennelview = package.loaded.fennel.dofile("fennelview.fnl")
 package.loaded.fennelfriend = package.loaded.fennel.dofile("src/fennel/friend.fnl")
 
 local runner = require("test.luaunit").LuaUnit:new()
-runner:setOutputType(os.getenv('FNL_TEST_OUTPUT') or 'tap')
+runner:setOutputType(os.getenv("FNL_TEST_OUTPUT") or "tap")
 
 -- We have to load the tests with the old version of Fennel; otherwise
 -- bugs in the current implementation will prevent the tests from loading!
@@ -24,8 +24,8 @@ local function testall(suites)
 end
 
 if(#arg == 0) then
-   testall({'core', 'mangling', 'quoting', 'misc', 'docstring', 'fennelview',
-            'failures', 'repl', 'cli', 'macro'})
+   testall({"core", "mangling", "quoting", "misc", "docstring", "fennelview",
+            "failures", "repl", "cli", "macro", "linter"})
 else
    testall(arg)
 end

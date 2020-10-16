@@ -107,7 +107,7 @@ By default, start is 2."
         opts.nval
         ;; generate a local target
         (let [syms []]
-          (for [i 1 opts.nval 1]
+          (for [i 1 opts.nval]
             (let [s (or (and pre-syms (. pre-syms i)) (compiler.gensym scope))]
               (tset syms i s)
               (tset retexprs i (utils.expr s "sym"))))
@@ -138,7 +138,7 @@ the number of expected arguments."
                                         {:nval (and (not= i len) 1)})]
         (tset exprs (+ (# exprs) 1) (. subexprs 1))
         (when (= i len)
-          (for [j 2 (# subexprs) 1]
+          (for [j 2 (# subexprs)]
             (tset exprs (+ (# exprs) 1) (. subexprs j))))))
     exprs))
 
@@ -213,15 +213,14 @@ the number of expected arguments."
                                 (values (+ index 1) (. ast (+ index 1)))
                                 (values index nil))]
 
-      (for [i (+ index 1) (# ast) 1]
+      (for [i (+ index 1) (# ast)]
         (compiler.compile1 (. ast i) f-scope f-chunk
                            {:nval (or (and (not= i (# ast)) 0) nil)
                             :tail (= i (# ast))}))
-      (if local-fn?
-          (compiler.emit parent (: "local function %s(%s)" :format
-                                   fn-name (table.concat arg-name-list ", ")) ast)
-          (compiler.emit parent (: "%s = function(%s)" :format
-                                   fn-name (table.concat arg-name-list ", ")) ast))
+      (compiler.emit parent (string.format (if local-fn?
+                                               "local function %s(%s)"
+                                               "%s = function(%s)") fn-name
+                                               (table.concat arg-name-list ", ")) ast)
       (compiler.emit parent f-chunk ast)
       (compiler.emit parent "end" ast)
       (set-fn-metadata arg-list docstring parent fn-name))
@@ -275,7 +274,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
     (if (= len 2)
         (tostring (. lhs 1))
         (let [indices []]
-          (for [i 3 len 1]
+          (for [i 3 len]
             (let [index (. ast i)]
               (if (and (= (type index) :string)
                        (utils.valid-lua-identifier? index))
@@ -346,7 +345,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
     (compiler.assert (>= (# ast) 3) "expected body expression" (. ast 1))
     ;; we have to gensym the binding for the let body's return value before
     ;; compiling the binding vector, otherwise there's a possibility to conflict
-    (for [_ 1 (or opts.nval 0) 1]
+    (for [_ 1 (or opts.nval 0)]
       (table.insert pre-syms (compiler.gensym scope)))
     (let [sub-scope (compiler.make-scope scope)
           sub-chunk []]
@@ -365,7 +364,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
   (compiler.assert (> (# ast) 3) "expected table, key, and value arguments" ast)
   (let [root (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1)
         keys []]
-    (for [i 3 (- (# ast) 1) 1]
+    (for [i 3 (- (# ast) 1)]
       (let [key (. (compiler.compile1 (. ast i) scope parent {:nval 1}) 1)]
         (tset keys (+ (# keys) 1) (tostring key))))
     (let [value (. (compiler.compile1 (. ast (# ast)) scope parent {:nval 1}) 1)
@@ -387,13 +386,14 @@ nested values, but all parents must contain an existing table.")
       (let [accum []
             target-exprs []]
         ;; We need to create a target
-        (for [i 1 opts.nval 1]
+        (for [i 1 opts.nval]
           (let [s (compiler.gensym scope)]
             (tset accum i s)
             (tset target-exprs i (utils.expr s :sym))))
         (values :target opts.tail (table.concat accum ", ") target-exprs))
       (values :none opts.tail opts.target)))
 
+;; TODO: refactor; too long!
 (fn if* [ast scope parent opts]
   (let [do-scope (compiler.make-scope scope)
         branches []
@@ -463,12 +463,12 @@ nested values, but all parents must contain an existing table.")
             (compiler.emit parent "end" ast)
             (utils.expr (: "%s(%s)" :format (tostring s) iifeargs) :statement))
           (= wrapper :none) ; Splice result right into code
-          (do (for [i 1 (# buffer) 1]
+          (do (for [i 1 (# buffer)]
                 (compiler.emit parent (. buffer i) ast))
               {:returned true})
           ;; wrapper is target
           (do (compiler.emit parent (: "local %s" :format inner-target) ast)
-              (for [i 1 (# buffer) 1]
+              (for [i 1 (# buffer)]
                 (compiler.emit parent (. buffer i) ast))
               target-exprs)))))
 
@@ -525,7 +525,7 @@ order, but can be used with any iterator.")
     (if (not= len1 len2)
         ;; compound condition; move new compilation to subchunk
         (do
-          (for [i (+ len1 1) len2 1]
+          (for [i (+ len1 1) len2]
             (tset sub-chunk (+ (# sub-chunk) 1) (. parent i))
             (tset parent i nil))
           (compiler.emit parent "while true do" ast)
@@ -555,7 +555,7 @@ order, but can be used with any iterator.")
                         (type binding-sym) (tostring binding-sym)) (. ast 2))
     (compiler.assert (>= (# ast) 3)
                      "expected body expression" (. ast 1))
-    (for [i 1 (math.min (# ranges) 3) 1]
+    (for [i 1 (math.min (# ranges) 3)]
       (tset range-args i (tostring (. (compiler.compile1 (. ranges i) sub-scope
                                                         parent {:nval 1}) 1))))
     (compiler.emit parent (: "for %s = %s do" :format
@@ -626,7 +626,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 
 (fn SPECIALS.comment [ast _ parent]
   (let [els []]
-    (for [i 2 (# ast) 1]
+    (for [i 2 (# ast)]
       (tset els (+ (# els) 1) (: (tostring (. ast i)) :gsub "\n" " ")))
     (compiler.emit parent (.. "-- " (table.concat els " ")) ast)))
 
@@ -688,7 +688,7 @@ Method name doesn't have to be known at compile-time; if it is, use
                                    "Expected more than 0 arguments" ast)
                   (utils.expr zero-arity "literal"))
                 (let [operands []]
-                  (for [i 2 len 1]
+                  (for [i 2 len]
                     (let [subexprs (compiler.compile1 (. ast i) scope parent
                                                       {:nval (if (= i 1) 1)})]
                       (utils.map subexprs tostring operands)))

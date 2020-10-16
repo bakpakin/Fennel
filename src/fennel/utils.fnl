@@ -90,7 +90,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
   (each [k (pairs self)]
     (when (and (= (type k) "number") (> k max))
       (set max k)))
-  (for [i 1 max 1]
+  (for [i 1 max]
     (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
   (.. "(" (table.concat (map safe (or tostring2 tostring)) " " 1 max) ")"))
 

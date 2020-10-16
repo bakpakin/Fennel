@@ -2,6 +2,7 @@
 
 ## 0.6.1 / ???
 
+* Fix several bugs in the linter
 * Fix a bug where `--no-compiler-sandbox` did not apply in `import-macros`
 * Fix a bug where compiler sandboxing makes `macrodebug` fail to print correctly
 * Correct `--no-sandbox-compiler` to `--no-compiler-sandbox` in help/docs

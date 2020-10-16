@@ -128,7 +128,7 @@ these new manglings instead of the current manglings."
 (fn combine-parts [parts scope]
   "Combine parts of a symbol."
   (var ret (or (. scope.manglings (. parts 1)) (global-mangling (. parts 1))))
-  (for [i 2 (# parts) 1]
+  (for [i 2 (# parts)]
     (if (utils.valid-lua-identifier? (. parts i))
         (if (and parts.multi-sym-method-call (= i (# parts)))
             (set ret (.. ret ":" (. parts i)))
@@ -219,9 +219,9 @@ if they have already been declared via declare-local"
            (= (. (. chunk (# chunk)) "leaf") "end"))
       (let [kid (peephole (. chunk (- (# chunk) 1)))
             new-chunk {:ast chunk.ast}]
-        (for [i 1 (- (# chunk) 3) 1]
+        (for [i 1 (- (# chunk) 3)]
           (table.insert new-chunk (peephole (. chunk i))))
-        (for [i 1 (# kid) 1]
+        (for [i 1 (# kid)]
           (table.insert new-chunk (. kid i)))
         new-chunk)
       (utils.map chunk peephole)))
@@ -319,7 +319,7 @@ Tab is what is used to indent a block."
 (fn keep-side-effects [exprs chunk start ast]
   "Compile side effects for a chunk."
   (let [start (or start 1)]
-    (for [j start (# exprs) 1]
+    (for [j start (# exprs)]
       (let [se (. exprs j)]
         ;; Avoid the rogue 'nil' expression (nil is usually a literal,
         ;; but becomes an expression if a special form returns 'nil')
@@ -341,9 +341,9 @@ if opts contains the nval option."
         (if (> len n)
             (do ; drop extra
               (keep-side-effects exprs parent (+ n 1) ast)
-              (for [i (+ n 1) len 1]
+              (for [i (+ n 1) len]
                 (tset exprs i nil)))
-            (for [i (+ (# exprs) 1) n 1] ; pad with nils
+            (for [i (+ (# exprs) 1) n] ; pad with nils
               (tset exprs i (utils.expr :nil :literal)))))))
   (when opts.tail
     (emit parent (string.format "return %s" (exprs1 exprs)) ast))
@@ -412,6 +412,7 @@ if opts contains the nval option."
         {:returned true}
         exprs)))
 
+;; TODO: too long
 (fn compile-call [ast scope parent opts compile1]
   (utils.hook :call ast scope)
   (let [len (# ast)
@@ -431,21 +432,21 @@ if opts contains the nval option."
               new-ast (utils.list (utils.sym ":" scope)
                                   (utils.sym table-with-method scope)
                                   method-to-call)]
-          (for [i 2 len 1]
+          (for [i 2 len]
             (tset new-ast (+ (# new-ast) 1) (. ast i)))
           (compile1 new-ast scope parent opts))
         (let [fargs [] ; regular function call
               fcallee (. (compile1 (. ast 1) scope parent {:nval 1}) 1)]
           (assert-compile (not= fcallee.type :literal)
                           (.. "cannot call literal value " (tostring first)) ast)
-          (for [i 2 len 1]
+          (for [i 2 len]
             (let [subexprs (compile1 (. ast i) scope parent
                                      {:nval (or (and (not= i len) 1) nil)})]
               (tset fargs (+ (# fargs) 1) (or (. subexprs 1)
                                               (utils.expr "nil" "literal")))
               (if (= i len)
                   ;; Add sub expressions to function args
-                  (for [j 2 (# subexprs) 1]
+                  (for [j 2 (# subexprs)]
                     (tset fargs (+ (# fargs) 1) (. subexprs j)))
                   ;; Emit sub expression only for side effects
                   (keep-side-effects subexprs parent 2 (. ast i)))))
@@ -478,7 +479,7 @@ if opts contains the nval option."
 
 (fn compile-table [ast scope parent opts compile1]
   (let [buffer []]
-    (for [i 1 (# ast) 1] ; write numeric keyed values
+    (for [i 1 (# ast)] ; write numeric keyed values
       (let [nval (and (not= i (# ast)) 1)]
         (tset buffer (+ (# buffer) 1)
               (exprs1 (compile1 (. ast i) scope parent {:nval nval})))))
@@ -713,7 +714,7 @@ which we have to do if we don't know."
          (values chunk scope opts))
     (each [ok val (parser.parser strm opts.filename opts)]
       (tset vals (+ (# vals) 1) val))
-    (for [i 1 (# vals) 1]
+    (for [i 1 (# vals)]
       (let [exprs (compile1 (. vals i) scope chunk
                             {:nval (or (and (< i (# vals)) 0) nil)
                              :tail (= i (# vals))})]
@@ -811,6 +812,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         (set s joiner)))
     ret))
 
+;; TODO: too long
 (fn do-quote [form scope parent runtime?]
   "Expand a quoted form into a data literal, evaluating unquote"
   (fn q [x] (do-quote x scope parent runtime?))

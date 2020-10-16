@@ -6,7 +6,7 @@
   "A test for the locals shadowing bug described in
 https://todo.sr.ht/~technomancy/fennel/12"
   (let [src "(fn [abc] (let [abc abc] abc))"
-        ok? (pcall fennel.compile-string src {:plugins [linter]})]
-    (l.assertTrue ok?)))
+        (ok? msg) (pcall fennel.compile-string src {:plugins [linter]})]
+    (l.assertTrue ok? msg)))
 
 {: test-used}

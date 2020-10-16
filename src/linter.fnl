@@ -35,7 +35,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
         module (and module-name (require module-name))]
     (assert-compile (or (= module nil) (not= (. module field) nil))
                     (string.format "Missing field %s in module %s"
-                                   field module-name) symbol)))
+                                   (or field :?) (or module-name :?)) symbol)))
 
 (fn arity-check? [module] (-?> module getmetatable (. :arity-check?)))
 
@@ -50,7 +50,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
                (not (varg? last-arg)) (not (list? last-arg)))
       (assert-compile (= (type (. module field)) :function)
                       (string.format "Missing function %s in module %s"
-                                     field module-name) f)
+                                     (or field :?) module-name) f)
       (match (debug.getinfo (. module field))
         {: nparams :what "Lua" :isvararg true}
         (assert-compile (<= nparams (# args))
@@ -64,7 +64,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
 (fn check-unused [ast scope]
   (each [symname (pairs scope.symmeta)]
     (assert-compile (or (. scope.symmeta symname :used) (symname:find "^_"))
-                    (string.format "unused local %s" symname) ast)))
+                    (string.format "unused local %s" (or symname :?)) ast)))
 
 {:destructure save-require-meta
  :symbol-to-expression check-module-fields

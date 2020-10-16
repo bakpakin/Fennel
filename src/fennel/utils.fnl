@@ -211,7 +211,7 @@ When f returns a truthy value, recursively walks the children."
 
 (local lua-keywords ["and" "break" "do" "else" "elseif" "end" "false" "for"
                      "function" "if" "in" "local" "nil" "not" "or" "repeat"
-                     "return" "then" "true" "until" "while"])
+                     "return" "then" "true" "until" "while" "goto"])
 
 (each [i v (ipairs lua-keywords)]
   (tset lua-keywords v i))

@@ -49,6 +49,7 @@
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
 (fn test-parsing []
+  (set _G.parsedbg true)
   (let [cases {"\"\\\\\"" "\\"
                "\"abc\n\\240\"" "abc\n\240"
                "\"abc\\\"def\"" "abc\"def"

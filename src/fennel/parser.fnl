@@ -15,11 +15,13 @@ Also returns a second function to clear the buffer in the byte stream"
                   (let [b (c:byte index)]
                     (set index (+ index 1))
                     b)
-                  (match (getchunk parser-state)
-                    (char ? (not= char "")) (do (set c char)
-                                                (set index 1)
-                                                (c:byte))
-                    _ (set done? true)))))
+                  (do
+                    (set c (getchunk parser-state))
+                    (when (or (not c) (= c ""))
+                      (set done? true)
+                      (lua "return nil"))
+                    (set index 2)
+                    (c:byte 1)))))
           (fn [] (set c ""))))
 
 (fn string-stream [str]

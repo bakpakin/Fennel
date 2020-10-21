@@ -156,7 +156,7 @@ For more information about the language, see https://fennel-lang.org/reference"]
         chars []
         (read reset) (parser.parser (fn [parser-state]
                                       (let [c (byte-stream parser-state)]
-                                        (tset chars (+ (# chars) 1) c)
+                                        (table.insert chars c)
                                         c)))
         scope (compiler.make-scope)]
 

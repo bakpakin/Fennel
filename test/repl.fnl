@@ -9,7 +9,7 @@
                                (let [chunk (coroutine.yield output)]
                                  (set output [])
                                  (and chunk (.. chunk "\n"))))
-                  :onValues #(table.insert output $)
+                  :onValues #(table.insert output (table.concat $ "\t"))
                   :registerCompleter #(set repl-complete $)
                   :pp #$}))
   (local repl-send (coroutine.wrap send))
@@ -20,22 +20,66 @@
   (l.assertEquals (table.sort a) (table.sort b) msg))
 
 (fn test-completion []
-  ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
-  ;; limitation. Normally we want all tests to run on all versions, but in
-  ;; this case the feature will work fine; we just can't use this method of
-  ;; testing it on PUC 5.1, so skip it.
-  (when (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
-    (let [(send comp) (wrap-repl)]
-      (send "(local [foo foo-ba* moe-larry] [1 2 {:*curly* \"Why soitenly\"}])")
-      (send "(local [!x-y !x_y] [1 2])")
-      (assert-equal-unordered (comp "foo") ["foo" "foo-ba*"]
-                              "local completion works & accounts for mangling")
-      (assert-equal-unordered (comp "moe-larry") ["moe-larry.*curly*"]
-                              (.. "completion traverses tables without mangling"
-                                  " keys when input is \"tbl-var.\""))
-      (assert-equal-unordered (send "(values !x-y !x_y)") [[1 2]]
-                              "mangled locals do not collide")
-      (assert-equal-unordered (comp "!x") ["!x_y" "!x-y"]
-                              "completions on mangled locals do not collide"))))
+  (let [(send comp) (wrap-repl)]
+    (send "(local [foo foo-ba* moe-larry] [1 2 {:*curly* \"Why soitenly\"}])")
+    (send "(local [!x-y !x_y] [1 2])")
+    (assert-equal-unordered (comp "foo") ["foo" "foo-ba*"]
+                            "local completion works & accounts for mangling")
+    (assert-equal-unordered (comp "moe-larry") ["moe-larry.*curly*"]
+                            (.. "completion traverses tables without mangling"
+                                " keys when input is \"tbl-var.\""))
+    (assert-equal-unordered (send "(values !x-y !x_y)") [[1 2]]
+                            "mangled locals do not collide")
+    (assert-equal-unordered (comp "!x") ["!x_y" "!x-y"]
+                            "completions on mangled locals do not collide")))
 
-{: test-completion}
+(fn test-help []
+  (let [send (wrap-repl)
+        help (table.concat (send ",help"))]
+    (l.assertStrContains help "show this message")
+    (l.assertStrContains help "enter code to be evaluated")))
+
+(fn test-exit []
+  (let [send (wrap-repl)
+        _ (send ",exit")
+        (ok? msg) (pcall send ":more")]
+    (l.assertFalse ok?)
+    (l.assertEquals msg "cannot resume dead coroutine")))
+
+(var dummy-module nil)
+
+(fn dummy-loader [module-name]
+  (if (= :dummy module-name)
+      #dummy-module))
+
+(fn test-reload []
+  (set dummy-module {:dummy :first-load})
+  (table.insert (or package.searchers package.loaders) dummy-loader)
+  (let [dummy (require :dummy)
+        dummy-first-contents dummy.dummy
+        send (wrap-repl)]
+    (set dummy-module {:dummy :reloaded})
+    (send ",reload dummy")
+    (l.assertEquals :first-load dummy-first-contents)
+    (l.assertEquals :reloaded dummy.dummy)))
+
+(fn test-reset []
+  (let [send (wrap-repl)
+        _ (send "(local abc 123)")
+        abc (table.concat (send "abc"))
+        _ (send ",reset")
+        abc2 (table.concat (send "abc"))]
+    (l.assertEquals abc "123")
+    (l.assertEquals abc2 "")))
+
+;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
+;; limitation. Normally we want all tests to run on all versions, but in
+;; this case the feature will work fine; we just can't use this method of
+;; testing it on PUC 5.1, so skip it.
+(if (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
+    {: test-completion
+     : test-help
+     : test-exit
+     : test-reload
+     : test-reset}
+    {})

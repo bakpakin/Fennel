@@ -51,6 +51,63 @@
       (table.insert spliced-source (# spliced-source) save-source))
     (table.concat spliced-source "\n")))
 
+(local commands {})
+
+(fn command? [input] (input:match "^%s*,"))
+
+(fn commands.help [_ _ on-values]
+  (on-values ["Welcome to Fennel.
+This is the REPL where you can enter code to be evaluated.
+You can also run these repl commands:
+
+  ,help - show this message
+  ,reload module-name - reload the specified module
+  ,reset - erase all repl-local scope
+  ,exit - leave the repl
+
+Use (doc something) to see descriptions for individual macros and special forms.
+
+For more information about the language, see https://fennel-lang.org/reference"]))
+
+(fn reload [module-name env on-values on-error]
+  ;; Sandbox the reload inside the limited environment, if present.
+  (match (pcall (specials.load-code "return require(...)" env) module-name)
+    (true old) (let [_ (tset package.loaded module-name nil)
+                     (ok new) (pcall require module-name)
+                     ;; keep the old module if reload failed
+                     new (if (not ok) (do (on-values new) old) new)]
+                 ;; if the module isn't a table then we can't make changes
+                 ;; which affect already-loaded code, but if it is then we
+                 ;; should splice new values into the existing table and
+                 ;; remove values that are gone.
+                 (when (and (= (type old) :table) (= (type new) :table))
+                   (each [k v (pairs new)]
+                     (tset old k v))
+                   (each [k (pairs old)]
+                     (when (= nil (. new k))
+                       (tset old k nil)))
+                   (tset package.loaded module-name old))
+                 (on-values [:ok]))
+    (false msg) (on-error "Runtime" (pick-values 1 (msg:gsub "\n.*" "")))))
+
+(fn commands.reload [read env on-values on-error]
+  (match (pcall read)
+    (true true module-sym) (reload (tostring module-sym) env on-values on-error)
+    (false ?parse-ok ?msg) (on-error "Parse" (or ?msg ?parse-ok))))
+
+(fn commands.reset [_ env on-values]
+  (set env.___replLocals___ {})
+  (on-values [:ok]))
+
+(fn run-command [input read loop env on-values on-error]
+  (let [command-name (input:match ",([^%s/]+)")]
+    (match (. commands command-name)
+      command (command read env on-values on-error)
+      _ (when (not= "exit" command-name)
+          (on-values ["Unknown command" command-name])))
+    (when (not= "exit" command-name)
+      (loop))))
+
 (fn completer [env scope text]
   (let [matches []
         input-fragment (text:gsub ".*[%s)(]+" "")]
@@ -121,6 +178,8 @@
                 (clear-stream)
                 (reset)
                 (loop))
+            (command? src-string) (run-command src-string read loop env
+                                               on-values on-error)
             (when parse-ok? ; if this is false, we got eof
               (match (pcall compiler.compile x {:correlate opts.correlate
                                                 :source src-string

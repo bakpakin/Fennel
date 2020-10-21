@@ -35,7 +35,7 @@ will see its values updated as expected, regardless of mangling rules."
   (utils.kvmap (or env _G) compiler.global-unmangling))
 
 (fn load-code [code environment filename]
-  "Load code with an environment in all recent Lua versions"
+  "Load Lua code with an environment in all recent Lua versions"
   (let [environment (or (or environment _ENV) _G)]
 
     (if (and _G.setfenv _G.loadstring)

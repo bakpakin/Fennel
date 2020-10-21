@@ -703,18 +703,17 @@ Example:
 
 ### `while` good old while loop
 
-Loops over a body until a condition is met. Uses a native
-Lua while loop, so is preferable to a lambda function and tail recursion.
+Loops over a body until a condition is met. Uses a native Lua `while`
+loop, so this can be faster than recursion.
 
 Example:
 
 ```fennel
-(do
-  (var done? false)
-  (while (not done?)
-    (print :not-done)
-    (when (> (math.random) 0.95)
-      (set done? true))))
+(var done? false)
+(while (not done?)
+  (print :not-done)
+  (when (> (math.random) 0.95)
+    (set done? true)))
 ```
 
 ## Other

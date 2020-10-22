@@ -253,7 +253,7 @@ Tab is what is used to indent a block."
       (let [code chunk.leaf
             info chunk.ast]
         (when sm
-          (tset sm (+ (# sm) 1) (or (and info info.line) (- 1))))
+          (table.insert sm (or (and info info.line) (- 1))))
         code)
       (let [tab (match tab
                   true "  " false "" tab tab nil "")]
@@ -431,9 +431,7 @@ if opts contains the nval option."
               method-to-call (. multi-sym-parts (# multi-sym-parts))
               new-ast (utils.list (utils.sym ":" scope)
                                   (utils.sym table-with-method scope)
-                                  method-to-call)]
-          (for [i 2 len]
-            (tset new-ast (+ (# new-ast) 1) (. ast i)))
+                                  method-to-call (select 2 (unpack ast)))]
           (compile1 new-ast scope parent opts))
         (let [fargs [] ; regular function call
               fcallee (. (compile1 (. ast 1) scope parent {:nval 1}) 1)]
@@ -442,12 +440,11 @@ if opts contains the nval option."
           (for [i 2 len]
             (let [subexprs (compile1 (. ast i) scope parent
                                      {:nval (or (and (not= i len) 1) nil)})]
-              (tset fargs (+ (# fargs) 1) (or (. subexprs 1)
-                                              (utils.expr "nil" "literal")))
+              (table.insert fargs (or (. subexprs 1) (utils.expr :nil :literal)))
               (if (= i len)
                   ;; Add sub expressions to function args
                   (for [j 2 (# subexprs)]
-                    (tset fargs (+ (# fargs) 1) (. subexprs j)))
+                    (table.insert fargs (. subexprs j)))
                   ;; Emit sub expression only for side effects
                   (keep-side-effects subexprs parent 2 (. ast i)))))
           (let [call (string.format "%s(%s)" (tostring fcallee) (exprs1 fargs))]
@@ -481,8 +478,8 @@ if opts contains the nval option."
   (let [buffer []]
     (for [i 1 (# ast)] ; write numeric keyed values
       (let [nval (and (not= i (# ast)) 1)]
-        (tset buffer (+ (# buffer) 1)
-              (exprs1 (compile1 (. ast i) scope parent {:nval nval})))))
+        (table.insert buffer (exprs1 (compile1 (. ast i) scope parent
+                                               {:nval nval})))))
     (fn write-other-values [k]
       (when (or (not= (type k) :number)
                 (not= (math.floor k) k)
@@ -713,7 +710,7 @@ which we have to do if we don't know."
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))
     (each [ok val (parser.parser strm opts.filename opts)]
-      (tset vals (+ (# vals) 1) val))
+      (table.insert vals val))
     (for [i 1 (# vals)]
       (let [exprs (compile1 (. vals i) scope chunk
                             {:nval (or (and (< i (# vals)) 0) nil)

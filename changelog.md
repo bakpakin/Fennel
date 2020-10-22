@@ -2,6 +2,7 @@
 
 ## 0.6.1 / ???
 
+* Add repl commands including `,reload`; see `,help` for a full list
 * Fix several bugs in the linter
 * Fix a bug where `--no-compiler-sandbox` did not apply in `import-macros`
 * Fix a bug where compiler sandboxing makes `macrodebug` fail to print correctly

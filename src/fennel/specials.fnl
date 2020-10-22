@@ -136,10 +136,10 @@ the number of expected arguments."
     (for [i 2 len]
       (let [subexprs (compiler.compile1 (. ast i) scope parent
                                         {:nval (and (not= i len) 1)})]
-        (tset exprs (+ (# exprs) 1) (. subexprs 1))
+        (table.insert exprs (. subexprs 1))
         (when (= i len)
           (for [j 2 (# subexprs)]
-            (tset exprs (+ (# exprs) 1) (. subexprs j))))))
+            (table.insert exprs (. subexprs j))))))
     exprs))
 
 (doc-special "values" ["..."]
@@ -365,8 +365,8 @@ and lacking args will be nil, use lambda for arity-checked functions."))
   (let [root (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1)
         keys []]
     (for [i 3 (- (# ast) 1)]
-      (let [key (. (compiler.compile1 (. ast i) scope parent {:nval 1}) 1)]
-        (tset keys (+ (# keys) 1) (tostring key))))
+      (let [[key] (compiler.compile1 (. ast i) scope parent {:nval 1})]
+        (table.insert keys (tostring key))))
     (let [value (. (compiler.compile1 (. ast (# ast)) scope parent {:nval 1}) 1)
           rootstr (tostring root)
           ;; Prefix 'do end ' so parens are not ambiguous (grouping or fn call?)
@@ -526,7 +526,7 @@ order, but can be used with any iterator.")
         ;; compound condition; move new compilation to subchunk
         (do
           (for [i (+ len1 1) len2]
-            (tset sub-chunk (+ (# sub-chunk) 1) (. parent i))
+            (table.insert sub-chunk (. parent i))
             (tset parent i nil))
           (compiler.emit parent "while true do" ast)
           (compiler.emit sub-chunk (: "if not %s then break end"
@@ -627,7 +627,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 (fn SPECIALS.comment [ast _ parent]
   (let [els []]
     (for [i 2 (# ast)]
-      (tset els (+ (# els) 1) (: (tostring (. ast i)) :gsub "\n" " ")))
+      (table.insert els (: (tostring (. ast i)) :gsub "\n" " ")))
     (compiler.emit parent (.. "-- " (table.concat els " ")) ast)))
 
 (doc-special "comment" ["..."] "Comment which will be emitted in Lua output.")

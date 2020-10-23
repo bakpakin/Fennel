@@ -627,7 +627,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 (fn SPECIALS.comment [ast _ parent]
   (let [els []]
     (for [i 2 (# ast)]
-      (table.insert els (: (tostring (. ast i)) :gsub "\n" " ")))
+      (table.insert els (pick-values 1 (: (tostring (. ast i)) :gsub "\n" " "))))
     (compiler.emit parent (.. "-- " (table.concat els " ")) ast)))
 
 (doc-special "comment" ["..."] "Comment which will be emitted in Lua output.")

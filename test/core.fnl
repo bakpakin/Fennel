@@ -327,6 +327,10 @@
     (let [mt (setmetatable [] {:__fennelview (fn [] "META")})]
       (l.assertEquals ((require "fennelview") mt) "META"))))
 
+(fn test-comment []
+  (l.assertEquals "-- hello world\nreturn nil"
+                  (fennel.compile-string "(comment hello world)")))
+
 {: test-booleans
  : test-calculations
  : test-comparisons
@@ -342,4 +346,5 @@
  : test-with-open
  : test-match
  : test-method_calls
- : test-parsing}
+ : test-parsing
+ : test-comment}

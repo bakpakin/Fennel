@@ -204,6 +204,39 @@ Example:
 
 ;;; Pattern matching
 
+(fn match-values [vals pattern unifications match-pattern]
+  (let [condition `(and)
+        bindings []]
+    (each [i pat (ipairs pattern)]
+      (let [(subcondition subbindings) (match-pattern [(. vals i)] pat
+                                                      unifications)]
+        (table.insert condition subcondition)
+        (each [_ b (ipairs subbindings)]
+          (table.insert bindings b))))
+    (values condition bindings)))
+
+(fn match-table [val pattern unifications match-pattern]
+  (let [condition `(and (= (type ,val) :table))
+        bindings []]
+    (each [k pat (pairs pattern)]
+      (if (and (sym? pat) (= "&" (tostring pat)))
+          (do (assert (not (. pattern (+ k 2)))
+                      "expected rest argument before last parameter")
+              (table.insert bindings (. pattern (+ k 1)))
+              (table.insert bindings [`(select ,k ((or _G.unpack
+                                                       table.unpack)
+                                                   ,val))]))
+          (and (= :number (type k))
+               (= "&" (tostring (. pattern (- k 1)))))
+          nil ; don't process the pattern right after &; already got it
+          (let [subval `(. ,val ,k)
+                (subcondition subbindings) (match-pattern [subval] pat
+                                                          unifications)]
+            (table.insert condition subcondition)
+            (each [_ b (ipairs subbindings)]
+              (table.insert bindings b)))))
+    (values condition bindings)))
+
 (fn match-pattern [vals pattern unifications]
   "Takes the AST of values and a single pattern and returns a condition
 to determine if it matches as well as a list of bindings to
@@ -220,8 +253,7 @@ introduce for the duration of the body if it does match."
                  (in-scope? (. (multi-sym? pattern) 1))))
         (values `(= ,val ,pattern) [])
         ;; unify a local we've seen already
-        (and (sym? pattern)
-             (. unifications (tostring pattern)))
+        (and (sym? pattern) (. unifications (tostring pattern)))
         (values `(= ,(. unifications (tostring pattern)) ,val) [])
         ;; bind a fresh local
         (sym? pattern)
@@ -241,37 +273,10 @@ introduce for the duration of the body if it does match."
 
         ;; multi-valued patterns (represented as lists)
         (list? pattern)
-        (let [condition `(and)
-              bindings []]
-          (each [i pat (ipairs pattern)]
-            (let [(subcondition subbindings) (match-pattern [(. vals i)] pat
-                                                            unifications)]
-              (table.insert condition subcondition)
-              (each [_ b (ipairs subbindings)]
-                (table.insert bindings b))))
-          (values condition bindings))
+        (match-values vals pattern unifications match-pattern)
         ;; table patterns
         (= (type pattern) :table)
-        (let [condition `(and (= (type ,val) :table))
-              bindings []]
-          (each [k pat (pairs pattern)]
-            (if (and (sym? pat) (= "&" (tostring pat)))
-                (do (assert (not (. pattern (+ k 2)))
-                            "expected rest argument before last parameter")
-                    (table.insert bindings (. pattern (+ k 1)))
-                    (table.insert bindings [`(select ,k ((or _G.unpack
-                                                             table.unpack)
-                                                         ,val))]))
-                (and (= :number (type k))
-                     (= "&" (tostring (. pattern (- k 1)))))
-                nil ; don't process the pattern right after &; already got it
-                (let [subval `(. ,val ,k)
-                      (subcondition subbindings) (match-pattern [subval] pat
-                                                                unifications)]
-                  (table.insert condition subcondition)
-                  (each [_ b (ipairs subbindings)]
-                    (table.insert bindings b)))))
-          (values condition bindings))
+        (match-table val pattern unifications match-pattern)
         ;; literal value
         (values `(= ,val ,pattern) []))))
 

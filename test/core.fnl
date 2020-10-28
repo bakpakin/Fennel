@@ -65,6 +65,8 @@
                "((lambda [x] (+ x 2)) 4)" 6
                ;; vararg lambda
                "((lambda [x ...] (+ x 2)) 4)" 6
+               ;; underscore lambda
+               "((lambda [x _ y] (+ x y)) 4 5 6)" 10
                ;; lambdas perform arity checks
                "(let [(ok e) (pcall (lambda [x] (+ x 2)))]
                   (string.match e \"Missing argument x\"))" "Missing argument x"

@@ -140,9 +140,8 @@ that argument name begins with ?."
       (if (table? a)
           (each [_ a (pairs a)]
             (check! a))
-          (and (not (string.match (tostring a) "^?"))
-               (not= (tostring a) "&")
-               (not= (tostring a) "..."))
+          (let [as (tostring a)]
+            (and (not (as:match "^?")) (not= as "&") (not= as "_") (not= as "...")))
           (table.insert args arity-check-position
                         `(assert (not= nil ,a)
                                  (string.format "Missing argument %s on %s:%s"

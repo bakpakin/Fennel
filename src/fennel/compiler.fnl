@@ -654,7 +654,7 @@ which we have to do if we don't know."
                                (= (tostring k) ":")
                                (utils.sym? v))
                       (set-forcibly! k (tostring v)))
-                    (when (not= (type k) "number")
+                    (when (= (type k) :string)
                       (set-forcibly! k (serialize-string k)))
                     (let [subexpr (utils.expr (string.format "%s[%s]" s k)
                                               :expression)]

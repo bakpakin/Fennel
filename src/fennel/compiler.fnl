@@ -617,6 +617,14 @@ which we have to do if we don't know."
                             {:ast ast :leaf (.. "local " lvalue " = " init)})))
         ret))
 
+    (fn effective-key [key val]
+      (let [key (if (and (utils.sym? key) (= (tostring key) ":") (utils.sym? val))
+                    (tostring val)
+                    key)]
+        (if (= (type key) :string)
+            (serialize-string key)
+            key)))
+
     (fn destructure1 [left rightexprs up1 top]
       "Recursive auxiliary function"
       (if (and (utils.sym? left) (not= (. left 1) "nil"))
@@ -649,16 +657,10 @@ which we have to do if we don't know."
                           subexpr (utils.expr formatted "expression")]
                       (destructure1 (. left (+ k 1)) [subexpr] left)
                       (lua "return")))
-                  (do
-                    (when (and (utils.sym? k)
-                               (= (tostring k) ":")
-                               (utils.sym? v))
-                      (set-forcibly! k (tostring v)))
-                    (when (= (type k) :string)
-                      (set-forcibly! k (serialize-string k)))
-                    (let [subexpr (utils.expr (string.format "%s[%s]" s k)
-                                              :expression)]
-                      (destructure1 v [subexpr] left))))))
+                  (let [subexpr (utils.expr (string.format "%s[%s]" s
+                                                           (effective-key k v))
+                                            :expression)]
+                    (destructure1 v [subexpr] left)))))
           (utils.list? left) ;; values destructuring
           (let [(left-names tables) (values [] [])]
             (each [i name (ipairs left)]

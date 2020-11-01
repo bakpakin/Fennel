@@ -5,6 +5,9 @@
 ;; The code for these macros is somewhat idiosyncratic because it cannot use any
 ;; macros which have not yet been defined.
 
+;; TODO: some of these macros modify their arguments; we should stop doing that,
+;; but in a way that preserves file/line metadata.
+
 (fn -> [val ...]
   "Thread-first macro.
 Take the first value and splice it into the second form as its first argument.
@@ -256,7 +259,7 @@ introduce for the duration of the body if it does match."
         (values `(= ,(. unifications (tostring pattern)) ,val) [])
         ;; bind a fresh local
         (sym? pattern)
-        (let [wildcard? (= (tostring pattern) "_")]
+        (let [wildcard? (: (tostring pattern) :find "^_")]
           (if (not wildcard?) (tset unifications (tostring pattern) val))
           (values (if (or wildcard? (string.find (tostring pattern) "^?"))
                       true `(not= ,(sym :nil) ,val))

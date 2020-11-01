@@ -142,7 +142,7 @@ these new manglings instead of the current manglings."
   (while (. scope.unmanglings mangling)
     (set mangling (.. (or base "") "_" append "_"))
     (set append (+ append 1)))
-  (tset scope.unmanglings mangling true)
+  (tset scope.unmanglings mangling (or base true))
   mangling)
 
 (fn autogensym [base scope]

@@ -860,8 +860,9 @@ Method name doesn't have to be known at compile-time; if it is, use
                  :varg? utils.varg?
 
                  ;; scoping functions
-                 :gensym (fn [] (utils.sym (compiler.gensym
-                                            (or compiler.scopes.macro scope))))
+                 :gensym (fn [base]
+                           (utils.sym (compiler.gensym
+                                       (or compiler.scopes.macro scope) base)))
                  :get-scope (fn [] compiler.scopes.macro)
                  :in-scope? (fn [symbol]
                               (compiler.assert compiler.scopes.macro

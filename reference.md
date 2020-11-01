@@ -330,10 +330,10 @@ evaluates `(print :q q)` with `q` bound to the second element of
 `mytable`. The final clause will only match if `mytable` has 1 as its
 first element; if so then it will add up the second and third elements.
 
-Patterns can be tables, literal values, or symbols. If a symbol has
-already been bound, then the value is checked against the existing
-local's value, but if it's a new local then the symbol is bound to the
-value.
+Patterns can be tables, literal values, or symbols. If a symbol is
+already in scope, then the value is checked against the existing
+value, but if it's a new local then the symbol is bound to the value.
+The `_` pattern is treated as a wildcard that always matches.
 
 Tables can be nested, and they may be either sequential (`[]` style)
 or key/value (`{}` style) tables. Sequential tables will match if they

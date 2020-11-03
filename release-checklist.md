@@ -13,6 +13,7 @@ This document is intended for Fennel maintainers.
 6. Update the download links in `setup.md`.
 7. Commit above changes.
 8. Run `git tag -s $VERSION -m $VERSION`.
+9. Run `git push && git push --tags`.
 
 ## Uploading builds
 
@@ -21,7 +22,6 @@ This document is intended for Fennel maintainers.
 3. Run `luarocks --local build rockspecs/fennel-$(VERSION)-1.rockspec`
 4. Test `~/.luarocks/bin/fennel --version`.
 5. Run ` API_KEY=... luarocks upload rockspecs/fennel-$(VERSION)-1.rockspec`
-6. Run `git push && git push --tags`.
 
 Announce it on the mailing list. Fennel is now released!
 

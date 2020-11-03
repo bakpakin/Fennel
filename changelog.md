@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.7.0 / ???
+## 0.7.0 / 2020-11-03
 
 * Improve printing of multiple return values in the repl
 * Add repl commands including `,reload`; see `,help` for a full list

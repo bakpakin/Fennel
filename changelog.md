@@ -1,7 +1,8 @@
 # Summary of user-visible changes
 
-## 0.6.1 / ???
+## 0.7.0 / ???
 
+* Improve printing of multiple return values in the repl
 * Add repl commands including `,reload`; see `,help` for a full list
 * Fix several bugs in the linter
 * Fix a bug where `--no-compiler-sandbox` did not apply in `import-macros`

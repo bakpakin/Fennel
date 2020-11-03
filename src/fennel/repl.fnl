@@ -168,6 +168,15 @@ For more information about the language, see https://fennel-lang.org/reference"]
     (when opts.registerCompleter
       (opts.registerCompleter (partial completer env scope)))
 
+    (fn print-values [...]
+      (let [vals [...]
+            out []]
+        (set (env._ env.__) (values (. vals 1) vals))
+        ;; utils.map won't work here because of sparse tables
+        (for [i 1 (select :# ...)]
+          (table.insert out (pp (. vals i))))
+        (on-values out)))
+
     (fn loop []
       (each [k (pairs chars)] (tset chars k nil))
       (let [(ok parse-ok? x) (pcall read)
@@ -190,20 +199,14 @@ For more information about the language, see https://fennel-lang.org/reference"]
                                                 :parse-error opts.parse-error})
                 (false msg) (do (clear-stream)
                                 (on-error "Compile" msg))
-                (true source) (let [source (if save-locals?
-                                               (splice-save-locals env source)
-                                               source)
-                                    (lua-ok? loader) (pcall specials.load-code
-                                                            source env)]
-                                (if (not lua-ok?)
-                                    (do (clear-stream)
-                                        (on-error "Lua Compile" loader source))
-                                    (match (xpcall #[(loader)]
-                                                   (partial on-error "Runtime"))
-                                      (true ret)
-                                      (do (set env._ (. ret 1))
-                                          (set env.__ ret)
-                                          (on-values (utils.map ret pp)))))))
+                (true src) (let [src (if save-locals?
+                                         (splice-save-locals env src)
+                                         src)]
+                             (match (pcall specials.load-code src env)
+                               (false msg) (do (clear-stream)
+                                               (on-error "Lua Compile" msg src))
+                               (_ chunk) (xpcall #(print-values (chunk))
+                                                 (partial on-error "Runtime")))))
               (set utils.root.options old-root-options)
               (loop)))))
     (loop)))

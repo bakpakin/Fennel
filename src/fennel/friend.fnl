@@ -176,7 +176,7 @@
       (read-line-from-file filename line)))
 
 (fn friendly-msg [msg {: filename : line : bytestart : byteend} source]
-  (let [(ok codeline bol eol) (pcall read-line filename line source)
+  (let [(ok codeline bol) (pcall read-line filename line source)
         suggestions (suggest msg)
         out [msg ""]]
     ;; don't assume the file can be read as-is

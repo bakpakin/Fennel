@@ -88,10 +88,7 @@ Takes a Lua identifier and returns the Fennel symbol string that created it."
   "If there's a provided list of allowed globals, don't let references thru that
 aren't on the list. This list is set at the compiler entry points of compile
 and compile-stream."
-  (var found? (not allowed-globals))
-  (if (not allowed-globals)
-      true
-      (utils.member? name allowed-globals)))
+  (or (not allowed-globals) (utils.member? name allowed-globals)))
 
 (fn unique-mangling [original mangling scope append]
   (if (. scope.unmanglings mangling)
@@ -103,8 +100,7 @@ and compile-stream."
 symbol is unique if the input string is unique in the scope."
   (assert-compile (not (utils.multi-sym? str))
                   (.. "unexpected multi symbol " str) ast)
-  (let [append 0
-        ;; Mapping mangling to a valid Lua identifier
+  (let [;; Mapping mangling to a valid Lua identifier
         raw (if (or (. utils.lua-keywords str) (str:match "^%d"))
                 (.. "_" str)
                 str)
@@ -286,7 +282,8 @@ Tab is what is used to indent a block."
         (let [sm []
               ret (flatten-chunk sm chunk options.indent 0)]
           (when sm
-            (set sm.short_src (or options.filename ret))
+            (set sm.short_src (make-short-src (or options.filename
+                                                  options.source ret)))
             (set sm.key (if options.filename (.. "@" options.filename) ret))
             (tset fennel-sourcemap sm.key sm))
           (values ret sm)))))
@@ -466,7 +463,7 @@ if opts contains the nval option."
                 (symbol-to-expression ast scope true))]
       (handle-compile-opts [e] parent opts ast))))
 
-(fn compile-scalar [ast scope parent opts]
+(fn compile-scalar [ast _scope parent opts]
   (let [serialize (match (type ast)
                     :nil tostring
                     :boolean tostring
@@ -711,7 +708,7 @@ which we have to do if we don't know."
       (set scope.specials.require require-include))
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))
-    (each [ok val (parser.parser strm opts.filename opts)]
+    (each [_ val (parser.parser strm opts.filename opts)]
       (table.insert vals val))
     (for [i 1 (# vals)]
       (let [exprs (compile1 (. vals i) scope chunk

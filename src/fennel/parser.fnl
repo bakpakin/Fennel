@@ -88,7 +88,7 @@ stream is finished."
   ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!
   (fn parse-error [msg byteindex-override]
-    (let [{: source : unfriendly} (or utils.root.options {})]
+    (let [{: source : unfriendly} (or options utils.root.options {})]
       (utils.root.reset)
       (if unfriendly
           (error (string.format "Parse error in %s:%s: %s" (or filename :unknown)
@@ -183,10 +183,11 @@ stream is finished."
             (parse-string-loop chars (getb) state)
             b)))
 
-    (fn parse-string [b]
+    (fn parse-string []
       (table.insert stack {:closer 34})
-      (let [chars [34]
-            b (or (parse-string-loop chars (getb) :base) (badend))]
+      (let [chars [34]]
+        (when (not (parse-string-loop chars (getb) :base))
+          (badend))
         (table.remove stack)
         (let [raw (string.char (unpack chars))
               formatted (raw:gsub "[\1-\31]" (fn [c] (.. "\\" (c:byte))))
@@ -211,7 +212,7 @@ stream is finished."
           (do (when b (ungetb b))
               chars)))
 
-    (fn parse-number [rawstr bytestart]
+    (fn parse-number [rawstr]
       (let [force-number (rawstr:match "^%d")
             number-with-stripped-underscores (rawstr:gsub "_" "")]
         (if force-number
@@ -223,7 +224,7 @@ stream is finished."
               x (do (dispatch x) true)
               _ false))))
 
-    (fn check-malformed-sym [rawstr bytestart]
+    (fn check-malformed-sym [rawstr]
       ;; for backwards-compatibility, special-case allowance of ~= but
       ;; all other uses of ~ are disallowed
       (if (and (rawstr:match "^~") (not= rawstr "~="))
@@ -255,8 +256,8 @@ stream is finished."
             (dispatch (utils.varg))
             (rawstr:match "^:.+$")
             (dispatch (rawstr:sub 2))
-            (parse-number rawstr bytestart) nil
-            (check-malformed-sym rawstr bytestart) nil
+            (parse-number rawstr) nil
+            (check-malformed-sym rawstr) nil
             (dispatch (utils.sym rawstr nil {:byteend byteindex
                                              :bytestart bytestart
                                              :filename filename

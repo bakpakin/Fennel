@@ -571,7 +571,7 @@ order, but can be used with any iterator.")
  "Numeric loop construct.
 Evaluates body once for each value between start and stop (inclusive).")
 
-(fn native-method-call [ast scope parent target args]
+(fn native-method-call [ast _scope _parent target args]
   "Prefer native Lua method calls when method name is a valid Lua identifier."
   (let [[_ _ method-string] ast
         call-string (if (or (= target.type :literal) (= target.type :expression))
@@ -818,7 +818,7 @@ Method name doesn't have to be known at compile-time; if it is, use
            " be allowed without the\n--no-compiler-sandbox flag"
            " or passing :compiler-env _G in options.\n"))
 
-(fn compiler-env-warn [env key]
+(fn compiler-env-warn [_ key]
   "Warn once when allowing a global that the sandbox would normally block."
   (let [v (. _G key)]
     (when (and v io io.stderr (not (. already-warned? key)))

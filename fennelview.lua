@@ -188,10 +188,21 @@ local function _0_(self, v)
     return puts(self, view_quote(escape(v)))
   elseif ((tv == "number") or (tv == "boolean") or (tv == "nil")) then
     return puts(self, tostring(v))
-  elseif (tv == "table") then
-    return put_table(self, v)
-  elseif "else" then
-    return puts(self, "#<", tostring(v), ">")
+  else
+    local _2_
+    do
+      local _1_0 = getmetatable(v)
+      if _1_0 then
+        _2_ = _1_0.__fennelview
+      else
+        _2_ = _1_0
+      end
+    end
+    if ((tv == "table") or ((tv == "userdata") and (nil ~= _2_))) then
+      return put_table(self, v)
+    elseif "else" then
+      return puts(self, "#<", tostring(v), ">")
+    end
   end
 end
 put_value = _0_

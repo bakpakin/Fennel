@@ -2,6 +2,8 @@
 
 ## 0.7.1 / ???
 
+* fennelview: respect presence of `__fennelview` metamethod on userdata metatables
+
 ## 0.7.0 / 2020-11-03
 
 * Improve printing of multiple return values in the repl

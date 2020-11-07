@@ -690,7 +690,7 @@ Method name doesn't have to be known at compile-time; if it is, use
                 (let [operands []]
                   (for [i 2 len]
                     (let [subexprs (compiler.compile1 (. ast i) scope parent
-                                                      {:nval (if (= i 1) 1)})]
+                                                      {:nval (if (not= i len) 1)})]
                       (utils.map subexprs tostring operands)))
                   (if (= (# operands) 1)
                       (if unary-prefix
@@ -913,10 +913,8 @@ table.insert(package.loaders, fennel.searcher)"
     (each [k v (pairs (or options {}))]
       (tset opts k v))
     (fn [module-name]
-      (let [filename (search-module module-name)]
-        (if filename
-            (fn [mod-name]
-              (utils.fennel-module.dofile filename opts mod-name)))))))
+      (match (search-module module-name)
+        filename (partial utils.fennel-module.dofile filename opts)))))
 
 (fn macro-globals [env globals]
   (let [allowed (current-global-names env)]

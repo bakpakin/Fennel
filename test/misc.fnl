@@ -1,5 +1,6 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
+(local fennelview (require :fennelview))
 
 (fn test-traceback []
   (let [tracer (fennel.dofile "test/mod/tracer.fnl")
@@ -22,14 +23,18 @@
                 "Expected global mangling to work."))
 
 (fn test-include []
-  (let [expected "foo:FOO-1bar:BAR-2-BAZ-3"]
-    (var (ok out) (pcall fennel.dofile "test/mod/foo.fnl"))
+  (let [expected "foo:FOO-1bar:BAR-2-BAZ-3"
+        (ok out) (pcall fennel.dofile "test/mod/foo.fnl")
+        (ok2 out2) (pcall fennel.dofile "test/mod/foo2.fnl"
+                          {:requireAsIncluede true})]
     (l.assertTrue ok "Expected foo to run")
-    (set out (or out []))
-    (l.assertEquals out.result expected
+    (l.assertTrue ok2 "Expected foo2 to run")
+    (l.assertEquals (and (= :table (type out)) out.result) expected
                     (.. "Expected include to have result: " expected))
     (l.assertFalse out.quux
                    "Expected include not to leak upvalues into included modules")
+    (l.assertEquals (fennelview out) (fennelview out2)
+                    "Expected requireAsInclude to behave the same as include")
     (l.assertNil _G.quux "Expected include to actually be local")
     (let [spliceOk (pcall fennel.dofile "test/mod/splice.fnl")]
       (l.assertTrue spliceOk "Expected splice to run")

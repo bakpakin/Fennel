@@ -409,7 +409,24 @@ if opts contains the nval option."
         {:returned true}
         exprs)))
 
-;; TODO: too long
+(fn compile-function-call [ast scope parent opts compile1 len]
+  (let [fargs [] ; regular function call
+        fcallee (. (compile1 (. ast 1) scope parent {:nval 1}) 1)]
+    (assert-compile (not= fcallee.type :literal)
+                    (.. "cannot call literal value " (tostring (. ast 1))) ast)
+    (for [i 2 len]
+      (let [subexprs (compile1 (. ast i) scope parent
+                               {:nval (if (not= i len) 1)})]
+        (table.insert fargs (or (. subexprs 1) (utils.expr :nil :literal)))
+        (if (= i len)
+            ;; Add multivalues to function args
+            (for [j 2 (# subexprs)]
+              (table.insert fargs (. subexprs j)))
+            ;; Emit sub expression only for side effects
+            (keep-side-effects subexprs parent 2 (. ast i)))))
+    (let [call (string.format "%s(%s)" (tostring fcallee) (exprs1 fargs))]
+      (handle-compile-opts [(utils.expr call :statement)] parent opts ast))))
+
 (fn compile-call [ast scope parent opts compile1]
   (utils.hook :call ast scope)
   (let [len (# ast)
@@ -430,22 +447,7 @@ if opts contains the nval option."
                                   (utils.sym table-with-method scope)
                                   method-to-call (select 2 (unpack ast)))]
           (compile1 new-ast scope parent opts))
-        (let [fargs [] ; regular function call
-              fcallee (. (compile1 (. ast 1) scope parent {:nval 1}) 1)]
-          (assert-compile (not= fcallee.type :literal)
-                          (.. "cannot call literal value " (tostring first)) ast)
-          (for [i 2 len]
-            (let [subexprs (compile1 (. ast i) scope parent
-                                     {:nval (or (and (not= i len) 1) nil)})]
-              (table.insert fargs (or (. subexprs 1) (utils.expr :nil :literal)))
-              (if (= i len)
-                  ;; Add sub expressions to function args
-                  (for [j 2 (# subexprs)]
-                    (table.insert fargs (. subexprs j)))
-                  ;; Emit sub expression only for side effects
-                  (keep-side-effects subexprs parent 2 (. ast i)))))
-          (let [call (string.format "%s(%s)" (tostring fcallee) (exprs1 fargs))]
-            (handle-compile-opts [(utils.expr call :statement)] parent opts ast))))))
+        (compile-function-call ast scope parent opts compile1 len))))
 
 (fn compile-varg [ast scope parent opts]
   (assert-compile scope.vararg "unexpected vararg" ast)
@@ -614,20 +616,12 @@ which we have to do if we don't know."
                             {:ast ast :leaf (.. "local " lvalue " = " init)})))
         ret))
 
-    (fn effective-key [key val]
-      (let [key (if (and (utils.sym? key) (= (tostring key) ":") (utils.sym? val))
-                    (tostring val)
-                    key)]
-        (if (= (type key) :string)
-            (serialize-string key)
-            key)))
-
-    (fn destructure1 [left rightexprs up1 top]
+    (fn destructure1 [left rightexprs up1 top?]
       "Recursive auxiliary function"
       (if (and (utils.sym? left) (not= (. left 1) "nil"))
           (let [lname (getname left up1)]
             (check-binding-valid left scope left)
-            (if top
+            (if top?
                 (compile-top-target [lname])
                 (emit parent (setter:format lname (exprs1 rightexprs)) left))
             ;; We have to declare meta for the left *after* compiling the right
@@ -636,7 +630,7 @@ which we have to do if we don't know."
               (tset scope.symmeta (utils.deref left) {:var isvar})))
           (utils.table? left) ; table destructuring
           (let [s (gensym scope)]
-            (var right (if top
+            (var right (if top?
                            (exprs1 (compile1 from scope parent))
                            (exprs1 rightexprs)))
             (when (= right "")
@@ -654,8 +648,8 @@ which we have to do if we don't know."
                           subexpr (utils.expr formatted "expression")]
                       (destructure1 (. left (+ k 1)) [subexpr] left)
                       (lua "return")))
-                  (let [subexpr (utils.expr (string.format "%s[%s]" s
-                                                           (effective-key k v))
+                  (let [key (if (= (type k) :string) (serialize-string k) k)
+                        subexpr (utils.expr (string.format "%s[%s]" s key)
                                             :expression)]
                     (destructure1 v [subexpr] left)))))
           (utils.list? left) ;; values destructuring
@@ -667,11 +661,8 @@ which we have to do if we don't know."
                     ;; further destructuring of tables inside values
                     (table.insert left-names symname)
                     (tset tables i [name (utils.expr symname "sym")]))))
-            (if top
-                (compile-top-target left-names)
-                (let [lvalue (table.concat left-names ", ")
-                      setting (setter:format lvalue (exprs1 rightexprs))]
-                  (emit parent setting left)))
+            (assert-compile top? "can't nest multi-value destructuring" left)
+            (compile-top-target left-names)
             (when declaration
               (each [_ sym (ipairs left)]
                 (tset scope.symmeta (utils.deref sym) {:var isvar})))
@@ -681,7 +672,7 @@ which we have to do if we don't know."
           (assert-compile false (string.format "unable to bind %s %s"
                                                (type left) (tostring left))
                          (or (and (= (type (. up1 2)) "table") (. up1 2)) up1)))
-      (when top
+      (when top?
         {:returned true}))
 
     (let [ret (destructure1 to nil ast true)]

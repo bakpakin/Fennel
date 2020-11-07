@@ -61,6 +61,8 @@
 (fn test-functions []
   (let [cases {;; regular function
                "((fn [x] (* x 2)) 26)" 52
+               ;; function with multiple args
+               "((fn [a b c] (+ a b c)) 1 (values 8 2))" 11
                ;; basic lambda
                "((lambda [x] (+ x 2)) 4)" 6
                ;; vararg lambda

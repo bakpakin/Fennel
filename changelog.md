@@ -2,6 +2,7 @@
 
 ## 0.7.1 / ???
 
+* Fix a bug where `import-macros` would not respect certain compiler options
 * fennelview: respect presence of `__fennelview` metamethod on userdata metatables
 
 ## 0.7.0 / 2020-11-03

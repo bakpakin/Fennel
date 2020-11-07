@@ -180,28 +180,27 @@ Example:
   (assert (and binding1 module-name1 (= 0 (% (select :# ...) 2)))
           "expected even number of binding/modulename pairs")
   (for [i 1 (select :# binding1 module-name1 ...) 2]
-    (local (binding modname) (select i binding1 module-name1 ...))
-    ;; generate a subscope of current scope, use require-macros
-    ;; to bring in macro module. after that, we just copy the
-    ;; macros from subscope to scope.
-    (local scope (get-scope))
-    (local subscope (fennel.scope scope))
-    (fennel.compile-string (string.format "(require-macros %q)"
-                                         modname)
-                          {:scope subscope
-                           :compiler-env utils.root.options.compiler-env})
-    (if (sym? binding)
-        ;; bind whole table of macros to table bound to symbol
-        (do (tset scope.macros (. binding 1) {})
-            (each [k v (pairs subscope.macros)]
-              (tset (. scope.macros (. binding 1)) k v)))
+    (let [(binding modname) (select i binding1 module-name1 ...)
+          ;; generate a subscope of current scope, use require-macros
+          ;; to bring in macro module. after that, we just copy the
+          ;; macros from subscope to scope.
+          scope (get-scope)
+          subscope (fennel.scope scope)
+          opts {:scope subscope}]
+      (each [k v (pairs  utils.root.options)] (tset opts k v))
+      (fennel.compile-string (string.format "(require-macros %q)" modname) opts)
+      (if (sym? binding)
+          ;; bind whole table of macros to table bound to symbol
+          (do (tset scope.macros (. binding 1) {})
+              (each [k v (pairs subscope.macros)]
+                (tset (. scope.macros (. binding 1)) k v)))
 
-        ;; 1-level table destructuring for importing individual macros
-        (table? binding)
-        (each [macro-name [import-key] (pairs binding)]
-          (assert (= :function (type (. subscope.macros macro-name)))
-                  (.. "macro " macro-name " not found in module " modname))
-          (tset scope.macros import-key (. subscope.macros macro-name)))))
+          ;; 1-level table destructuring for importing individual macros
+          (table? binding)
+          (each [macro-name [import-key] (pairs binding)]
+            (assert (= :function (type (. subscope.macros macro-name)))
+                    (.. "macro " macro-name " not found in module " modname))
+            (tset scope.macros import-key (. subscope.macros macro-name))))))
   nil)
 
 ;;; Pattern matching

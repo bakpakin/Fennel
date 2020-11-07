@@ -15,14 +15,13 @@ use without installing anything.
 
 * The [setup](setup.md) guide is a great place to start
 * The [tutorial](tutorial.md) teaches the basics of the language
+* The [rationale](rationale.md) explains the reasoning of why Fennel was created
 * The [reference](reference.md) describes all Fennel special forms
 * The [API listing](api.md) shows how to integrate Fennel into your codebase
 * The [Lua primer](lua-primer.md) gives a very brief intro to Lua with
   pointers to further details
-* The [test suite](test/) has basic usage examples for most features.
 
-For a small complete example that uses the LÖVE game engine, see
-[pong.fnl][2].
+For more examples, see [the cookbook][2] on [the wiki][7].
 
 The [changelog](changelog.md) has a list of user-visible changes for
 each release.
@@ -114,8 +113,7 @@ Copyright © 2016-2020 Calvin Rose and contributors
 Released under the [MIT license](LICENSE).
 
 [1]: https://fennel-lang.org
-[2]: https://p.hagelb.org/pong.fnl.html
-[3]: https://luarocks.org/
+[2]: https://github.com/bakpakin/Fennel/wiki/Cookbook
 [4]: http://luajit.org/ext_ffi_tutorial.html
 [5]: https://lists.sr.ht/%7Etechnomancy/fennel
 [7]: https://github.com/bakpakin/Fennel/wiki

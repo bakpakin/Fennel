@@ -40,11 +40,9 @@ Optionally takes a target table to insert the mapped values into."
               f
               (let [s f] (fn [x] (. x s))))]
     (each [k x (stablepairs t)]
-      (let [(korv v) (f k x)]
-        (when (and korv (not v))
-          (table.insert out korv))
-        (when (and korv v)
-          (tset out korv v))))
+      (match (f k x)
+        (key value) (tset out key value)
+        (value) (table.insert out value)))
     out))
 
 (fn copy [from to]

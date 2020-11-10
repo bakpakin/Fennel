@@ -113,7 +113,7 @@ The Fennel compiler can be added to your code repository, and then
 loaded from Lua.
 
  1. Get the `fennel.lua` library. You can get this from a
-    [release tarball](https://fennel-lang.org/downloads/fennel-0.7.0.tgz)
+    [release tarball](https://fennel-lang.org/downloads/fennel-0.7.0.tar.gz)
     or by running `make` in a source checkout.
  2. Add `fennel.lua` to your code repository.
  3. Add the following lines to your Lua code:

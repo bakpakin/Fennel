@@ -914,7 +914,8 @@ table.insert(package.loaders, fennel.searcher)"
       (tset opts k v))
     (fn [module-name]
       (match (search-module module-name)
-        filename (partial utils.fennel-module.dofile filename opts)))))
+        filename (values (partial utils.fennel-module.dofile filename opts)
+                         filename)))))
 
 (fn macro-globals [env globals]
   (let [allowed (current-global-names env)]
@@ -929,7 +930,8 @@ table.insert(package.loaders, fennel.searcher)"
     (utils.fennel-module.dofile filename {:allowedGlobals globals
                                           :env env
                                           :useMetadata utils.root.options.useMetadata
-                                          :scope compiler.scopes.compiler})))
+                                          :scope compiler.scopes.compiler}
+                                modname filename)))
 
 ;; This is the compile-env equivalent of package.loaded. It's used by
 ;; require-macros and import-macros, but also by require when used from within

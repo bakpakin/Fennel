@@ -77,10 +77,7 @@ for more information.
 
 ### Downloading Fennel using Homebrew
 
-[Homebrew](https://brew.sh/) aims to be the missing package manager
-for macOS (and Linux). Its primary goal is to be useful to as many
-people as possible, while remaining maintainable to a professional,
-high standard by a small group of volunteers.
+[Homebrew](https://brew.sh/) is a third-party package manager for macOS.
 
 To download Fennel using Homebrew:
 

@@ -270,9 +270,9 @@ and lacking args will be nil, use lambda for arity-checked functions."))
   "Table lookup; equivalent to tbl[] in Lua."
   (compiler.assert (< 1 (# ast)) "expected table argument" ast)
   (let [len (# ast)
-        lhs (compiler.compile1 (. ast 2) scope parent {:nval 1})]
+        [lhs] (compiler.compile1 (. ast 2) scope parent {:nval 1})]
     (if (= len 2)
-        (tostring (. lhs 1))
+        (tostring lhs)
         (let [indices []]
           (for [i 3 len]
             (let [index (. ast i)]
@@ -281,10 +281,10 @@ and lacking args will be nil, use lambda for arity-checked functions."))
                   (table.insert indices (.. "." index))
                   (let [[index] (compiler.compile1 index scope parent {:nval 1})]
                     (table.insert indices (.. "[" (tostring index) "]"))))))
-          ;; Extra parens are needed for table literals.
-          (if (utils.table? (. ast 2))
-              (.. "(" (tostring (. lhs 1)) ")" (table.concat indices))
-              (.. (tostring (. lhs 1)) (table.concat indices)))))))
+          ;; Extra parens are needed unless the target is a table literal
+          (if (: (tostring lhs) :find "{")
+              (.. "(" (tostring lhs) ")" (table.concat indices))
+              (.. (tostring lhs) (table.concat indices)))))))
 
 (tset SPECIALS "." dot)
 

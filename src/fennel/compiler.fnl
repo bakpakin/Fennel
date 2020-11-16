@@ -64,7 +64,7 @@ The ast arg should be unmodified so that its first element is the form called."
 (fn serialize-string [str]
   (-> (string.format "%q" str)
       (string.gsub "." serialize-subst)
-      (string.gsub "[€-ÿ]" #(.. "\\" ($:byte)))))
+      (string.gsub "[\128-\255]" #(.. "\\" ($:byte)))))
 
 (fn global-mangling [str]
   "Mangler for global symbols. Does not protect against collisions,

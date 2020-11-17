@@ -80,7 +80,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
 (for [i (# arg) 1 -1]
   (match (. arg i)
-    "--no-searcher" (do (set options.no_searcher true)
+    "--no-searcher" (do (set options.no-searcher true)
                         (table.remove arg i))
     "--indent" (do (set options.indent (table.remove arg (+ i 1)))
                    (when (= options.indent "false")
@@ -119,12 +119,13 @@ Run fennel, a lisp programming language for the Lua runtime.
                  (table.insert options.plugins 1 plugin)
                  (table.remove arg i))))
 
-(when (not options.no_searcher)
-  (let [opts []]
-    (each [k v (pairs options)]
-      (tset opts k v))
-    (table.insert (or package.loaders package.searchers)
-                  (fennel.make-searcher opts))))
+(local searcher-opts {})
+
+(when (not options.no-searcher)
+  (each [k v (pairs options)]
+    (tset searcher-opts k v))
+  (table.insert (or package.loaders package.searchers)
+                (fennel.make-searcher searcher-opts)))
 
 (fn try-readline [ok readline]
   (when ok
@@ -160,6 +161,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 
 (fn repl []
   (let [readline (try-readline (pcall require :readline))]
+    (set searcher-opts.useMetadata (not= false options.useMetadata))
     (set options.pp (require :fennelview))
     (when (not= false options.fennelrc)
       (load-initfile))

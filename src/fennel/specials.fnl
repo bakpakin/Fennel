@@ -977,7 +977,7 @@ modules in the compiler environment."
 Macro module should return a table of macro functions with string keys.
 Consider using import-macros instead as it is more flexible.")
 
-(fn emit-fennel [src path opts sub-chunk]
+(fn emit-included-fennel [src path opts sub-chunk]
   "Emit Fennel code in src into sub-chunk."
   (let [subscope (compiler.make-scope utils.root.scope.parent)
         forms []]
@@ -990,7 +990,7 @@ Consider using import-macros instead as it is more flexible.")
     ;; for all nested includes to be emitted in the same root chunk
     ;; in the top-level module.
     (for [i 1 (# forms)]
-      (let [subopts (if (= i (# forms)) {:nval 1 :tail true} {:nval 0})]
+      (let [subopts (if (= i (# forms)) {:tail true} {:nval 0})]
         (utils.propagate-options opts subopts)
         (compiler.compile1 (. forms i) subscope sub-chunk subopts)))))
 
@@ -1015,7 +1015,7 @@ Consider using import-macros instead as it is more flexible.")
     ;; For fennel source, compile sub-chunk AFTER splicing into start of
     ;; root chunk.
     (if fennel?
-        (emit-fennel src path opts sub-chunk)
+        (emit-included-fennel src path opts sub-chunk)
         ;; For Lua source, simply emit src into the loaders's body
         (compiler.emit sub-chunk src ast))
 

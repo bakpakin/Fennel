@@ -162,7 +162,7 @@ that argument name begins with ?."
   "Define a single macro."
   (assert (sym? name) "expected symbol for macro name")
   (local args [...])
-  `(macros { ,(tostring name) (fn ,name ,(unpack args))}))
+  `(macros { ,(tostring name) (fn ,(unpack args))}))
 
 (fn macrodebug [form return?]
   "Print the resulting form after performing macroexpansion.

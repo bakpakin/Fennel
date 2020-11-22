@@ -252,7 +252,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
   (let [target (utils.deref (. ast 2))
         special-or-macro (or (. scope.specials target) (. scope.macros target))]
     (if special-or-macro
-        (: "print([[%s]])" :format (doc* special-or-macro target))
+        (: "print(%q)" :format (doc* special-or-macro target))
         (let [value (tostring (. (compiler.compile1 (. ast 2)
                                                     scope parent {:nval 1}) 1))]
           ;; need to require here since the metadata is stored in the module

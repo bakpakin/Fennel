@@ -17,6 +17,7 @@
         ["(let [x-tbl []] (fn x-tbl.y! [d] \"why\" 123) (doc x-tbl.y!))"  "(x-tbl.y! d)\n  why" "docstrings for mangled multisyms" ]
         ["(local generate (fennel.dofile \"test/generate.fnl\" {:useMetadata true})) (doc generate)"  "(generate table-chance)\n  Generate a random piece of data." "docstrings from required module." ]
         ["(macro abc [x y z] \"this is a macro.\" :123) (doc abc)"  "(abc x y z)\n  this is a macro." "docstrings for user-defined macros" ]
+        ["(macro ten [] \"[ten]\" 10) (doc ten)" "(ten)\n  [ten]" "macro docstrings with brackets"]
         ["(λ foo [] :D 1) (doc foo)"  "(foo)\n  D" "(doc fnname) for named lambdas appear like named functions" ]])
 
 (fn eval [code]

@@ -801,25 +801,23 @@ module required from an entry point.
 
 ## Macros
 
-Note that the macro interface is still preliminary and is subject to
-change over time.
-
 All forms which introduce macros do so inside the current scope. This
 is usually the top level for a given file, but you can introduce
-macros into smaller scopes as well.
+macros into smaller scopes as well. Note that macros are a
+compile-time construct; they do not exist at runtime. As such macros
+cannot be exported at the bottom of a module.
 
 ### `import-macros` load macros from a separate module
 
 *(Since 0.4.0)*
 
-*Experimental*: subject to change in future releases.
-
-Loads a module at compile-time and binds its fields as local macros.
+Loads a module at compile-time and binds its functions as local macros.
 
 A macro module exports any number of functions which take code forms
 as arguments at compile time and emit lists which are fed back into
-the compiler. For instance, here is a macro function which implements
-`when2` in terms of `if` and `do`:
+the compiler as code. The module calling `import-macros` gets whatever
+functions have been exported to use as macros. For instance, here is a
+macro module which implements `when2` in terms of `if` and `do`:
 
 ```fennel
 (fn when2 [condition body1 ...]
@@ -932,6 +930,8 @@ in `package.loaded` to make it available here:
 ```fennel
 (set package.loaded (require :lib.newlocation.fennelview))
 ```
+
+Note that this prints at compile-time since `macrodebug` is a macro.
 
 ### Macro gotchas
 

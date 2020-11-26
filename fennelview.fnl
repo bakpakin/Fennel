@@ -31,13 +31,13 @@
 (local type-order {:number 1 :boolean 2 :string 3 :table 4
                    :function 5 :userdata 6 :thread 7})
 
-(fn sort-keys [a b]
+(fn sort-keys [[a] [b]]
   (let [ta (type a) tb (type b)]
     (if (and (= ta tb)
              (or (= ta "string") (= ta "number")))
         (< a b)
-        (let [dta (. type-order a)
-              dtb (. type-order b)]
+        (let [dta (. type-order ta)
+              dtb (. type-order tb)]
           (if (and dta dtb)
               (< dta dtb)
               dta true
@@ -45,16 +45,16 @@
               :else (< ta tb))))))
 
 (fn get-sequence-length [t]
-  (var len 1)
+  (var len 0)
   (each [i (ipairs t)] (set len i))
   len)
 
 (fn get-nonsequential-keys [t]
-  (let [keys {}
+  (let [keys []
         sequence-length (get-sequence-length t)]
-    (each [k (pairs t)]
+    (each [k v (pairs t)]
       (when (not (sequence-key? k sequence-length))
-        (table.insert keys k)))
+        (table.insert keys [k v])))
     (table.sort keys sort-keys)
     (values keys sequence-length)))
 
@@ -92,10 +92,10 @@
 (fn put-sequential-table [self t len]
   (puts self "[")
   (set self.level (+ self.level 1))
-  (for [i 1 len]
-    (when (< 1 i (+ 1 len))
+  (each [k v (ipairs t)]
+    (when (< 1 k (+ 1 len))
       (puts self " "))
-    (put-value self (. t i)))
+    (put-value self v))
   (set self.level (- self.level 1))
   (puts self "]"))
 
@@ -109,12 +109,12 @@
   (puts self "{")
   (set self.level (+ self.level 1))
   ;; first, output sorted nonsequential keys
-  (each [i k (ipairs ordered-keys)]
+  (each [i [k v] (ipairs ordered-keys)]
     (when (or self.table-edges (not= i 1))
       (tabify self))
     (put-key self k)
     (puts self " ")
-    (put-value self (. t k)))
+    (put-value self v))
   ;; next, output any sequential keys
   (each [i v (ipairs t)]
     (tabify self)

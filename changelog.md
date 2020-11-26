@@ -2,6 +2,7 @@
 
 ## 0.7.1 / ???
 
+* Numbers using underscores for readability may not begin with an underscore
 * Provide `...` arguments consistently with Lua when requiring modules
 * Fix a bug where `import-macros` would not respect certain compiler options
 * fennelview: respect presence of `__fennelview` metamethod on userdata metatables

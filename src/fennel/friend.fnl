@@ -4,7 +4,7 @@
 
 (fn ast-source [ast]
   (let [m (getmetatable ast)]
-    (if (and m m.line m) m ast)))
+    (or (and m m.line m) ast {})))
 
 (local suggestions
        {"unexpected multi symbol (.*)"

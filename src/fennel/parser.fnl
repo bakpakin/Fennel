@@ -213,9 +213,10 @@ stream is finished."
               chars)))
 
     (fn parse-number [rawstr]
-      (let [force-number (rawstr:match "^%d")
-            number-with-stripped-underscores (rawstr:gsub "_" "")]
-        (if force-number
+      ;; numbers can have underscores in the middle or end, but not at the start
+      (let [number-with-stripped-underscores (and (not (rawstr:find "^_"))
+                                                  (rawstr:gsub "_" ""))]
+        (if (rawstr:match "^%d")
             (do (dispatch (or (tonumber number-with-stripped-underscores)
                               (parse-error (.. "could not read number \""
                                                rawstr "\""))))

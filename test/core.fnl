@@ -54,7 +54,9 @@
                "\"abc\n\\240\"" "abc\n\240"
                "\"abc\\\"def\"" "abc\"def"
                "\"abc\\240\"" "abc\240"
-               :150_000 150000}]
+               :150_000 150000
+               ;; leading underscores aren't numbers
+               "(let [_0 :zero] _0)" "zero"}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

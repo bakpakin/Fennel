@@ -196,16 +196,16 @@ local function _2_(self, v)
   elseif ((tv == "number") or (tv == "boolean") or (tv == "nil")) then
     return puts(self, tostring(v))
   else
-    local _2_
+    local _4_
     do
-      local _1_0 = getmetatable(v)
-      if _1_0 then
-        _2_ = _1_0.__fennelview
+      local _3_0 = getmetatable(v)
+      if _3_0 then
+        _4_ = _3_0.__fennelview
       else
-        _2_ = _1_0
+        _4_ = _3_0
       end
     end
-    if ((tv == "table") or ((tv == "userdata") and (nil ~= _2_))) then
+    if ((tv == "table") or ((tv == "userdata") and (nil ~= _4_))) then
       return put_table(self, v)
     elseif "else" then
       return puts(self, "#<", tostring(v), ">")

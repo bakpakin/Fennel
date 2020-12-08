@@ -2,6 +2,8 @@
 
 ## 0.7.1 / ???
 
+* Add whole-table destructuring with `&as`
+* Improve fennelview output when metatables behave differently
 * Numbers using underscores for readability may not begin with an underscore
 * Provide `...` arguments consistently with Lua when requiring modules
 * Fix a bug where `import-macros` would not respect certain compiler options

@@ -193,6 +193,8 @@
                "(let [{: a : b} {:a 3 :b 5}] (+ a b))" 8
                "(let [{:a [x y z]} {:a [1 2 4]}] (+ x y z))" 7
                "(let [{:a x :b y} {:a 2 :b 4}] (+ x y))" 6
+               "(local {:a x &as t} {:a 2 :b 4}) (+ x t.b)" 6
+               "(local [a b c &as t] [1 2 3]) (+ c (. t 2))" 5
                "(local (-a -b) ((fn [] (values 4 29)))) (+ -a -b)" 33
                "(var [a [b c]] [1 [2 3]]) (set a 2) (set c 8) (+ a b c)" 12
                "(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x" 14}]

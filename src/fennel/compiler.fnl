@@ -616,59 +616,76 @@ which we have to do if we don't know."
                             {:ast ast :leaf (.. "local " lvalue " = " init)})))
         ret))
 
+    (fn destructure-sym [left rightexprs up1 top?]
+      (let [lname (getname left up1)]
+        (check-binding-valid left scope left)
+        (if top?
+            (compile-top-target [lname])
+            (emit parent (setter:format lname (exprs1 rightexprs)) left))
+        ;; We have to declare meta for the left *after* compiling the right
+        ;; see https://todo.sr.ht/~technomancy/fennel/12
+        (when declaration
+          (tset scope.symmeta (utils.deref left) {:var isvar}))))
+
+    (fn destructure-table [left rightexprs top? destructure1]
+      (let [s (gensym scope)
+            right (match (if top?
+                             (exprs1 (compile1 from scope parent))
+                             (exprs1 rightexprs))
+                    "" :nil
+                    right right)]
+        (emit parent (string.format "local %s = %s" s right) left)
+        (each [k v (utils.stablepairs left)]
+          (when (not (and (= :number (type k))
+                          (: (tostring (. left (- k 1))) :find "^&")))
+            (if (and (utils.sym? v) (= (utils.deref v) "&"))
+                (let [unpack-str "{(table.unpack or unpack)(%s, %s)}"
+                      formatted (string.format unpack-str s k)
+                      subexpr (utils.expr formatted :expression)]
+                  (assert-compile (and (utils.sequence? left)
+                                       (= nil (. left (+ k 2))))
+                                  "expected rest argument before last parameter"
+                                  left)
+                  (destructure1 (. left (+ k 1)) [subexpr] left))
+                (and (utils.sym? k) (= (utils.deref k) "&as"))
+                (destructure-sym v [(utils.expr (tostring s))] left)
+                (and (utils.sequence? left) (= (utils.deref v) "&as"))
+                (let [(_ next-sym trailing) (select k (unpack left))]
+                  (assert-compile (= nil trailing)
+                                  "expected &as argument before last parameter"
+                                  left)
+                  (destructure-sym next-sym [(utils.expr (tostring s))] left))
+                (let [key (if (= (type k) :string) (serialize-string k) k)
+                      subexpr (utils.expr (string.format "%s[%s]" s key)
+                                          :expression)]
+                  (destructure1 v [subexpr] left)))))))
+
+    (fn destructure-values [left up1 top? destructure1]
+      (let [(left-names tables) (values [] [])]
+        (each [i name (ipairs left)]
+          (if (utils.sym? name) ; binding directly to a name
+              (table.insert left-names (getname name up1))
+              (let [symname (gensym scope)]
+                ;; further destructuring of tables inside values
+                (table.insert left-names symname)
+                (tset tables i [name (utils.expr symname "sym")]))))
+        (assert-compile top? "can't nest multi-value destructuring" left)
+        (compile-top-target left-names)
+        (when declaration
+          (each [_ sym (ipairs left)]
+            (tset scope.symmeta (utils.deref sym) {:var isvar})))
+        ;; recurse if left-side tables found
+        (each [_ pair (utils.stablepairs tables)]
+          (destructure1 (. pair 1) [(. pair 2)] left))))
+
     (fn destructure1 [left rightexprs up1 top?]
       "Recursive auxiliary function"
       (if (and (utils.sym? left) (not= (. left 1) "nil"))
-          (let [lname (getname left up1)]
-            (check-binding-valid left scope left)
-            (if top?
-                (compile-top-target [lname])
-                (emit parent (setter:format lname (exprs1 rightexprs)) left))
-            ;; We have to declare meta for the left *after* compiling the right
-            ;; see https://todo.sr.ht/~technomancy/fennel/12
-            (when declaration
-              (tset scope.symmeta (utils.deref left) {:var isvar})))
-          (utils.table? left) ; table destructuring
-          (let [s (gensym scope)]
-            (var right (if top?
-                           (exprs1 (compile1 from scope parent))
-                           (exprs1 rightexprs)))
-            (when (= right "")
-              (set right "nil"))
-            (emit parent (string.format "local %s = %s" s right) left)
-            (each [k v (utils.stablepairs left)]
-              (if (and (utils.sym? (. left k)) (= (. (. left k) 1) "&"))
-                  (do
-                    (assert-compile (and (= (type k) "number")
-                                        (not (. left (+ k 2))))
-                                   "expected rest argument before last parameter"
-                                   left)
-                    (let [unpack-str "{(table.unpack or unpack)(%s, %s)}"
-                          formatted (string.format unpack-str s k)
-                          subexpr (utils.expr formatted "expression")]
-                      (destructure1 (. left (+ k 1)) [subexpr] left)
-                      (lua "return")))
-                  (let [key (if (= (type k) :string) (serialize-string k) k)
-                        subexpr (utils.expr (string.format "%s[%s]" s key)
-                                            :expression)]
-                    (destructure1 v [subexpr] left)))))
-          (utils.list? left) ;; values destructuring
-          (let [(left-names tables) (values [] [])]
-            (each [i name (ipairs left)]
-              (if (utils.sym? name) ; binding directly to a name
-                  (table.insert left-names (getname name up1))
-                  (let [symname (gensym scope)]
-                    ;; further destructuring of tables inside values
-                    (table.insert left-names symname)
-                    (tset tables i [name (utils.expr symname "sym")]))))
-            (assert-compile top? "can't nest multi-value destructuring" left)
-            (compile-top-target left-names)
-            (when declaration
-              (each [_ sym (ipairs left)]
-                (tset scope.symmeta (utils.deref sym) {:var isvar})))
-            ;; recurse if left-side tables found
-            (each [_ pair (utils.stablepairs tables)]
-              (destructure1 (. pair 1) [(. pair 2)] left)))
+          (destructure-sym left rightexprs up1 top?)
+          (utils.table? left)
+          (destructure-table left rightexprs top? destructure1)
+          (utils.list? left)
+          (destructure-values left up1 top? destructure1)
           (assert-compile false (string.format "unable to bind %s %s"
                                                (type left) (tostring left))
                          (or (and (= (type (. up1 2)) "table") (. up1 2)) up1)))

@@ -804,15 +804,17 @@ subsequent forms are evaluated solely for side-effects.
 ```fennel
 (include :my.embedded.module)
 ```
-Load Fennel/Lua module code at compile time and embed in the compiled output.
-The module name must be a string literal that can resolve to a module during compilation.
-The bundled code will be wrapped in a function invocation in the emitted Lua and set on
-`package.preload[modulename]`; a normal `require` is then emitted where `include` was used
-to load it on demand as a normal module.
 
-See also: the `requireAsInclude` option in the API documentation and the
-`--require-as-include` CLI flag (`fennel --help`) to recursively bundle every resolvable
-module required from an entry point.
+Load Fennel/Lua module code at compile time and embed in the compiled
+output. The module name must be a string literal that can resolve to
+a module during compilation.  The bundled code will be wrapped in a
+function invocation in the emitted Lua and set on
+`package.preload[modulename]`; a normal `require` is then emitted
+where `include` was used to load it on demand as a normal module.
+
+In most cases it's better to use `require` in your code and use the
+`requireAsInclude` option in the API documentation and the
+`--require-as-include` CLI flag (`fennel --help`) to accomplish this.
 
 ## Macros
 

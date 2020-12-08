@@ -2,6 +2,7 @@
 
 ## 0.7.1 / ???
 
+* **Disallow** the `&` character in identifiers
 * Add whole-table destructuring with `&as`
 * Improve fennelview output when metatables behave differently
 * Numbers using underscores for readability may not begin with an underscore

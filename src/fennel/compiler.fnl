@@ -156,6 +156,8 @@ rather than generating new one."
 (fn check-binding-valid [symbol scope ast]
   "Check to see if a symbol will be overshadowed by a special."
   (let [name (utils.deref symbol)]
+    ;; this is reserved for use in macros only; cannot be an identifier
+    (assert-compile (not (name:find "&")) "illegal character: &" symbol)
     (assert-compile (not (or (. scope.specials name) (. scope.macros name)))
                    (: "local %s was overshadowed by a special form or macro"
                       :format name) ast)

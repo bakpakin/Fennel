@@ -61,6 +61,7 @@
   "(match [1 2 3] [a & b c] nil)" "rest argument before last parameter"
   "(not true false)" "expected one argument"
   "(print @)" "illegal character: @"
+  "(local abc&d 19)" "illegal character: &"
   "(set [a b c] [1 2 3]) (+ a b c)" "expected local"
   "(set a 19)" "error in 'a' unknown:1: expected local"
   "(set)" "Compile error in 'set' unknown:1: expected name and value"

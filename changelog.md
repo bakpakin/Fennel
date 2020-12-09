@@ -1,7 +1,8 @@
 # Summary of user-visible changes
 
-## 0.7.1 / ???
+## 0.8.0 / ???
 
+* Fix the behavior of `...` inside `eval-compiler`
 * **Disallow** the `&` character in identifiers
 * Add whole-table destructuring with `&as`
 * Improve fennelview output when metatables behave differently

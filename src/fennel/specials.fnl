@@ -913,6 +913,7 @@ table.insert(package.loaders, fennel.searcher)"
     (let [opts (utils.copy utils.root.options)]
       (each [k v (pairs (or options {}))]
         (tset opts k v))
+      (set opts.module-name module-name)
       (match (search-module module-name)
         filename (values (partial utils.fennel-module.dofile filename opts)
                          filename)))))
@@ -1059,7 +1060,8 @@ Lua output. The module must be a string literal and resolvable at compile time."
         opts (utils.copy utils.root.options)]
     (set opts.scope (compiler.make-scope compiler.scopes.compiler))
     (set opts.allowedGlobals (macro-globals env (current-global-names)))
-    ((load-code (compiler.compile ast opts) (wrap-env env)))))
+    ((load-code (compiler.compile ast opts) (wrap-env env))
+     opts.module-name ast.filename)))
 
 (fn SPECIALS.macros [ast scope parent]
   (compiler.assert (= (# ast) 2) "Expected one table argument" ast)

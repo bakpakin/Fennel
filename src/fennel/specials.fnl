@@ -964,9 +964,16 @@ modules in the compiler environment."
                      "expected each macro to be function" ast)
     (tset scope.macros k v)))
 
-(fn SPECIALS.require-macros [ast scope parent]
-  (compiler.assert (= (# ast) 2) "Expected one module name argument" ast)
-  (let [modname (. ast 2)]
+(fn SPECIALS.require-macros [ast scope parent real-ast]
+  (compiler.assert (= (# ast) 2) "Expected one module name argument"
+                   (or real-ast ast)) ; real-ast comes from import-macros
+  ;; don't require modname to be string literal; it just needs to compile to one
+  (let [filename (or (. ast 2 :filename) ast.filename)
+        modname-code (compiler.compile (. ast 2))
+        modname ((load-code modname-code nil filename)
+                 utils.root.options.module-name filename)]
+    (compiler.assert (= (type modname) :string)
+                     "module name must compile to string" (or real-ast ast))
     (when (not (. macro-loaded modname))
       (let [env (make-compiler-env ast scope parent)]
         (tset macro-loaded modname (compiler-env-domodule modname env ast))))

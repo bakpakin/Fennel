@@ -185,10 +185,8 @@ Example:
           ;; to bring in macro module. after that, we just copy the
           ;; macros from subscope to scope.
           scope (get-scope)
-          subscope (fennel.scope scope)
-          opts {:scope subscope}]
-      (each [k v (pairs  utils.root.options)] (tset opts k v))
-      (fennel.compile-string (string.format "(require-macros %q)" modname) opts)
+          subscope (fennel.scope scope)]
+      (_SPECIALS.require-macros `(require-macros ,modname) subscope {} ast)
       (if (sym? binding)
           ;; bind whole table of macros to table bound to symbol
           (do (tset scope.macros (. binding 1) {})

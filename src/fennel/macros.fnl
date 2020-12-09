@@ -197,7 +197,8 @@ Example:
           (table? binding)
           (each [macro-name [import-key] (pairs binding)]
             (assert (= :function (type (. subscope.macros macro-name)))
-                    (.. "macro " macro-name " not found in module " modname))
+                    (.. "macro " macro-name " not found in module "
+                        (tostring modname)))
             (tset scope.macros import-key (. subscope.macros macro-name))))))
   nil)
 

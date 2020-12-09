@@ -49,6 +49,9 @@
     (l.assertEquals (fennel.eval unsandboxed {:compiler-env _G})
                     "[\"no\" \"sandbox\"]") ))
 
+(fn test-relative-macros []
+  (l.assertEquals (fennel.eval "(require :test.relative)") 3))
+
 (fn test-require-macros []
   (let [arrow "(require-macros \"test.macros\") (->1 9 (+ 2) (* 11))"
         defn1 "(require-macros \"test.macros\")
@@ -94,6 +97,7 @@
 {: test-arrows
  : test-import-macros
  : test-require-macros
+ : test-relative-macros
  : test-eval-compiler
  : test-inline-macros
  : test-macrodebug}

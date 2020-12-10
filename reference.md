@@ -557,7 +557,8 @@ Example:
   (print key (f value)))
 ```
 
-Most iterators return two values, but `each` will bind any number.
+Most iterators return two values, but `each` will bind any number. See
+[Programming in Lua][4] for details about how iterators work.
 
 ### `for` numeric loop
 
@@ -771,9 +772,14 @@ nil value:
       (. {:c 42})) ; -> nil
 ```
 
-Note that these have nothing to do with "threads" used for
-concurrency; they are named after the thread which is used in
-sewing. This is similar to the way that `|>` works in OCaml and Elixir.
+While `->` and `->>` pass multiple values thru without any trouble,
+the checks in `-?>` and `-?>>` prevent the same from happening there
+without performance overhead, so these pipelines are limited to a
+single value.
+
+> Note that these have nothing to do with "threads" used for
+> concurrency; they are named after the thread which is used in
+> sewing. This is similar to the way that `|>` works in OCaml and Elixir.
 
 ### `doto`
 
@@ -815,6 +821,11 @@ where `include` was used to load it on demand as a normal module.
 In most cases it's better to use `require` in your code and use the
 `requireAsInclude` option in the API documentation and the
 `--require-as-include` CLI flag (`fennel --help`) to accomplish this.
+
+The `require` function is not part of Fennel; it comes from
+Lua. However, it works to load Fennel code. See the end of
+[the tutorial](tutorial.md) and [Programming in Lua][5] for details
+about `require`.
 
 ## Macros
 
@@ -882,6 +893,21 @@ the individual macros inside the module:
 (mine.when2 (= 3 (+ 2 a))
   (print "yes")
   (finish-calculation))
+```
+
+Note that all macro code runs at compile time, which happens before
+runtime. Locals which are in scope at runtime are not visible during
+compile-time. So this code will not work:
+
+```fennel
+(local (module-name file-name) ...)
+(import-macros mymacros (.. module-name ".macros"))
+```
+
+However, this code will work, provided the module in question exists:
+
+```fennel
+(import-macros mymacros (.. ... ".macros"))
 ```
 
 See "Compiler API" below for details about additional functions visible
@@ -1059,3 +1085,5 @@ subject to change.
 [1]: https://www.lua.org/manual/5.1/
 [2]: https://gist.github.com/nimaai/2f98cc421c9a51930e16#variable-capture
 [3]: https://fennel-lang.org/lua-primer
+[4]: http://www.lua.org/pil/7.1.html
+[5]: http://www.lua.org/pil/8.1.html

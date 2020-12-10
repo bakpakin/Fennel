@@ -145,7 +145,8 @@ underscores have no effect on the output.
 ```
 
 Strings are essentially immutable byte arrays. UTF-8 support is
-provided from a [3rd-party library][4]. Strings are concatenated with `..`:
+provided in the `utf8` table in [Lua 5.3+][15] or from a
+[3rd-party library][4] in earlier versions. Strings are concatenated with `..`:
 
 ```fennel
 (.. "hello" " world")
@@ -612,7 +613,7 @@ which is distinct from `package.path` used to find Lua modules). The
 path usually includes an entry to let you load things relative to the
 current directory by default.
 
-[1]: http://www.defmacro.org/ramblings/lisp.html
+[1]: https://stopa.io/post/265
 [2]: http://danmidwood.com/content/2014/11/21/animated-paredit.html
 [3]: https://www.lua.org/manual/5.1/
 [4]: https://github.com/Stepets/utf8.lua
@@ -626,4 +627,4 @@ current directory by default.
 [12]: http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/
 [13]: https://love2d.org
 [14]: https://fennel-lang.org/lua-primer
-
+[15]: https://www.lua.org/manual/5.3/manual.html#6.5

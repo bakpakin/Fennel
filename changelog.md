@@ -5,6 +5,7 @@
 * Fix the behavior of `...` inside `eval-compiler`
 * **Disallow** the `&` character in identifiers
 * Add whole-table destructuring with `&as`
+* Add list/table "comprehension" macros (collect/icollect)
 * Improve fennelview output when metatables behave differently
 * Numbers using underscores for readability may not begin with an underscore
 * Provide `...` arguments consistently with Lua when requiring modules

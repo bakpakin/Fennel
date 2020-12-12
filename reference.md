@@ -734,6 +734,45 @@ Example:
 
 ## Other
 
+### `collect`, `icollect` table comprehension macros
+
+The `collect` macro takes a "iterator binding table" in the format
+that `each` takes, and an expression that produces key-value pairs,
+and runs through the iterator, filling a new table with the key-value
+pairs produced by the expression. The expression must produce 2
+values, or nil.
+
+```fennel
+(collect [k v (pairs {:apple "red" :orange "orange"})]
+  (values (.. "color-" v) k))
+;; -> {:color-orange "orange" :color-red "apple"}
+
+;; equivalent to:
+(let [tbl {}]
+  (each [k v (pairs {:apple "red" :orange "orange"})]
+    (match (values (.. "color-" v) k)
+      (key value) (tset tbl key value)))
+  tbl)
+```
+
+The `icollect` macro is almost identical, except that the
+expression returns one value and the new table is filled sequentially
+to produce a sequential table. Adding a `when` condition around the
+expression can act effectively as a filter, since inserting a nil
+value into a table is a no-op.
+
+```fennel
+(icollect [_ v (ipairs [1 2 3 4 5 6])]
+  (when (> v 2) (* v v)))
+;; -> [9 16 25 36]
+
+;; equivalent to:
+(let [tbl []]
+  (each [_ v (ipairs [1 2 3 4 5 6])]
+    (tset tbl (+ (length tbl) 1) (when (> v 2) (* v v))))
+  tbl)
+```
+
 ### `->`, `->>`, `-?>` and `-?>>` threading macros
 
 The `->` macro takes its first value and splices it into the second

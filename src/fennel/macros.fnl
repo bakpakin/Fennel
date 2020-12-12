@@ -92,9 +92,16 @@ encountering an error before propagating it."
           (close-handlers# (xpcall ,bodyfn ,traceback)))))
 
 (fn collect [iter-tbl key-value-expr]
-  "Iterates through an iterator and populates an empty table with the key-value
-pairs produced by an expression. This can be thought of as a \"table
-comprehension\"."
+  "Returns a table made by running an iterator and evaluating an expression
+that returns key-value pairs to be inserted sequentially into the table.
+This can be thought of as a \"table comprehension\". The provided key-value
+expression must return either 2 values, or nil.
+
+For example,
+  (collect [k v (pairs {:apple \"red\" :orange \"orange\"})]
+    (values v k))
+returns
+  {:red \"apple\" :orange \"orange\"}"
   (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
           "expected iterator binding table")
   (assert (not= nil key-value-expr)
@@ -106,9 +113,14 @@ comprehension\"."
      tbl#))
 
 (fn icollect [iter-tbl value-expr]
-  "Iterates through an iterator and populates an empty table with the values
-produced by an expression, making a sequential list. This can be thought of as
-a \"list comprehension\"."
+  "Returns a sequential table made by running an iterator and evaluating an
+expression that returns values to be inserted sequentially into the table.
+This can be thought of as a \"list comprehension\".
+
+For example,
+  (icollect [_ v (ipairs [1 2 3 4 5])] (when (> v 2) (* v v)))
+returns
+  [9 16 25]"
   (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
           "expected iterator binding table")
   (assert (not= nil value-expr)

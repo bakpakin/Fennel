@@ -201,7 +201,8 @@ the number of expected arguments."
           (let [raw (utils.sym (compiler.gensym scope))
                 declared (compiler.declare-local raw [] f-scope ast)]
             (compiler.destructure arg raw ast f-scope f-chunk {:declaration true
-                                                               :nomulti true})
+                                                               :nomulti true
+                                                               :symtype :arg})
             declared)
           (compiler.assert false
                            (: "expected symbol for function parameter: %s"
@@ -295,14 +296,16 @@ and lacking args will be nil, use lambda for arity-checked functions."))
 (fn SPECIALS.global [ast scope parent]
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:forceglobal true
-                                                              :nomulti true})
+                                                              :nomulti true
+                                                              :symtype :global})
   nil)
 
 (doc-special "global" ["name" "val"] "Set name as a global with val.")
 
 (fn SPECIALS.set [ast scope parent]
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
-  (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:noundef true})
+  (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:noundef true
+                                                              :symtype :set})
   nil)
 
 (doc-special
@@ -311,7 +314,8 @@ and lacking args will be nil, use lambda for arity-checked functions."))
 
 (fn set-forcibly!* [ast scope parent]
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
-  (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:forceset true})
+  (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:forceset true
+                                                              :symtype :set})
   nil)
 
 (tset SPECIALS :set-forcibly! set-forcibly!*)
@@ -319,7 +323,8 @@ and lacking args will be nil, use lambda for arity-checked functions."))
 (fn local* [ast scope parent]
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:declaration true
-                                                              :nomulti true})
+                                                              :nomulti true
+                                                              :symtype :local})
   nil)
 (tset SPECIALS "local" local*)
 
@@ -329,7 +334,8 @@ and lacking args will be nil, use lambda for arity-checked functions."))
   (compiler.assert (= (# ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent {:declaration true
                                                               :isvar true
-                                                              :nomulti true})
+                                                              :nomulti true
+                                                              :symtype :var})
   nil)
 
 (doc-special "var" ["name" "val"] "Introduce new mutable local.")
@@ -352,7 +358,8 @@ and lacking args will be nil, use lambda for arity-checked functions."))
       (for [i 1 (# bindings) 2]
         (compiler.destructure (. bindings i) (. bindings (+ i 1))
                               ast sub-scope sub-chunk {:declaration true
-                                                     :nomulti true}))
+                                                     :nomulti true
+                                                     :symtype :let}))
       (SPECIALS.do ast scope parent opts 3 sub-chunk sub-scope pre-syms))))
 
 (doc-special
@@ -505,7 +512,8 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
                                (table.concat val-names ", ")) ast)
       (each [raw args (utils.stablepairs destructures)]
         (compiler.destructure args raw ast sub-scope chunk {:declaration true
-                                                           :nomulti true}))
+                                                           :nomulti true
+                                                           :symtype :each}))
       (compiler.apply-manglings sub-scope new-manglings ast)
       (compile-do ast sub-scope chunk 3)
       (compiler.emit parent chunk ast)

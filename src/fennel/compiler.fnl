@@ -557,9 +557,11 @@ which we have to do if we don't know."
   * declaration: begin each assignment with 'local' in output
   * nomulti: disallow multisyms in the destructuring. for (local) and (global)
   * noundef: Don't set undefined bindings. (set)
-  * forceglobal: Don't allow local bindings"
+  * forceglobal: Don't allow local bindings
+  * symtype: the type of syntax calling the destructuring, for lua output names"
   (let [opts (or opts {})
-        {: isvar : declaration : nomulti : noundef : forceglobal : forceset} opts
+        {: isvar : declaration : nomulti : noundef : forceglobal : forceset : symtype} opts
+        symtype (.. "_" (or symtype "dst"))
         setter (if declaration "local %s = %s" "%s = %s")
         new-manglings []]
 
@@ -630,7 +632,7 @@ which we have to do if we don't know."
           (tset scope.symmeta (utils.deref left) {:var isvar}))))
 
     (fn destructure-table [left rightexprs top? destructure1]
-      (let [s (gensym scope)
+      (let [s (gensym scope symtype)
             right (match (if top?
                              (exprs1 (compile1 from scope parent))
                              (exprs1 rightexprs))
@@ -667,7 +669,7 @@ which we have to do if we don't know."
         (each [i name (ipairs left)]
           (if (utils.sym? name) ; binding directly to a name
               (table.insert left-names (getname name up1))
-              (let [symname (gensym scope)]
+              (let [symname (gensym scope symtype)]
                 ;; further destructuring of tables inside values
                 (table.insert left-names symname)
                 (tset tables i [name (utils.expr symname "sym")]))))

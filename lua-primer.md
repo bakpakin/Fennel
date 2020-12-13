@@ -143,6 +143,7 @@ limited [pattern][2] language for `string.find`, `string.match`, etc.
 
 ## Advanced
 
+* `_G`: a table of all globals
 * `getfenv`/`setfenv`: access to first-class function environments in
   Lua 5.1; in 5.2 onward use [the _ENV table][3] instead
 * `getmetatable`/`setmetatable`: metatables allow you to
@@ -170,7 +171,6 @@ These are used for loading Lua code. The `load*` functions return a
 
 ## Obscure
 
-* `_G`: a table of all globals
 * `_VERSION`: the current version of Lua being used as a string
 * `collectgarbage`: you hopefully will never need this
 * `debug`: see the Lua manual for this module

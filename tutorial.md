@@ -419,8 +419,8 @@ You can write your own function which returns multiple values with `values`.
 ```
 
 **Note**: while errors are the most reason to return multiple values
-from a function, it can be used in other cases as well. This is one of
-the most complex things about Lua and a full discussion is out of
+from a function, it can be used in other cases as well. This is
+the most complex thing about Lua, and a full discussion is out of
 scope for this tutorial, but it's [covered well elsewhere](https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/).
 
 The problem with this type of error is that it does not compose well;
@@ -467,7 +467,7 @@ upon failure, a failure will trigger an `error` and halt execution.
 
 ## Variadic Functions
 
-Fennel supports variadic functions like most modern languages. The syntax for
+Fennel supports variadic functions like many languages. The syntax for
 taking a variable number of arguments to a function is the `...` symbol, which
 must be the last parameter to a function. This syntax is inherited from Lua rather
 than Lisp.
@@ -530,9 +530,8 @@ If you get an error that says `unknown global in strict mode` it means that
 you're trying compile code that uses a global which the Fennel compiler doesn't
 know about. Most of the time, this is due to a coding mistake. However, in some
 cases you may get this error with a legitimate global reference. If this
-happens, it may be due to a bug in the compiler, or it may be an inherent
-limitation of Fennel's strategy. You can use `_G.myglobal` to refer to it in a
-way that works around this check.
+happens, it may be due to an inherent limitation of Fennel's strategy. You can
+use `_G.myglobal` to refer to it in a way that works around this check.
 
 ## Gotchas
 
@@ -586,7 +585,7 @@ You can use the `require` function to load code from other files.
 Modules in Fennel and Lua are simply tables which contain functions
 and other values.  The last value in a Fennel file will be used as the
 value of the whole module. Technically this can be any value, not just a
-table, but using a table is best.
+table, but using a table is most common for good reason.
 
 To require a module that's in a subdirectory, take the file name,
 replace the slashes with dots, and remove the extension, then pass

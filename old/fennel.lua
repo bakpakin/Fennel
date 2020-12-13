@@ -3069,6 +3069,34 @@ encountering an error before propagating it."
                   (table.insert closer 4 `(: ,(. closable-bindings i) :close)))
                 `(let ,closable-bindings ,closer
                    (close-handlers# (xpcall ,bodyfn ,traceback)))))
+
+(fn collect [iter-tbl key-value-expr]
+  "Iterates through an iterator and populates an empty table with the key-value
+pairs produced by an expression. This can be thought of as a \"table
+comprehension\"."
+  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
+          "expected iterator binding table")
+  (assert (not= nil key-value-expr)
+          "expected key-value expression")
+  `(let [tbl# {}]
+     (each ,iter-tbl
+       (match ,key-value-expr
+         (k# v#) (tset tbl# k# v#)))
+     tbl#))
+
+(fn icollect [iter-tbl value-expr]
+  "Iterates through an iterator and populates an empty table with the values
+produced by an expression, making a sequential list. This can be thought of as
+a \"list comprehension\"."
+  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
+          "expected iterator binding table")
+  (assert (not= nil value-expr)
+          "expected table value expression")
+  `(let [tbl# []]
+     (each ,iter-tbl
+       (tset tbl# (+ (length tbl#) 1) ,value-expr))
+     tbl#))
+
  :partial (fn [f ...]
             "Returns a function with all arguments partially applied to f."
             (let [body (list f ...)]

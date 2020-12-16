@@ -205,7 +205,7 @@ Search in the built-in extension manager for "Fennel" to install
 the time of this writing it only provides syntax highlighting.
 
 
-### Adding Fennel support to Vis, Textadept, and Howl
+### Adding Fennel support to [Vis](https://github.com/martanne/vis), [Textadept](https://github.com/orbitalquark/textadept), and [Howl](https://github.com/howl-editor/howl)
 
   * The plugins based on [lisp-parkour](https://repo.or.cz/lisp-parkour) offer
     structured editing/navigation, automatic indentation, and (very) basic REPL integration.

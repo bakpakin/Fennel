@@ -24,7 +24,7 @@ Also returns a second function to clear the buffer in the byte stream"
 
 (fn string-stream [str]
   "Convert a string into a stream of bytes."
-  (let [str (str:gsub "^#![^\n]*\n" "")] ; remove shebang
+  (let [str (str:gsub "^#!" ";;")] ; replace shebang with comment
     (var index 1)
     (fn []
       (let [r (str:byte index)]

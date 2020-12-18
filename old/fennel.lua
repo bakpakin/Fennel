@@ -3070,7 +3070,7 @@ encountering an error before propagating it."
                 `(let ,closable-bindings ,closer
                    (close-handlers# (xpcall ,bodyfn ,traceback)))))
 
-(fn collect [iter-tbl key-value-expr]
+:collect (fn collect [iter-tbl key-value-expr]
   "Iterates through an iterator and populates an empty table with the key-value
 pairs produced by an expression. This can be thought of as a \"table
 comprehension\"."
@@ -3084,7 +3084,7 @@ comprehension\"."
          (k# v#) (tset tbl# k# v#)))
      tbl#))
 
-(fn icollect [iter-tbl value-expr]
+:icollect (fn icollect [iter-tbl value-expr]
   "Iterates through an iterator and populates an empty table with the values
 produced by an expression, making a sequential list. This can be thought of as
 a \"list comprehension\"."

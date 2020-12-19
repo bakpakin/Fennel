@@ -66,8 +66,11 @@
             :list? utils.list?
             :sym utils.sym
             :sym? utils.sym?
+            :sequence utils.sequence
+            :sequence? utils.sequence?
             :varg utils.varg
             :path utils.path
+            :sym-char? parser.sym-char?
 
             :parser parser.parser
             :granulate parser.granulate

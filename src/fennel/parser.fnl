@@ -40,17 +40,18 @@ Also returns a second function to clear the buffer in the byte stream"
 (fn whitespace? [b]
   (or (= b 32) (and (>= b 9) (<= b 13))))
 
-(fn symbolchar? [b]
-  (and (> b 32)
-       (not (. delims b))
-       (not= b 127) ; backspace
-       (not= b 34) ; backslash
-       (not= b 39) ; single quote
-       (not= b 126) ; tilde
-       (not= b 59) ; semicolon
-       (not= b 44) ; comma
-       (not= b 64) ; at
-       (not= b 96))) ; backtick
+(fn sym-char? [b]
+  (let [b (if (= :number (type b)) b (string.byte b))]
+    (and (> b 32)
+         (not (. delims b))
+         (not= b 127) ; backspace
+         (not= b 34) ; backslash
+         (not= b 39) ; single quote
+         (not= b 126) ; tilde
+         (not= b 59) ; semicolon
+         (not= b 44) ; comma
+         (not= b 64) ; at
+         (not= b 96)))) ; backtick
 
 ;; prefix chars substituted while reading
 (local prefixes {35 "hashfn" ; #
@@ -206,7 +207,7 @@ stream is finished."
         (ungetb nextb)))
 
     (fn parse-sym-loop [chars b]
-      (if (and b (symbolchar? b))
+      (if (and b (sym-char? b))
           (do (table.insert chars b)
               (parse-sym-loop chars (getb)))
           (do (when b (ungetb b))
@@ -271,7 +272,7 @@ stream is finished."
           (. delims b) (close-table b)
           (= b 34) (parse-string b)
           (. prefixes b) (parse-prefix b)
-          (or (symbolchar? b) (= b (string.byte "~"))) (parse-sym b)
+          (or (sym-char? b) (= b (string.byte "~"))) (parse-sym b)
           (parse-error (.. "illegal character: " (string.char b))))
 
       (if (not b) nil ; EOF
@@ -281,4 +282,4 @@ stream is finished."
     (parse-loop (skip-whitespace (getb))))
   (values parse-stream (fn [] (set stack []))))
 
-{: granulate : parser : string-stream}
+{: granulate : parser : string-stream : sym-char?}

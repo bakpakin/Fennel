@@ -153,11 +153,17 @@ rather than generating new one."
             (tset scope.autogensyms base mangling)
             mangling))))
 
+(local already-warned {})
+
 (fn check-binding-valid [symbol scope ast]
   "Check to see if a symbol will be overshadowed by a special."
   (let [name (utils.deref symbol)]
-    ;; this is reserved for use in macros only; cannot be an identifier
-    (assert-compile (not (name:find "&")) "illegal character: &" symbol)
+    ;; TODO: make this an error for 1.0
+    (when (and io io.stderr (name:find "&") (not (. already-warned symbol)))
+      (tset already-warned symbol true)
+      (io.stderr:write
+       (.. "-- Warning: & will not be allowed in identifier names in "
+           "future versions: " symbol.filename ":" symbol.line "\n")))
     (assert-compile (not (or (. scope.specials name) (. scope.macros name)))
                    (: "local %s was overshadowed by a special form or macro"
                       :format name) ast)

@@ -136,7 +136,7 @@
         "$ and $... in hashfn are mutually exclusive"
         ["modifying the hashfn so it only contains $... or $, $1, $2, $3, etc"]})
 
-(local unpack (or _G.unpack table.unpack))
+(local unpack (or table.unpack _G.unpack))
 
 (fn suggest [msg]
   (var suggestion nil)

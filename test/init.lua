@@ -1,8 +1,13 @@
+-- We want to make sure the compiler can load under strict mode
+local strict = function(_, k) if k then error("STRICT MODE YALL: " .. k) end end
+setmetatable(_G, {__index = strict, __newindex = strict})
+
 -- Ensure we're getting the Fennel we expect, not luarocks or anything
 package.loaded.fennel = dofile("fennel.lua")
 table.insert(package.loaders or package.searchers, package.loaded.fennel.searcher)
 package.loaded.fennelview = package.loaded.fennel.dofile("fennelview.fnl")
 package.loaded.fennelfriend = package.loaded.fennel.dofile("src/fennel/friend.fnl")
+setmetatable(_G, nil) -- but we don't want strict mode for tests
 
 local runner = require("test.luaunit").LuaUnit:new()
 runner:setOutputType(os.getenv("FNL_TEST_OUTPUT") or "tap")

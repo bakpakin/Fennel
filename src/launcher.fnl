@@ -1,7 +1,7 @@
 ;; This is the command-line entry point for Fennel.
 
 (local fennel (require :fennel))
-(local unpack (or _G.unpack table.unpack))
+(local unpack (or table.unpack _G.unpack))
 
 (local help "
 Usage: fennel [FLAG] [FILE]

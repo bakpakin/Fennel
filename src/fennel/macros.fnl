@@ -262,8 +262,8 @@ Example:
           (do (assert (not (. pattern (+ k 2)))
                       "expected rest argument before last parameter")
               (table.insert bindings (. pattern (+ k 1)))
-              (table.insert bindings [`(select ,k ((or _G.unpack
-                                                       table.unpack)
+              (table.insert bindings [`(select ,k ((or table.unpack
+                                                       _G.unpack)
                                                    ,val))]))
           (and (= :number (type k))
                (= "&" (tostring (. pattern (- k 1)))))

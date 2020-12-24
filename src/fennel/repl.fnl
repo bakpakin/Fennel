@@ -142,7 +142,7 @@ For more information about the language, see https://fennel-lang.org/reference"]
   (let [old-root-options utils.root.options
         env (if options.env
                 (specials.wrap-env options.env)
-                (setmetatable {} {:__index (or _G._ENV _G)}))
+                (setmetatable {} {:__index (or (rawget _G :_ENV) _G)}))
         save-locals? (and (not= options.saveLocals false)
                           env.debug env.debug.getlocal)
         opts {}
@@ -180,7 +180,7 @@ For more information about the language, see https://fennel-lang.org/reference"]
     (fn loop []
       (each [k (pairs chars)] (tset chars k nil))
       (let [(ok parse-ok? x) (pcall read)
-            src-string (string.char ((or _G.unpack table.unpack) chars))]
+            src-string (string.char ((or table.unpack _G.unpack) chars))]
         (set utils.root.options opts)
         (if (not ok)
             (do (on-error "Parse" parse-ok?)

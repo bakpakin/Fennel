@@ -226,7 +226,7 @@
                "(length [(values 1 2 3 4 5)])" 5
                "(let [(a b c d e f g) (if (= (+ 1 1) 2) (values 1 2 3 4 5 6 7))] (+ a b c d e f g))" 28
                "(let [(a b c d e f g) (if (= (+ 1 1) 3) nil
-                                       ((or _G.unpack table.unpack) [1 2 3 4 5 6 7]))]
+                                       ((or table.unpack _G.unpack) [1 2 3 4 5 6 7]))]
             (+ a b c d e f g))" 28
                "(let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil)" nil
                "(let [x (if 3 4 5)] x)" 4

@@ -3,7 +3,7 @@
 
 (local utils (require :fennel.utils))
 (local friend (require :fennel.friend))
-(local unpack (or _G.unpack table.unpack))
+(local unpack (or table.unpack _G.unpack))
 
 (fn granulate [getchunk]
   "Convert a stream of chunks to a stream of bytes.
@@ -192,7 +192,7 @@ stream is finished."
         (table.remove stack)
         (let [raw (string.char (unpack chars))
               formatted (raw:gsub "[\1-\31]" (fn [c] (.. "\\" (c:byte))))
-              load-fn ((or _G.loadstring load) (.. "return " formatted))]
+              load-fn ((or (rawget _G :loadstring) load) (.. "return " formatted))]
           (dispatch (load-fn)))))
 
     (fn parse-prefix [b]

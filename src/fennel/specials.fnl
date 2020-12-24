@@ -5,7 +5,7 @@
 (local utils (require "fennel.utils"))
 (local parser (require "fennel.parser"))
 (local compiler (require "fennel.compiler"))
-(local unpack (or _G.unpack table.unpack))
+(local unpack (or table.unpack _G.unpack))
 
 (local SPECIALS compiler.scopes.global.specials)
 
@@ -36,9 +36,9 @@ will see its values updated as expected, regardless of mangling rules."
 
 (fn load-code [code environment filename]
   "Load Lua code with an environment in all recent Lua versions"
-  (let [environment (or (or environment _ENV) _G)]
+  (let [environment (or environment (rawget _G :_ENV) _G)]
 
-    (if (and _G.setfenv _G.loadstring)
+    (if (and (rawget _G :setfenv) (rawget _G :loadstring))
         (let [f (assert (_G.loadstring code filename))]
           (_G.setfenv f environment)
           f)
@@ -841,8 +841,9 @@ Method name doesn't have to be known at compile-time; if it is, use
 (local safe-compiler-env
        (setmetatable {: table : math : string : pairs : ipairs : assert : error
                       : select : tostring : tonumber : pcall : xpcall : next
-                      : print : type :bit _G.bit : setmetatable : getmetatable
-                      : rawget : rawset : rawequal :rawlen _G.rawlen}
+                      : print : type :bit (rawget _G :bit)
+                      : setmetatable : getmetatable
+                      : rawget : rawset : rawequal :rawlen (rawget _G :rawlen)}
                      {:__index compiler-env-warn}))
 
 (fn make-compiler-env [ast scope parent]

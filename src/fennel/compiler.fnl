@@ -6,7 +6,7 @@
 (local parser (require "fennel.parser"))
 (local friend (require :fennel.friend))
 
-(local unpack (or _G.unpack table.unpack))
+(local unpack (or table.unpack _G.unpack))
 
 (local scopes [])
 

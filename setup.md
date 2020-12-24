@@ -121,7 +121,8 @@ table.insert(package.loaders or package.searchers, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
-Be sure to use the library and not the file for the entire `fennel` compiler.
+Be sure to use the `fennel.lua` library and not the file for the
+entire `fennel` executable.
 
 **Note**: Optionally, if you want the Fennel REPL to print tables
 in a more readable format, you can add `fennelview.fnl` to

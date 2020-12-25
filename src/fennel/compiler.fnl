@@ -473,12 +473,19 @@ if opts contains the nval option."
                 (symbol-to-expression ast scope true))]
       (handle-compile-opts [e] parent opts ast))))
 
+;; We can't use tostring on numbers because some locales use , for decimal
+;; separators, which will not be accepted by Lua.
+(fn serialize-number [n]
+  (match (math.modf n)
+    (int 0) (tostring int)
+    (int frac) (.. int "." (: (tostring frac) :sub 3))))
+
 (fn compile-scalar [ast _scope parent opts]
   (let [serialize (match (type ast)
                     :nil tostring
                     :boolean tostring
                     :string serialize-string
-                    :number (partial string.format "%.17g"))]
+                    :number serialize-number)]
     (handle-compile-opts [(utils.expr (serialize ast) :literal)] parent opts)))
 
 (fn compile-table [ast scope parent opts compile1]

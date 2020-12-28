@@ -149,19 +149,25 @@
               :else
               (put-kv-table self t non-seq-keys))))))
 
+(fn put-number [self n]
+  (puts self (match (math.modf n)
+               (int 0) (tostring int)
+               (int frac) (.. int "." (: (tostring frac) :sub 3)))))
+
 (set put-value
      (fn [self v]
        (let [tv (type v)]
-         (if (= tv "string")
-           (puts self (view-quote (escape v)))
-           (or (= tv "number") (= tv "boolean") (= tv "nil"))
-           (puts self (tostring v))
-           (or (= tv "table")
-               (and (= tv "userdata")
-                    (not= nil (-?> (getmetatable v) (. :__fennelview)))))
-           (put-table self v)
-           :else
-           (puts self "#<" (tostring v) ">")))))
+         (if (= tv :string)
+             (puts self (view-quote (escape v)))
+             (= tv :number)
+             (put-number self v)
+             (or  (= tv :boolean) (= tv :nil))
+             (puts self (tostring v))
+             (or (= tv :table)
+                 (and (= tv :userdata)
+                      (not= nil (-?> (getmetatable v) (. :__fennelview)))))
+             (put-table self v)
+             (puts self "#<" (tostring v) ">")))))
 
 
 

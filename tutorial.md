@@ -295,10 +295,12 @@ for multiple conditions compiling into `elseif` branches:
 (let [x (math.random 64)]
   (if (= 0 (% x 2))
       "even"
-      (= 0 (% x 10))
-      "multiple of ten"
+      (= 0 (% x 9))
+      "multiple of nine"
       "I dunno, something else"))
 ```
+
+With an odd number of arguments, the final clause is interpreted as "else".
 
 Being a lisp, Fennel has no statements, so `if` returns a value as an
 expression. Lua programmers will be glad to know there is no need to

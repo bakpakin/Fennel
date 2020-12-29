@@ -280,6 +280,44 @@ The `scope` argument is a table containing all the compiler's information
 about the current scope. Most of the tables here look up values in their
 parent scopes if they do not contain a key.
 
+Plugins can also contain repl commands. If your plugin module has a
+field with a name beginning with "repl-command-" then that function
+will be available as a comma command from within a repl session. It
+will be called with a table for the repl session's environment, a
+function which will read the next form from stdin, a function which is
+used to print normal values, and one which is used to print errors.
+
+```fennel
+(fn locals [env _read on-values on-error]
+  "Print all locals in repl session scope."
+  (match (pcall require :fennelview)
+    (true view) (on-values [(view env.___replLocals___)])
+    (nil err) (on-error :Runtime "Missing fennelview module.")))
+
+{:repl-command-locals locals}
+```
+
+```
+$ fennel --plugin locals-plugin.fnl
+Welcome to Fennel 0.8.0 on Lua 5.4!
+Use ,help to see available commands.
+>> (local x 4)
+nil
+>> (local abc :xyz)
+nil
+>> ,locals
+{
+  :abc "xyz"
+  :x 4
+}
+```
+
+The docstring of the function will be used as its summary in the
+",help" command listing. Unlike other plugin hook fields, only the
+first plugin to provide a repl command will be used.
+
+### Activation
+
 Plugins are activated by passing the `--plugin` argument on the command line,
 which should be a path to a Fennel file containing a module that has some of
 the functions listed above. If you're using the compiler programmatically,

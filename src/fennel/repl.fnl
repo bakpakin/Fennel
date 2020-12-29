@@ -55,19 +55,27 @@
 
 (fn command? [input] (input:match "^%s*,"))
 
+(fn command-docs []
+  (table.concat (icollect [name f (pairs commands)]
+                  (: "  ,%s - %s" :format
+                     name (or (compiler.metadata:get f :fnl/docstring)
+                              "undocumented"))) "\n"))
+
 (fn commands.help [_ _ on-values]
-  (on-values ["Welcome to Fennel.
+  "Show this message."
+  (on-values [(.. "Welcome to Fennel.
 This is the REPL where you can enter code to be evaluated.
 You can also run these repl commands:
 
-  ,help - show this message
-  ,reload module-name - reload the specified module
-  ,reset - erase all repl-local scope
-  ,exit - leave the repl
+" (command-docs) "
+  ,exit - Leave the repl.
 
 Use (doc something) to see descriptions for individual macros and special forms.
 
-For more information about the language, see https://fennel-lang.org/reference"]))
+For more information about the language, see https://fennel-lang.org/reference")]))
+
+;; Can't rely on metadata being enabled at load time for Fennel's own internals.
+(compiler.metadata:set commands.help :fnl/docstring "Show this message.")
 
 (fn reload [module-name env on-values on-error]
   ;; Sandbox the reload inside the limited environment, if present.
@@ -90,19 +98,32 @@ For more information about the language, see https://fennel-lang.org/reference"]
                  (on-values [:ok]))
     (false msg) (on-error "Runtime" (pick-values 1 (msg:gsub "\n.*" "")))))
 
-(fn commands.reload [read env on-values on-error]
+(fn commands.reload [env read on-values on-error]
   (match (pcall read)
     (true true module-sym) (reload (tostring module-sym) env on-values on-error)
     (false ?parse-ok ?msg) (on-error "Parse" (or ?msg ?parse-ok))))
 
-(fn commands.reset [_ env on-values]
+(compiler.metadata:set commands.reload :fnl/docstring "Reload the specified module.")
+
+(fn commands.reset [env _ on-values]
   (set env.___replLocals___ {})
   (on-values [:ok]))
 
+(compiler.metadata:set commands.reset :fnl/docstring "Erase all repl-local scope.")
+
+(fn load-plugin-commands []
+  (when (and utils.root utils.root.options utils.root.options.plugins)
+    (each [_ plugin (ipairs utils.root.options.plugins)]
+      (each [name f (pairs plugin)]
+        (match (name:match "^repl%-command%-(.*)")
+          ;; first function to provide a command should win
+          cmd-name (tset commands cmd-name (or (. commands cmd-name) f)))))))
+
 (fn run-command [input read loop env on-values on-error]
+  (load-plugin-commands)
   (let [command-name (input:match ",([^%s/]+)")]
     (match (. commands command-name)
-      command (command read env on-values on-error)
+      command (command env read on-values on-error)
       _ (when (not= "exit" command-name)
           (on-values ["Unknown command" command-name])))
     (when (not= "exit" command-name)

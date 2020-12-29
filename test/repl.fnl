@@ -1,20 +1,24 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
 
-(fn wrap-repl []
+(fn wrap-repl [options]
   (var repl-complete nil)
   (fn send []
     (var output [])
-    (fennel.repl {:readChunk (fn []
-                               (let [chunk (coroutine.yield output)]
-                                 (set output [])
-                                 (and chunk (.. chunk "\n"))))
-                  :onValues #(table.insert output (table.concat $ "\t"))
-                  :registerCompleter #(set repl-complete $)
-                  :pp #$}))
-  (local repl-send (coroutine.wrap send))
-  (repl-send)
-  (values repl-send repl-complete))
+    (let [opts (or options {})]
+      (fn opts.readChunk []
+        (let [chunk (coroutine.yield output)]
+          (set output [])
+          (and chunk (.. chunk "\n"))))
+      (fn opts.onValues [x]
+        (table.insert output (table.concat x "\t")))
+      (fn opts.registerCompleter [x]
+        (set repl-complete x))
+      (fn opts.pp [x] x)
+      (fennel.repl opts)))
+  (let [repl-send (coroutine.wrap send)]
+    (repl-send)
+    (values repl-send repl-complete)))
 
 (fn assert-equal-unordered [a b msg]
   (l.assertEquals (table.sort a) (table.sort b) msg))
@@ -36,7 +40,7 @@
 (fn test-help []
   (let [send (wrap-repl)
         help (table.concat (send ",help"))]
-    (l.assertStrContains help "show this message")
+    (l.assertStrContains help "Show this message")
     (l.assertStrContains help "enter code to be evaluated")))
 
 (fn test-exit []
@@ -72,6 +76,22 @@
     (l.assertEquals abc "123")
     (l.assertEquals abc2 "")))
 
+(fn set-boo [env]
+  "Set boo to exclaimation points."
+  (tset env :boo "!!!"))
+
+(fn test-plugins []
+  (let [logged []
+        plugin1 {:repl-command-log #(table.insert logged (select 2 ($2)))}
+        plugin2 {:repl-command-log #(error "p1 should handle this!")
+                 :repl-command-set-boo set-boo}
+        send (wrap-repl {:plugins [plugin1 plugin2]})]
+    (send ",log :log-me")
+    (l.assertEquals logged ["log-me"])
+    (send ",set-boo")
+    (l.assertEquals (send "boo") ["!!!"])
+    (l.assertStrContains (table.concat (send ",help")) "Set boo to")))
+
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -81,5 +101,6 @@
      : test-help
      : test-exit
      : test-reload
-     : test-reset}
+     : test-reset
+     : test-plugins}
     {})

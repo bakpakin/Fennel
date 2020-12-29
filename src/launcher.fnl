@@ -115,7 +115,7 @@ Run fennel, a lisp programming language for the Lua runtime.
     "--no-compiler-sandbox" (do (set options.compiler-env _G)
                                 (table.remove arg i))
     "--plugin" (let [plugin (fennel.dofile (table.remove arg (+ i 1))
-                                           {:env :_COMPILER})]
+                                           {:env :_COMPILER :useMetadata true})]
                  (table.insert options.plugins 1 plugin)
                  (table.remove arg i))))
 

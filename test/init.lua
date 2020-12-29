@@ -20,7 +20,8 @@ local function testall(suites)
     local instances = {}
     for _, test in ipairs(suites) do
         -- attach test modules (which export k/v tables of test fns) as alists
-        local suite = oldfennel.dofile("test/" .. test .. ".fnl")
+        local suite = oldfennel.dofile("test/" .. test .. ".fnl",
+                                       {useMetadata = true})
         for name, testfn in pairs(suite) do
             table.insert(instances, {name,testfn})
         end

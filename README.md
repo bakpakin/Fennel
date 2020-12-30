@@ -53,7 +53,7 @@ haven't been released, and makes contributing to Fennel easier.
 1. `cd` to a directory in which you want to download Fennel, such as
    `~/src`
 2. Run `git clone https://git.sr.ht/~technomancy/fennel`
-3. Run `cd Fennel`
+3. Run `cd fennel`
 4. Run `make fennel` to create a standalone script called `fennel`
 5. Copy or link the `fennel` script to a directory on your `$PATH`, such as `/usr/local/bin`
 
@@ -75,7 +75,7 @@ run a Fennel file anywhere on your system.
 
 ## Differences from other lisp languages
 
-* Its VM can be embedded in other programs with only 180kb
+* Its VM can be embedded in other programs with only 180 kB
 * Access to [excellent FFI][4]
 * LuaJIT consistently ranks at the top of performance shootouts
 * Inherits aggressively simple semantics from Lua; easy to learn

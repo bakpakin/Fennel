@@ -26,7 +26,7 @@
                        "--- Generated Lua Start ---\n"
                        lua-source
                        "--- Generated Lua End ---\n")
-     "Runtime" (.. (compiler.traceback err 4) "\n")
+     "Runtime" (.. (compiler.traceback (tostring err) 4) "\n")
      _ (: "%s error: %s\n" :format errtype (tostring err)))))
 
 (local save-source

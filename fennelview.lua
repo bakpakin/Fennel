@@ -190,18 +190,28 @@ local function put_table(self, t)
   end
 end
 local function put_number(self, n)
-  local function _4_()
-    local _2_0, _3_0 = math.modf(n)
+  local function _5_()
+    local _2_0, _3_0, _4_0 = math.modf(n)
     if ((nil ~= _2_0) and (_3_0 == 0)) then
       local int = _2_0
       return tostring(int)
-    elseif ((nil ~= _2_0) and (nil ~= _3_0)) then
-      local int = _2_0
-      local frac = _3_0
-      return (int .. "." .. tostring(frac):sub(3))
+    else
+      local _6_
+      do
+        local frac = _3_0
+        _6_ = (((_2_0 == 0) and (nil ~= _3_0)) and (frac < 0))
+      end
+      if _6_ then
+        local frac = _3_0
+        return ("-0." .. tostring(frac):gsub("^-?0.", ""))
+      elseif ((nil ~= _2_0) and (nil ~= _3_0)) then
+        local int = _2_0
+        local frac = _3_0
+        return (int .. "." .. tostring(frac):gsub("^-?0.", ""))
+      end
     end
   end
-  return puts(self, _4_())
+  return puts(self, _5_())
 end
 local function _2_(self, v)
   local tv = type(v)

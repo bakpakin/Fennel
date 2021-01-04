@@ -152,7 +152,8 @@
 (fn put-number [self n]
   (puts self (match (math.modf n)
                (int 0) (tostring int)
-               (int frac) (.. int "." (: (tostring frac) :sub 3)))))
+               ((0 frac) ? (< frac 0)) (.. "-0." (: (tostring frac) :gsub "^-?0." ""))
+               (int frac) (.. int "." (: (tostring frac) :gsub "^-?0." "")))))
 
 (set put-value
      (fn [self v]

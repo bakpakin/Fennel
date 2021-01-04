@@ -50,8 +50,10 @@ will see its values updated as expected, regardless of mangling rules."
       (.. name " not found")
       (let [docstring (: (: (or (: compiler.metadata "get" tgt "fnl/docstring")
                                 "#<undocumented>") :gsub "\n$" "")
-                         :gsub "\n" "\n  ")]
-        (if (= (type tgt) "function")
+                         :gsub "\n" "\n  ")
+            mt (getmetatable tgt)]
+        (if (or (= (type tgt) :function)
+                (and (= (type mt) :table) (= (type (. mt :__call)) :function)))
             (let [arglist (table.concat (or (: compiler.metadata "get"
                                                tgt "fnl/arglist")
                                             ["#<unknown-arguments>"]) " ")]

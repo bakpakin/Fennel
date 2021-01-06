@@ -143,14 +143,36 @@ the number of expected arguments."
     exprs))
 
 (doc-special "values" ["..."]
-            "Return multiple values from a function. Must be in tail position.")
+             "Return multiple values from a function. Must be in tail position.")
+
+(fn deep-tostring [x key?]
+  "Tostring for literal tables created with {} or [].
+Recursively transforms tables into one-line string representation.
+Main purpose to print function argument list in docstring."
+  (let [elems []]
+    (if (utils.sequence? x)
+        (do (each [_ v (ipairs x)]
+              (table.insert elems (deep-tostring v)))
+            (.. "[" (table.concat elems " ") "]"))
+        (utils.table? x)
+        (do (each [k v (pairs x)]
+              (table.insert elems (.. (deep-tostring k true) " " (deep-tostring v))))
+            (.. "{" (table.concat elems " ") "}"))
+        (and key?
+             (= (type x) :string)
+             (: x :find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
+        (.. ":" x)
+        (= (type x) :string)
+        (-> (string.format "%q" x)
+            (: :gsub "\\\"" "\\\\\"")
+            (: :gsub "\"" "\\\""))
+        (tostring x))))
 
 (fn set-fn-metadata [arg-list docstring parent fn-name]
   (when utils.root.options.useMetadata
-    ;; TODO: show destructured args properly instead of replacing
-    (let [args (utils.map arg-list (fn [v] (if (utils.table? v)
-                                               "\"#<table>\""
-                                               (: "\"%s\"" :format
+    (let [args (utils.map arg-list (fn [v] (: "\"%s\"" :format
+                                              (if (utils.table? v)
+                                                  (deep-tostring v)
                                                   (tostring v)))))
           meta-fields ["\"fnl/arglist\"" (.. "{" (table.concat args ", ") "}")]]
       (when docstring
@@ -1106,4 +1128,3 @@ Lua output. The module must be a string literal and resolvable at compile time."
  : search-module
  : make-searcher
  : wrap-env}
-

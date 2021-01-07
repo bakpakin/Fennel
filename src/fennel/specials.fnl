@@ -153,16 +153,15 @@ Recursively transforms tables into one-line string representation.
 Main purpose to print function argument list in docstring."
   (let [elems []]
     (if (utils.sequence? x)
-        (do (each [_ v (ipairs x)]
-              (table.insert elems (deep-tostring v)))
-            (.. "[" (table.concat elems " ") "]"))
+        (.. "[" (table.concat (icollect [_ v (ipairs x)]
+                                (deep-tostring v)) " ") "]")
         (utils.table? x)
-        (do (each [k v (pairs x)]
-              (table.insert elems (.. (deep-tostring k true) " " (deep-tostring v))))
-            (.. "{" (table.concat elems " ") "}"))
+        (.. "{" (table.concat (icollect [k v (pairs x)]
+                                (.. (deep-tostring k true) " "
+                                    (deep-tostring v))) " ") "}")
         (and key?
              (= (type x) :string)
-             (: x :find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
+             (x:find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
         (.. ":" x)
         (= (type x) :string)
         (-> (string.format "%q" x)
@@ -173,9 +172,7 @@ Main purpose to print function argument list in docstring."
 (fn set-fn-metadata [arg-list docstring parent fn-name]
   (when utils.root.options.useMetadata
     (let [args (utils.map arg-list (fn [v] (: "\"%s\"" :format
-                                              (if (utils.table? v)
-                                                  (deep-tostring v)
-                                                  (tostring v)))))
+                                              (deep-tostring v))))
           meta-fields ["\"fnl/arglist\"" (.. "{" (table.concat args ", ") "}")]]
       (when docstring
         (table.insert meta-fields "\"fnl/docstring\"")

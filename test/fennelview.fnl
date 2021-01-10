@@ -42,11 +42,11 @@
   (let [view-target {:my-userdata io.stdout}
         expected-with-mt "{:my-userdata \"HI, I AM USERDATA\"}"
         expected-without-mt "^%{%:my%-userdata %#%<file %([x0-9a-f]+%)%>%}$"]
-    (l.assertStrContains (view view-target {:one-line true})
+    (l.assertStrContains (view view-target {:one-line? true})
                          expected-without-mt
                          true)
     (tset (getmetatable io.stdout) :__fennelview #"\"HI, I AM USERDATA\"")
-    (l.assertEquals (view view-target {:one-line true})
+    (l.assertEquals (view view-target {:one-line? true})
                     expected-with-mt)
     (tset (getmetatable io.stdout) :__fennelview nil)))
 

@@ -6,7 +6,7 @@
   (fennel.compileString code {:allowedGlobals false :compiler-env _G}))
 
 (fn v [code]
-  (fennelview ((fennel.loadCode (c code) _G)) {:one-line true}))
+  (fennelview ((fennel.loadCode (c code) _G)) {:one-line? true}))
 
 (fn test-quote []
   (l.assertEquals (c "`:abcde") "return \"abcde\"" "simple string quoting")
@@ -33,4 +33,3 @@
   (l.assertStrContains msg "unknown:5" "quoted tables have source data"))
 
 {: test-quote : test-quoted-source}
-

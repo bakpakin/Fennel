@@ -1,25 +1,3 @@
-local function view_quote(str)
-  return ("\"" .. str:gsub("\"", "\\\"") .. "\"")
-end
-local short_control_char_escapes = {["\11"] = "\\v", ["\12"] = "\\f", ["\13"] = "\\r", ["\7"] = "\\a", ["\8"] = "\\b", ["\9"] = "\\t", ["\n"] = "\\n"}
-local long_control_char_escapes = nil
-do
-  local long = {}
-  for i = 0, 31 do
-    local ch = string.char(i)
-    if not short_control_char_escapes[ch] then
-      short_control_char_escapes[ch] = ("\\" .. i)
-      long[ch] = ("\\%03d"):format(i)
-    end
-  end
-  long_control_char_escapes = long
-end
-local function escape(str)
-  return str:gsub("\\", "\\\\"):gsub("(%c)%f[0-9]", long_control_char_escapes):gsub("%c", short_control_char_escapes)
-end
-local function sequence_key_3f(k, len)
-  return ((type(k) == "number") and (1 <= k) and (k <= len) and (math.floor(k) == k))
-end
 local type_order = {["function"] = 5, boolean = 2, number = 1, string = 3, table = 4, thread = 7, userdata = 6}
 local function sort_keys(_0_0, _1_0)
   local _1_ = _0_0
@@ -39,28 +17,34 @@ local function sort_keys(_0_0, _1_0)
       return true
     elseif dtb then
       return false
-    elseif "else" then
-      return (ta < tb)
+    else
+      return false
     end
   end
 end
-local function get_sequence_length(t)
-  local len = 0
-  for i in ipairs(t) do
-    len = i
-  end
-  return len
-end
-local function get_nonsequential_keys(t)
-  local keys = {}
-  local sequence_length = get_sequence_length(t)
+local function table_kv_pairs(t)
+  local assoc_3f = false
+  local kv = {}
+  local insert = table.insert
   for k, v in pairs(t) do
-    if not sequence_key_3f(k, sequence_length) then
-      table.insert(keys, {k, v})
+    if (type(k) ~= "number") then
+      assoc_3f = true
     end
+    insert(kv, {k, v})
   end
-  table.sort(keys, sort_keys)
-  return keys, sequence_length
+  table.sort(kv, sort_keys)
+  if (#kv == 0) then
+    return kv, "empty"
+  else
+    local function _2_()
+      if assoc_3f then
+        return "table"
+      else
+        return "seq"
+      end
+    end
+    return kv, _2_()
+  end
 end
 local function count_table_appearances(t, appearances)
   if (type(t) == "table") then
@@ -76,193 +60,304 @@ local function count_table_appearances(t, appearances)
   end
   return appearances
 end
-local put_value = nil
-local function puts(self, ...)
-  for _, v in ipairs({...}) do
-    table.insert(self.buffer, v)
+local function save_table(t, seen)
+  local seen0 = (seen or {len = 0})
+  local id = (seen0.len + 1)
+  if not seen0[t] then
+    seen0[t] = id
+    seen0.len = id
+  end
+  return seen0
+end
+local function detect_cycle(t, seen)
+  local seen0 = (seen or {})
+  seen0[t] = true
+  for k, v in pairs(t) do
+    if ((type(k) == "table") and (seen0[k] or detect_cycle(k, seen0))) then
+      return true
+    end
+    if ((type(v) == "table") and (seen0[v] or detect_cycle(v, seen0))) then
+      return true
+    end
   end
   return nil
 end
-local function tabify(self)
-  return puts(self, "\n", (self.indent):rep(self.level))
+local function visible_cycle_3f(t, options)
+  return (options["detect-cycles?"] and detect_cycle(t) and save_table(t, options.seen) and (1 < (options.appearances[t] or 0)))
 end
-local function already_visited_3f(self, v)
-  return (self.ids[v] ~= nil)
-end
-local function get_id(self, v)
-  local id = self.ids[v]
-  if not id then
-    local tv = type(v)
-    id = ((self["max-ids"][tv] or 0) + 1)
-    self["max-ids"][tv] = id
-    self.ids[v] = id
-  end
-  return tostring(id)
-end
-local function put_sequential_table(self, t, len)
-  puts(self, "[")
-  self.level = (self.level + 1)
-  for k, v in ipairs(t) do
-    local _2_ = (1 + len)
-    if ((1 < k) and (k < _2_)) then
-      puts(self, " ")
-    end
-    put_value(self, v)
-  end
-  self.level = (self.level - 1)
-  return puts(self, "]")
-end
-local function put_key(self, k)
-  if ((type(k) == "string") and k:find("^[-%w?\\^_!$%&*+./@:|<=>]+$")) then
-    return puts(self, ":", k)
+local function table_indent(t, indent, id)
+  local opener_length = nil
+  if id then
+    opener_length = (#tostring(id) + 2)
   else
-    return put_value(self, k)
+    opener_length = 1
   end
+  return (indent + opener_length)
 end
-local function put_kv_table(self, t, ordered_keys)
-  puts(self, "{")
-  self.level = (self.level + 1)
-  for i, _2_0 in ipairs(ordered_keys) do
-    local _3_ = _2_0
-    local k = _3_[1]
-    local v = _3_[2]
-    if (self["table-edges"] or (i ~= 1)) then
-      tabify(self)
+local pp = {}
+local function concat_table_lines(elements, options, multiline_3f, indent, table_type, prefix)
+  local function _2_()
+    if ("seq" == table_type) then
+      return "["
+    else
+      return "{"
     end
-    put_key(self, k)
-    puts(self, " ")
-    put_value(self, v)
   end
-  for i, v in ipairs(t) do
-    tabify(self)
-    put_key(self, i)
-    puts(self, " ")
-    put_value(self, v)
-  end
-  self.level = (self.level - 1)
-  if self["table-edges"] then
-    tabify(self)
-  end
-  return puts(self, "}")
-end
-local function put_table(self, t)
-  local metamethod = nil
   local function _3_()
-    local _2_0 = t
-    if _2_0 then
-      local _4_0 = getmetatable(_2_0)
-      if _4_0 then
-        return _4_0.__fennelview
+    local _3_
+    if (table_type == "seq") then
+      _3_ = options["sequential-length"]
+    else
+      _3_ = options["associative-length"]
+    end
+    if (not options["one-line?"] and (multiline_3f or (#elements > _3_) or (indent > 40))) then
+      return ("\n" .. string.rep(" ", indent))
+    else
+      return " "
+    end
+  end
+  local function _4_()
+    if ("seq" == table_type) then
+      return "]"
+    else
+      return "}"
+    end
+  end
+  return ((prefix or "") .. _2_() .. table.concat(elements, _3_()) .. _4_())
+end
+local function pp_associative(t, kv, options, indent, key_3f)
+  local multiline_3f = false
+  local elements = {}
+  local id = options.seen[t]
+  if (options.level >= options.depth) then
+    return "{...}"
+  elseif (id and options["detect-cycles?"]) then
+    return ("@" .. id .. "{...}")
+  else
+    local visible_cycle_3f0 = visible_cycle_3f(t, options)
+    local id0 = (visible_cycle_3f0 and options.seen[t])
+    local indent0 = table_indent(t, indent, id0)
+    local slength = nil
+    local function _3_()
+      local _2_0 = rawget(_G, "utf8")
+      if _2_0 then
+        return _2_0.len
       else
-        return _4_0
+        return _2_0
       end
+    end
+    local function _4_(_241)
+      return #_241
+    end
+    slength = ((options["utf8?"] and _3_()) or _4_)
+    local prefix = nil
+    if visible_cycle_3f0 then
+      prefix = ("@" .. id0)
+    else
+      prefix = ""
+    end
+    for i, _6_0 in pairs(kv) do
+      local _7_ = _6_0
+      local k = _7_[1]
+      local v = _7_[2]
+      if ((type(k) == "table") or (type(v) == "table")) then
+        multiline_3f = true
+      end
+      local k0 = pp.pp(k, options, (indent0 + 1), true)
+      local v0 = pp.pp(v, options, (indent0 + slength(k0) + 1))
+      table.insert(elements, (k0 .. " " .. v0))
+    end
+    return concat_table_lines(elements, options, multiline_3f, indent0, "table", prefix)
+  end
+end
+local function pp_sequence(t, kv, options, indent)
+  local multiline_3f = false
+  local elements = {}
+  local id = options.seen[t]
+  if (options.level >= options.depth) then
+    return "[...]"
+  elseif (id and options["detect-cycles?"]) then
+    return ("@" .. id .. "[...]")
+  else
+    local visible_cycle_3f0 = visible_cycle_3f(t, options)
+    local id0 = (visible_cycle_3f0 and options.seen[t])
+    local indent0 = table_indent(t, indent, id0)
+    local prefix = nil
+    if visible_cycle_3f0 then
+      prefix = ("@" .. id0)
+    else
+      prefix = ""
+    end
+    for _, _3_0 in pairs(kv) do
+      local _4_ = _3_0
+      local _0 = _4_[1]
+      local v = _4_[2]
+      if (type(v) == "table") then
+        multiline_3f = true
+      end
+      table.insert(elements, pp.pp(v, options, indent0))
+    end
+    return concat_table_lines(elements, options, multiline_3f, indent0, "seq", prefix)
+  end
+end
+local function concat_lines(lines, options, indent, one_line_3f)
+  if (#lines == 0) then
+    if options["empty-as-sequence?"] then
+      return "[]"
+    else
+      return "{}"
+    end
+  else
+    if (not options["one-line?"] and not one_line_3f) then
+      return table.concat(lines, ("\n" .. string.rep(" ", indent)))
+    else
+      local function _2_()
+        local tbl_0_ = {}
+        for _, line in ipairs(lines) do
+          tbl_0_[(#tbl_0_ + 1)] = line:gsub("^%s+", " ")
+        end
+        return tbl_0_
+      end
+      return table.concat(_2_())
+    end
+  end
+end
+local function pp_metamethod(t, metamethod, options, indent)
+  if (options.level >= options.depth) then
+    if options["empty-as-sequence?"] then
+      return "[...]"
+    else
+      return "{...}"
+    end
+  else
+    local _ = nil
+    local function _2_(_241)
+      return visible_cycle_3f(_241, options)
+    end
+    options["visible-cycle?"] = _2_
+    _ = nil
+    local lines, force_one_line_3f = metamethod(t, pp.pp, options, indent)
+    options["visible-cycle?"] = nil
+    local _3_0 = type(lines)
+    if (_3_0 == "string") then
+      return lines
+    elseif (_3_0 == "table") then
+      return concat_lines(lines, options, indent, force_one_line_3f)
+    else
+      local _0 = _3_0
+      return error("Error: __fennelview metamethod must return a table of lines")
+    end
+  end
+end
+local function pp_table(x, options, indent)
+  options.level = (options.level + 1)
+  local x0 = nil
+  do
+    local _2_0 = nil
+    if options["metamethod?"] then
+      local _3_0 = x
+      if _3_0 then
+        local _4_0 = getmetatable(_3_0)
+        if _4_0 then
+          _2_0 = _4_0.__fennelview
+        else
+          _2_0 = _4_0
+        end
+      else
+        _2_0 = _3_0
+      end
+    else
+    _2_0 = nil
+    end
+    if (nil ~= _2_0) then
+      local metamethod = _2_0
+      x0 = pp_metamethod(x, metamethod, options, indent)
+    else
+      local _ = _2_0
+      local _4_0, _5_0 = table_kv_pairs(x)
+      if (true and (_5_0 == "empty")) then
+        local _0 = _4_0
+        if options["empty-as-sequence?"] then
+          x0 = "[]"
+        else
+          x0 = "{}"
+        end
+      elseif ((nil ~= _4_0) and (_5_0 == "table")) then
+        local kv = _4_0
+        x0 = pp_associative(x, kv, options, indent)
+      elseif ((nil ~= _4_0) and (_5_0 == "seq")) then
+        local kv = _4_0
+        x0 = pp_sequence(x, kv, options, indent)
+      else
+      x0 = nil
+      end
+    end
+  end
+  options.level = (options.level - 1)
+  return x0
+end
+local function number__3estring(n)
+  local _2_0, _3_0, _4_0 = math.modf(n)
+  if ((nil ~= _2_0) and (_3_0 == 0)) then
+    local int = _2_0
+    return tostring(int)
+  else
+    local _5_
+    do
+      local frac = _3_0
+      _5_ = (((_2_0 == 0) and (nil ~= _3_0)) and (frac < 0))
+    end
+    if _5_ then
+      local frac = _3_0
+      return ("-0." .. tostring(frac):gsub("^-?0.", ""))
+    elseif ((nil ~= _2_0) and (nil ~= _3_0)) then
+      local int = _2_0
+      local frac = _3_0
+      return (int .. "." .. tostring(frac):gsub("^-?0.", ""))
+    end
+  end
+end
+local function colon_string_3f(s)
+  return s:find("^[-%w?\\^_!$%&*+./@:|<=>]+$")
+end
+local function make_options(t, options)
+  local defaults = {["associative-length"] = 4, ["detect-cycles?"] = true, ["empty-as-sequence?"] = false, ["metamethod?"] = true, ["one-line?"] = false, ["sequential-length"] = 10, ["utf8?"] = true, depth = 128}
+  local overrides = {appearances = count_table_appearances(t, {}), level = 0, seen = {len = 0}}
+  for k, v in pairs((options or {})) do
+    defaults[k] = v
+  end
+  for k, v in pairs(overrides) do
+    defaults[k] = v
+  end
+  return defaults
+end
+pp.pp = function(x, options, indent, key_3f)
+  local indent0 = (indent or 0)
+  local options0 = (options or make_options(x))
+  local tv = type(x)
+  local function _3_()
+    local _2_0 = getmetatable(x)
+    if _2_0 then
+      return _2_0.__fennelview
     else
       return _2_0
     end
   end
-  metamethod = (self["metamethod?"] and _3_())
-  if (already_visited_3f(self, t) and self["detect-cycles?"]) then
-    return puts(self, "#<table @", get_id(self, t), ">")
-  elseif (self.level >= self.depth) then
-    return puts(self, "{...}")
-  elseif metamethod then
-    return puts(self, metamethod(t, self.fennelview))
-  elseif "else" then
-    local non_seq_keys, len = get_nonsequential_keys(t)
-    local id = get_id(self, t)
-    if ((1 < (self.appearances[t] or 0)) and self["detect-cycles?"]) then
-      puts(self, "@", id)
-    end
-    if ((#non_seq_keys == 0) and (#t == 0)) then
-      local function _5_()
-        if self["empty-as-square"] then
-          return "[]"
-        else
-          return "{}"
-        end
-      end
-      return puts(self, _5_())
-    elseif (#non_seq_keys == 0) then
-      return put_sequential_table(self, t, len)
-    elseif "else" then
-      return put_kv_table(self, t, non_seq_keys)
-    end
-  end
-end
-local function put_number(self, n)
-  local function _5_()
-    local _2_0, _3_0, _4_0 = math.modf(n)
-    if ((nil ~= _2_0) and (_3_0 == 0)) then
-      local int = _2_0
-      return tostring(int)
-    else
-      local _6_
-      do
-        local frac = _3_0
-        _6_ = (((_2_0 == 0) and (nil ~= _3_0)) and (frac < 0))
-      end
-      if _6_ then
-        local frac = _3_0
-        return ("-0." .. tostring(frac):gsub("^-?0.", ""))
-      elseif ((nil ~= _2_0) and (nil ~= _3_0)) then
-        local int = _2_0
-        local frac = _3_0
-        return (int .. "." .. tostring(frac):gsub("^-?0.", ""))
-      end
-    end
-  end
-  return puts(self, _5_())
-end
-local function _2_(self, v)
-  local tv = type(v)
-  if (tv == "string") then
-    return puts(self, view_quote(escape(v)))
+  if ((tv == "table") or ((tv == "userdata") and _3_())) then
+    return pp_table(x, options0, indent0)
   elseif (tv == "number") then
-    return put_number(self, v)
+    return number__3estring(x)
+  elseif ((tv == "string") and key_3f and colon_string_3f(x)) then
+    return (":" .. x)
+  elseif (tv == "string") then
+    return string.format("%q", x)
   elseif ((tv == "boolean") or (tv == "nil")) then
-    return puts(self, tostring(v))
+    return tostring(x)
   else
-    local _4_
-    do
-      local _3_0 = getmetatable(v)
-      if _3_0 then
-        _4_ = _3_0.__fennelview
-      else
-        _4_ = _3_0
-      end
-    end
-    if ((tv == "table") or ((tv == "userdata") and (nil ~= _4_))) then
-      return put_table(self, v)
-    else
-      return puts(self, "#<", tostring(v), ">")
-    end
+    return ("#<" .. tostring(x) .. ">")
   end
-end
-put_value = _2_
-local function one_line(str)
-  local ret = str:gsub("\n", " "):gsub("%[ ", "["):gsub(" %]", "]"):gsub("%{ ", "{"):gsub(" %}", "}"):gsub("%( ", "("):gsub(" %)", ")")
-  return ret
 end
 local function fennelview(x, options)
-  local options0 = (options or {})
-  local inspector = nil
-  local function _3_(_241)
-    return fennelview(_241, options0)
-  end
-  local function _4_()
-    if options0["one-line"] then
-      return ""
-    else
-      return "  "
-    end
-  end
-  inspector = {["detect-cycles?"] = not (false == options0["detect-cycles?"]), ["empty-as-square"] = options0["empty-as-square"], ["max-ids"] = {}, ["metamethod?"] = not (false == options0["metamethod?"]), ["table-edges"] = (options0["table-edges"] ~= false), appearances = count_table_appearances(x, {}), buffer = {}, depth = (options0.depth or 128), fennelview = _3_, ids = {}, indent = (options0.indent or _4_()), level = 0}
-  put_value(inspector, x)
-  local str = table.concat(inspector.buffer)
-  if options0["one-line"] then
-    return one_line(str)
-  else
-    return str
-  end
+  return pp.pp(x, make_options(x, options), 0)
 end
 return fennelview

@@ -1,65 +1,42 @@
 ;; A pretty-printer that outputs tables in Fennel syntax.
-;; Loosely based on inspect.lua: http://github.com/kikito/inspect.lua
-
-(fn view-quote [str] (.. "\"" (: str :gsub "\"" "\\\"") "\""))
-
-(local short-control-char-escapes
-       {"\a" "\\a" "\b" "\\b" "\f" "\\f" "\n" "\\n"
-        "\r" "\\r" "\t" "\\t" "\v" "\\v"})
-
-(local long-control-char-escapes
-       (let [long {}]
-         (for [i 0 31]
-           (let [ch (string.char i)]
-             (when (not (. short-control-char-escapes ch))
-               (tset short-control-char-escapes ch (.. "\\" i))
-               (tset long ch (: "\\%03d" :format i)))))
-         long))
-
-(fn escape [str]
-  (-> str
-      (: :gsub "\\" "\\\\")
-      (: :gsub "(%c)%f[0-9]" long-control-char-escapes)
-      (: :gsub "%c" short-control-char-escapes)))
-
-(fn sequence-key? [k len]
-  (and (= (type k) "number")
-       (<= 1 k)
-       (<= k len)
-       (= (math.floor k) k)))
 
 (local type-order {:number 1 :boolean 2 :string 3 :table 4
                    :function 5 :userdata 6 :thread 7})
 
 (fn sort-keys [[a] [b]]
+  ;; Sort keys depending on the `type-order`.
   (let [ta (type a) tb (type b)]
     (if (and (= ta tb)
              (or (= ta "string") (= ta "number")))
         (< a b)
         (let [dta (. type-order ta)
               dtb (. type-order tb)]
-          (if (and dta dtb)
-              (< dta dtb)
+          (if (and dta dtb) (< dta dtb)
               dta true
               dtb false
-              :else (< ta tb))))))
+              false)))))
 
-(fn get-sequence-length [t]
-  (var len 0)
-  (each [i (ipairs t)] (set len i))
-  len)
+(fn table-kv-pairs [t]
+  ;; Return table of tables with first element representing key and second
+  ;; element representing value.  Second value indicates table type, which is
+  ;; either sequential or associative.
 
-(fn get-nonsequential-keys [t]
-  (let [keys []
-        sequence-length (get-sequence-length t)]
+  ;; [:a :b :c] => [[1 :a] [2 :b] [3 :c]]
+  ;; {:a 1 :b 2} => [[:a 1] [:b 2]]
+  (var assoc? false)
+  (let [kv []
+        insert table.insert]
     (each [k v (pairs t)]
-      (when (not (sequence-key? k sequence-length))
-        (table.insert keys [k v])))
-    (table.sort keys sort-keys)
-    (values keys sequence-length)))
+      (when (not= (type k) :number)
+        (set assoc? true))
+      (insert kv [k v]))
+    (table.sort kv sort-keys)
+    (if (= (length kv) 0)
+        (values kv :empty)
+        (values kv (if assoc? :table :seq)))))
 
 (fn count-table-appearances [t appearances]
-  (when (= (type t) "table")
+  (when (= (type t) :table)
     (if (not (. appearances t))
         (do (tset appearances t 1)
             (each [k v (pairs t)]
@@ -68,145 +45,282 @@
         (tset appearances t (+ (or (. appearances t) 0) 1))))
   appearances)
 
+(fn save-table [t seen]
+  ;; Save table `t` in `seen` storing `t` as key, and its index as an id.
+  (let [seen (or seen {:len 0})
+        id (+ seen.len 1)]
+    (when (not (. seen t))
+      (tset seen t id)
+      (set seen.len id))
+    seen))
+
+(fn detect-cycle [t seen]
+  ;; Return `true` if table `t` appears in itself.
+  (let [seen (or seen {})]
+    (tset seen t true)
+    (each [k v (pairs t)]
+      (when (and (= (type k) :table)
+                 (or (. seen k) (detect-cycle k seen)))
+        (lua "return true"))
+      (when (and (= (type v) :table)
+                 (or (. seen v) (detect-cycle v seen)))
+        (lua "return true")))))
+
+(fn visible-cycle? [t options]
+  ;; Detect cycle, save table's ID in seen tables, and determine if
+  ;; cycle is visible.  Exposed via options table to use in
+  ;; __fennelview metamethod implementations
+  (and options.detect-cycles?
+       (detect-cycle t)
+       (save-table t options.seen)
+       (< 1 (or (. options.appearances t) 0))))
+
+(fn table-indent [t indent id]
+  ;; When table contains cycles, it is printed with a prefix before opening
+  ;; delimiter.  Prefix has a variable length, as it contains `id` of the table
+  ;; and fixed part of `2` characters `@` and either `[` or `{` depending on
+  ;; `t`type.  If `t` has visible cycles, we need to increase indent by the size
+  ;; of the prefix.
+  (let [opener-length (if id
+                          (+ (length (tostring id)) 2)
+                          1)]
+    (+ indent opener-length)))
+
+(local pp {})
+
+(fn concat-table-lines
+  [elements options multiline? indent table-type prefix]
+  (.. (or prefix "")
+      (if (= :seq table-type) "[" "{")
+      (table.concat
+       elements
+       (if (and (not options.one-line?)
+                (or multiline?
+                    (> (length elements) (if (= table-type :seq)
+                                             options.sequential-length
+                                             options.associative-length))
+                    (> indent 40)))
+           (.. "\n" (string.rep " " indent))
+           " "))
+      (if (= :seq table-type) "]" "}")))
+
+(fn pp-associative [t kv options indent key?]
+  (var multiline? false)
+  (let [elements []
+        id (. options.seen t)]
+    (if (>= options.level options.depth) "{...}"
+        (and id options.detect-cycles?) (.. "@" id "{...}")
+        (let [visible-cycle? (visible-cycle? t options)
+              id (and visible-cycle? (. options.seen t))
+              indent (table-indent t indent id)
+              slength (or (and options.utf8? (-?> (rawget _G :utf8) (. :len)))
+                          #(length $))
+              prefix (if visible-cycle? (.. "@" id) "")]
+          (each [i [k v] (pairs kv)]
+            (when (or (= (type k) :table) (= (type v) :table))
+              (set multiline? true))
+            (let [k (pp.pp k options (+ indent 1) true)
+                  v (pp.pp v options (+ indent (slength k) 1))]
+              (table.insert elements (.. k " " v))))
+          (concat-table-lines
+           elements options multiline? indent :table prefix)))))
+
+(fn pp-sequence [t kv options indent]
+  (var multiline? false)
+  (let [elements []
+        id (. options.seen t)]
+    (if (>= options.level options.depth) "[...]"
+        (and id options.detect-cycles?) (.. "@" id "[...]")
+        (let [visible-cycle? (visible-cycle? t options)
+              id (and visible-cycle? (. options.seen t))
+              indent (table-indent t indent id)
+              prefix (if visible-cycle? (.. "@" id) "")]
+          (each [_ [_ v] (pairs kv)]
+            (when (= (type v) :table)
+              (set multiline? true))
+            (table.insert elements (pp.pp v options indent)))
+          (concat-table-lines
+           elements options multiline? indent :seq prefix)))))
+
+(fn concat-lines [lines options indent one-line?]
+  (if (= (length lines) 0)
+      (if options.empty-as-sequence? "[]" "{}")
+      (if (and (not options.one-line?)
+               (not one-line?))
+          (table.concat lines (.. "\n" (string.rep " " indent)))
+          (-> (icollect [_ line (ipairs lines)]
+                (line:gsub "^%s+" " "))
+              table.concat))))
+
+(fn pp-metamethod [t metamethod options indent]
+  (if (>= options.level options.depth)
+      (if options.empty-as-sequence? "[...]" "{...}")
+      (let [_ (set options.visible-cycle? #(visible-cycle? $ options))
+            (lines force-one-line?) (metamethod t pp.pp options indent)]
+        (set options.visible-cycle? nil)
+        (match (type lines)
+          :string lines ;; assuming that it is already single line
+          :table  (concat-lines lines options indent force-one-line?)
+          _ (error "Error: __fennelview metamethod must return a table of lines")))))
+
+(fn pp-table [x options indent]
+  ;; Generic table pretty-printer.  Supports associative and
+  ;; sequential tables, as well as tables, that contain __fennelview
+  ;; metamethod.
+  (set options.level (+ options.level 1))
+  (let [x (match (if options.metamethod? (-?> x getmetatable (. :__fennelview)))
+            metamethod (pp-metamethod x metamethod options indent)
+            _ (match (table-kv-pairs x)
+                (_ :empty) (if options.empty-as-sequence? "[]" "{}")
+                (kv :table) (pp-associative x kv options indent)
+                (kv :seq) (pp-sequence x kv options indent)))]
+    (set options.level (- options.level 1))
+    x))
+
 
 
-(var put-value nil) ; mutual recursion going on; defined below
+(fn number->string [n]
+  ;; Transform number to a string without depending on correct `os.locale`
+  (match (math.modf n)
+    (int 0) (tostring int)
+    ((0 frac) ? (< frac 0)) (.. "-0." (: (tostring frac) :gsub "^-?0." ""))
+    (int frac) (.. int "." (: (tostring frac) :gsub "^-?0." ""))))
 
-(fn puts [self ...]
-  (each [_ v (ipairs [...])]
-    (table.insert self.buffer v)))
-
-(fn tabify [self] (puts self "\n" (: self.indent :rep self.level)))
-
-(fn already-visited? [self v] (not= (. self.ids v) nil))
-
-(fn get-id [self v]
-  (var id (. self.ids v))
-  (when (not id)
-    (let [tv (type v)]
-      (set id (+ (or (. self.max-ids tv) 0) 1))
-      (tset self.max-ids tv id)
-      (tset self.ids v id)))
-  (tostring id))
-
-(fn put-sequential-table [self t len]
-  (puts self "[")
-  (set self.level (+ self.level 1))
-  (each [k v (ipairs t)]
-    (when (< 1 k (+ 1 len))
-      (puts self " "))
-    (put-value self v))
-  (set self.level (- self.level 1))
-  (puts self "]"))
-
-(fn put-key [self k]
-  (if (and (= (type k) "string")
-           (: k :find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
-      (puts self ":" k)
-      (put-value self k)))
-
-(fn put-kv-table [self t ordered-keys]
-  (puts self "{")
-  (set self.level (+ self.level 1))
-  ;; first, output sorted nonsequential keys
-  (each [i [k v] (ipairs ordered-keys)]
-    (when (or self.table-edges (not= i 1))
-      (tabify self))
-    (put-key self k)
-    (puts self " ")
-    (put-value self v))
-  ;; next, output any sequential keys
-  (each [i v (ipairs t)]
-    (tabify self)
-    (put-key self i)
-    (puts self " ")
-    (put-value self v))
-  (set self.level (- self.level 1))
-  (when self.table-edges
-    (tabify self))
-  (puts self "}"))
-
-(fn put-table [self t]
-  (let [metamethod (and self.metamethod? (-?> t getmetatable (. :__fennelview)))]
-    (if (and (already-visited? self t) self.detect-cycles?)
-        (puts self "#<table @" (get-id self t) ">")
-        (>= self.level self.depth)
-        (puts self "{...}")
-        metamethod
-        (puts self (metamethod t self.fennelview))
-        :else
-        (let [(non-seq-keys len) (get-nonsequential-keys t)
-              id (get-id self t)]
-          ;; fancy metatable stuff can result in self.appearances not including
-          ;; a table, so if it's not found, assume we haven't seen it; we can't
-          ;; do cycle detection in that case.
-          (when (and (< 1 (or (. self.appearances t) 0)) self.detect-cycles?)
-            (puts self "@" id))
-          (if (and (= (length non-seq-keys) 0) (= (length t) 0))
-              (puts self (if self.empty-as-square "[]" "{}"))
-              (= (length non-seq-keys) 0)
-              (put-sequential-table self t len)
-              :else
-              (put-kv-table self t non-seq-keys))))))
-
-(fn put-number [self n]
-  (puts self (match (math.modf n)
-               (int 0) (tostring int)
-               ((0 frac) ? (< frac 0)) (.. "-0." (: (tostring frac) :gsub "^-?0." ""))
-               (int frac) (.. int "." (: (tostring frac) :gsub "^-?0." "")))))
-
-(set put-value
-     (fn [self v]
-       (let [tv (type v)]
-         (if (= tv :string)
-             (puts self (view-quote (escape v)))
-             (= tv :number)
-             (put-number self v)
-             (or  (= tv :boolean) (= tv :nil))
-             (puts self (tostring v))
-             (or (= tv :table)
-                 (and (= tv :userdata)
-                      (not= nil (-?> (getmetatable v) (. :__fennelview)))))
-             (put-table self v)
-             (puts self "#<" (tostring v) ">")))))
+(fn colon-string? [s]
+  ;; Test if given string is valid colon string.
+  (s:find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
 
 
 
-(fn one-line [str]
-  ;; save return value as local to ignore gsub's extra return value
-  (let [ret (-> str
-                (: :gsub "\n" " ")
-                (: :gsub "%[ " "[") (: :gsub " %]" "]")
-                (: :gsub "%{ " "{") (: :gsub " %}" "}")
-                (: :gsub "%( " "(") (: :gsub " %)" ")"))]
-    ret))
+(fn make-options [t options]
+  (let [;; defaults are used when options are not provided
+        defaults {:sequential-length 10
+                  :associative-length 4
+                  :one-line? false
+                  :depth 128
+                  :detect-cycles? true
+                  :empty-as-sequence? false
+                  :metamethod? true
+                  :utf8? true}
+        ;; overrides can't be accessed via options
+        overrides {:level 0
+                   :appearances (count-table-appearances t {})
+                   :seen {:len 0}}]
+    (each [k v (pairs (or options {}))]
+      (tset defaults k v))
+    (each [k v (pairs overrides)]
+      (tset defaults k v))
+    defaults))
+
+(fn pp.pp [x options indent key?]
+  ;; main serialization loop, entry point is defined below
+  (let [indent (or indent 0)
+        options (or options (make-options x))
+        tv (type x)]
+    (if (or (= tv :table)
+            (and (= tv :userdata)
+                 (-?> (getmetatable x) (. :__fennelview))))
+        (pp-table x options indent)
+        (= tv :number)
+        (number->string x)
+        (and (= tv :string) key? (colon-string? x))
+        (.. ":" x)
+        (= tv :string)
+        (string.format "%q" x)
+        (or (= tv :boolean) (= tv :nil))
+        (tostring x)
+        (.. "#<" (tostring x) ">"))))
 
 (fn fennelview [x options]
   "Return a string representation of x.
 
 Can take an options table with these keys:
-* :one-line (boolean: default: false) keep the output string as a one-liner
+* :one-line? (boolean: default: false) keep the output string as a one-liner
 * :depth (number, default: 128) limit how many levels to go (default: 128)
-* :indent (string, default: \"  \") use this string to indent each level
 * :detect-cycles? (boolean, default: true) don't try to traverse a looping table
 * :metamethod? (boolean: default: true) use the __fennelview metamethod if found
-* :table-edges (boolean: default: true) put {} table brackets on their own line
-* :empty-as-square (boolean: default: false) render empty tables as [], not {}
+* :empty-as-sequence? (boolean, default: false) render empty tables as []
+* :sequential-length (number, default: 10) amount of elements at which
+  multi-line sequence ouptut is produced.
+* :associative-length (number, default: 4) amount of elements at which
+  multi-line table ouptut is produced.
+* :utf8? (boolean, default true) whether to use utf8 module to compute string
+  lengths
 
 The __fennelview metamethod should take the table being serialized as its first
-argument and a function as its second arg which can be used on table elements to
-continue the fennelview process on them.
+argument, a function as its second argument, options table as third argument,
+and current amount of indentation as its last argument:
+
+(fn [t view inspector indent] ...)
+
+`view` function contains pretty printer, that can be used to serialize elements
+stored within the table being serialized.  If your metamethod produces indented
+representation, you should pass `indent` parameter to `view` increased by the
+amount of addition indentation you've introduced.
+
+`inspector` table contains options described above, and also `visible-cycle?`
+function, that takes a table being serialized, detects and saves information
+about possible reachable cycle.  Should be used in __fennelview to implement
+cycle detection.
+
+`__fennelview` metamethod should always return a table of correctly indented
+lines when producing multi-line output, or a string when returning single-line
+item. If single-line representation is needed in some cases, there's no need to
+concatenate table manually, instead `__fennelview` should return two values - a
+table of lines, and a boolean indicating if one-line representation should be
+forced.
+
+There's no need to incorporate indentation beyond needed to correctly align
+elements within the printed representation of your data structure.  For example,
+if you want to print a multi-line table, like this:
+
+@my-table[1
+          2
+          3]
+
+__fennelview should return a sequence of lines:
+
+[\"@my-table[1\"
+ \"          2\"
+ \"          3]\"]
+
+Note, since we've introduced inner indent string of length 10, when calling
+`view` function from within __fennelview metamethod, in order to keep inner
+tables indented correctly, `indent` must be increased by this amount of extra
+indentation.
+
+`view` function also accepts additional boolean argument, which controls if
+strings should be printed as a colon-strings when possible. Set it to `true`
+when `view` is being called on the key of a table.
+
+Here's an implementation of such pretty-printer for an arbitrary sequential
+table:
+
+(fn pp-doc-example [t view inspector indent]
+  (let [lines (icollect [i v (ipairs t)]
+                (let [v (view v inspector (+ 10 indent))]
+                  (if (= i 1) v
+                      (.. \"          \" v))))]
+    (doto lines
+      (tset 1 (.. \"@my-table[\" (or (. lines 1) \"\")))
+      (tset (length lines) (.. (. lines (length lines)) \"]\")))))
+
+Setting table's __fennelview metamethod to this function will provide correct
+results regardless of nesting:
+
+>> {:my-table (setmetatable [{:a {} :b [[1] [2]]} 3]
+                            {:__fennelview pp-doc-example})
+    :normal-table [{:c [1 2 3] :d :some-data} 4]}
+{:my-table @my-table[{:a {}
+                      :b [[1]
+                          [2]]}
+                     3]
+ :normal-table [{:c [1 2 3]
+                 :d \"some-data\"}
+                4]}
+
+Note that even though we've only indented inner elements of our table with 10
+spaces, the result is correctly indented in terms of outer table, and inner
+tables also remain indented correctly.
 "
-  (let [options (or options {})
-        inspector {:appearances (count-table-appearances x {})
-                   :depth (or options.depth 128)
-                   :level 0 :buffer {} :ids {} :max-ids {}
-                   :indent (or options.indent (if options.one-line "" "  "))
-                   :detect-cycles? (not (= false options.detect-cycles?))
-                   :metamethod? (not (= false options.metamethod?))
-                   :fennelview #(fennelview $1 options)
-                   :table-edges (not= options.table-edges false)
-                   :empty-as-square options.empty-as-square}]
-    (put-value inspector x)
-    (let [str (table.concat inspector.buffer)]
-      (if options.one-line (one-line str) str))))
+  (pp.pp x (make-options x options) 0))

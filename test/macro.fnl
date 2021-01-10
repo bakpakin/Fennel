@@ -96,7 +96,7 @@
 (fn test-macrodebug []
   (let [eval-normalize #(-> (pick-values 1 (fennel.eval $1 $2))
                             (: :gsub "table: 0x[0-9a-f]+" "#<TABLE>")
-                            (: :gsub "\n%s*" ""))
+                            (: :gsub "\n%s*" " "))
         code "(macrodebug (when (= 1 1) (let [x :X] {: x})) true)"
         expected-fennelview "(if (= 1 1) (do (let [x \"X\"] {:x x})))"
         expected-no-fennelview "(if (= 1 1) (do (let #<TABLE> #<TABLE>)))"]

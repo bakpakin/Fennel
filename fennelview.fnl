@@ -321,6 +321,5 @@ results regardless of nesting:
 
 Note that even though we've only indented inner elements of our table with 10
 spaces, the result is correctly indented in terms of outer table, and inner
-tables also remain indented correctly.
-"
+tables also remain indented correctly."
   (pp.pp x (make-options x options) 0))

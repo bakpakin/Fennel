@@ -96,6 +96,8 @@ local function table_indent(t, indent, id)
 end
 local pp = {}
 local function concat_table_lines(elements, options, multiline_3f, indent, table_type, prefix)
+  local indent_str = ("\n" .. string.rep(" ", indent))
+  local open = nil
   local function _2_()
     if ("seq" == table_type) then
       return "["
@@ -103,31 +105,28 @@ local function concat_table_lines(elements, options, multiline_3f, indent, table
       return "{"
     end
   end
-  local function _3_()
-    local _3_
-    if (table_type == "seq") then
-      _3_ = options["sequential-length"]
-    else
-      _3_ = options["associative-length"]
-    end
-    if (not options["one-line?"] and (multiline_3f or (#elements > _3_) or (indent > 40))) then
-      return ("\n" .. string.rep(" ", indent))
-    else
-      return " "
-    end
+  open = ((prefix or "") .. _2_())
+  local close = nil
+  if ("seq" == table_type) then
+    close = "]"
+  else
+    close = "}"
   end
-  local function _4_()
-    if ("seq" == table_type) then
-      return "]"
-    else
-      return "}"
-    end
+  local oneline = (open .. table.concat(elements, " ") .. close)
+  local _4_
+  if (table_type == "seq") then
+    _4_ = options["sequential-length"]
+  else
+    _4_ = options["associative-length"]
   end
-  return ((prefix or "") .. _2_() .. table.concat(elements, _3_()) .. _4_())
+  if (not options["one-line?"] and (multiline_3f or (#elements > _4_) or ((indent + #oneline) > options["line-length"]))) then
+    return (open .. table.concat(elements, indent_str) .. close)
+  else
+    return oneline
+  end
 end
 local function pp_associative(t, kv, options, indent, key_3f)
   local multiline_3f = false
-  local elements = {}
   local id = options.seen[t]
   if (options.level >= options.depth) then
     return "{...}"
@@ -156,23 +155,29 @@ local function pp_associative(t, kv, options, indent, key_3f)
     else
       prefix = ""
     end
-    for i, _6_0 in pairs(kv) do
-      local _7_ = _6_0
-      local k = _7_[1]
-      local v = _7_[2]
-      if ((type(k) == "table") or (type(v) == "table")) then
-        multiline_3f = true
+    local elements = nil
+    do
+      local tbl_0_ = {}
+      for _, _6_0 in pairs(kv) do
+        local _7_ = _6_0
+        local k = _7_[1]
+        local v = _7_[2]
+        local _8_
+        do
+          local k0 = pp.pp(k, options, (indent0 + 1), true)
+          local v0 = pp.pp(v, options, (indent0 + slength(k0) + 1))
+          multiline_3f = (multiline_3f or k0:find("\n") or v0:find("\n"))
+          _8_ = (k0 .. " " .. v0)
+        end
+        tbl_0_[(#tbl_0_ + 1)] = _8_
       end
-      local k0 = pp.pp(k, options, (indent0 + 1), true)
-      local v0 = pp.pp(v, options, (indent0 + slength(k0) + 1))
-      table.insert(elements, (k0 .. " " .. v0))
+      elements = tbl_0_
     end
     return concat_table_lines(elements, options, multiline_3f, indent0, "table", prefix)
   end
 end
 local function pp_sequence(t, kv, options, indent)
   local multiline_3f = false
-  local elements = {}
   local id = options.seen[t]
   if (options.level >= options.depth) then
     return "[...]"
@@ -188,19 +193,27 @@ local function pp_sequence(t, kv, options, indent)
     else
       prefix = ""
     end
-    for _, _3_0 in pairs(kv) do
-      local _4_ = _3_0
-      local _0 = _4_[1]
-      local v = _4_[2]
-      if (type(v) == "table") then
-        multiline_3f = true
+    local elements = nil
+    do
+      local tbl_0_ = {}
+      for _, _3_0 in pairs(kv) do
+        local _4_ = _3_0
+        local _0 = _4_[1]
+        local v = _4_[2]
+        local _5_
+        do
+          local v0 = pp.pp(v, options, indent0)
+          multiline_3f = (multiline_3f or v0:find("\n"))
+          _5_ = v0
+        end
+        tbl_0_[(#tbl_0_ + 1)] = _5_
       end
-      table.insert(elements, pp.pp(v, options, indent0))
+      elements = tbl_0_
     end
     return concat_table_lines(elements, options, multiline_3f, indent0, "seq", prefix)
   end
 end
-local function concat_lines(lines, options, indent, one_line_3f)
+local function concat_lines(lines, options, indent, force_multi_line_3f)
   if (#lines == 0) then
     if options["empty-as-sequence?"] then
       return "[]"
@@ -208,17 +221,20 @@ local function concat_lines(lines, options, indent, one_line_3f)
       return "{}"
     end
   else
-    if (not options["one-line?"] and not one_line_3f) then
+    local oneline = nil
+    local _2_
+    do
+      local tbl_0_ = {}
+      for _, line in ipairs(lines) do
+        tbl_0_[(#tbl_0_ + 1)] = line:gsub("^%s+", "")
+      end
+      _2_ = tbl_0_
+    end
+    oneline = table.concat(_2_, " ")
+    if (not options["one-line?"] and (force_multi_line_3f or oneline:find("\n") or ((indent + #oneline) > options["line-length"]))) then
       return table.concat(lines, ("\n" .. string.rep(" ", indent)))
     else
-      local function _2_()
-        local tbl_0_ = {}
-        for _, line in ipairs(lines) do
-          tbl_0_[(#tbl_0_ + 1)] = line:gsub("^%s+", " ")
-        end
-        return tbl_0_
-      end
-      return table.concat(_2_())
+      return oneline
     end
   end
 end
@@ -236,13 +252,13 @@ local function pp_metamethod(t, metamethod, options, indent)
     end
     options["visible-cycle?"] = _2_
     _ = nil
-    local lines, force_one_line_3f = metamethod(t, pp.pp, options, indent)
+    local lines, force_multi_line_3f = metamethod(t, pp.pp, options, indent)
     options["visible-cycle?"] = nil
     local _3_0 = type(lines)
     if (_3_0 == "string") then
       return lines
     elseif (_3_0 == "table") then
-      return concat_lines(lines, options, indent, force_one_line_3f)
+      return concat_lines(lines, options, indent, force_multi_line_3f)
     else
       local _0 = _3_0
       return error("Error: __fennelview metamethod must return a table of lines")
@@ -321,7 +337,7 @@ local function colon_string_3f(s)
   return s:find("^[-%w?\\^_!$%&*+./@:|<=>]+$")
 end
 local function make_options(t, options)
-  local defaults = {["associative-length"] = 4, ["detect-cycles?"] = true, ["empty-as-sequence?"] = false, ["metamethod?"] = true, ["one-line?"] = false, ["sequential-length"] = 10, ["utf8?"] = true, depth = 128}
+  local defaults = {["associative-length"] = 4, ["detect-cycles?"] = true, ["empty-as-sequence?"] = false, ["line-length"] = 80, ["metamethod?"] = true, ["one-line?"] = false, ["sequential-length"] = 10, ["utf8?"] = true, depth = 128}
   local overrides = {appearances = count_table_appearances(t, {}), level = 0, seen = {len = 0}}
   for k, v in pairs((options or {})) do
     defaults[k] = v

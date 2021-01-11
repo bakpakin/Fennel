@@ -90,24 +90,22 @@
 
 (fn concat-table-lines
   [elements options multiline? indent table-type prefix]
-  (.. (or prefix "")
-      (if (= :seq table-type) "[" "{")
-      (table.concat
-       elements
-       (if (and (not options.one-line?)
-                (or multiline?
-                    (> (length elements) (if (= table-type :seq)
-                                             options.sequential-length
-                                             options.associative-length))
-                    (> indent 40)))
-           (.. "\n" (string.rep " " indent))
-           " "))
-      (if (= :seq table-type) "]" "}")))
+  (let [indent-str (.. "\n" (string.rep " " indent))
+        open (.. (or prefix "") (if (= :seq table-type) "[" "{"))
+        close (if (= :seq table-type) "]" "}")
+        oneline (.. open (table.concat elements " ") close)]
+    (if (and (not options.one-line?)
+             (or multiline?
+                 (> (length elements) (if (= table-type :seq)
+                                          options.sequential-length
+                                          options.associative-length))
+                 (> (+ indent (length oneline)) options.line-length)))
+        (.. open (table.concat elements indent-str) close)
+        oneline)))
 
 (fn pp-associative [t kv options indent key?]
   (var multiline? false)
-  (let [elements []
-        id (. options.seen t)]
+  (let [id (. options.seen t)]
     (if (>= options.level options.depth) "{...}"
         (and id options.detect-cycles?) (.. "@" id "{...}")
         (let [visible-cycle? (visible-cycle? t options)
@@ -115,52 +113,53 @@
               indent (table-indent t indent id)
               slength (or (and options.utf8? (-?> (rawget _G :utf8) (. :len)))
                           #(length $))
-              prefix (if visible-cycle? (.. "@" id) "")]
-          (each [i [k v] (pairs kv)]
-            (when (or (= (type k) :table) (= (type v) :table))
-              (set multiline? true))
-            (let [k (pp.pp k options (+ indent 1) true)
-                  v (pp.pp v options (+ indent (slength k) 1))]
-              (table.insert elements (.. k " " v))))
+              prefix (if visible-cycle? (.. "@" id) "")
+              elements (icollect [_ [k v] (pairs kv)]
+                         (let [k (pp.pp k options (+ indent 1) true)
+                               v (pp.pp v options (+ indent (slength k) 1))]
+                           (set multiline? (or multiline? (k:find "\n") (v:find "\n")))
+                           (.. k " " v)))]
           (concat-table-lines
            elements options multiline? indent :table prefix)))))
 
 (fn pp-sequence [t kv options indent]
   (var multiline? false)
-  (let [elements []
-        id (. options.seen t)]
+  (let [id (. options.seen t)]
     (if (>= options.level options.depth) "[...]"
         (and id options.detect-cycles?) (.. "@" id "[...]")
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
               indent (table-indent t indent id)
-              prefix (if visible-cycle? (.. "@" id) "")]
-          (each [_ [_ v] (pairs kv)]
-            (when (= (type v) :table)
-              (set multiline? true))
-            (table.insert elements (pp.pp v options indent)))
+              prefix (if visible-cycle? (.. "@" id) "")
+              elements (icollect [_ [_ v] (pairs kv)]
+                         (let [v (pp.pp v options indent)]
+                           (set multiline? (or multiline? (v:find "\n")))
+                           v))]
           (concat-table-lines
            elements options multiline? indent :seq prefix)))))
 
-(fn concat-lines [lines options indent one-line?]
+(fn concat-lines [lines options indent force-multi-line?]
   (if (= (length lines) 0)
       (if options.empty-as-sequence? "[]" "{}")
-      (if (and (not options.one-line?)
-               (not one-line?))
-          (table.concat lines (.. "\n" (string.rep " " indent)))
-          (-> (icollect [_ line (ipairs lines)]
-                (line:gsub "^%s+" " "))
-              table.concat))))
+      (let [oneline (-> (icollect [_ line (ipairs lines)]
+                          (line:gsub "^%s+" ""))
+                        (table.concat " "))]
+        (if (and (not options.one-line?)
+                 (or force-multi-line?
+                     (oneline:find "\n")
+                     (> (+ indent (length oneline)) options.line-length)))
+            (table.concat lines (.. "\n" (string.rep " " indent)))
+            oneline))))
 
 (fn pp-metamethod [t metamethod options indent]
   (if (>= options.level options.depth)
       (if options.empty-as-sequence? "[...]" "{...}")
       (let [_ (set options.visible-cycle? #(visible-cycle? $ options))
-            (lines force-one-line?) (metamethod t pp.pp options indent)]
+            (lines force-multi-line?) (metamethod t pp.pp options indent)]
         (set options.visible-cycle? nil)
         (match (type lines)
-          :string lines ;; assuming that it is already single line
-          :table  (concat-lines lines options indent force-one-line?)
+          :string lines ;; TODO: assuming that result is already a single line. Maybe warn?
+          :table  (concat-lines lines options indent force-multi-line?)
           _ (error "Error: __fennelview metamethod must return a table of lines")))))
 
 (fn pp-table [x options indent]
@@ -196,6 +195,7 @@
   (let [;; defaults are used when options are not provided
         defaults {:sequential-length 10
                   :associative-length 4
+                  :line-length 80
                   :one-line? false
                   :depth 128
                   :detect-cycles? true
@@ -241,15 +241,17 @@ Can take an options table with these keys:
 * :metamethod? (boolean: default: true) use the __fennelview metamethod if found
 * :empty-as-sequence? (boolean, default: false) render empty tables as []
 * :sequential-length (number, default: 10) amount of elements at which
-  multi-line sequence ouptut is produced.
+  multi-line sequence ouptut is produced
 * :associative-length (number, default: 4) amount of elements at which
-  multi-line table ouptut is produced.
+  multi-line table ouptut is produced
+* :line-length (number, default: 80) length of the line at which
+  multi-line output for tables is forced
 * :utf8? (boolean, default true) whether to use utf8 module to compute string
   lengths
 
-The __fennelview metamethod should take the table being serialized as its first
-argument, a function as its second argument, options table as third argument,
-and current amount of indentation as its last argument:
+The `__fennelview` metamethod should take the table being serialized as its
+first argument, a function as its second argument, options table as third
+argument, and current amount of indentation as its last argument:
 
 (fn [t view inspector indent] ...)
 
@@ -260,15 +262,21 @@ amount of addition indentation you've introduced.
 
 `inspector` table contains options described above, and also `visible-cycle?`
 function, that takes a table being serialized, detects and saves information
-about possible reachable cycle.  Should be used in __fennelview to implement
+about possible reachable cycle.  Should be used in `__fennelview` to implement
 cycle detection.
 
 `__fennelview` metamethod should always return a table of correctly indented
-lines when producing multi-line output, or a string when returning single-line
-item. If single-line representation is needed in some cases, there's no need to
-concatenate table manually, instead `__fennelview` should return two values - a
-table of lines, and a boolean indicating if one-line representation should be
-forced.
+lines when producing multi-line output, or a string when always returning
+single-line item.  `fennelview` will transform your data structure to correct
+multi-line representation when needed.  There's no need to concatenate table
+manually ever - `fennelview` will apply general rules for your data structure,
+depending on current options.  By default multiline output is produced only when
+inner data structures contains newlines, or when returning table of lines as
+single line results in width greater than `line-size` option.
+
+Multi-line representation can be forced by returning two values from
+`__fennelview` - a table of indented lines as first value, and `true` as second
+value, indicating that multi-line representation should be forced.
 
 There's no need to incorporate indentation beyond needed to correctly align
 elements within the printed representation of your data structure.  For example,
@@ -278,19 +286,19 @@ if you want to print a multi-line table, like this:
           2
           3]
 
-__fennelview should return a sequence of lines:
+`__fennelview` should return a sequence of lines:
 
 [\"@my-table[1\"
  \"          2\"
  \"          3]\"]
 
 Note, since we've introduced inner indent string of length 10, when calling
-`view` function from within __fennelview metamethod, in order to keep inner
+`view` function from within `__fennelview` metamethod, in order to keep inner
 tables indented correctly, `indent` must be increased by this amount of extra
 indentation.
 
 `view` function also accepts additional boolean argument, which controls if
-strings should be printed as a colon-strings when possible. Set it to `true`
+strings should be printed as a colon-strings when possible.  Set it to `true`
 when `view` is being called on the key of a table.
 
 Here's an implementation of such pretty-printer for an arbitrary sequential
@@ -305,19 +313,18 @@ table:
       (tset 1 (.. \"@my-table[\" (or (. lines 1) \"\")))
       (tset (length lines) (.. (. lines (length lines)) \"]\")))))
 
-Setting table's __fennelview metamethod to this function will provide correct
+Setting table's `__fennelview` metamethod to this function will provide correct
 results regardless of nesting:
 
->> {:my-table (setmetatable [{:a {} :b [[1] [2]]} 3]
+>> {:my-table (setmetatable [[1 2 3 4 5]
+                             {:smalls [6 7 8 9 10 11 12]
+                              :bigs [500 1000 2000 3000 4000]}]
                             {:__fennelview pp-doc-example})
     :normal-table [{:c [1 2 3] :d :some-data} 4]}
-{:my-table @my-table[{:a {}
-                      :b [[1]
-                          [2]]}
-                     3]
- :normal-table [{:c [1 2 3]
-                 :d \"some-data\"}
-                4]}
+{:my-table @my-table[[1 2 3 4 5]
+                     {:bigs [500 1000 2000 3000 4000]
+                      :smalls [6 7 8 9 10 11 12]}]
+ :normal-table [{:c [1 2 3] :d \"some-data\"} 4]}
 
 Note that even though we've only indented inner elements of our table with 10
 spaces, the result is correctly indented in terms of outer table, and inner

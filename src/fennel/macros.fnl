@@ -91,7 +91,7 @@ encountering an error before propagating it."
     `(let ,closable-bindings ,closer
           (close-handlers# (xpcall ,bodyfn ,traceback)))))
 
-(fn collect [iter-tbl key-value-expr]
+(fn collect [iter-tbl key-value-expr ...]
   "Returns a table made by running an iterator and evaluating an expression
 that returns key-value pairs to be inserted sequentially into the table.
 This can be thought of as a \"table comprehension\". The provided key-value
@@ -106,13 +106,15 @@ returns
           "expected iterator binding table")
   (assert (not= nil key-value-expr)
           "expected key-value expression")
+  (assert (= nil ...)
+          "expected exactly one body expression. Wrap multiple expressions with do")
   `(let [tbl# {}]
      (each ,iter-tbl
        (match ,key-value-expr
          (k# v#) (tset tbl# k# v#)))
      tbl#))
 
-(fn icollect [iter-tbl value-expr]
+(fn icollect [iter-tbl value-expr ...]
   "Returns a sequential table made by running an iterator and evaluating an
 expression that returns values to be inserted sequentially into the table.
 This can be thought of as a \"list comprehension\".
@@ -125,6 +127,8 @@ returns
           "expected iterator binding table")
   (assert (not= nil value-expr)
           "expected table value expression")
+  (assert (= nil ...)
+          "expected exactly one body expression. Wrap multiple expressions with do")
   `(let [tbl# []]
      (each ,iter-tbl
        (tset tbl# (+ (length tbl#) 1) ,value-expr))

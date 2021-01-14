@@ -23,11 +23,11 @@ Run fennel, a lisp programming language for the Lua runtime.
   --no-metadata           : Disable function metadata, even in REPL
   --correlate             : Make Lua output line numbers match Fennel input
   --load FILE (-l)        : Load the specified FILE before executing the command
-  --lua LUA_EXE           : Run in a child process with LUA_EXE (experimental)
+  --lua LUA_EXE           : Run in a child process with LUA_EXE
   --no-fennelrc           : Skip loading ~/.fennelrc when launching repl
   --plugin FILE           : Activate the compiler plugin in FILE
   --compile-binary FILE
-      OUT LUA_LIB LUA_DIR : Compile FILE to standalone binary OUT (experimental)
+      OUT LUA_LIB LUA_DIR : Compile FILE to standalone binary OUT
   --compile-binary --help : Display further help for compiling binaries
   --no-compiler-sandbox   : Do not limit compiler environment to minimal sandbox
 

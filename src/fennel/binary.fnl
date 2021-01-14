@@ -256,8 +256,7 @@ int main(int argc, char *argv[]) {
 (local help (: "
 Usage: %s --compile-binary FILE OUT STATIC_LUA_LIB LUA_INCLUDE_DIR
 
-Compile a binary from your Fennel program. This functionality is VERY
-experimental and subject to change in future versions!
+Compile a binary from your Fennel program.
 
 Requires a C compiler, a copy of liblua, and Lua's dev headers. Implies
 the --require-as-include option.

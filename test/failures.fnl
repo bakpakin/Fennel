@@ -74,6 +74,7 @@
   "(import-macros {: asdf} :test.macros)" "macro asdf not found in module test.macros"
   "(with-open [(x y z) (values 1 2 3)])" "with-open only allows symbols in bindings"
   "#[$ $...] 1 2 3" "$ and $... in hashfn are mutually exclusive"
+  "(eval-compiler (assert-compile false \"oh no\" 123))" "oh no"
 })
 
 (fn test-failures []
@@ -89,7 +90,9 @@
 ;; test/bad/friendly.sh and review that output.
 (fn test-suggestions []
   (let [(_ msg) (pcall fennel.dofile "test/bad/set-local.fnl")
-        (_ parse-msg) (pcall fennel.dofile "test/bad/odd-table.fnl")]
+        (_ parse-msg) (pcall fennel.dofile "test/bad/odd-table.fnl")
+        (_ assert-msg) (pcall fennel.eval
+                              "(eval-compiler (assert-compile nil \"bad\" 1))")]
     ;; show the raw error message
     (l.assertStrContains msg "expected var x")
     ;; offer suggestions
@@ -98,6 +101,8 @@
     (l.assertStrContains msg "(set x 3)")
     (l.assertStrContains msg "\n     ^")
     ;; parse error
-    (l.assertStrContains parse-msg "{:a 1 :b 2 :c}")))
+    (l.assertStrContains parse-msg "{:a 1 :b 2 :c}")
+    ;; non-table AST in assertion
+    (l.assertStrContains assert-msg "bad")))
 
 {: test-failures : test-suggestions}

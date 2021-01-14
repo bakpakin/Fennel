@@ -31,6 +31,16 @@ implement nesting. "
      :hashfn (and parent parent.hashfn)
      :parent parent}))
 
+(fn assert-msg [ast msg]
+  (let [ast-tbl (if (= :table (type ast)) ast {})
+        m (getmetatable ast)
+        filename (or (and m m.filename) ast-tbl.filename "unknown")
+        line (or (and m m.line) ast-tbl.line "?")
+        target (tostring (if (utils.sym? (. ast-tbl 1))
+                             (utils.deref (. ast-tbl 1))
+                             (or (. ast-tbl 1) "()")))]
+    (string.format "Compile error in '%s' %s:%s: %s" target filename line msg)))
+
 ;; If you add new calls to this function, please update fennel.friend
 ;; as well to add suggestions for how to fix the new error!
 (fn assert-compile [condition msg ast]
@@ -40,15 +50,8 @@ The ast arg should be unmodified so that its first element is the form called."
     (let [{: source : unfriendly} (or utils.root.options {})]
       (utils.root.reset)
       (if unfriendly
-          (let [m (getmetatable ast)
-                filename (or (and m m.filename) ast.filename "unknown")
-                line (or (and m m.line) ast.line "?")
-                target (tostring (if (utils.sym? (. ast 1))
-                                     (utils.deref (. ast 1))
-                                     (or (. ast 1) "()")))]
-            ;; if we use regular `assert' we can't set level to 0
-            (error (string.format "Compile error in '%s' %s:%s: %s"
-                                  target filename line msg) 0))
+          ;; if we use regular `assert' we can't set level to 0
+          (error (assert-msg ast msg) 0)
           (friend.assert-compile condition msg ast source))))
   condition)
 

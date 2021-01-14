@@ -83,7 +83,7 @@ For more information about the language, see https://fennel-lang.org/reference")
     (true old) (let [_ (tset package.loaded module-name nil)
                      (ok new) (pcall require module-name)
                      ;; keep the old module if reload failed
-                     new (if (not ok) (do (on-values new) old) new)]
+                     new (if (not ok) (do (on-values [new]) old) new)]
                  ;; if the module isn't a table then we can't make changes
                  ;; which affect already-loaded code, but if it is then we
                  ;; should splice new values into the existing table and

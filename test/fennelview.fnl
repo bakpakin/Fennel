@@ -1,6 +1,6 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
-(local view (require :fennelview))
+(local view (require :fennel.view))
 (local generate (fennel.dofile "test/generate.fnl"))
 
 (fn count [t]

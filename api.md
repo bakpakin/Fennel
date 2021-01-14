@@ -25,7 +25,7 @@ usually accept these fields:
 * `compiler-env`: an environment table in which to run compiler-scoped code
   for macro definitions and `eval-compiler` calls. Internal Fennel functions
   such as `list`, `sym`, etc. will be exposed in addition to this table.
-  Defaults to a table containing limited known-safe globals. Pass `_G` to 
+  Defaults to a table containing limited known-safe globals. Pass `_G` to
   disable sandboxing.
 * `unfriendly`: disable friendly compiler/parser error messages.
 
@@ -50,11 +50,9 @@ Takes these additional options:
   'compile', 'runtime',  or 'lua'. `err` is the error message, and `luaSource`
   is the source of the generated lua code.
 
-The pretty-printer defaults to loading `fennelview.fnl` if present and
-falls back to `tostring` otherwise. `fennelview.fnl` will produce
-output that can be fed back into Fennel (other than functions,
-coroutines, etc) but you can use a 3rd-party pretty-printer that
-produces output in Lua format if you prefer.
+`src/fennel/view.fnl` will produce output that can be fed back into Fennel
+(other than functions, coroutines, etc) but you can use a 3rd-party
+pretty-printer that produces output in Lua format if you prefer.
 
 If you don't provide `allowedGlobals` then it defaults to being all
 the globals in the environment under which the code will run. Passing
@@ -154,7 +152,7 @@ Accepts `indent` in `options` as per above.
 ```lua
 local stream = fennel.stringStream(str)
 ```
-    
+
 ## Converts an iterator for strings into an iterator over their bytes
 
 Useful for the REPL or reading files in chunks. This will NOT insert
@@ -166,7 +164,7 @@ a repl.
 ```lua
 local bytestream, clearstream = fennel.granulate(chunks)
 ```
-    
+
 ## Converts a stream of bytes to a stream of values
 
 Valuestream gets the next top level value parsed.
@@ -290,9 +288,7 @@ used to print normal values, and one which is used to print errors.
 ```fennel
 (fn locals [env _read on-values on-error]
   "Print all locals in repl session scope."
-  (match (pcall require :fennelview)
-    (true view) (on-values [(view env.___replLocals___)])
-    (nil err) (on-error :Runtime "Missing fennelview module.")))
+  (on-values [(view env.___replLocals___)]))
 
 {:repl-command-locals locals}
 ```

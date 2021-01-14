@@ -1,12 +1,12 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
-(local fennelview (require :fennelview))
+(local view (require :fennel.view))
 
 (fn c [code]
   (fennel.compileString code {:allowedGlobals false :compiler-env _G}))
 
 (fn v [code]
-  (fennelview ((fennel.loadCode (c code) _G)) {:one-line? true}))
+  (view ((fennel.loadCode (c code) _G)) {:one-line? true}))
 
 (fn test-quote []
   (l.assertEquals (c "`:abcde") "return \"abcde\"" "simple string quoting")

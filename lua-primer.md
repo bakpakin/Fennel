@@ -57,8 +57,8 @@ aren't covered here.
 * `require`: loads and returns a given module
 
 Note that `tostring` on tables will give unsatisfactory results; simply
-evaluating the table in the REPL will invoke `fennelview` for you and
-show a human-readable view of the table (or you can invoke `fennelview`
+evaluating the table in the REPL will invoke `fennel.view` for you, and
+show a human-readable view of the table (or you can invoke `fennel.view`
 explicitly in your code).
 
 ## The io module

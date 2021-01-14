@@ -124,10 +124,6 @@ local mylib = require("mylib") -- will compile and load code in mylib.fnl
 Be sure to use the `fennel.lua` library and not the file for the
 entire `fennel` executable.
 
-**Note**: Optionally, if you want the Fennel REPL to print tables
-in a more readable format, you can add `fennelview.fnl` to
-your code repository.
-
 ### Performing ahead-of-time compilation
 
 If the target system of your application does not make it easy to add

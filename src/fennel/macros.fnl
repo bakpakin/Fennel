@@ -210,9 +210,8 @@ that argument name begins with ?."
 (fn macrodebug [form return?]
   "Print the resulting form after performing macroexpansion.
 With a second argument, returns expanded form as a string instead of printing."
-  (let [(ok view) (pcall require :fennelview)
-        handle (if return? `do `print)]
-    `(,handle ,((if ok view tostring) (macroexpand form _SCOPE)))))
+  (let [handle (if return? `do `print)]
+    `(,handle ,(view (macroexpand form _SCOPE)))))
 
 (fn import-macros [binding1 module-name1 ...]
   "Binds a table of macros from each macro module according to a binding form.

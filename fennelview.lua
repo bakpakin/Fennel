@@ -18,7 +18,7 @@ local function sort_keys(_0_0, _1_0)
     elseif dtb then
       return false
     else
-      return false
+      return (ta < tb)
     end
   end
 end
@@ -373,7 +373,7 @@ pp.pp = function(x, options, indent, key_3f)
     return ("#<" .. tostring(x) .. ">")
   end
 end
-local function fennelview(x, options)
+local function view(x, options)
   return pp.pp(x, make_options(x, options), 0)
 end
-return fennelview
+return view

@@ -1,6 +1,6 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
-(local fennelview (require :fennelview))
+(local view (require :fennel.view))
 
 (fn test-traceback []
   (let [tracer (fennel.dofile "test/mod/tracer.fnl")
@@ -33,7 +33,7 @@
                     (.. "Expected include to have result: " expected))
     (l.assertFalse out.quux
                    "Expected include not to leak upvalues into included modules")
-    (l.assertEquals (fennelview out) (fennelview out2)
+    (l.assertEquals (view out) (view out2)
                     "Expected requireAsInclude to behave the same as include")
     (l.assertNil _G.quux "Expected include to actually be local")
     (let [spliceOk (pcall fennel.dofile "test/mod/splice.fnl")]

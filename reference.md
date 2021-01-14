@@ -241,7 +241,7 @@ Example:
 
 ```fennel
 (let [{:msg message : val} {:msg "hello there" :val 19}]
-  (print message) 
+  (print message)
   val) ; prints "hello there" and returns 19
 ```
 
@@ -379,7 +379,7 @@ value will not match:
 
 ```fennel
 (let [x 95]
- (match [52 85 95] 
+ (match [52 85 95]
    [b a a] :no ; because a=85 and a=95
    [x y z] :no ; because x=95 and x=52
    [a b x] :yes)) ; a and b are fresh values while x=95 and x=95
@@ -1004,15 +1004,6 @@ top-level macros in that form and print out the resulting form. Note
 that the resulting form will usually not be sensibly indented, so you
 might need to copy it and reformat it into something more readable.
 
-It will attempt to load the `fennelview` module to pretty-print the
-results but will fall back to `tostring` if that isn't found. If you
-have moved the `fennelview` module to another location, try setting it
-in `package.loaded` to make it available here:
-
-```fennel
-(set package.loaded (require :lib.newlocation.fennelview))
-```
-
 Note that this prints at compile-time since `macrodebug` is a macro.
 
 ### Macro gotchas
@@ -1108,6 +1099,7 @@ can use `tostring` to get the name of a symbol.
 * `varg?` - is this a `...` symbol which indicates var args?
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
 * `gensym` - generate a guaranteed-unique symbol
+* `view` - `fennel.view` table serializer
 
 * `assert-compile` - works like `assert` but takes a list/symbol as its third
   argument in order to provide pinpointed error messages.

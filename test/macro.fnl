@@ -98,17 +98,8 @@
                             (: :gsub "table: 0x[0-9a-f]+" "#<TABLE>")
                             (: :gsub "\n%s*" " "))
         code "(macrodebug (when (= 1 1) (let [x :X] {: x})) true)"
-        expected-fennelview "(if (= 1 1) (do (let [x \"X\"] {:x x})))"
-        expected-no-fennelview "(if (= 1 1) (do (let #<TABLE> #<TABLE>)))"]
-    (l.assertEquals (eval-normalize code) expected-fennelview)
-    (let [fennelview package.loaded.fennelview
-          fennel-path fennel.path
-          package-path package.path]
-      (set (package.loaded.fennelview fennel.path package.path)
-           (values nil "" ""))
-      (l.assertEquals (eval-normalize code) expected-no-fennelview)
-      (set (package.loaded.fennelview fennel.path package.path)
-           (values fennelview fennel-path package-path)))))
+        expected "(if (= 1 1) (do (let [x \"X\"] {:x x})))"]
+    (l.assertEquals (eval-normalize code) expected)))
 
 {: test-arrows
  : test-comprehensions

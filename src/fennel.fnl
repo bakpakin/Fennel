@@ -23,6 +23,7 @@
 (local compiler (require :fennel.compiler))
 (local specials (require :fennel.specials))
 (local repl (require :fennel.repl))
+(local view (require :fennel.view))
 
 (fn get-env [env]
   (if (= env :_COMPILER)
@@ -101,6 +102,7 @@
             :make_searcher specials.make-searcher ; backwards-compatibility alias
             :searcher (specials.make-searcher)
             :doc specials.doc
+            :view view
 
             :eval eval
             :dofile dofile*
@@ -120,9 +122,8 @@
       module-name "fennel.macros"
       _ (tset package.preload module-name #mod)
       env (doto (specials.make-compiler-env nil compiler.scopes.compiler {})
-                (tset :require require) ; for macrodebug to require fennelview
-                (tset :utils utils) ; for import-macros to propagate compile opts
-                (tset :fennel mod))
+            (tset :utils utils) ; for import-macros to propagate compile opts
+            (tset :fennel mod))
       built-ins (eval builtin-macros {:env env
                                       :scope compiler.scopes.compiler
                                       :allowedGlobals false

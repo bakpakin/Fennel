@@ -162,7 +162,7 @@ Run fennel, a lisp programming language for the Lua runtime.
 (fn repl []
   (let [readline (try-readline (pcall require :readline))]
     (set searcher-opts.useMetadata (not= false options.useMetadata))
-    (set options.pp (require :fennelview))
+    (set options.pp (require :fennel.view))
     (when (not= false options.fennelrc)
       (load-initfile))
     (print (.. "Welcome to Fennel " fennel.version " on " _VERSION "!"))

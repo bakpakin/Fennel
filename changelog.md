@@ -2,6 +2,7 @@
 
 ## 0.8.0 / ???
 
+* The fennelview module is now incorporated into the compiler as `fennel.view`
 * Fully rewrite fennelview for better indentation handling; see fennelview
   docstring for detailed description of API changes
 * Improve printing of destructured args in function arglist in `doc`

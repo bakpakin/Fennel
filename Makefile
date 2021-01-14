@@ -4,7 +4,7 @@ PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 
-SRC=src/fennel.fnl fennelview.fnl $(wildcard src/fennel/*.fnl)
+SRC=src/fennel.fnl $(wildcard src/fennel/*.fnl)
 
 build: fennel
 
@@ -26,10 +26,10 @@ count: ; cloc --force-lang=lisp $(SRC)
 LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl --globals "_G,_ENV"
 
 # Precompile fennel libraries
-fennelview.lua: fennelview.fnl fennel.lua ; $(LAUNCHER) --compile $< > $@
+fennelview.lua: src/fennel/view.fnl fennel.lua ; $(LAUNCHER) --compile $< > $@
 
 # All-in-one pure-lua script:
-fennel: src/launcher.fnl $(SRC) fennelview.lua
+fennel: src/launcher.fnl $(SRC)
 	echo "#!/usr/bin/env $(LUA)" > $@
 	$(LAUNCHER) --no-metadata --require-as-include --compile $< >> $@
 	chmod 755 $@
@@ -84,7 +84,7 @@ fennel-arm32:
 	scp $(ARM_HOST):src/fennel/fennel-bin $@
 
 fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua fennelview.lua \
-		Makefile fennelview.fnl $(SRC)
+		Makefile $(SRC)
 	mkdir fennel-$(VERSION)
 	cp -r $^ fennel-$(VERSION)
 	tar czf $@ fennel-$(VERSION)

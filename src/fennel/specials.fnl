@@ -3,6 +3,7 @@
 ;; functionality which is kept in this module for circularity reasons.
 
 (local utils (require "fennel.utils"))
+(local view (require "fennel.view"))
 (local parser (require "fennel.parser"))
 (local compiler (require "fennel.compiler"))
 (local unpack (or table.unpack _G.unpack))
@@ -889,6 +890,7 @@ Method name doesn't have to be known at compile-time; if it is, use
                  :table? utils.table?
                  :varg? utils.varg?
 
+                 :view view
                  ;; scoping functions
                  :gensym (fn [base]
                            (utils.sym (compiler.gensym

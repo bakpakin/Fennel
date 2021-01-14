@@ -14,7 +14,7 @@
           (if (and dta dtb) (< dta dtb)
               dta true
               dtb false
-              false)))))
+              (< ta tb))))))
 
 (fn table-kv-pairs [t]
   ;; Return table of tables with first element representing key and second
@@ -231,7 +231,7 @@
         (tostring x)
         (.. "#<" (tostring x) ">"))))
 
-(fn fennelview [x options]
+(fn view [x options]
   "Return a string representation of x.
 
 Can take an options table with these keys:
@@ -267,9 +267,9 @@ cycle detection.
 
 `__fennelview` metamethod should always return a table of correctly indented
 lines when producing multi-line output, or a string when always returning
-single-line item.  `fennelview` will transform your data structure to correct
+single-line item.  `fennel.view` will transform your data structure to correct
 multi-line representation when needed.  There's no need to concatenate table
-manually ever - `fennelview` will apply general rules for your data structure,
+manually ever - `fennel.view` will apply general rules for your data structure,
 depending on current options.  By default multiline output is produced only when
 inner data structures contains newlines, or when returning table of lines as
 single line results in width greater than `line-size` option.

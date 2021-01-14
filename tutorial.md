@@ -554,9 +554,9 @@ runtime overhead over Lua.
 * Return values in the default repl will get pretty-printed, but
   calling `(print tbl)` will emit output like `table: 0x55a3a8749ef0`.
   If you don't already have one, it's recommended for debugging to
-  define a printer function which calls `fennelview` on its argument
-  before printing it: `(local view (require :fennelview))
-  (global pp (fn [x] (print (view x))))`
+  define a printer function which calls `fennel.view` on its argument
+  before printing it: `(local fennel (require :fennel))
+  (global pp (fn [x] (print (fennel.view x))))`
 
 * Lua programmers should note Fennel functions cannot do early returns.
 

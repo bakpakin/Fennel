@@ -1113,6 +1113,37 @@ These functions can be used from within macros only, not from any
 Note that other internals of the compiler exposed in compiler scope are
 subject to change.
 
+## `lua` Escape Hatch
+
+There are some cases when you need to emit Lua output from Fennel in
+ways that don't match Fennel's semantics. For instance, if you are
+porting an algorithm from Lua that uses early returns, you may want
+to do the port as literally as possible first, and then come back to
+it later to make it idiomatic. You can use the `lua` special form to
+accomplish this:
+
+```fennel
+(fn find [tbl pred]
+  (each [key val (pairs tbl)]
+    (when (pred val)
+      (lua "return key"))))
+```
+
+Lua code inside the string can refer to locals which are in scope;
+however note that it must refer to the names after mangling has been
+done, because the identifiers must be valid Lua. The Fennel compiler
+will emit `foo-bar` as `foo_bar` in the Lua output in order for it to
+be valid. When in doubt, inspect the compiler output to see what it
+looks like.
+
+Normally in these cases you would want to emit a statement, in which
+case you would pass a string of Lua code as the first argument. But
+you can also use it to emit an expression if you pass in a string as
+the second argument.
+
+Note that this should only be used in exceptional circumstances, and
+if you are able to avoid it, you should.
+
 [1]: https://www.lua.org/manual/5.1/
 [2]: https://gist.github.com/nimaai/2f98cc421c9a51930e16#variable-capture
 [3]: https://fennel-lang.org/lua-primer

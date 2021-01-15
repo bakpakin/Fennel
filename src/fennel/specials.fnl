@@ -265,7 +265,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
                    "expected 1 or 2 arguments" ast)
   (when (not= (. ast 2) nil)
     (table.insert parent {:ast ast :leaf (tostring (. ast 2))}))
-  (when (= (# ast) 3)
+  (when (not= (. ast 3) nil)
     (tostring (. ast 3))))
 
 (fn SPECIALS.doc [ast scope parent]

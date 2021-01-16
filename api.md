@@ -182,6 +182,13 @@ for ok, value in valuestream do
 end
 ```
 
+The `fennel.parser` function takes two optional arguments; a filename
+and a table of options. Supported options are both booleans that
+default to false:
+
+* `unfriendly`: disable enhanced parse error reporting
+* `comments`: include comment nodes in AST
+
 ## Work with docstrings and metadata
 
 *(Since 0.3.0)*

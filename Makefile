@@ -6,7 +6,7 @@ LUADIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 
 SRC=src/fennel.fnl $(wildcard src/fennel/*.fnl)
 
-build: fennel
+build: fennel fennel.lua
 
 test: fennel.lua fennel
 	$(LUA) test/init.lua

@@ -31,7 +31,7 @@ end
 
 if(#arg == 0) then
    testall({"core", "mangling", "quoting", "misc", "docstring", "fennelview",
-            "failures", "repl", "cli", "macro", "linter"})
+            "parser", "failures", "repl", "cli", "macro", "linter"})
 else
    testall(arg)
 end

@@ -123,9 +123,11 @@ stream is finished."
           (badend)
           b))
 
-    (fn skip-comment [b]
+    (fn parse-comment [b contents]
       (if (and b (not= 10 b))
-          (skip-comment (getb))
+          (parse-comment (getb) (doto contents (table.insert (string.char b))))
+          (and options options.comments)
+          (dispatch (utils.comment (table.concat contents)))
           b))
 
     (fn open-table [b]
@@ -274,7 +276,7 @@ stream is finished."
 
     (fn parse-loop [b]
       (if (not b) nil
-          (= b 59) (skip-comment (getb))
+          (= b 59) (parse-comment (getb) [";"])
           (= (type (. delims b)) :number) (open-table b)
           (. delims b) (close-table b)
           (= b 34) (parse-string b)

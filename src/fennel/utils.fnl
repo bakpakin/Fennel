@@ -95,6 +95,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 (local symbol-mt {1 "SYMBOL" :__fennelview deref :__tostring deref})
 (local expr-mt {1 "EXPR" :__tostring deref})
 (local list-mt {1 "LIST" :__fennelview list->string :__tostring list->string})
+(local comment-mt {1 "COMMENT" :__fennelview deref :__tostring deref})
 (local sequence-marker ["SEQUENCE"])
 (local vararg (setmetatable ["..."]
                             {1 "VARARG" :__fennelview deref :__tostring deref}))
@@ -144,6 +145,9 @@ except when certain macros need to look for binding forms, etc specifically."
   :sym symbol reference"
   (setmetatable {:type etype 1 strcode} expr-mt))
 
+(fn comment* [contents]
+  (setmetatable [contents] comment-mt))
+
 (fn varg [] vararg)
 
 (fn expr? [x]
@@ -174,6 +178,9 @@ except when certain macros need to look for binding forms, etc specifically."
   "Checks if an object is a sequence (created with a [] literal)"
   (let [mt (and (= (type x) "table") (getmetatable x))]
     (and mt (= mt.sequence sequence-marker) x)))
+
+(fn comment? [x]
+  (and (= (type x) "table") (= (getmetatable x) comment-mt) x))
 
 (fn multi-sym? [str]
   "A multi symbol is a symbol that is actually composed of two or more symbols
@@ -244,7 +251,7 @@ has options calls down into compile."
  : allpairs : stablepairs : copy : kvmap : map : walk-tree : member?
 
  ;; AST functions
- : list : sequence : sym : varg : deref : expr
+ : list : sequence : sym : varg : deref : expr :comment comment* : comment?
  : expr? : list? : multi-sym? : sequence? : sym? : table? : varg? : quoted?
 
  ;; other

@@ -2,6 +2,7 @@
 
 ## 0.8.0 / ???
 
+* Allow the parser to optionally include comments in the parsed AST
 * The fennelview module is now incorporated into the compiler as `fennel.view`
 * Fully rewrite fennelview for better indentation handling; see fennelview
   docstring for detailed description of API changes

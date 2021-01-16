@@ -48,21 +48,6 @@
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
-(fn test-parsing []
-  (let [cases {"\"\\\\\"" "\\"
-               "\"abc\n\\240\"" "abc\n\240"
-               "\"abc\\\"def\"" "abc\"def"
-               "\"abc\\240\"" "abc\240"
-               "\"\n5.2\"" "\n5.2"
-               :150_000 150000
-               ;; leading underscores aren't numbers
-               "(let [_0 :zero] _0)" "zero"}
-        (amp-ok? amp) ((fennel.parser (fennel.string-stream "&abc ")))]
-    (each [code expected (pairs cases)]
-      (l.assertEquals (fennel.eval code {:correlate true}) expected code))
-    (l.assertTrue amp-ok?)
-    (l.assertEquals "&abc" (. amp 1))))
-
 (fn test-functions []
   (let [cases {;; regular function
                "((fn [x] (* x 2)) 26)" 52
@@ -473,5 +458,4 @@
  : test-with-open
  : test-match
  : test-method_calls
- : test-parsing
  : test-comment}

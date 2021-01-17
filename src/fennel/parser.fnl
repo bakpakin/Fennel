@@ -184,6 +184,13 @@ stream is finished."
             (parse-string-loop chars (getb) state)
             b)))
 
+    (fn escape-char [c]
+      ;; these are all the letter values for control codes from the manual;
+      ;; note that this will still break with control codes that aren't listed
+      (or (. {7 "\\a" 8 "\\b" 9 "\\t" 10 "\\n" 11 "\\v" 12 "\\f" 13 "\\r"}
+             (c:byte))
+          (.. "\\" (c:byte))))
+
     (fn parse-string []
       (table.insert stack {:closer 34})
       (let [chars [34]]
@@ -191,7 +198,7 @@ stream is finished."
           (badend))
         (table.remove stack)
         (let [raw (string.char (unpack chars))
-              formatted (raw:gsub "[\1-\31]" (fn [c] (.. "\\" (c:byte))))
+              formatted (raw:gsub "[\1-\31]" escape-char)
               load-fn ((or (rawget _G :loadstring) load) (.. "return " formatted))]
           (dispatch (load-fn)))))
 

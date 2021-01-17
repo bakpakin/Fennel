@@ -53,6 +53,7 @@
                "\"abc\n\\240\"" "abc\n\240"
                "\"abc\\\"def\"" "abc\"def"
                "\"abc\\240\"" "abc\240"
+               "\"\n5.2\"" "\n5.2"
                :150_000 150000
                ;; leading underscores aren't numbers
                "(let [_0 :zero] _0)" "zero"}

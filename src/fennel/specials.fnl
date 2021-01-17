@@ -305,7 +305,7 @@ and lacking args will be nil, use lambda for arity-checked functions."))
                   (let [[index] (compiler.compile1 index scope parent {:nval 1})]
                     (table.insert indices (.. "[" (tostring index) "]"))))))
           ;; Extra parens are needed unless the target is a table literal
-          (if (or (: (tostring lhs) :find "{") (= :nil (tostring lhs)))
+          (if (or (: (tostring lhs) :find "[{\"0-9]") (= :nil (tostring lhs)))
               (.. "(" (tostring lhs) ")" (table.concat indices))
               (.. (tostring lhs) (table.concat indices)))))))
 

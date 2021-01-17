@@ -228,6 +228,11 @@
                "(let [(a b c d e f g) (if (= (+ 1 1) 3) nil
                                        ((or table.unpack _G.unpack) [1 2 3 4 5 6 7]))]
             (+ a b c d e f g))" 28
+               ;; dot shouldn't produce invalid Lua on literals
+               "(tostring (. :hello 12))" "nil"
+               "(tostring (. {} 12))" "nil"
+               "(let [(_ m) (pcall #(. 1 1))] (m:match \"attempt to index a number\"))"
+               "attempt to index a number"
                "(let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil)" nil
                "(let [x (if 3 4 5)] x)" 4
                "(select \"#\" (if (= 1 (- 3 2)) (values 1 2 3 4 5) :onevalue))" 5

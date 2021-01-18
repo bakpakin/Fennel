@@ -89,17 +89,17 @@ fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua fennelview.lua \
 	cp -r $^ fennel-$(VERSION)
 	tar czf $@ fennel-$(VERSION)
 
-release: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz
+release: fennel fennel-bin fennel-bin.exe fennel.tar.gz # fennel-arm32
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
 	mv fennel-bin.exe downloads/fennel-$(VERSION)-windows32.exe
-	mv fennel-arm32 downloads/fennel-$(VERSION)-arm32
+	# mv fennel-arm32 downloads/fennel-$(VERSION)-arm32
 	mv fennel.tar.gz downloads/fennel-$(VERSION).tar.gz
 	gpg -ab downloads/fennel-$(VERSION)
 	gpg -ab downloads/fennel-$(VERSION)-x86_64
 	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
-	gpg -ab downloads/fennel-$(VERSION)-arm32
+	# gpg -ab downloads/fennel-$(VERSION)-arm32
 	gpg -ab downloads/fennel-$(VERSION).tar.gz
 	rsync -r downloads/* fenneler@fennel-lang.org:fennel-lang.org/downloads/
 

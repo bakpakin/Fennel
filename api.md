@@ -293,9 +293,10 @@ function which will read the next form from stdin, a function which is
 used to print normal values, and one which is used to print errors.
 
 ```fennel
+(local fennel (require :fennel)
 (fn locals [env _read on-values on-error]
   "Print all locals in repl session scope."
-  (on-values [(view env.___replLocals___)]))
+  (on-values [(fennel.view env.___replLocals___)]))
 
 {:repl-command-locals locals}
 ```

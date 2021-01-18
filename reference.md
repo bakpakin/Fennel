@@ -415,7 +415,7 @@ an existing one. This supports destructuring and multiple-value binding.
 Example:
 
 ```fennel
-(global prettyprint (fn [x] (print (view x))))
+(global prettyprint (fn [x] (print (fennel.view x))))
 ```
 
 Note that every global is also exposed on the `_G` table, which can

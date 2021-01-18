@@ -108,7 +108,7 @@ Lua is much more readily-available than it is for Fennel.
 
 ## License
 
-Copyright © 2016-2020 Calvin Rose and contributors
+Copyright © 2016-2021 Calvin Rose and contributors
 
 Released under the [MIT license](LICENSE).
 

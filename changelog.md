@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.8.0 / ???
+## 0.8.0 / 2021-01-18
 
 * Allow the parser to optionally include comments in the parsed AST
 * The fennelview module is now incorporated into the compiler as `fennel.view`

@@ -846,7 +846,7 @@ Method name doesn't have to be known at compile-time; if it is, use
        (.. "WARNING: Attempting to %s %s in compile"
            " scope.\nIn future versions of Fennel this will not"
            " be allowed without the\n--no-compiler-sandbox flag"
-           " or passing :compiler-env _G in options.\n"))
+           " or passing a :compilerEnv globals table in options.\n"))
 
 (fn compiler-env-warn [_ key]
   "Warn once when allowing a global that the sandbox would normally block."
@@ -907,7 +907,8 @@ Method name doesn't have to be known at compile-time; if it is, use
                                     "must call from macro" ast)
                    (compiler.macroexpand form compiler.scopes.macro))}
                 {:__index (match utils.root.options
-                            {: compiler-env} compiler-env
+                            {: compilerEnv} compilerEnv
+                            {: compiler-env} compiler-env ;; backwards-compat
                             safe-compiler-env)}))
 
 ;; have search-module use package.config to process package.path (windows compat)

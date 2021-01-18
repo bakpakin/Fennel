@@ -218,7 +218,7 @@ When f returns a truthy value, recursively walks the children."
   (and (str:match "^[%a_][%w_]*$") (not (. lua-keywords str))))
 
 (local propagated-options [:allowedGlobals :indent :correlate :useMetadata
-                           :env :compiler-env])
+                           :env :compiler-env :compilerEnv])
 
 (fn propagate-options [options subopts]
   "Certain options should always get propagated onwards when a function that

@@ -1,5 +1,9 @@
 # Summary of user-visible changes
 
+## 0.9.0 / ???
+
+* Upgrade binary builds to use Lua 5.4.2
+
 ## 0.8.0 / 2021-01-18
 
 * Allow the parser to optionally include comments in the parsed AST

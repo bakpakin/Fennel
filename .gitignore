@@ -3,8 +3,8 @@
 /downloads
 /scratch.fnl
 
-# Used to compile the Windows build
-/lua-5.3.5/
+/lua-5.3.5
+/lua-5.4.2
 
 # Created by https://www.gitignore.io/api/lua
 

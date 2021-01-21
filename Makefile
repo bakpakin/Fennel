@@ -37,9 +37,9 @@ fennel: src/launcher.fnl $(SRC)
 fennel.lua: $(SRC)
 	$(LAUNCHER) --no-metadata --require-as-include --compile $< > $@
 
-LUA_DIR=$(PWD)/lua-5.4.2
-STATIC_LUA_LIB=$(LUA_DIR)/src/liblua-linux-x86_64.a
-LUA_INCLUDE_DIR=$(LUA_DIR)/src
+LUA_DIR ?= $(PWD)/lua-5.4.2
+STATIC_LUA_LIB ?= $(LUA_DIR)/src/liblua-linux-x86_64.a
+LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
 
 fennel-bin: src/launcher.fnl fennel
 	./fennel --add-fennel-path src/?.fnl --no-compiler-sandbox --compile-binary \

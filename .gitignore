@@ -11,6 +11,7 @@
 # from static compilation
 /*_binary.c
 /fennel-bin
+/fennel-arm32
 
 ### Lua ###
 # Compiled Lua sources
@@ -60,3 +61,4 @@ tags
 
 # Misc
 /wiki
+

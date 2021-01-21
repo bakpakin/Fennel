@@ -34,27 +34,27 @@ fennel: src/launcher.fnl $(SRC)
 	$(LAUNCHER) --no-metadata --require-as-include --compile $< >> $@
 	chmod 755 $@
 
+# Library file
 fennel.lua: $(SRC)
 	$(LAUNCHER) --no-metadata --require-as-include --compile $< > $@
 
-LUA_DIR ?= $(PWD)/lua-5.4.2
+LUA_DIR ?= $(PWD)/lua-5.3.5
 STATIC_LUA_LIB ?= $(LUA_DIR)/src/liblua-linux-x86_64.a
 LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
 
-fennel-bin: src/launcher.fnl fennel
+fennel-bin: src/launcher.fnl fennel $(STATIC_LUA_LIB)
 	./fennel --add-fennel-path src/?.fnl --no-compiler-sandbox --compile-binary \
 		$< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 fennel-bin.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
-	CC=i686-w64-mingw32-gcc fennel --compile-binary $< fennel-bin \
+	CC=i686-w64-mingw32-gcc ./fennel --compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 
 fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
-	CC=arm-linux-gnueabihf-gcc fennel --compile-binary $< fennel-arm32 \
+	CC=arm-linux-gnueabihf-gcc ./fennel --compile-binary $< $@ \
 		$(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
-# Sadly git will not work; you have to get the tarball for a working makefile:
-$(LUA_DIR): ; curl https://www.lua.org/ftp/lua-5.4.2.tar.gz | tar xz
+$(LUA_DIR): ; curl https://www.lua.org/ftp/lua-5.3.5.tar.gz | tar xz
 
 $(STATIC_LUA_LIB): $(LUA_DIR)
 	make -C $(LUA_DIR) clean linux
@@ -73,7 +73,8 @@ $(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
 ci: testall count
 
 clean:
-	rm -f fennel.lua fennel fennel-bin *_binary.c fennel-bin.exe luacov.*
+	rm -f fennel.lua fennel fennel-bin fennel-bin.exe  fennel-arm32 \
+		*_binary.c luacov.*
 	make -C $(LUA_DIR) clean || true # this dir might not exist
 
 coverage: fennel

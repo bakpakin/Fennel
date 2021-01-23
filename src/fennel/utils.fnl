@@ -14,9 +14,9 @@
     (each [i k (ipairs keys)]
       (tset succ k (. keys (+ i 1))))
     (fn stablenext [tbl idx]
-      (if (= idx nil)
-          (values (. keys 1) (. tbl (. keys 1)))
-          (values (. succ idx) (. tbl (. succ idx)))))
+      (let [key   (if (= idx nil) (. keys 1) (. succ idx))
+            value (if (= key nil) nil (. tbl key))]
+        (values key value)))
     (values stablenext t nil)))
 
 (fn map [t f out]

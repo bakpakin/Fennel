@@ -6,7 +6,9 @@
   (fennel.compileString code {:allowedGlobals false :compiler-env _G}))
 
 (fn v [code]
-  (view ((fennel.loadCode (c code) _G)) {:one-line? true}))
+  (view ((fennel.loadCode (c code) (setmetatable {:sequence fennel.sequence}
+                                                 {:__index _G})))
+        {:one-line? true}))
 
 (fn test-quote []
   (l.assertEquals (c "`:abcde") "return \"abcde\"" "simple string quoting")

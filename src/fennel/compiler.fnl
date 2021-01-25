@@ -864,7 +864,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
       (let [payload (. form 2)
             res (unpack (compile1 payload scope parent))]
         (. res 1))
-      (utils.list? form) ; list
+      (utils.list? form)
       (let [mapped (utils.kvmap form (entry-transform no q))
             filename (if form.filename (string.format "%q" form.filename) :nil)]
         (assert-compile (not runtime?)
@@ -877,7 +877,16 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         (string.format (.. "setmetatable({filename=%s, line=%s, bytestart=%s, %s}"
                            ", getmetatable(list()))")
                        filename (or form.line :nil) (or form.bytestart :nil)
-           (mixed-concat mapped ", ")))
+                       (mixed-concat mapped ", ")))
+      (utils.sequence? form)
+      (let [mapped (utils.kvmap form (entry-transform q q))
+            source (getmetatable form)
+            filename (if source.filename (string.format "%q" source.filename) :nil)]
+        ;; need to preserve the sequence marker in the metatable here
+        (string.format "setmetatable({%s}, {filename=%s, line=%s, sequence=%s})"
+                       (mixed-concat mapped ", ") filename
+                       (if source source.line :nil)
+                       "(getmetatable(sequence()))['sequence']"))
       (= (type form) "table") ; table
       (let [mapped (utils.kvmap form (entry-transform q q))
             source (getmetatable form)

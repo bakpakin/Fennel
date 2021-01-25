@@ -24,12 +24,14 @@ local function sort_keys(_0_0, _1_0)
 end
 local function table_kv_pairs(t)
   local assoc_3f = false
+  local i = 1
   local kv = {}
   local insert = table.insert
   for k, v in pairs(t) do
-    if (type(k) ~= "number") then
+    if ((type(k) ~= "number") or (k ~= i)) then
       assoc_3f = true
     end
+    i = (i + 1)
     insert(kv, {k, v})
   end
   table.sort(kv, sort_keys)
@@ -313,25 +315,8 @@ local function pp_table(x, options, indent)
   return x0
 end
 local function number__3estring(n)
-  local _2_0, _3_0, _4_0 = math.modf(n)
-  if ((nil ~= _2_0) and (_3_0 == 0)) then
-    local int = _2_0
-    return tostring(int)
-  else
-    local _5_
-    do
-      local frac = _3_0
-      _5_ = (((_2_0 == 0) and (nil ~= _3_0)) and (frac < 0))
-    end
-    if _5_ then
-      local frac = _3_0
-      return ("-0." .. tostring(frac):gsub("^-?0.", ""))
-    elseif ((nil ~= _2_0) and (nil ~= _3_0)) then
-      local int = _2_0
-      local frac = _3_0
-      return (int .. "." .. tostring(frac):gsub("^-?0.", ""))
-    end
-  end
+  local _2_0 = string.gsub(tostring(n), ",", ".")
+  return _2_0
 end
 local function colon_string_3f(s)
   return s:find("^[-%w?\\^_!$%&*+./@:|<=>]+$")

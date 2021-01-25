@@ -352,7 +352,7 @@
                "((require :fennel.view) [1 2 [3 4]] {:sequential-length 2})"
                "[1\n 2\n [3 4]]"
                "((require :fennel.view) {[1] [2 [3]] :data {4 {:data 5} 6 [0 1 2 3]}} {:sequential-length 3})"
-               "{:data [{:data 5}\n        [0\n         1\n         2\n         3]]\n [1] [2 [3]]}"
+               "{:data {4 {:data 5}\n        6 [0\n           1\n           2\n           3]}\n [1] [2 [3]]}"
                "((require :fennel.view) {{:a 1} {:b 2 :c 3}})"
                "{{:a 1} {:b 2 :c 3}}"
                "((require :fennel.view) [{:aaa [1 2 3]}] {:sequential-length 2})"
@@ -368,8 +368,8 @@
                "\"ваыв\""
                "((require :fennel.view) {[1] [2 [3]] :ваыв {4 {:ваыв 5} 6 [0 1 2 3]}} {:sequential-length 3})"
                (if _G.utf8
-                   "{\"ваыв\" [{\"ваыв\" 5}\n         [0\n          1\n          2\n          3]]\n [1] [2 [3]]}"
-                   "{\"ваыв\" [{\"ваыв\" 5}\n             [0\n              1\n              2\n              3]]\n [1] [2 [3]]}")
+                   "{\"ваыв\" {4 {\"ваыв\" 5}\n         6 [0\n            1\n            2\n            3]}\n [1] [2 [3]]}"
+                   "{\"ваыв\" {4 {\"ваыв\" 5}\n             6 [0\n                1\n                2\n                3]}\n [1] [2 [3]]}")
                ;; the next one may look incorrect in some editors, but is actually correct
                "((require :fennel.view) {:ǍǍǍ {} :ƁƁƁ {:ǍǍǍ {} :ƁƁƁ {}}} {:associative-length 1})"
                (if _G.utf8 ; older versions of Lua can't indent this correctly

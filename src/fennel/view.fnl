@@ -24,11 +24,14 @@
   ;; [:a :b :c] => [[1 :a] [2 :b] [3 :c]]
   ;; {:a 1 :b 2} => [[:a 1] [:b 2]]
   (var assoc? false)
+  (var i 1)
   (let [kv []
         insert table.insert]
     (each [k v (pairs t)]
-      (when (not= (type k) :number)
+      (when (or (not= (type k) :number)
+                (not= k i))
         (set assoc? true))
+      (set i (+ i 1))
       (insert kv [k v]))
     (table.sort kv sort-keys)
     (if (= (length kv) 0)

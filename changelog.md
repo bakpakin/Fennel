@@ -1,8 +1,9 @@
 # Summary of user-visible changes
 
-## 0.9.0 / ???
+## 0.8.1 / ???
 
-* Upgrade binary builds to use Lua 5.4.2
+* Ensure the compiler runs under strict mode
+* Fix a bug where certain numbers would be emitted incorrectly
 
 ## 0.8.0 / 2021-01-18
 

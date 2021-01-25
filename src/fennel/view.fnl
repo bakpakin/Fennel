@@ -180,10 +180,10 @@
 
 (fn number->string [n]
   ;; Transform number to a string without depending on correct `os.locale`
-  (match (math.modf n)
-    (int 0) (tostring int)
-    ((0 frac) ? (< frac 0)) (.. "-0." (: (tostring frac) :gsub "^-?0." ""))
-    (int frac) (.. int "." (: (tostring frac) :gsub "^-?0." ""))))
+  (pick-values 1
+    (-> n
+        tostring
+        (string.gsub "," "."))))
 
 (fn colon-string? [s]
   ;; Test if given string is valid colon string.

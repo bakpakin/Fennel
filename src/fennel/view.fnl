@@ -99,9 +99,6 @@
         oneline (.. open (table.concat elements " ") close)]
     (if (and (not options.one-line?)
              (or multiline?
-                 (> (length elements) (if (= table-type :seq)
-                                          options.sequential-length
-                                          options.associative-length))
                  (> (+ indent (length oneline)) options.line-length)))
         (.. open (table.concat elements indent-str) close)
         oneline)))
@@ -196,9 +193,7 @@
 
 (fn make-options [t options]
   (let [;; defaults are used when options are not provided
-        defaults {:sequential-length 10
-                  :associative-length 4
-                  :line-length 80
+        defaults {:line-length 80
                   :one-line? false
                   :depth 128
                   :detect-cycles? true
@@ -243,10 +238,6 @@ Can take an options table with these keys:
 * :detect-cycles? (boolean, default: true) don't try to traverse a looping table
 * :metamethod? (boolean: default: true) use the __fennelview metamethod if found
 * :empty-as-sequence? (boolean, default: false) render empty tables as []
-* :sequential-length (number, default: 10) amount of elements at which
-  multi-line sequence ouptut is produced
-* :associative-length (number, default: 4) amount of elements at which
-  multi-line table ouptut is produced
 * :line-length (number, default: 80) length of the line at which
   multi-line output for tables is forced
 * :utf8? (boolean, default true) whether to use utf8 module to compute string

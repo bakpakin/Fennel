@@ -115,13 +115,7 @@ local function concat_table_lines(elements, options, multiline_3f, indent, table
     close = "}"
   end
   local oneline = (open .. table.concat(elements, " ") .. close)
-  local _4_
-  if (table_type == "seq") then
-    _4_ = options["sequential-length"]
-  else
-    _4_ = options["associative-length"]
-  end
-  if (not options["one-line?"] and (multiline_3f or (#elements > _4_) or ((indent + #oneline) > options["line-length"]))) then
+  if (not options["one-line?"] and (multiline_3f or ((indent + #oneline) > options["line-length"]))) then
     return (open .. table.concat(elements, indent_str) .. close)
   else
     return oneline
@@ -322,7 +316,7 @@ local function colon_string_3f(s)
   return s:find("^[-%w?\\^_!$%&*+./@:|<=>]+$")
 end
 local function make_options(t, options)
-  local defaults = {["associative-length"] = 4, ["detect-cycles?"] = true, ["empty-as-sequence?"] = false, ["line-length"] = 80, ["metamethod?"] = true, ["one-line?"] = false, ["sequential-length"] = 10, ["utf8?"] = true, depth = 128}
+  local defaults = {["detect-cycles?"] = true, ["empty-as-sequence?"] = false, ["line-length"] = 80, ["metamethod?"] = true, ["one-line?"] = false, ["utf8?"] = true, depth = 128}
   local overrides = {appearances = count_table_appearances(t, {}), level = 0, seen = {len = 0}}
   for k, v in pairs((options or {})) do
     defaults[k] = v

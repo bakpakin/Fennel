@@ -1,5 +1,6 @@
 LUA ?= lua
 LUA_VERSION ?= $(shell $(LUA) -e 'v=_VERSION:gsub("^Lua *","");print(v)')
+DESTDIR ?=
 PREFIX ?= /usr/local
 BIN_DIR ?= $(PREFIX)/bin
 LUA_LIB_DIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
@@ -82,10 +83,10 @@ coverage: fennel
 	@echo "generated luacov.report.out"
 
 install: fennel fennel.lua fennelview.lua
-	mkdir -p $(BIN_DIR) && \
-		cp fennel $(BIN_DIR)/
-	mkdir -p $(LUA_LIB_DIR) && \
-		for f in fennel.lua fennelview.lua; do cp $$f $(LUA_LIB_DIR)/; done
+	mkdir -p $(DESTDIR)$(BIN_DIR) && \
+		cp fennel $(DESTDIR)$(BIN_DIR)/
+	mkdir -p $(DESTDIR)$(LUA_LIB_DIR) && \
+		for f in fennel.lua fennelview.lua; do cp $$f $(DESTDIR)$(LUA_LIB_DIR)/; done
 
 # Release-related tasks:
 

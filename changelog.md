@@ -2,6 +2,8 @@
 
 ## 0.8.1 / ???
 
+* Fix an issue where loading nested copies of Fennel would fail
+* Fix a bug where sparse tables were displayed incorrectly in fennel view
 * Ensure the compiler runs under strict mode
 * Fix a bug where certain numbers would be emitted incorrectly
 

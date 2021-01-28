@@ -441,6 +441,10 @@
   (l.assertEquals "-- hello world\nreturn nil"
                   (fennel.compile-string "(comment hello world)")))
 
+(fn test-nest []
+  (let [nested (fennel.dofile "src/fennel.fnl" {:compilerEnv _G})]
+    (l.assertEquals fennel.version nested.version)))
+
 {: test-booleans
  : test-calculations
  : test-comparisons
@@ -456,4 +460,5 @@
  : test-with-open
  : test-match
  : test-method_calls
- : test-comment}
+ : test-comment
+ : test-nest}

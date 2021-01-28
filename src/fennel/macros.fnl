@@ -8,7 +8,7 @@
 ;; TODO: some of these macros modify their arguments; we should stop doing that,
 ;; but in a way that preserves file/line metadata.
 
-(fn -> [val ...]
+(fn ->* [val ...]
   "Thread-first macro.
 Take the first value and splice it into the second form as its first argument.
 The value of the second form is spliced into the first arg of the third, etc."
@@ -19,7 +19,7 @@ The value of the second form is spliced into the first arg of the third, etc."
       (set x elt)))
   x)
 
-(fn ->> [val ...]
+(fn ->>* [val ...]
   "Thread-last macro.
 Same as ->, except splices the value into the last position of each form
 rather than the first."
@@ -30,7 +30,7 @@ rather than the first."
       (set x elt)))
   x)
 
-(fn -?> [val ...]
+(fn -?>* [val ...]
   "Nil-safe thread-first macro.
 Same as -> except will short-circuit with nil when it encounters a nil value."
   (if (= 0 (select "#" ...))
@@ -45,7 +45,7 @@ Same as -> except will short-circuit with nil when it encounters a nil value."
                (-?> ,el ,(unpack els))
                ,tmp)))))
 
-(fn -?>> [val ...]
+(fn -?>>* [val ...]
   "Nil-safe thread-last macro.
 Same as ->> except will short-circuit with nil when it encounters a nil value."
   (if (= 0 (select "#" ...))
@@ -60,7 +60,7 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
                (-?>> ,el ,(unpack els))
                ,tmp)))))
 
-(fn doto [val ...]
+(fn doto* [val ...]
   "Evaluates val and splices it into the first argument of subsequent forms."
   (let [name (gensym)
         form `(let [,name ,val])]
@@ -70,13 +70,13 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
     (table.insert form name)
     form))
 
-(fn when [condition body1 ...]
+(fn when* [condition body1 ...]
   "Evaluate body for side-effects only when condition is truthy."
   (assert body1 "expected body")
   `(if ,condition
        (do ,body1 ,...)))
 
-(fn with-open [closable-bindings ...]
+(fn with-open* [closable-bindings ...]
   "Like `let`, but invokes (v:close) on each binding after evaluating the body.
 The body is evaluated inside `xpcall` so that bound values will be closed upon
 encountering an error before propagating it."
@@ -91,7 +91,7 @@ encountering an error before propagating it."
     `(let ,closable-bindings ,closer
           (close-handlers# (xpcall ,bodyfn ,traceback)))))
 
-(fn collect [iter-tbl key-value-expr ...]
+(fn collect* [iter-tbl key-value-expr ...]
   "Returns a table made by running an iterator and evaluating an expression
 that returns key-value pairs to be inserted sequentially into the table.
 This can be thought of as a \"table comprehension\". The provided key-value
@@ -114,7 +114,7 @@ returns
          (k# v#) (tset tbl# k# v#)))
      tbl#))
 
-(fn icollect [iter-tbl value-expr ...]
+(fn icollect* [iter-tbl value-expr ...]
   "Returns a sequential table made by running an iterator and evaluating an
 expression that returns values to be inserted sequentially into the table.
 This can be thought of as a \"list comprehension\".
@@ -134,13 +134,13 @@ returns
        (tset tbl# (+ (length tbl#) 1) ,value-expr))
      tbl#))
 
-(fn partial [f ...]
+(fn partial* [f ...]
   "Returns a function with all arguments partially applied to f."
   (let [body (list f ...)]
     (table.insert body _VARARG)
     `(fn [,_VARARG] ,body)))
 
-(fn pick-args [n f]
+(fn pick-args* [n f]
   "Creates a function of arity n that applies its arguments to f.
 
 For example,
@@ -153,7 +153,7 @@ expands to
     (for [i 1 n] (tset bindings i (gensym)))
     `(fn ,bindings (,f ,(unpack bindings)))))
 
-(fn pick-values [n ...]
+(fn pick-values* [n ...]
   "Like the `values` special, but emits exactly n values.
 
 For example,
@@ -169,7 +169,7 @@ expands to
     (if (= n 0) `(values)
         `(let [,let-syms ,let-values] (values ,(unpack let-syms))))))
 
-(fn lambda [...]
+(fn lambda* [...]
   "Function literal with arity checking.
 Will throw an exception if a declared argument is passed in as nil, unless
 that argument name begins with ?."
@@ -201,19 +201,19 @@ that argument name begins with ?."
         (table.insert args (sym :nil)))
     `(fn ,(unpack args))))
 
-(fn macro [name ...]
+(fn macro* [name ...]
   "Define a single macro."
   (assert (sym? name) "expected symbol for macro name")
   (local args [...])
   `(macros { ,(tostring name) (fn ,(unpack args))}))
 
-(fn macrodebug [form return?]
+(fn macrodebug* [form return?]
   "Print the resulting form after performing macroexpansion.
 With a second argument, returns expanded form as a string instead of printing."
   (let [handle (if return? `do `print)]
     `(,handle ,(view (macroexpand form _SCOPE)))))
 
-(fn import-macros [binding1 module-name1 ...]
+(fn import-macros* [binding1 module-name1 ...]
   "Binds a table of macros from each macro module according to a binding form.
 Each binding form can be either a symbol or a k/v destructuring table.
 Example:
@@ -345,7 +345,7 @@ introduce for the duration of the body if it does match."
                 (tset syms valnum (gensym))))))
     syms))
 
-(fn match [val ...]
+(fn match* [val ...]
   "Perform pattern matching on val. See reference for details."
   (let [clauses [...]
         vals (match-val-syms clauses)]
@@ -354,10 +354,10 @@ introduce for the duration of the body if it does match."
     (list `let [vals val]
           (match-condition vals clauses))))
 
-{: -> : ->> : -?> : -?>>
- : doto : when : with-open
- : collect : icollect
- : partial : lambda
- : pick-args : pick-values
- : macro : macrodebug : import-macros
- : match}
+{:-> ->* :->> ->>* :-?> -?>* :-?>> -?>>*
+ :doto doto* :when when* :with-open with-open*
+ :collect collect* :icollect icollect*
+ :partial partial* :lambda lambda*
+ :pick-args pick-args* :pick-values pick-values*
+ :macro macro* :macrodebug macrodebug* :import-macros import-macros*
+ :match match*}

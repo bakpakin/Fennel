@@ -8,8 +8,10 @@ packages:
   - make
   - cloc
   - git
+sources:
+  - https://git.sr.ht/~technomancy/fennel
 tasks:
-- build: |
-    cd fennel
-    make ci
-    git diff --quiet
+  - build: |
+      cd fennel
+      make ci
+      git diff --quiet

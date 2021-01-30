@@ -260,7 +260,10 @@ Tab is what is used to indent a block."
       (let [code chunk.leaf
             info chunk.ast]
         (when sm
-          (table.insert sm (or (and info info.line) (- 1))))
+          (table.insert
+            sm
+            [(and info info.filename)
+             (and info info.line)]))
         code)
       (let [tab (match tab
                   true "  " false "" tab tab nil "")]
@@ -293,8 +296,8 @@ Tab is what is used to indent a block."
         (let [sm []
               ret (flatten-chunk sm chunk options.indent 0)]
           (when sm
-            (set sm.short_src (make-short-src (or options.filename
-                                                  options.source ret)))
+            (set sm.short_src (or options.filename
+                                  (make-short-src (or options.source ret))))
             (set sm.key (if options.filename (.. "@" options.filename) ret))
             (tset fennel-sourcemap sm.key sm))
           (values ret sm)))))
@@ -777,16 +780,18 @@ which we have to do if we don't know."
       (let [remap (. fennel-sourcemap info.source)]
         (when (and remap (. remap info.currentline))
           ;; And some global info
-          (set info.short-src remap.short-src)
+          (set info.short_src
+               (if (. remap info.currentline 1)
+                   (. fennel-sourcemap (.. "@" (. remap info.currentline 1))
+                      :short_src)
+                   remap.short_src))
           ;; Overwrite info with values from the mapping
-          ;; (mapping is now just integer, but may
-          ;; eventually be a table)
-          (set info.currentline (. remap info.currentline)))
+          (set info.currentline (or (. remap info.currentline 2) -1)))
         (if (= info.what "Lua")
             (string.format "  %s:%d: in function %s"
                            info.short_src info.currentline
                (if info.name (.. "'" info.name "'") "?"))
-            (= info.short-src "(tail call)")
+            (= info.short_src "(tail call)")
             "  (tail call)"
             (string.format "  %s:%d: in main chunk"
                            info.short_src info.currentline)))))

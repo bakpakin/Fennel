@@ -960,11 +960,11 @@ table.insert(package.loaders, fennel.searcher)"
 (fn compiler-env-domodule [modname env ?ast]
   (let [filename (compiler.assert (search-module modname)
                                   (.. modname " module not found.") ?ast)
-        globals (macro-globals env (current-global-names))]
+        globals (macro-globals env (current-global-names))
+        scope (compiler.make-scope compiler.scopes.compiler)]
     (utils.fennel-module.dofile filename {:allowedGlobals globals
-                                          :env env
                                           :useMetadata utils.root.options.useMetadata
-                                          :scope compiler.scopes.compiler}
+                                          : env : scope}
                                 modname filename)))
 
 ;; This is the compile-env equivalent of package.loaded. It's used by

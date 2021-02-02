@@ -91,8 +91,10 @@ Normally Lua's `require` function only loads modules written in Lua,
 but you can install `fennel.searcher` into `package.searchers` (or in
 Lua 5.1 `package.loaders`) to teach it how to load Fennel code.
 
-If you would rather change some of the `options` you can use
-`fennel.makeSearcher` to override `env`, `correlate`, etc.
+If you would rather change some of the options you can use
+`fennel.makeSearcher(options)` to get a searcher function that's
+equivalent to `fennel.searcher` but overrides the default `options`
+table.
 
 The `require` function is different from `fennel.dofile` in that it
 searches the directories in `fennel.path` for `.fnl` files matching
@@ -103,6 +105,18 @@ behavior of `fennel.path` mirrors that of Lua's `package.path`.
 If you install Fennel into `package.searchers` then you can use the
 3rd-party [lume.hotswap][1] function to reload modules that have been
 loaded with `require`.
+
+## Get Fennel-aware stack traces.
+
+The `fennel.traceback` function works like Lua's `debug.traceback`
+function, except it tracks line numbers from Fennel code correctly.
+
+If you are working on an application written in Fennel, you can
+override the default traceback function to replace it with Fennel's:
+
+```lua
+debug.traceback = fennel.traceback
+```
 
 ## Search the path for a module without loading it
 

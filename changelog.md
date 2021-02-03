@@ -2,6 +2,7 @@
 
 ## 0.8.1 / ???
 
+* Improve compiler sandboxing to copy standard tables and protect metatables
 * Fix an issue where loading nested copies of Fennel would fail
 * Fix a bug where sparse tables were displayed incorrectly in fennel view
 * Ensure the compiler runs under strict mode

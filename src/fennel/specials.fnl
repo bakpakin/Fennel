@@ -857,14 +857,21 @@ Method name doesn't have to be known at compile-time; if it is, use
       (io.stderr:write (compile-env-warning:format "use global" key)))
     v))
 
+(fn safe-getmetatable [tbl]
+  (let [mt (getmetatable tbl)]
+    ;; we can't let the string metatable leak
+    (assert (not= mt (getmetatable "")) "Illegal metatable access!")
+    mt))
+
 ;; Note that this is not yet the safe compiler env! Enforcing a compiler sandbox
 ;; is a breaking change, so we need to do it in a way that warns for several
 ;; releases before enforcing the sandbox.
 (local safe-compiler-env
-       (setmetatable {: table : math : string : pairs : ipairs : assert : error
+       (setmetatable {:table (utils.copy table) :math (utils.copy math)
+                      :string (utils.copy string) : pairs : ipairs
                       : select : tostring : tonumber : pcall : xpcall : next
-                      : print : type :bit (rawget _G :bit)
-                      : setmetatable : getmetatable
+                      : print : type :bit (rawget _G :bit) : assert : error
+                      : setmetatable :getmetatable safe-getmetatable
                       : rawget : rawset : rawequal :rawlen (rawget _G :rawlen)}
                      {:__index compiler-env-warn}))
 

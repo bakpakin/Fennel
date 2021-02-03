@@ -1,5 +1,9 @@
 # Summary of user-visible changes
 
+## 0.8.2 / ???
+
+* ???
+
 ## 0.8.1 / 2021-02-02
 
 * Improve compiler sandboxing to copy standard tables and protect metatables

@@ -233,6 +233,12 @@ if they have already been declared via declare-local"
         new-chunk)
       (utils.map chunk peephole)))
 
+(fn ast-source [ast]
+  "Most AST nodes put file/line info in the table itself, but k/v tables
+store it on the metatable instead."
+  (let [m (getmetatable ast)]
+    (or (and m m.line m) (and (= :table (type ast)) ast) {})))
+
 (fn flatten-chunk-correlated [main-chunk]
   "Correlate line numbers in input with line numbers in output."
   (fn flatten [chunk out last-line file]
@@ -242,9 +248,10 @@ if they have already been declared via declare-local"
         (each [_ subchunk (ipairs chunk)]
           (when (or subchunk.leaf (> (# subchunk) 0)) ; ignore empty chunks
             ;; don't increase line unless it's from the same file
-            (when (and subchunk.ast (= file subchunk.ast.file))
-              (set last-line (math.max last-line (or subchunk.ast.line 0))))
-            (set last-line (flatten subchunk out last-line file)))))
+            (let [source (ast-source subchunk.ast)]
+              (when (= file source.file)
+                (set last-line (math.max last-line (or source.line 0))))
+              (set last-line (flatten subchunk out last-line file))))))
     last-line)
   (let [out []
         last (flatten main-chunk out 1 main-chunk.file)]

@@ -3,6 +3,8 @@
 ;; the definitions of several core compiler types. It could be split into two
 ;; distinct modules along those lines.
 
+;;; General-purpose helper functions
+
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
   pairs is already stable, but on 5.3+ every run gives different ordering."
@@ -18,6 +20,8 @@
             value (if (= key nil) nil (. tbl key))]
         (values key value)))
     (values stablenext t nil)))
+
+;; Note: the collect/icollect macros mostly make map/kvmap obsolete.
 
 (fn map [t f out]
   "Map function f over sequential table t, removing values where f returns nil.
@@ -77,12 +81,25 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
                 (allpairs-next t))))))
     allpairs-next))
 
+;;; AST functions
+
+;; AST nodes tend to be implemented as tables with specific "marker" metatables
+;; set on them; they have constructor functions which set the metatables and
+;; predicate functions which check the metatables. The fact that they use
+;; metatables should be considered an implementation detail. String and number
+;; literals are represented literally, and "regular" key/value tables are
+;; represented without a marker metatable since their metatables are needed to
+;; store file/line source data.
+
 (fn deref [self]
   "Get the name of a symbol."
   (. self 1))
 
-(var nil-sym nil) ; haven't defined sym yet; create this later
+(var nil-sym nil) ; haven't defined sym yet; circularity is needed here
 
+;; the tostring2 argument is passed in by fennelview; this lets us use the same
+;; function for regular tostring as for fennelview. when called from fennelview
+;; the list's contents will also show as being fennelviewed.
 (fn list->string [self tostring2]
   (var (safe max) (values [] 0))
   (each [k (pairs self)]
@@ -203,6 +220,8 @@ be declared local, and they may have side effects on invocation (metatables)."
              parts))))
 
 (fn quoted? [symbol] symbol.quoted)
+
+;;; Other
 
 (fn walk-tree [root f custom-iterator]
   "Walks a tree (like the AST), invoking f(node, idx, parent) on each node.

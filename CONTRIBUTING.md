@@ -17,6 +17,41 @@ Please read this document before making contributions.
   the relevant code.
 * Add the `bug` label to the issue.
 
+## Codebase Organization
+
+The `fennel` module is the fundamental entry point; it provides the entire
+public API for Fennel when it's used inside another program. All other modules
+except `fennel.view` are considered compiler internals and do not have a
+guaranteed stable API.
+
+* `src/fennel.fnl`: returned when Fennel is embedded programmatically
+* `src/launcher.fnl`: handles being launched from the command line
+* `src/fennel/repl.fnl`: provides interactive development context
+
+The core modules implement the text->AST->Lua pipeline. The AST used
+by the compiler is the exact same AST that is exposed to macros.
+
+* `src/fennel/parser.fnl`: turns text of code into an AST
+* `src/fennel/compiler.fnl`: turns AST into Lua output
+* `src/fennel/specials.fnl`: built-in language constructs written in Lua
+* `src/fennel/macros.fnl`: built-in language constructs written in Fennel
+* `src/fennel/utils.fnl`: definitions of core AST types and helper functions
+
+Finally there are a few miscellaneous modules:
+
+* `src/fennel/friend.fnl`: emits friendly messages from compiler/parser errors
+* `src/fennel/binary.fnl`: produces binary standalone executables
+* `src/fennel/view.fnl`: turn Fennel data structures into printable strings
+
+### Bootstrapping
+
+Fennel is written in Fennel. In order to get around the chicken-and-egg
+problem, we include an old version of the compiler that's used to
+compile the new version.
+
+* `old/fennel.lua`: older version of Fennel compiler from before self-hosting
+* `old/launcher.lua`: older version of the command line launcher
+
 ## Contributing Changes
 
 If you want to contribute code to the project, please [send patches][1] to the

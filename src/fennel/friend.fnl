@@ -78,7 +78,7 @@
         ["changing %s to an identifier instead of a literal value"]
 
         "could not compile value of type "
-        ["debugging the macro you're calling not to return a coroutine or userdata"]
+        ["debugging the macro you're calling to return a list or table"]
 
         "expected local"
         ["looking for a typo"

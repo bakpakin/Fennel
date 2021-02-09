@@ -964,11 +964,11 @@ table.insert(package.loaders, fennel.searcher)"
       (table.insert allowed k))
     allowed))
 
-(fn compiler-env-domodule [modname env ?ast]
+(fn compiler-env-domodule [modname env ?ast ?scope]
   (let [filename (compiler.assert (search-module modname)
                                   (.. modname " module not found.") ?ast)
         globals (macro-globals env (current-global-names))
-        scope (compiler.make-scope compiler.scopes.compiler)]
+        scope (or ?scope (compiler.make-scope compiler.scopes.compiler))]
     (utils.fennel-module.dofile filename {:allowedGlobals globals
                                           :useMetadata utils.root.options.useMetadata
                                           : env : scope}
@@ -993,7 +993,9 @@ It ensures that compile-scoped modules are loaded differently from regular
 modules in the compiler environment."
   (or (. macro-loaded modname)
       (metadata-only-fennel modname)
-      (let [mod (compiler-env-domodule modname safe-compiler-env)]
+      (let [scope (compiler.make-scope compiler.scopes.compiler)
+            env (make-compiler-env nil scope nil)
+            mod (compiler-env-domodule modname env nil scope)]
         (tset macro-loaded modname mod)
         mod)))
 

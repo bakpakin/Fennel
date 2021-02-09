@@ -70,6 +70,7 @@
   "(x[1 2])" "expected whitespace before opening delimiter ["
   "(fn abc:def [x] (+ x 2))" "unexpected multi symbol abc:def"
   "(macros {:foo {:bar (fn [] `(print :test))}})" "expected each macro to be function"
+  "(macro m [] (getmetatable :foo)) (m)" "Illegal metatable"
   "(import-macros test :test.macros) (test.asdf)" "macro not found in imported macro module"
   "(import-macros {: asdf} :test.macros)" "macro asdf not found in module test.macros"
   "(with-open [(x y z) (values 1 2 3)])" "with-open only allows symbols in bindings"

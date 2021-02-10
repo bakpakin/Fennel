@@ -93,7 +93,9 @@
   (let [(_ msg) (pcall fennel.dofile "test/bad/set-local.fnl")
         (_ parse-msg) (pcall fennel.dofile "test/bad/odd-table.fnl")
         (_ assert-msg) (pcall fennel.eval
-                              "(eval-compiler (assert-compile nil \"bad\" 1))")]
+                              "(eval-compiler (assert-compile nil \"bad\" 1))")
+        (_ msg4) (pcall fennel.eval "(abc] ;; msg4")
+        (_ msg5) (pcall fennel.eval "(let) ;; msg5")]
     ;; show the raw error message
     (l.assertStrContains msg "expected var x")
     ;; offer suggestions
@@ -104,6 +106,9 @@
     ;; parse error
     (l.assertStrContains parse-msg "{:a 1 :b 2 :c}")
     ;; non-table AST in assertion
-    (l.assertStrContains assert-msg "bad")))
+    (l.assertStrContains assert-msg "bad")
+    ;; source should be part of the error message
+    (l.assertStrContains msg4 "msg4")
+    (l.assertStrContains msg5 "msg5")))
 
 {: test-failures : test-suggestions}

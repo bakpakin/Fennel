@@ -50,4 +50,17 @@
                     expected-with-mt)
     (tset (getmetatable io.stdout) :__fennelview nil)))
 
-{: test-fennelview : test-fennelview-userdata-handling}
+(fn test-cycles []
+  (let [t {:a 1 :b 2}
+        t2 {:tbl [1 :b] :foo 19}
+        sparse [:abc]]
+    (set t.t t)
+    (tset t2.tbl 3 t2)
+    (tset sparse 4 sparse)
+    (l.assertEquals (view t) "@1{:a 1 :b 2 :t @1{...}}")
+    (l.assertEquals (view t2) "@1{:foo 19 :tbl [1 \"b\" @1{...}]}")
+    (l.assertEquals (view sparse) "@1{1 \"abc\" 4 @1{...}}")))
+
+{: test-fennelview
+ : test-fennelview-userdata-handling
+ : test-cycles}

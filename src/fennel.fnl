@@ -25,7 +25,9 @@
 (local repl (require :fennel.repl))
 (local view (require :fennel.view))
 
-(fn get-env [env]
+(fn eval-env [env]
+  ;; This is ... not great. Should we expose make-compiler-env in the API?
+  ;; Don't use this; it's subject to change in future versions!
   (if (= env :_COMPILER)
       (let [env (specials.make-compiler-env nil compiler.scopes.compiler {})
             mt (getmetatable env)]
@@ -34,23 +36,29 @@
         (specials.wrap-env env))
       (and env (specials.wrap-env env))))
 
+(fn eval-opts [options str]
+  (let [opts (utils.copy options)]
+    ;; eval and dofile are considered "live" entry points, so we can assume
+    ;; that the globals available at compile time are a reasonable allowed list
+    ;; UNLESS there's a metatable on env, in which case we can't assume that
+    ;; pairs will return all the effective globals; for instance openresty
+    ;; sets up _G in such a way that all the globals are available thru
+    ;; the __index meta method, but as far as pairs is concerned it's empty.
+    (when (and (= opts.allowedGlobals nil) (not (getmetatable opts.env)))
+      (set opts.allowedGlobals (specials.current-global-names opts.env)))
+    ;; if the code doesn't have a filename attached, save the source in order
+    ;; to provide targeted error messages.
+    (when (and (not opts.filename) (not opts.source))
+      (set opts.source str))
+    opts))
+
 (fn eval [str options ...]
-  ;; eval and dofile are considered "live" entry points, so we can assume
-  ;; that the globals available at compile time are a reasonable allowed list
-  ;; UNLESS there's a metatable on env, in which case we can't assume that
-  ;; pairs will return all the effective globals; for instance openresty
-  ;; sets up _G in such a way that all the globals are available thru
-  ;; the __index meta method, but as far as pairs is concerned it's empty.
-  (let [opts (utils.copy options)
-        _ (when (and (= opts.allowedGlobals nil)
-                     (not (getmetatable opts.env)))
-            (set opts.allowedGlobals (specials.current-global-names opts.env)))
-        ;; This is ... not great. Should we expose make-compiler-env in the API?
-        env (get-env opts.env)
+  (let [opts (eval-opts options str)
+        env (eval-env opts.env)
         lua-source (compiler.compile-string str opts)
         loader (specials.load-code lua-source env
-                                  (if opts.filename
-                                      (.. "@" opts.filename) str))]
+                                   (if opts.filename
+                                       (.. "@" opts.filename) str))]
     (set opts.filename nil)
     (loader ...)))
 

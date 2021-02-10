@@ -1082,6 +1082,10 @@ future version of Fennel. You can disable this warning by providing the
 command-line argument `--no-compiler-sandbox` or by passing `{:compiler-env
 _G}` in the options table when invoking the compiler programmatically.
 
+Please note that the sandbox is not suitable to be used as a robust
+security mechanism.  It has not been audited and should not be relied
+upon to protect you from running untrusted code.
+
 Note that lists are compile-time concepts that don't exist at runtime; they
 are implemented as tables which have a special metatable to distinguish them
 from regular tables defined with square or curly brackets. Similarly symbols

@@ -160,19 +160,18 @@
     (f:close)
     (values codeline bytes)))
 
-(fn read-line-from-source [source line]
-  (var (lines bytes codeline) (values 0 0))
-  (each [this-line newline (string.gmatch (.. source "\n") "(.-)(\r?\n)")]
-    (set lines (+ lines 1))
-    (when (= lines line)
-      (set codeline this-line)
-      (lua :break))
-    (set bytes (+ bytes (# newline) (# this-line))))
-  (values codeline bytes))
+(fn read-line-from-string [matcher target-line ?current-line ?bytes]
+  (let [(this-line newline) (matcher)
+        current-line (or ?current-line 1)
+        bytes (+ (or ?bytes 0) (length this-line) (length newline))]
+    (if (= target-line current-line)
+        (values this-line bytes)
+        this-line
+        (read-line-from-string matcher target-line (+ current-line 1) bytes))))
 
 (fn read-line [filename line source]
   (if source
-      (read-line-from-source source line)
+      (read-line-from-string (string.gmatch (.. source "\n") "(.-)(\r?\n)") line)
       (read-line-from-file filename line)))
 
 (fn friendly-msg [msg {: filename : line : bytestart : byteend} source]

@@ -57,24 +57,21 @@
       (set seen.len id))
     seen))
 
-(fn detect-cycle [t seen]
-  ;; Return `true` if table `t` appears in itself.
-  (let [seen (or seen {})]
+(fn detect-cycle [t seen ?k]
+  "Return `true` if table `t` appears in itself."
+  (when (= :table (type t))
     (tset seen t true)
-    (each [k v (pairs t)]
-      (when (and (= (type k) :table)
-                 (or (. seen k) (detect-cycle k seen)))
-        (lua "return true"))
-      (when (and (= (type v) :table)
-                 (or (. seen v) (detect-cycle v seen)))
-        (lua "return true")))))
+    (match (next t ?k)
+      (k v) (or (. seen k) (detect-cycle k seen)
+                (. seen v) (detect-cycle v seen)
+                (detect-cycle t seen k)))))
 
 (fn visible-cycle? [t options]
   ;; Detect cycle, save table's ID in seen tables, and determine if
   ;; cycle is visible.  Exposed via options table to use in
   ;; __fennelview metamethod implementations
   (and options.detect-cycles?
-       (detect-cycle t)
+       (detect-cycle t {})
        (save-table t options.seen)
        (< 1 (or (. options.appearances t) 0))))
 

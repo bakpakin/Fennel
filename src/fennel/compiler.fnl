@@ -206,7 +206,8 @@ if they have already been declared via declare-local"
       ;; if it's a reference and not a symbol which introduces a new binding
       ;; then we need to check for allowed globals
       (assert-compile (or (not reference?) local? (global-allowed (. parts 1)))
-                      (.. "unknown global in strict mode: " (. parts 1)) symbol)
+                      (.. "unknown global in strict mode: " (tostring (. parts 1)))
+                      symbol)
       (when (and allowed-globals (not local?))
         (tset utils.root.scope.refedglobals (. parts 1) true))
       (utils.expr (combine-parts parts scope) etype))))

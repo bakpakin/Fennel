@@ -21,12 +21,15 @@ testall: fennel fennel.lua
 	@printf "\nTesting lua 5.4:\n"; lua5.4 test/init.lua
 	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
+fuzz: fennel fennel.lua
+	$(LUA) test/init.lua fuzz
+
 count: ; cloc --force-lang=lisp $(SRC)
 
 # Avoid chicken/egg situation using the old Lua launcher.
 LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl --globals "_G,_ENV"
 
-# Precompile fennel libraries
+# Precompile standalone serializer
 fennelview.lua: src/fennel/view.fnl fennel.lua ; $(LAUNCHER) --compile $< > $@
 
 # All-in-one pure-lua script:
@@ -71,7 +74,7 @@ $(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
 	make -C $(LUA_DIR) clean linux CC=arm-linux-gnueabihf-gcc
 	mv $(LUA_DIR)/src/liblua.a $@
 
-ci: testall count
+ci: testall count fuzz
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-bin.exe  fennel-arm32 \

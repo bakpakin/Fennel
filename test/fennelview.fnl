@@ -1,7 +1,7 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
 (local view (require :fennel.view))
-(local generate (fennel.dofile "test/generate.fnl"))
+(local {: generate} (fennel.dofile "test/generate.fnl"))
 
 (fn count [t]
   (var c 0)
@@ -31,7 +31,7 @@
 
 (fn test-fennelview []
   (for [_ 1 16]
-    (let [item (generate)
+    (let [item (generate 1)
           viewed (view item)
           round-tripped (fennel.eval viewed)]
       ;; you would think assertEquals would work here but it doesn't!

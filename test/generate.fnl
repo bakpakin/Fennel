@@ -1,20 +1,18 @@
 ;; A general-purpose function for generating random values.
 
-(var generate nil)
-
 (local random-char
        (fn []
-         (if (> (math.random) 0.9)
-             (string.char (+ 48 (math.random 10)))
-             (> (math.random) 0.5)
-             (string.char (+ 97 (math.random 26)))
-             (> (math.random) 0.5)
-             (string.char (+ 65 (math.random 26)))
-             (> (math.random) 0.5)
-             (string.char (+ 32 (math.random 11)))
-             (> (math.random) 0.5)
-             (string.char (+ 45 (math.random 2)))
-             :else
+         (if (> (math.random) 0.9) ; digits
+             (string.char (+ 47 (math.random 10)))
+             (> (math.random) 0.5) ; lower case
+             (string.char (+ 96 (math.random 26)))
+             (> (math.random) 0.5) ; upper case
+             (string.char (+ 64 (math.random 26)))
+             (> (math.random) 0.5) ; space and punctuation
+             (string.char (+ 31 (math.random 16)))
+             (> (math.random) 0.5) ; newlines and tabs
+             (string.char (+ 9 (math.random 4)))
+             :else ; bonus punctuation
              (string.char (+ 58 (math.random 5))))))
 
 (local generators {:number (fn [] ; weighted towards mid-range integers
@@ -29,24 +27,31 @@
                              (for [_ 1 (math.random 16)]
                                (set s (.. s (random-char))))
                              s)
-                   :table (fn [table-chance]
+                   :table (fn [generate depth]
                             (let [t {}]
                               (var k nil)
                               (for [_ 1 (math.random 16)]
+                                (set k (generate depth))
                                 ;; no nans plz
-                                (set k (generate 0.9))
-                                (while (not= k k) (set k (generate 0.9)))
-                                (tset t k (generate (* table-chance 1.5))))
+                                (while (not= k k) (set k (generate depth)))
+                                (when (not= nil k)
+                                  (tset t k (generate depth))))
                               t))
+                   :sequence (fn [generate depth]
+                               (let [t {}]
+                                 (for [_ 1 (math.random 32)]
+                                   (tset t (+ (length t) 1) (generate depth)))
+                                 t))
                    :boolean (fn [] (> (math.random) 0.5))})
 
-(set generate
-     (fn [table-chance]
-       "Generate a random piece of data."
-       (local table-chance (or table-chance 0.5))
-       (if (> (math.random) 0.5) (generators.number)
-           (> (math.random) 0.5) (generators.string)
-           (> (math.random) table-chance) (generators.table table-chance)
-           :else (generators.boolean))))
+(local order [:number :string :table :sequence :boolean])
 
-generate
+(fn generate [depth ?choice]
+  "Generate a random piece of data."
+  (if (< (+ 0.5 (/ (math.log depth 10) 1.3)) (math.random))
+      (match (. generators (or (. order (or ?choice 1)) :boolean))
+        generator (generator generate (+ depth 1)))
+      (or (= nil ?choice) (<= ?choice (length order)))
+      (generate depth (+ (or ?choice 1) 1))))
+
+{: generate : generators : order}

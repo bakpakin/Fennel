@@ -48,7 +48,7 @@
 
 (fn generate [depth ?choice]
   "Generate a random piece of data."
-  (if (< (+ 0.5 (/ (math.log depth 10) 1.3)) (math.random))
+  (if (< (+ 0.5 (/ (math.log depth 10) 1.2)) (math.random))
       (match (. generators (or (. order (or ?choice 1)) :boolean))
         generator (generator generate (+ depth 1)))
       (or (= nil ?choice) (<= ?choice (length order)))

@@ -136,6 +136,7 @@ returns
 
 (fn partial* [f ...]
   "Returns a function with all arguments partially applied to f."
+  (assert f "expected a function to partially apply")
   (let [body (list f ...)]
     (table.insert body _VARARG)
     `(fn [,_VARARG] ,body)))

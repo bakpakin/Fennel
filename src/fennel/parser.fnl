@@ -168,7 +168,7 @@ stream is finished."
       (let [top (table.remove stack)]
         (when (= top nil)
           (parse-error (.. "unexpected closing delimiter " (string.char b))))
-        (when (not= top.closer b)
+        (when (and top.closer (not= top.closer b))
           (parse-error (.. "mismatched closing delimiter " (string.char b)
                            ", expected " (string.char top.closer))))
         (set top.byteend byteindex) ; set closing byte index
@@ -204,7 +204,7 @@ stream is finished."
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"
       (table.insert stack {:prefix (. prefixes b)})
       (let [nextb (getb)]
-        (when (whitespace? nextb)
+        (when (or (whitespace? nextb) (= true (. delims nextb)))
           (when (not= b 35)
             (parse-error "invalid whitespace after quoting prefix"))
           (table.remove stack)

@@ -15,6 +15,13 @@
                     (table.insert kws (fennel.sym k)))
                   (each [k (pairs scope.parent.macros)]
                     (table.insert kws (fennel.sym k)))
+                  (each [k v (pairs _G)]
+                    (when (= :function (type v))
+                      (table.insert kws (fennel.sym k)))
+                    (when (= :table (type v))
+                      (each [k2 v2 (pairs v)]
+                        (when (= :function (type v2))
+                          (table.insert kws (fennel.sym (.. k "." k2)))))))
                   kws))
 
 (fn generate.generators.sym []
@@ -29,13 +36,15 @@
 
 (local marker {})
 
-(fn fuzz []
+(fn fuzz [verbose?]
   (let [code (fennel.view (generate.generators.list generate.generate 1))
         (ok err) (xpcall #(fennel.compile-string code {:useMetadata true})
                          #(if (= $ marker)
                               marker
                               (.. (tostring $) "\n" (debug.traceback))))]
-    (io.write ".")
+    (if verbose?
+        (print code)
+        (io.write "."))
     (when (not ok)
       ;; if we get an error, it must come from assert-compile; if we get
       ;; a non-assertion error then it must be a compiler bug!
@@ -43,13 +52,14 @@
 
 (fn test-fuzz []
   (let [seed (tonumber (or (os.getenv "FUZZ_SEED") (os.time)))
+        verbose? (os.getenv "VERBOSE")
         {: assert-compile : parse-error} friend]
     (print (.. "Fuzz testing with FUZZ_SEED=" seed))
     (math.randomseed seed)
     (set friend.assert-compile #(error marker))
     (set friend.parse-error #(error marker))
     (for [_ 1 (tonumber (or (os.getenv "FUZZ_COUNT") 16))]
-      (fuzz))
+      (fuzz verbose?))
     (print)
     (set friend.assert-compile assert-compile)
     (set friend.parse-error parse-error)))

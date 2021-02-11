@@ -2,7 +2,7 @@
 
 ## 0.8.2 / ???
 
-* ???
+* Fix a bug in the compiler sandbox where requiring had the wrong scope
 
 ## 0.8.1 / 2021-02-02
 

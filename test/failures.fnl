@@ -76,6 +76,8 @@
   "(with-open [(x y z) (values 1 2 3)])" "with-open only allows symbols in bindings"
   "#[$ $...] 1 2 3" "$ and $... in hashfn are mutually exclusive"
   "(eval-compiler (assert-compile false \"oh no\" 123))" "oh no"
+  "(partial)" "expected a function"
+  "(#)" "expected one argument"
 })
 
 (fn test-failures []

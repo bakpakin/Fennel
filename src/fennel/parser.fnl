@@ -86,6 +86,11 @@ stream is finished."
       (set line (+ line 1)))
     r)
 
+  ;; it's really easy to accidentally pass an options table here because all the
+  ;; other fennel functions take the options table as the second arg!
+  (assert (or (= nil filename) (= :string (type filename)))
+          "expected filename as second argument to parser")
+
   ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!
   (fn parse-error [msg byteindex-override]

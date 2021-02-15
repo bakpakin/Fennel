@@ -77,6 +77,8 @@
             :sym? utils.sym?
             :sequence utils.sequence
             :sequence? utils.sequence?
+            :comment utils.comment
+            :comment? utils.comment?
             :varg utils.varg
             :path utils.path
             :sym-char? parser.sym-char?

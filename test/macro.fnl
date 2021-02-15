@@ -101,6 +101,49 @@
         expected "(if (= 1 1) (do (let [x \"X\"] {:x x})))"]
     (l.assertEquals (eval-normalize code) expected)))
 
+(fn test-match []
+  (let [cases {"(let [_ :bar] (match :foo _ :should-match :foo :no))" "should-match"
+               "(let [k :k] (match [5 :k] :b :no [n k] n))" 5
+               "(let [s :hey] (match s :wat :no :hey :yes))" "yes"
+               "(let [x 3 res (match x 1 :ONE 2 :TWO _ :???)] res)" "???"
+               "(let [x 95] (match [52 85 95] [x y z] :nope [a b x] :yes))" "yes"
+               "(let [x {:y :z}] (match :z x.y 1 _ 0))" 1
+               "(match (+ 1 6) 7 8 8 1 9 2)" 8
+               "(match (+ 1 6) 7 8)" 8
+               "(match (io.open \"/does/not/exist\") (nil msg) :err f f)" "err"
+               "(match (values 1 [1 2]) (x [x x]) :no (x [x y]) :yes)" "yes"
+               "(match (values 5 9) 9 :no (a b) (+ a b))" 14
+               "(match (values nil :nonnil) (true _) :no (nil b) b)" "nonnil"
+               "(match [1 2 1] [x y x] :yes)" "yes"
+               "(match [1 2 3] [3 2 1] :no [2 9 1] :NO :default)" "default"
+               "(match [1 2 3] [a & b] (+ a (. b 1) (. b 2)))" 6
+               "(match [1 2 3] [x y x] :no [x y z] :yes)" "yes"
+               "(match [1 2 [[1]]] [x y [z]] (. z 1))" 1
+               "(match [1 2 [[3]]] [x y [[x]]] :no [x y z] :yes)" "yes"
+               "(match [1 2] [_ _] :wildcard)" "wildcard"
+               "(match [1] [a & b] (# b))" 0
+               "(match [1] [a & b] (length b))" 0
+               "(match [9 5] [a b ?c] :three [a b] (+ a b))" "three"
+               "(match [9 5] [a b c] :three [a b] (+ a b))" 14
+               "(match [:a :b :c] [1 t d] :no [a b :d] :NO [a b :c] b)" "b"
+               "(match [:a :b :c] [a b c] (.. b :eee))" "beee"
+               "(match [:a [:b :c]] [a b :c] :no [:a [:b c]] c)" "c"
+               "(match [:a {:b 8}] [a b :c] :no [:a {:b b}] b)" 8
+               "(match [{:sieze :him} 5]
+            ([f 4] ? f.sieze (= f.sieze :him)) 4
+            ([f 5] ? f.sieze (= f.sieze :him)) 5)" 5
+               "(match nil _ :yes nil :no)" "yes"
+               "(match {:a 1 :b 2} {:c 3} :no {:a n} n)" 1
+               "(match {:sieze :him}
+            (tbl ? (. tbl :no)) :no
+            (tbl ? (. tbl :sieze)) :siezed)" "siezed"
+               "(match {:sieze :him}
+            (tbl ? tbl.sieze tbl.no) :no
+            (tbl ? tbl.sieze (= tbl.sieze :him)) :siezed2)" "siezed2"
+               "(var x 1) (fn i [] (set x (+ x 1)) x) (match (i) 4 :N 3 :n 2 :y)" "y"}]
+    (each [code expected (pairs cases)]
+      (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
+
 {: test-arrows
  : test-comprehensions
  : test-import-macros
@@ -108,4 +151,5 @@
  : test-relative-macros
  : test-eval-compiler
  : test-inline-macros
- : test-macrodebug}
+ : test-macrodebug
+ : test-match}

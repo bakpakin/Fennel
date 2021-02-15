@@ -166,7 +166,8 @@ rather than generating new one."
       (tset already-warned symbol true)
       (io.stderr:write
        (.. "-- Warning: & will not be allowed in identifier names in "
-           "future versions: " symbol.filename ":" symbol.line "\n")))
+           "future versions: " (or symbol.filename :unknown) ":"
+           (or symbol.line :?) "\n")))
     (assert-compile (not (or (. scope.specials name) (. scope.macros name)))
                    (: "local %s was overshadowed by a special form or macro"
                       :format name) ast)

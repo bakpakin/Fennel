@@ -262,7 +262,7 @@ Example:
   (let [condition `(and (= (type ,val) :table))
         bindings []]
     (each [k pat (pairs pattern)]
-      (if (and (sym? pat) (= "&" (tostring pat)))
+      (if (= pat `&)
           (do (assert (not (. pattern (+ k 2)))
                       "expected rest argument before last parameter")
               (table.insert bindings (. pattern (+ k 1)))
@@ -306,7 +306,7 @@ introduce for the duration of the body if it does match."
                       true `(not= ,(sym :nil) ,val))
                   [pattern val]))
         ;; guard clause
-        (and (list? pattern) (sym? (. pattern 2)) (= :? (tostring (. pattern 2))))
+        (and (list? pattern) (= (. pattern 2) `?))
         (let [(pcondition bindings) (match-pattern vals (. pattern 1)
                                                    unifications)
               condition `(and ,pcondition)]

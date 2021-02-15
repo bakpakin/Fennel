@@ -221,7 +221,7 @@
         (and (= tv :string) key? (colon-string? x))
         (.. ":" x)
         (= tv :string)
-        (string.format "%q" x)
+        (pick-values 1 (: (string.format "%q" x) :gsub "\\\n" "\n"))
         (or (= tv :boolean) (= tv :nil))
         (tostring x)
         (.. "#<" (tostring x) ">"))))

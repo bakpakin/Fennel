@@ -347,7 +347,9 @@ introduce for the duration of the body if it does match."
     syms))
 
 (fn match* [val ...]
-  "Perform pattern matching on val. See reference for details."
+  ;; Old implementation of match macro, which doesn't directly support
+  ;; `where' and `or'. New syntax is implemented in `match-where',
+  ;; which simply generates old syntax and feeds it to `match*'.
   (let [clauses [...]
         vals (match-val-syms clauses)]
     ;; protect against multiple evaluation of the value, bind against as
@@ -355,10 +357,75 @@ introduce for the duration of the body if it does match."
     (list `let [vals val]
           (match-condition vals clauses))))
 
+;; Construction of old match syntax from new syntax
+
+(fn partition-2 [seq]
+  ;; Partition `seq` by 2.
+  ;; If `seq` has odd amount of elements, the last one is dropped.
+  ;;
+  ;; Input: [1 2 3 4 5]
+  ;; Output: [[1 2] [3 4]]
+  (let [firsts []
+        seconds []
+        res []]
+    (for [i 1 seq.n 2]
+      (table.insert firsts (or (. seq i) 'nil))
+      (table.insert seconds (or (. seq (+ i 1)) 'nil)))
+    (each [i v1 (ipairs firsts)]
+      (let [v2 (. seconds i)]
+        (if (not= nil v2)
+            (table.insert res [v1 v2]))))
+    res))
+
+(fn transform-or [[_ & pats] guards]
+  ;; Transforms `(or pat pats*)` lists into match `guard` patterns.
+  ;;
+  ;; (or pat1 pat2), guard => [(pat1 ? guard) (pat2 ? guard)]
+  (let [res []]
+    (each [_ pat (ipairs pats)]
+      (table.insert res (list pat '? (unpack guards))))
+    res))
+
+(fn transform-cond [cond]
+  ;; Transforms `where` cond into sequence of `match` guards.
+  ;;
+  ;; pat => [pat]
+  ;; (where pat guard) => [(pat ? guard)]
+  ;; (where (or pat1 pat2) guard) => [(pat1 ? guard) (pat2 ? guard)]
+  (if (and (list? cond) (= (. cond 1) `where))
+      (let [second (. cond 2)]
+        (if (and (list? second) (= (. second 1) `or))
+            (transform-or second [(table.unpack cond 3)])
+            :else
+            [(list second '? (table.unpack cond 3))]))
+      :else
+      [cond]))
+
+(fn match-where [val ...]
+  "Perform pattern matching on val. See reference for details.
+
+Syntax:
+
+(match data-expression
+  pattern body
+  (where pattern guard guards*) body
+  (where (or pattern patterns*) guard guards*) body)"
+  (let [conds-bodies (partition-2 (table.pack ...))
+        else-branch (if (not= 0 (% (select :# ...) 2))
+                        (select (select :# ...) ...))
+        match-body []]
+    (each [_ [cond body] (ipairs conds-bodies)]
+      (each [_ cond (ipairs (transform-cond cond))]
+        (table.insert match-body cond)
+        (table.insert match-body body)))
+    (if else-branch
+        (table.insert match-body else-branch))
+    (match* val (unpack match-body))))
+
 {:-> ->* :->> ->>* :-?> -?>* :-?>> -?>>*
  :doto doto* :when when* :with-open with-open*
  :collect collect* :icollect icollect*
  :partial partial* :lambda lambda*
  :pick-args pick-args* :pick-values pick-values*
  :macro macro* :macrodebug macrodebug* :import-macros import-macros*
- :match match*}
+ :match match-where}

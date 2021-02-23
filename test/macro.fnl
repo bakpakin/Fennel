@@ -130,17 +130,76 @@
                "(match [:a [:b :c]] [a b :c] :no [:a [:b c]] c)" "c"
                "(match [:a {:b 8}] [a b :c] :no [:a {:b b}] b)" 8
                "(match [{:sieze :him} 5]
-            ([f 4] ? f.sieze (= f.sieze :him)) 4
-            ([f 5] ? f.sieze (= f.sieze :him)) 5)" 5
+                  ([f 4] ? f.sieze (= f.sieze :him)) 4
+                  ([f 5] ? f.sieze (= f.sieze :him)) 5)" 5
                "(match nil _ :yes nil :no)" "yes"
                "(match {:a 1 :b 2} {:c 3} :no {:a n} n)" 1
                "(match {:sieze :him}
-            (tbl ? (. tbl :no)) :no
-            (tbl ? (. tbl :sieze)) :siezed)" "siezed"
+                  (tbl ? (. tbl :no)) :no
+                  (tbl ? (. tbl :sieze)) :siezed)" "siezed"
                "(match {:sieze :him}
-            (tbl ? tbl.sieze tbl.no) :no
-            (tbl ? tbl.sieze (= tbl.sieze :him)) :siezed2)" "siezed2"
-               "(var x 1) (fn i [] (set x (+ x 1)) x) (match (i) 4 :N 3 :n 2 :y)" "y"}]
+                  (tbl ? tbl.sieze tbl.no) :no
+                  (tbl ? tbl.sieze (= tbl.sieze :him)) :siezed2)" "siezed2"
+               "(var x 1) (fn i [] (set x (+ x 1)) x) (match (i) 4 :N 3 :n 2 :y)" "y"
+               ;; New syntax -- general case
+               "(match [1 2 3 4]
+                  1 :nope1
+                  [1 2 4] :nope2
+                  (where [1 2 4]) :nope3
+                  (where (or [1 2 4] [4 5 6])) :nope4
+                  (where [a 1 2] (> a 0)) :nope5
+                  (where [a b c] (> a 2) (> b 0) (> c 0)) :nope6
+                  (where (or [a 1] [a -2 -3] [a 2 3 4]) (> a 0)) :success
+                  :nope7)" :success
+               ;; Booleans are OR'ed as patterns
+               "(match false
+                  (where (or false true)) :false
+                  _ :nil)" :false
+               "(match true
+                  (where (or false true)) :true
+                  _ :nil)" :true
+               ;; Old syntax as well as new syntax
+               "(match [1 2 3 4]
+                  (where (or [1 2 4] [4 5 6])) :nope1
+                  (where [a 2 3 4] (> a 10)) :nope2
+                  ([a 2 3 4] ? (> a 10)) :nope3
+                  ([a 2 3 4] ? (= a 1)) :success)" :success
+               "(match [1 2 3 4]
+                  (where (or [1 2 4] [4 5 6])) :nope1
+                  (where [a 2 3 4] (> a 0)) :success1
+                  ([a 2 3 4] ? (> a 10)) :nope3
+                  ([a 2 3 4] ? (= a 1)) :success2)" :success1
+               ;; nil matching
+               "(match nil
+                  1 :nope1
+                  1.2 :nope2
+                  :2 :nope3
+                  \"3 4\" :nope4
+                  [1] :nope5
+                  [1 2] :nope6
+                  (1) :nope7
+                  (1 2) :nope8
+                  {:a 1} :nope9
+                  [[1 2] [3 4]] :nope10
+                  nil :success
+                  :nope11)" :success
+               ;; no match
+               "(match [1 2 3 4]
+                  (1 2 3 4) :nope1
+                  {:a 1 :b 2} :nope2
+                  (where [a b c d] (= 100 (* a b c d))) :nope3
+                  ([a b c d] ? (= 100 (* a b c d))) :nope4
+                  :success)" :success
+               ;; old tests adopted to new syntax
+               "(match [{:sieze :him} 5]
+                  (where [f 4] f.sieze (= f.sieze :him)) 4
+                  (where [f 5] f.sieze (= f.sieze :him)) 5)" 5
+               "(match {:sieze :him}
+                  (where tbl (. tbl :no)) :no
+                  (where tbl (. tbl :sieze)) :siezed)" :siezed
+               "(match {:sieze :him}
+                  (where tbl tbl.sieze tbl.no) :no
+                  (where tbl tbl.sieze (= tbl.sieze :him)) :siezed2)" :siezed2}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

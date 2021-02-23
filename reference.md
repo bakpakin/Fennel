@@ -107,10 +107,10 @@ This style of anonymous function is useful as a parameter to
 higher order functions, such as those provided by Lua libraries
 like lume and luafun.
 
-The current implementation only allows for either functions functions with
-up to 9 arguments, each named `$1` through `$9`, or those with varargs,
-delineated by `$...` instead of the usual `...`. A lone `$` in a hash function
-is treated as an alias for `$1`.
+The current implementation only allows for hash functions to use up to
+9 arguments, each named `$1` through `$9`, or those with varargs,
+delineated by `$...` instead of the usual `...`. A lone `$` in a hash
+function is treated as an alias for `$1`.
 
 Hash functions are defined with the `hashfn` macro or special character `#`,
 which wraps its single argument in a function literal. For example,
@@ -393,18 +393,65 @@ or specific value. In these cases you can use guard clauses:
 
 ```fennel
 (match [91 12 53]
-  ([a b c] ? (= 5 a)) :will-not-match
-  ([a b c] ? (= 0 (math.fmod (+ a b c) 2)) (= 91 a)) c) ; -> 53
+  (where [a b c] (= 5 a)) :will-not-match
+  (where [a b c] (= 0 (math.fmod (+ a b c) 2)) (= 91 a)) c) ; -> 53
 ```
 
-In this case the pattern should be wrapped in parens (like when
-matching against multiple values) but the second thing in the parens
-is the `?` symbol. Each form following this marker is a condition;
-all the conditions must evaluate to true for that pattern to match.
+In this case the pattern should be wrapped in parentheses (like when
+matching against multiple values) but the first thing in the
+parentheses is the `where` symbol. Each form after the pattern is a
+condition; all the conditions must evaluate to true for that pattern
+to match.
+
+If several patterns share the same body and guards, such patterns can
+be combined with `or` special in the `where` clause:
+
+```fennel
+(match [5 1 2]
+  (where (or [a 3 9] [a 1 2]) (= 5 a)) "Will match either [5 3 9] or [5 1 2]"
+  _ "will match anything else")
+```
+
+This is essentially equivalent to:
+
+```fennel
+(match [5 1 2]
+  (where [a 3 9] (= 5 a)) "Will match either [5 3 9] or [5 1 2]"
+  (where [a 1 2] (= 5 a)) "Will match either [5 3 9] or [5 1 2]"
+  _ "will match anything else")
+```
+
+However, patterns which bind variables, should not be combined with
+`or` if different variables are bound in different patterns or some
+variables are missing:
+
+``` fennel
+;; bad
+(match [1 2 3]
+  ;; Will throw an error because `b' is nil for the first
+  ;; pattern but the guard still uses it.
+  (where (or [a 1 2] [a b 3]) (> a 0) (> b 1))
+  :body)
+
+;; ok
+(match [1 2 3]
+  (where (or [a b 2] [a b 3]) (> a 0) (>= b 1))
+  :body)
+```
 
 **Note:**: The `match` macro can be used in place of the `if-let` macro
 from Clojure. The reason Fennel doesn't have `if-let` is that `match`
 makes it redundant.
+
+**Note 2:**: Prior to Fennel 0.8.2 the `match` macro used infix `?`
+operator to test patterns against the guards. While this syntax is
+still supported, `where` should be preferred instead:
+
+``` fennel
+(match [1 2 3]
+  (where [a 2 3] (> a 0)) "new guard syntax"
+  ([a 2 3] ? (> a 0)) "obsolete guard syntax")
+```
 
 ### `global` set global variable
 

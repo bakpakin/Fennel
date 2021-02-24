@@ -368,7 +368,7 @@ introduce for the duration of the body if it does match."
   (let [firsts []
         seconds []
         res []]
-    (for [i 1 seq.n 2]
+    (for [i 1 (length seq) 2]
       (table.insert firsts (or (. seq i) 'nil))
       (table.insert seconds (or (. seq (+ i 1)) 'nil)))
     (each [i v1 (ipairs firsts)]
@@ -395,9 +395,9 @@ introduce for the duration of the body if it does match."
   (if (and (list? cond) (= (. cond 1) `where))
       (let [second (. cond 2)]
         (if (and (list? second) (= (. second 1) `or))
-            (transform-or second [(table.unpack cond 3)])
+            (transform-or second [(unpack cond 3)])
             :else
-            [(list second '? (table.unpack cond 3))]))
+            [(list second '? (unpack cond 3))]))
       :else
       [cond]))
 
@@ -410,7 +410,7 @@ Syntax:
   pattern body
   (where pattern guard guards*) body
   (where (or pattern patterns*) guard guards*) body)"
-  (let [conds-bodies (partition-2 (table.pack ...))
+  (let [conds-bodies (partition-2 [...])
         else-branch (if (not= 0 (% (select :# ...) 2))
                         (select (select :# ...) ...))
         match-body []]

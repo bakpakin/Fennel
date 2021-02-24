@@ -15,6 +15,31 @@
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code) expected code))))
 
+(fn test-?. []
+  (let [cases {"(?. {:a 1})" {:a 1}
+               "(?. {:a 1} :a)" 1
+               "(?. {:a 1} :b)" nil
+               "(?. [-1 -2])" [-1 -2]
+               "(?. [-1 -2] 1)" -1
+               "(?. [-1 -2] 3)" nil
+               "(?. {:a {:b {:c 3}}} :a :b :c)" 3
+               "(?. {:a {:b {:c 3}}} :d :b :c)" nil
+               "(?. {:a {:b {:c 3}}} :a :d :c)" nil
+               "(?. {:a {:b {:c 3}}} :a :b :d)" nil
+               "(?. [-1 [-2 [-3] [-4]]] 2 3 1)" -4
+               "(?. [-1 [-2 [-3] [-4]]] 0 3 1)" nil
+               "(?. [-1 [-2 [-3] [-4]]] 2 5 1)" nil
+               "(?. [-1 [-2 [-3] [-4]]] 2 3 2)" nil
+               "(?. {:a [{} {:b {:c 4}}]} :a 2 :b :c)" 4
+               "(?. {:a [{} {:b {:c 4}}]} :a 1 :b :c)" nil
+               "(?. {:a [{} {:b {:c 4}}]} :a 3 :b :c)" nil
+               "(?. {:a [[{:b {:c 5}}]]} :a 1 :b :c)" nil
+               "(?. {:a [[{:b {:c 5}}]]} :a 1 1 :b :c)" 5
+               "(local t {:a [[{:b {:c 5}}]]}) (?. t :a 1 :b :c)" nil
+               "(local t {:a [[{:b {:c 5}}]]}) (?. t :a 1 1 :b :c)" 5}]
+    (each [code expected (pairs cases)]
+      (l.assertEquals (fennel.eval code) expected code))))
+
 (fn test-comprehensions []
   (let [cases {"(collect [k v (pairs {:apple :red :orange :orange})]
                   (values (.. :color- v) (.. :fruit- k)))"
@@ -209,6 +234,7 @@
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
 {: test-arrows
+ : test-?.
  : test-comprehensions
  : test-import-macros
  : test-require-macros

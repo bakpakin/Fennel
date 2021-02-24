@@ -712,6 +712,27 @@ Example:
 Note that if the field name is a string known at compile time, you
 don't need this and can just use `mytbl.field`.
 
+### Nil-safe `?.` table lookup
+
+Looks up a given key in a table. Multiple arguments will perform
+nested lookup. If any of subsequent keys is not present, will
+short-circuit to `nil`.
+
+Example:
+
+```fennel
+(?. mytbl myfield)
+```
+
+
+Example:
+
+```fennel
+(let [t {:a [2 3 4]}] (?. t :a 4 :b)) ; => nil
+(let [t {:a [2 3 4 {:b 42}]}] (?. t :a 4 :b)) ; => 42
+```
+
+
 ### `:` method call
 
 Looks up a function in a table and calls it with the table as its

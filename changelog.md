@@ -2,6 +2,7 @@
 
 ## 0.8.2 / ???
 
+* Add support for guards using `where`/`or` clauses in `match`
 * Allow symbols to compare as equal in macros based on name
 * Fix a bug where newlines were emitted with backslashes in fennel.view
 * Fix a bug in the compiler sandbox where requiring had the wrong scope

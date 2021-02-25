@@ -109,13 +109,15 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
     (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
   (.. "(" (table.concat (map safe (or tostring2 tostring)) " " 1 max) ")"))
 
+(fn comment-view [c] (values c true))
+
 (fn sym-eq [a b]
   (and (= (deref a) (deref b)) (= (getmetatable a) (getmetatable b))))
 
 (local symbol-mt {1 "SYMBOL" :__fennelview deref :__tostring deref :__eq sym-eq})
 (local expr-mt {1 "EXPR" :__tostring deref})
 (local list-mt {1 "LIST" :__fennelview list->string :__tostring list->string})
-(local comment-mt {1 "COMMENT" :__fennelview deref :__tostring deref})
+(local comment-mt {1 "COMMENT" :__fennelview comment-view :__tostring deref})
 (local sequence-marker ["SEQUENCE"])
 (local vararg (setmetatable ["..."]
                             {1 "VARARG" :__fennelview deref :__tostring deref}))

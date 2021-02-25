@@ -199,7 +199,12 @@
                   (where tbl (. tbl :sieze)) :siezed)" :siezed
                "(match {:sieze :him}
                   (where tbl tbl.sieze tbl.no) :no
-                  (where tbl tbl.sieze (= tbl.sieze :him)) :siezed2)" :siezed2}]
+                  (where tbl tbl.sieze (= tbl.sieze :him)) :siezed2)" :siezed2
+               "(match false false false true)" false
+               "(match nil false false true)" true
+               "(match true (where (or nil false true)) :ok :not-ok)" :ok
+               "(match false (where (or nil false true)) :ok :not-ok)" :ok
+               "(match nil (where (or nil false true)) :ok :not-ok)" :ok}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

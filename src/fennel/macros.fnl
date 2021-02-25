@@ -369,8 +369,10 @@ introduce for the duration of the body if it does match."
         seconds []
         res []]
     (for [i 1 (length seq) 2]
-      (table.insert firsts (or (. seq i) 'nil))
-      (table.insert seconds (or (. seq (+ i 1)) 'nil)))
+      (let [first (. seq i)
+            second (. seq (+ i 1))]
+        (table.insert firsts (if (not= nil first) first 'nil))
+        (table.insert seconds (if (not= nil second) second 'nil))))
     (each [i v1 (ipairs firsts)]
       (let [v2 (. seconds i)]
         (if (not= nil v2)

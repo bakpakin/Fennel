@@ -184,7 +184,7 @@
 
 (fn colon-string? [s]
   ;; Test if given string is valid colon string.
-  (s:find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
+  (s:find "^[-%w?\\^_!$%&*+./@|<=>]+$"))
 
 
 
@@ -218,10 +218,12 @@
         (pp-table x options indent)
         (= tv :number)
         (number->string x)
-        (and (= tv :string) key? (colon-string? x))
+        (and (= tv :string) (colon-string? x)
+             (or (not= key? nil) options.prefer-colon?))
         (.. ":" x)
         (= tv :string)
-        (pick-values 1 (: (string.format "%q" x) :gsub "\\\n" "\n"))
+        (pick-values 1 (: (string.format "%q" x) :gsub "\\\n"
+                          (if options.escape-newlines? "\\n" "\n")))
         (or (= tv :boolean) (= tv :nil))
         (tostring x)
         (.. "#<" (tostring x) ">"))))
@@ -237,6 +239,8 @@ Can take an options table with these keys:
 * :empty-as-sequence? (boolean, default: false) render empty tables as []
 * :line-length (number, default: 80) length of the line at which
   multi-line output for tables is forced
+* :escape-newlines? (default: false) emit strings with \\n instead of newline
+* :colon-strings? (default: false) emit strings in colon notation when possible
 * :utf8? (boolean, default true) whether to use utf8 module to compute string
   lengths
 

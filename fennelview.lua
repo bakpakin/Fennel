@@ -71,21 +71,19 @@ local function save_table(t, seen)
   end
   return seen0
 end
-local function detect_cycle(t, seen)
-  local seen0 = (seen or {})
-  seen0[t] = true
-  for k, v in pairs(t) do
-    if ((type(k) == "table") and (seen0[k] or detect_cycle(k, seen0))) then
-      return true
-    end
-    if ((type(v) == "table") and (seen0[v] or detect_cycle(v, seen0))) then
-      return true
+local function detect_cycle(t, seen, _3fk)
+  if ("table" == type(t)) then
+    seen[t] = true
+    local _2_0, _3_0 = next(t, _3fk)
+    if ((nil ~= _2_0) and (nil ~= _3_0)) then
+      local k = _2_0
+      local v = _3_0
+      return (seen[k] or detect_cycle(k, seen) or seen[v] or detect_cycle(v, seen) or detect_cycle(t, seen, k))
     end
   end
-  return nil
 end
 local function visible_cycle_3f(t, options)
-  return (options["detect-cycles?"] and detect_cycle(t) and save_table(t, options.seen) and (1 < (options.appearances[t] or 0)))
+  return (options["detect-cycles?"] and detect_cycle(t, {}) and save_table(t, options.seen) and (1 < (options.appearances[t] or 0)))
 end
 local function table_indent(t, indent, id)
   local opener_length = nil
@@ -313,7 +311,7 @@ local function number__3estring(n)
   return _2_0
 end
 local function colon_string_3f(s)
-  return s:find("^[-%w?\\^_!$%&*+./@:|<=>]+$")
+  return s:find("^[-%w?\\^_!$%&*+./@|<=>]+$")
 end
 local function make_options(t, options)
   local defaults = {["detect-cycles?"] = true, ["empty-as-sequence?"] = false, ["line-length"] = 80, ["metamethod?"] = true, ["one-line?"] = false, ["utf8?"] = true, depth = 128}
@@ -342,10 +340,19 @@ pp.pp = function(x, options, indent, key_3f)
     return pp_table(x, options0, indent0)
   elseif (tv == "number") then
     return number__3estring(x)
-  elseif ((tv == "string") and key_3f and colon_string_3f(x)) then
+  elseif ((tv == "string") and colon_string_3f(x) and ((key_3f ~= nil) or options0["prefer-colon?"])) then
     return (":" .. x)
   elseif (tv == "string") then
-    return string.format("%q", x)
+    local _4_0 = nil
+    local function _5_()
+      if options0["escape-newlines?"] then
+        return "\\n"
+      else
+        return "\n"
+      end
+    end
+    _4_0 = string.format("%q", x):gsub("\\\n", _5_())
+    return _4_0
   elseif ((tv == "boolean") or (tv == "nil")) then
     return tostring(x)
   else

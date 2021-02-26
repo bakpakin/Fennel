@@ -61,6 +61,13 @@
     (l.assertEquals (view t2) "@1{:foo 19 :tbl [1 \"b\" @1{...}]}")
     (l.assertEquals (view sparse) "@1{1 \"abc\" 4 @1{...}}")))
 
+(fn test-newline []
+  (let [s "hello\nworld!\n"]
+    (l.assertEquals (view s) "\"hello\nworld!\n\"")
+    (l.assertEquals (view s {:escape-newlines? true})
+                    "\"hello\\nworld!\\n\"")))
+
 {: test-fennelview
+ : test-newline
  : test-fennelview-userdata-handling
  : test-cycles}

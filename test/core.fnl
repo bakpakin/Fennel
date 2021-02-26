@@ -387,7 +387,18 @@
                "(eval-compiler
                   (set _G.out ((require :fennel.view) '(a {} [1 2]))))
                 _G.out"
-               "(a {} [1 2])"}]
+               "(a {} [1 2])"
+               ;; ensure that `__fennelview' has higher priority than `:prefer-colon?'
+               "(local styles (setmetatable [:colon :quote :depends]
+                                            {:__fennelview
+                                             #(icollect [_ s (ipairs $1)]
+                                                ($2 s $3 $4 (when (not= s :depends) (= s :colon))))}))
+                (local fennel (require :fennel))
+                (fennel.view [(fennel.view styles)
+                              (fennel.view styles {:prefer-colon? true})
+                              (fennel.view styles {:prefer-colon? false})]
+                             {:one-line? true})"
+               "[\":colon \\\"quote\\\" \\\"depends\\\"\" \":colon \\\"quote\\\" :depends\" \":colon \\\"quote\\\" \\\"depends\\\"\"]"}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true :compiler-env _G})
                       expected code))

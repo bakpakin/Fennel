@@ -86,7 +86,8 @@
                           1)]
     (+ indent opener-length)))
 
-(local pp {})
+;; forward declaration for recursive pretty printer
+(var pp nil)
 
 (fn concat-table-lines
   [elements options multiline? indent table-type prefix]
@@ -112,8 +113,8 @@
                           #(length $))
               prefix (if visible-cycle? (.. "@" id) "")
               elements (icollect [_ [k v] (pairs kv)]
-                         (let [k (pp.pp k options (+ indent 1) true)
-                               v (pp.pp v options (+ indent (slength k) 1))]
+                         (let [k (pp k options (+ indent 1) true)
+                               v (pp v options (+ indent (slength k) 1))]
                            (set multiline? (or multiline? (k:find "\n") (v:find "\n")))
                            (.. k " " v)))]
           (concat-table-lines
@@ -129,7 +130,7 @@
               indent (table-indent t indent id)
               prefix (if visible-cycle? (.. "@" id) "")
               elements (icollect [_ [_ v] (pairs kv)]
-                         (let [v (pp.pp v options indent)]
+                         (let [v (pp v options indent)]
                            (set multiline? (or multiline? (v:find "\n")))
                            v))]
           (concat-table-lines
@@ -152,7 +153,7 @@
   (if (>= options.level options.depth)
       (if options.empty-as-sequence? "[...]" "{...}")
       (let [_ (set options.visible-cycle? #(visible-cycle? $ options))
-            (lines force-multi-line?) (metamethod t pp.pp options indent)]
+            (lines force-multi-line?) (metamethod t pp options indent)]
         (set options.visible-cycle? nil)
         (match (type lines)
           :string lines ;; TODO: assuming that result is already a single line. Maybe warn?
@@ -196,6 +197,8 @@
                   :detect-cycles? true
                   :empty-as-sequence? false
                   :metamethod? true
+                  :prefer-colon? false
+                  :escape-newlines? false
                   :utf8? true}
         ;; overrides can't be accessed via options
         overrides {:level 0
@@ -207,26 +210,26 @@
       (tset defaults k v))
     defaults))
 
-(fn pp.pp [x options indent key?]
-  ;; main serialization loop, entry point is defined below
-  (let [indent (or indent 0)
-        options (or options (make-options x))
-        tv (type x)]
-    (if (or (= tv :table)
-            (and (= tv :userdata)
-                 (-?> (getmetatable x) (. :__fennelview))))
-        (pp-table x options indent)
-        (= tv :number)
-        (number->string x)
-        (and (= tv :string) (colon-string? x)
-             (or (not= key? nil) options.prefer-colon?))
-        (.. ":" x)
-        (= tv :string)
-        (pick-values 1 (: (string.format "%q" x) :gsub "\\\n"
-                          (if options.escape-newlines? "\\n" "\n")))
-        (or (= tv :boolean) (= tv :nil))
-        (tostring x)
-        (.. "#<" (tostring x) ">"))))
+(set pp (fn [x options indent colon?]
+          ;; main serialization loop, entry point is defined below
+          (let [indent (or indent 0)
+                options (or options (make-options x))
+                tv (type x)]
+            (if (or (= tv :table)
+                    (and (= tv :userdata)
+                         (-?> (getmetatable x) (. :__fennelview))))
+                (pp-table x options indent)
+                (= tv :number)
+                (number->string x)
+                (and (= tv :string) (colon-string? x)
+                     (if (not= colon? nil) colon? options.prefer-colon?))
+                (.. ":" x)
+                (= tv :string)
+                (pick-values 1 (: (string.format "%q" x) :gsub "\\\n"
+                                  (if options.escape-newlines? "\\n" "\n")))
+                (or (= tv :boolean) (= tv :nil))
+                (tostring x)
+                (.. "#<" (tostring x) ">")))))
 
 (fn view [x options]
   "Return a string representation of x.
@@ -240,7 +243,7 @@ Can take an options table with these keys:
 * :line-length (number, default: 80) length of the line at which
   multi-line output for tables is forced
 * :escape-newlines? (default: false) emit strings with \\n instead of newline
-* :colon-strings? (default: false) emit strings in colon notation when possible
+* :prefer-colon? (default: false) emit strings in colon notation when possible
 * :utf8? (boolean, default true) whether to use utf8 module to compute string
   lengths
 
@@ -250,10 +253,15 @@ argument, and current amount of indentation as its last argument:
 
 (fn [t view inspector indent] ...)
 
-`view` function contains pretty printer, that can be used to serialize elements
-stored within the table being serialized.  If your metamethod produces indented
-representation, you should pass `indent` parameter to `view` increased by the
-amount of addition indentation you've introduced.
+`view` function contains a pretty printer, that can be used to serialize
+elements stored within the table being serialized.  If your metamethod produces
+indented representation, you should pass `indent` parameter to `view` increased
+by the amount of additional indentation you've introduced.  This function has
+the same interface as `__fennelview` metamethod, but in addition accepts
+`colon-string?` as last argument. If `colon?` is `true`, strings will be printed
+as colon-strings when possible, and if its value is `false`, strings will be
+always printed in double quotes. If omitted or `nil` will default to value of
+`:prefer-colon?` option.
 
 `inspector` table contains options described above, and also `visible-cycle?`
 function, that takes a table being serialized, detects and saves information
@@ -321,7 +329,7 @@ results regardless of nesting:
                       :smalls [6 7 8 9 10 11 12]}]
  :normal-table [{:c [1 2 3] :d \"some-data\"} 4]}
 
-Note that even though we've only indented inner elements of our table with 10
-spaces, the result is correctly indented in terms of outer table, and inner
-tables also remain indented correctly."
-  (pp.pp x (make-options x options) 0))
+Note that even though we've only indented inner elements of our table
+with 10 spaces, the result is correctly indented in terms of outer
+table, and inner tables also remain indented correctly."
+  (pp x (make-options x options) 0))

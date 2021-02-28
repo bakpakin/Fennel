@@ -60,13 +60,13 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
                (-?>> ,el ,(unpack els))
                ,tmp)))))
 
-(fn ?dot [tbl k1 ...]
+(fn ?dot [tbl k ...]
   "Nil-safe table look up.
 Same as . (dot), except will short-circuit with nil when it encounters
 a nil value in any of subsequent keys."
-  (if (= nil k1)
-      tbl
-      `(?. (. ,tbl ,k1) ,...)))
+  (if (= nil k) tbl
+      `(let [res# (. ,tbl ,k)]
+         (and res# (?. res# ,...)))))
 
 (fn doto* [val ...]
   "Evaluates val and splices it into the first argument of subsequent forms."

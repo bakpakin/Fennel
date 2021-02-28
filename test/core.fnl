@@ -107,20 +107,20 @@
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
 (fn test-conditionals []
-  (let [cases {"(if _G.non-existent 1 (* 3 9))" 27
-               "(if false \"yep\" \"nope\")" "nope"
-               "(if false :y true :x :trailing :condition)" "x"
-               "(let [b :original b (if false :not-this)] (or b :nil))" "nil"
-               "(let [x 1 y 2] (if (= (* 2 x) y) \"yep\"))" "yep"
-               "(let [x 3 res (if (= x 1) :ONE (= x 2) :TWO true :???)] res)" "???"
-               "(let [x {:y 2}] (if false \"yep\" (< 1 x.y 3) \"uh-huh\" \"nope\"))" "uh-huh"
-               "(var [a z] [0 0]) (when true (set a 192) (set z 12)) (+ z a)" 204
-               "(var a 884) (when nil (set a 192)) a" 884
-               "(var i 0) (var s 0) (while (let [l 11] (< i l)) (set s (+ s i)) (set i (+ 1 i))) s" 55
-               "(var x 12) (if true (set x 22) 0) x" 22
-               "(when (= 12 88) (os.exit 1)) false" false
-               "(while (let [f false] f) (lua :break))" nil}]
-    (each [code expected (pairs cases)]
+  (let [cases [["(if _G.non-existent 1 (* 3 9))" 27]
+               ["(if false \"yep\" \"nope\")" "nope"]
+               ["(if false :y true :x :trailing :condition)" "x"]
+               ["(let [b :original b (if false :not-this)] (or b nil))" nil]
+               ["(let [x 1 y 2] (if (= (* 2 x) y) \"yep\"))" "yep"]
+               ["(let [x 3 res (if (= x 1) :ONE (= x 2) :TWO true :???)] res)" "???"]
+               ["(let [x {:y 2}] (if false \"yep\" (< 1 x.y 3) \"uh-huh\" \"nope\"))" "uh-huh"]
+               ["(var [a z] [0 0]) (when true (set a 192) (set z 12)) (+ z a)" 204]
+               ["(var a 884) (when nil (set a 192)) a" 884]
+               ["(var i 0) (var s 0) (while (let [l 11] (< i l)) (set s (+ s i)) (set i (+ 1 i))) s" 55]
+               ["(var x 12) (if true (set x 22) 0) x" 22]
+               ["(when (= 12 88) (os.exit 1)) false" false]
+               ["(while (let [f false] f) (lua :break))" nil]]]
+    (each [_ [code expected] (ipairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
 (fn test-core []
@@ -219,7 +219,7 @@
                "(tostring (. {} 12))" "nil"
                "(let [(_ m) (pcall #(. 1 1))] (m:match \"attempt to index a number\"))"
                "attempt to index a number"
-               "(let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil)" nil
+               "(tostring (let [t {:st {:v 5 :f #(+ $.v $2)}} x (#(+ $ $2) 1 3)] (t.st:f x) nil))" "nil"
                "(let [x (if 3 4 5)] x)" 4
                "(select \"#\" (if (= 1 (- 3 2)) (values 1 2 3 4 5) :onevalue))" 5
                (.. "(do (local c1 20) (local c2 40) (fn xyz [A B] (and A B)) "

@@ -47,6 +47,9 @@ Example:
   (print (- x (* (or ?y 1) z))))
 ```
 
+Note that the Lua runtime will fill in missing arguments with nil when
+they are not provided by the caller, so an explicit nil argument is no
+different than omitting an argument.
 
 The `λ` form is an alias for `lambda` and behaves identically.
 

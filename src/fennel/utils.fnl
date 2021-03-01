@@ -111,10 +111,13 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 
 (fn comment-view [c] (values c true))
 
-(fn sym-eq [a b]
+(fn sym= [a b]
   (and (= (deref a) (deref b)) (= (getmetatable a) (getmetatable b))))
 
-(local symbol-mt {1 "SYMBOL" :__fennelview deref :__tostring deref :__eq sym-eq})
+(fn sym< [a b] (< (. a 1) (tostring b)))
+
+(local symbol-mt {1 "SYMBOL" :__fennelview deref :__tostring deref
+                  :__eq sym= :__lt sym<})
 (local expr-mt {1 "EXPR" :__tostring deref})
 (local list-mt {1 "LIST" :__fennelview list->string :__tostring list->string})
 (local comment-mt {1 "COMMENT" :__fennelview comment-view :__tostring deref})

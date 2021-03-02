@@ -38,7 +38,8 @@
 
 (fn fuzz [verbose?]
   (let [code (fennel.view (generate.generators.list generate.generate 1))
-        (ok err) (xpcall #(fennel.compile-string code {:useMetadata true})
+        (ok err) (xpcall #(fennel.compile-string code {:useMetadata true
+                                                       :compiler-env :strict})
                          #(if (= $ marker)
                               marker
                               (.. (tostring $) "\n" (debug.traceback))))]

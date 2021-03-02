@@ -863,19 +863,23 @@ Method name doesn't have to be known at compile-time; if it is, use
     (assert (not= mt (getmetatable "")) "Illegal metatable access!")
     mt))
 
+;; Circularity
+(var safe-require nil)
+
 ;; Note that this is not yet the safe compiler env! Enforcing a compiler sandbox
 ;; is a breaking change, so we need to do it in a way that warns for several
 ;; releases before enforcing the sandbox.
-(local safe-compiler-env
-       (setmetatable {:table (utils.copy table) :math (utils.copy math)
-                      :string (utils.copy string) : pairs : ipairs
-                      : select : tostring : tonumber : pcall : xpcall : next
-                      : print : type :bit (rawget _G :bit) : assert : error
-                      : setmetatable :getmetatable safe-getmetatable
-                      : rawget : rawset : rawequal :rawlen (rawget _G :rawlen)}
-                     {:__index compiler-env-warn}))
+(fn safe-compiler-env [strict?]
+  (setmetatable {:table (utils.copy table) :math (utils.copy math)
+                 :string (utils.copy string) : pairs : ipairs
+                 : select : tostring : tonumber : pcall : xpcall : next
+                 : print : type :bit (rawget _G :bit) : assert : error
+                 : setmetatable
+                 :getmetatable safe-getmetatable :require safe-require
+                 : rawget : rawset : rawequal :rawlen (rawget _G :rawlen)}
+                {:__index (if strict? compiler-env-warn)}))
 
-(fn make-compiler-env [ast scope parent]
+(fn make-compiler-env [ast scope parent strict?]
   (setmetatable {:_AST ast ; state of compiler
                  :_CHUNK parent
                  :_IS_COMPILER true
@@ -914,9 +918,10 @@ Method name doesn't have to be known at compile-time; if it is, use
                                     "must call from macro" ast)
                    (compiler.macroexpand form compiler.scopes.macro))}
                 {:__index (match utils.root.options
+                            {:compiler-env :strict} (safe-compiler-env true)
                             {: compilerEnv} compilerEnv
                             {: compiler-env} compiler-env ;; backwards-compat
-                            safe-compiler-env)}))
+                            _ (safe-compiler-env false))}))
 
 ;; have search-module use package.config to process package.path (windows compat)
 (local cfg (string.gmatch package.config "([^\n]+)"))
@@ -987,17 +992,18 @@ table.insert(package.loaders, fennel.searcher)"
                (= (. package.loaded modname :metadata) compiler.metadata)))
       {:metadata compiler.metadata}))
 
-(fn safe-compiler-env.require [modname]
-  "This is a replacement for require for use in macro contexts.
+(set safe-require
+     (fn [modname]
+       "This is a replacement for require for use in macro contexts.
 It ensures that compile-scoped modules are loaded differently from regular
 modules in the compiler environment."
-  (or (. macro-loaded modname)
-      (metadata-only-fennel modname)
-      (let [scope (compiler.make-scope compiler.scopes.compiler)
-            env (make-compiler-env nil scope nil)
-            mod (compiler-env-domodule modname env nil scope)]
-        (tset macro-loaded modname mod)
-        mod)))
+       (or (. macro-loaded modname)
+           (metadata-only-fennel modname)
+           (let [scope (compiler.make-scope compiler.scopes.compiler)
+                 env (make-compiler-env nil scope nil)
+                 mod (compiler-env-domodule modname env nil scope)]
+             (tset macro-loaded modname mod)
+             mod))))
 
 (fn add-macros [macros* ast scope]
   (compiler.assert (utils.table? macros*) "expected macros to be table" ast)

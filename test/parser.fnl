@@ -18,10 +18,20 @@
     (l.assertEquals "&abc" (tostring amp))))
 
 (fn test-comments []
-  (let [(ok ast) ((fennel.parser (fennel.string-stream ";; abc")
-                                 "" {:comments true}))]
+  (let [(ok? ast) ((fennel.parser (fennel.string-stream ";; abc")
+                                  "" {:comments true}))]
     (l.assertTable (utils.comment? ast))
-    (l.assertEquals ";; abc" (tostring ast))))
+    (l.assertEquals ";; abc" (tostring ast)))
+  (let [code "{;; one\n1 ;; hey\n2 ;; what\n:is \"up\" ;; here\n}"
+        (ok? ast) ((fennel.parser (fennel.string-stream code)
+                                  "" {:comments true}))
+        mt (getmetatable ast)]
+    (l.assertEquals mt.comments {:keys {:is (fennel.comment ";; what")
+                                        1 (fennel.comment ";; one")}
+                                 :values {2 (fennel.comment ";; hey")}
+                                 :last (fennel.comment ";; here")})
+    (l.assertEquals mt.keys [1 :is])
+    (l.assertTrue ok?)))
 
 (fn test-control-codes []
   (for [i 1 31]

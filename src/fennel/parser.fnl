@@ -147,7 +147,7 @@ stream is finished."
 
     (fn close-sequence [tbl]
       (let [val (utils.sequence (unpack tbl))]
-        ;; for table literals we can store file/line/offset source
+        ;; for table literals we can't store file/line/offset source
         ;; data in fields on the table itself, because the AST node
         ;; *is* the table, and the fields would show up in the
         ;; compiled output. keep them on the metatable instead.
@@ -155,18 +155,44 @@ stream is finished."
           (tset (getmetatable val) k v))
         (dispatch val)))
 
+    (fn extract-comments [tbl]
+      "Comment nodes can't be stored inside k/v tables; pull them out for later"
+      ;; every comment either preceeds a key, preceeds a value, or is at the end
+      (let [comments {:keys {} :values {}
+                      :last (if (utils.comment? (. tbl (length tbl)))
+                                (table.remove tbl))}]
+        (var last-key? false)
+        (each [i node (ipairs tbl)]
+          (if (not (utils.comment? node))
+              (set last-key? (not last-key?))
+              last-key?
+              (tset comments.values (. tbl (+ i 1)) node)
+              (tset comments.keys (. tbl (+ i 1)) node)))
+        ;; strip out the comments in a second pass; if we did it in the first
+        ;; pass we wouldn't be able to distinguish key-attached vs val-attached
+        (for [i (length tbl) 1 -1]
+          (when (utils.comment? (. tbl i))
+            (table.remove tbl i)))
+        comments))
+
     (fn close-curly-table [tbl]
-      (let [val []] ; a {} table
-        (when (not= (% (# tbl) 2) 0)
+      (let [comments (extract-comments tbl)
+            keys []
+            val {}]
+        (when (not= (% (length tbl) 2) 0)
           (set byteindex (- byteindex 1))
           (parse-error "expected even number of values in table literal"))
         (setmetatable val tbl) ; see note above about source data
-        (for [i 1 (# tbl) 2]
+        (for [i 1 (length tbl) 2]
           (when (and (= (tostring (. tbl i)) ":")
                      (utils.sym? (. tbl (+ i 1)))
                      (utils.sym? (. tbl i)))
             (tset tbl i (tostring (. tbl (+ i 1)))))
-          (tset val (. tbl i) (. tbl (+ i 1))))
+          (tset val (. tbl i) (. tbl (+ i 1)))
+          (table.insert keys (. tbl i)))
+        (set tbl.comments comments)
+        ;; save off the key order so the table can be reconstructed in order
+        (set tbl.keys keys)
         (dispatch val)))
 
     (fn close-table [b]

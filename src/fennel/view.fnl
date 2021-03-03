@@ -230,7 +230,10 @@
                 (.. ":" x)
                 (= tv :string)
                 (pick-values 1 (: (string.format "%q" x) :gsub "\\\n"
-                                  (if options.escape-newlines? "\\n" "\n")))
+                                  (if (and options.escape-newlines?
+                                           (< (length x)
+                                              (- options.line-length indent)))
+                                      "\\n" "\n")))
                 (or (= tv :boolean) (= tv :nil))
                 (tostring x)
                 (.. "#<" (tostring x) ">")))))

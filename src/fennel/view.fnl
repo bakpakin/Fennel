@@ -222,7 +222,11 @@
                 (= tv :number)
                 (number->string x)
                 (and (= tv :string) (colon-string? x)
-                     (if (not= colon? nil) colon? options.prefer-colon?))
+                     (if (not= colon? nil)
+                         colon?
+                         (= :function (type options.prefer-colon?))
+                         (options.prefer-colon? x)
+                         options.prefer-colon?))
                 (.. ":" x)
                 (= tv :string)
                 (pick-values 1 (: (string.format "%q" x) :gsub "\\\n"

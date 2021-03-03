@@ -86,13 +86,10 @@
             :parser parser.parser
             :granulate parser.granulate
             :string-stream parser.string-stream
-            :stringStream parser.string-stream ; backwards-compatibility alias
 
             :compile compiler.compile
             :compile-string compiler.compile-string
-            :compileString compiler.compile-string ; backwards-compatibility alias
             :compile-stream compiler.compile-stream
-            :compileStream compiler.compile-stream ; backwards-compatibility alias
             :compile1 compiler.compile1
             :traceback compiler.traceback
             :mangle compiler.global-mangling
@@ -102,14 +99,10 @@
             :gensym compiler.gensym
 
             :load-code specials.load-code
-            :loadCode specials.load-code ; backwards-compatibility alias
             :macro-loaded specials.macro-loaded
-            :macroLoaded specials.macro-loaded ; backwards-compatibility alias
             :search-module specials.search-module
-            :searchModule specials.search-module ; backwards-compatibility alias
             :make-searcher specials.make-searcher
-            :makeSearcher specials.make-searcher ; backwards-compatibility alias
-            :make_searcher specials.make-searcher ; backwards-compatibility alias
+            :makeSearcher specials.make-searcher
             :searcher (specials.make-searcher)
             :doc specials.doc
             :view view
@@ -118,7 +111,16 @@
             :dofile dofile*
             :version "0.8.2-dev"
 
-            :repl repl})
+            :repl repl
+
+            ;; backwards-compatibility aliases
+            :loadCode specials.load-code
+            :make_searcher specials.make-searcher
+            :searchModule specials.search-module
+            :macroLoaded specials.macro-loaded
+            :compileStream compiler.compile-stream
+            :compileString compiler.compile-string
+            :stringStream parser.string-stream})
 
 ;; This is bad; we have a circular dependency between the specials section and
 ;; the evaluation section due to require-macros/import-macros, etc. For now

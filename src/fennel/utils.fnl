@@ -171,8 +171,9 @@ except when certain macros need to look for binding forms, etc specifically."
   :sym symbol reference"
   (setmetatable {:type etype 1 strcode} expr-mt))
 
-(fn comment* [contents]
-  (setmetatable [contents] comment-mt))
+(fn comment* [contents source]
+  (let [{: filename : line} (or source [])]
+    (setmetatable {1 contents : filename : line} comment-mt)))
 
 (fn varg [] vararg)
 

@@ -132,7 +132,8 @@ stream is finished."
       (if (and b (not= 10 b))
           (parse-comment (getb) (doto contents (table.insert (string.char b))))
           (and options options.comments)
-          (dispatch (utils.comment (table.concat contents)))
+          (dispatch (utils.comment (table.concat contents)
+                                   {:line (- line 1) : filename}))
           b))
 
     (fn open-table [b]

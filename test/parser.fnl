@@ -26,10 +26,11 @@
         (ok? ast) ((fennel.parser (fennel.string-stream code)
                                   "" {:comments true}))
         mt (getmetatable ast)]
-    (l.assertEquals mt.comments {:keys {:is (fennel.comment ";; what")
-                                        1 (fennel.comment ";; one")}
-                                 :values {2 (fennel.comment ";; hey")}
-                                 :last (fennel.comment ";; here")})
+    (l.assertEquals (fennel.view mt.comments)
+                    (fennel.view {:keys {:is (fennel.comment ";; what")
+                                         1 (fennel.comment ";; one")}
+                                  :values {2 (fennel.comment ";; hey")}
+                                  :last (fennel.comment ";; here")}))
     (l.assertEquals mt.keys [1 :is])
     (l.assertTrue ok?)))
 

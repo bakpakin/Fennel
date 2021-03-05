@@ -108,8 +108,12 @@ stream is finished."
       "Dispatch when we complete a value"
       (match (. stack (# stack))
         nil (set (retval done? whitespace-since-dispatch) (values v true false))
-        {: prefix} (do (table.remove stack)
-                       (dispatch (utils.list (utils.sym prefix) v)))
+        {: prefix} (let [source (doto (table.remove stack)
+                                  (tset :byteend byteindex))
+                         list (utils.list (utils.sym prefix source) v)]
+                     (each [k v (pairs source)]
+                       (tset list k v))
+                     (dispatch list))
         top (do (set whitespace-since-dispatch false)
                 (table.insert top v))))
 
@@ -234,7 +238,8 @@ stream is finished."
 
     (fn parse-prefix [b]
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"
-      (table.insert stack {:prefix (. prefixes b)})
+      (table.insert stack {:prefix (. prefixes b) : filename : line
+                           :bytestart byteindex})
       (let [nextb (getb)]
         (when (or (whitespace? nextb) (= true (. delims nextb)))
           (when (not= b 35)

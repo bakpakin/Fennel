@@ -41,6 +41,14 @@
        (l.assertEquals (fennel.eval code) expected
                       (.. "Failed to parse control code " i)))))
 
+(fn test-prefixes []
+  (let [code "\n\n`(let\n  ,abc #(+ 2 3))"
+        (ok? ast) ((fennel.parser (fennel.string-stream code)))]
+    (l.assertEquals ast.line 3)
+    (l.assertEquals (. ast 2 2 :line) 4)
+    (l.assertEquals (. ast 2 3 :line) 4)))
+
 {: test-basics
  : test-control-codes
- : test-comments}
+ : test-comments
+ : test-prefixes}

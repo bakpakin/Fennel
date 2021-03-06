@@ -185,9 +185,22 @@
 
 (fn colon-string? [s]
   ;; Test if given string is valid colon string.
-  (s:find "^[-%w?\\^_!$%&*+./@|<=>]+$"))
+  (s:find "^[-%w?^_!$%&*+./@|<=>]+$"))
 
 
+
+(fn pp-string [str options indent]
+  "This is a more complicated version of string.format %q.
+However, we can't use that functionality because it always emits control codes
+as numeric escapes rather than letter-based escapes, which is ugly."
+  (let [escs (setmetatable {"\a" "\\a" "\b" "\\b" "\f" "\\f" "\v" "\\v"
+                            "\r" "\\r" "\t" "\\t" "\\" "\\\\" "\"" "\\\""
+                            "\n" (if (and options.escape-newlines?
+                                          (< (length str)
+                                             (- options.line-length indent)))
+                                     "\\n" "\n")}
+                           {:__index #(: "\\%03d" :format ($2:byte))})]
+    (.. "\"" (str:gsub "[%c\\\"]" escs) "\"")))
 
 (fn make-options [t options]
   (let [;; defaults are used when options are not provided
@@ -229,11 +242,7 @@
                          options.prefer-colon?))
                 (.. ":" x)
                 (= tv :string)
-                (pick-values 1 (: (string.format "%q" x) :gsub "\\\n"
-                                  (if (and options.escape-newlines?
-                                           (< (length x)
-                                              (- options.line-length indent)))
-                                      "\\n" "\n")))
+                (pp-string x options indent)
                 (or (= tv :boolean) (= tv :nil))
                 (tostring x)
                 (.. "#<" (tostring x) ">")))))

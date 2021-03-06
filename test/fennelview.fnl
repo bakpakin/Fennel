@@ -67,7 +67,12 @@
     (l.assertEquals (view s {:escape-newlines? true})
                     "\"hello\\nworld!\\n\"")))
 
+(fn test-escapes []
+  (l.assertEquals (view ["\a" "\t"]) "[\"\\a\" \"\\t\"]")
+  (l.assertEquals (view "[\7-\13]") "\"[\\a-\\r]\""))
+
 {: test-fennelview
  : test-newline
  : test-fennelview-userdata-handling
- : test-cycles}
+ : test-cycles
+ : test-escapes}

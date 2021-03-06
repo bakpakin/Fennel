@@ -157,7 +157,7 @@ For example,
 expands to
   (fn [_0_ _1_] (func _0_ _1_))"
   (assert (and (= (type n) :number) (= n (math.floor n)) (>= n 0))
-          "Expected n to be an integer literal >= 0.")
+          (.. "Expected n to be an integer literal >= 0, got " (tostring n)))
   (let [bindings []]
     (for [i 1 n] (tset bindings i (gensym)))
     `(fn ,bindings (,f ,(unpack bindings)))))
@@ -171,7 +171,7 @@ expands to
   (let [(_0_ _1_) ...]
     (values _0_ _1_))"
   (assert (and (= :number (type n)) (>= n 0) (= n (math.floor n)))
-          "Expected n to be an integer >= 0")
+          (.. "Expected n to be an integer >= 0, got " (tostring n)))
   (let [let-syms   (list)
         let-values (if (= 1 (select :# ...)) ... `(values ,...))]
     (for [i 1 n] (table.insert let-syms (gensym)))

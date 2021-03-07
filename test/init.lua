@@ -5,8 +5,6 @@ setmetatable(_G, {__index = strict, __newindex = strict})
 -- Ensure we're getting the Fennel we expect, not luarocks or anything
 package.loaded.fennel = dofile("fennel.lua")
 table.insert(package.loaders or package.searchers, package.loaded.fennel.searcher)
-package.loaded["fennel.view"] = package.loaded.fennel.dofile("src/fennel/view.fnl")
-package.loaded.fennelfriend = package.loaded.fennel.dofile("src/fennel/friend.fnl")
 setmetatable(_G, nil) -- but we don't want strict mode for tests
 
 local runner = require("test.luaunit").LuaUnit:new()

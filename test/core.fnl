@@ -189,23 +189,6 @@
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
-(fn test-loops []
-  (let [cases {"(for [y 0 2] nil) (each [x (pairs [])] nil)
-          (match [1 2] [x y] (+ x y))" 3
-               "(let [t {:a 1 :b 2} t2 {}]
-               (each [k v (pairs t)]
-               (tset t2 k v))
-            (+ t2.a t2.b))" 3
-               "(var t 0) (local (f s v) (pairs [1 2 3]))
-          (each [_ x (values f (doto s (table.remove 1)))] (set t (+ t x))) t" 5
-               "(var t 0) (local (f s v) (pairs [1 2 3]))
-          (each [_ x (values f s v)] (set t (+ t x))) t" 6
-               "(var x 0) (for [y 1 20 2] (set x (+ x 1))) x" 10
-               "(var x 0) (for [y 1 5] (set x (+ x 1))) x" 5
-               "(var x 0) (while (< x 7) (set x (+ x 1))) x" 7}]
-    (each [code expected (pairs cases)]
-      (l.assertEquals (fennel.eval code) expected code))))
-
 (fn test-edge []
   (let [cases {"(. (let [t (let [t {} k :a] (tset t k 123) t) k :b] (tset t k 321) t) :a)" 123
                "(length [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))])" 5
@@ -424,7 +407,6 @@
  : test-functions
  : test-hashfn
  : test-if
- : test-loops
  : test-with-open
  : test-method-calls
  : test-comment

@@ -41,22 +41,6 @@
     (each [_ [code expected] (ipairs cases)]
       (l.assertEquals (fennel.eval code) expected code))))
 
-(fn test-comprehensions []
-  (let [cases {"(collect [k v (pairs {:apple :red :orange :orange})]
-                  (values (.. :color- v) (.. :fruit- k)))"
-               {:color-red :fruit-apple :color-orange :fruit-orange}
-               "(collect [k v (pairs {:foo 3 :bar 4 :baz 5 :qux 6})]
-                  (when (> v 4) (values k (+ v 1))))"
-               {:baz 6 :qux 7}
-               "(icollect [_ v (ipairs [1 2 3 4 5 6])]
-                  (when (= 0 (% v 2)) (* v v)))"
-               [4 16 36]
-               "(icollect [num (string.gmatch \"24,58,1999\" \"%d+\")]
-                  (tonumber num))"
-               [24 58 1999]}]
-    (each [code expected (pairs cases)]
-      (l.assertEquals (fennel.eval code) expected code))))
-
 (fn test-eval-compiler []
   (let [reverse "(eval-compiler
                    (tset _SPECIALS \"reverse-it\" (fn [ast scope parent opts]
@@ -236,7 +220,6 @@
 
 {: test-arrows
  : test-?.
- : test-comprehensions
  : test-import-macros
  : test-require-macros
  : test-relative-macros

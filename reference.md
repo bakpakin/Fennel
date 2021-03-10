@@ -607,6 +607,15 @@ Example:
   (print key (f value)))
 ```
 
+Any loop can be terminated early by placing an `:until` clause at the
+end of the bindings:
+
+```fennel
+(local out [])
+(each [_ value (pairs tbl) :until (< max-len (length out))]
+  (table.insert out value))
+```
+
 Most iterators return two values, but `each` will bind any number. See
 [Programming in Lua][4] for details about how iterators work.
 
@@ -623,6 +632,16 @@ Example:
 ```
 
 This example will print all odd numbers under ten.
+
+Like `each`, loops using `for` can also be terminated early with an
+`:until` clause. The clause is checked before each iteration of the
+body; if it is true at the beginning then the body will not run at all.
+
+```fennel
+(var x 0)
+(for [i 1 128 :until (maxed-out? x)]
+  (set x (+ x i)))
+```
 
 ### `do` evaluate multiple forms returning last value
 
@@ -843,6 +862,9 @@ value into a table is a no-op.
     (tset tbl (+ (length tbl) 1) (when (> v 2) (* v v))))
   tbl)
 ```
+
+Like `each` and `for`, the table comprehensions support an `:until`
+clause for early termination.
 
 ### `->`, `->>`, `-?>` and `-?>>` threading macros
 

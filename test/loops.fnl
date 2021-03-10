@@ -35,6 +35,13 @@
          (tonumber num))"
       [24 58 1999]))
 
+(fn test-conditions []
+  (== "(var x 0) (for [i 1 10 :until (= i 5)] (set x i)) x" 4)
+  (== "(var x 0) (each [_ i (ipairs [1 2 3]) :until (< 2 x)] (set x i)) x" 3)
+  (== "(icollect [_ i (ipairs [4 5 6]) :until (= i 5)] i)" [4])
+  (== "(collect [i x (pairs [4 5 6]) :until (= x 6)] (values i x))" [4 5]))
+
 {: test-each
  : test-for
- : test-comprehensions}
+ : test-comprehensions
+ : test-conditions}

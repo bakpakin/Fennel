@@ -509,10 +509,22 @@ nested values, but all parents must contain an existing table.")
 Takes any number of condition/body pairs and evaluates the first body where
 the condition evaluates to truthy. Similar to cond in other lisps.")
 
+(fn remove-until-condition [bindings]
+  (when (= :until (. bindings (- (length bindings) 1)))
+    (table.remove bindings (- (length bindings) 1))
+    (table.remove bindings)))
+
+(fn compile-until [condition scope chunk]
+  (when condition
+    (let [[condition-lua] (compiler.compile1 condition scope chunk {:nval 1})]
+      (compiler.emit chunk (: "if %s then break end" :format condition-lua)
+                     condition))))
+
 (fn SPECIALS.each [ast scope parent]
   (compiler.assert (>= (# ast) 3) "expected body expression" (. ast 1))
   (let [binding (compiler.assert (utils.table? (. ast 2))
                                  "expected binding table" ast)
+        until-condition (remove-until-condition binding)
         iter (table.remove binding (# binding)) ; last item is iterator call
         destructures []
         new-manglings []
@@ -537,6 +549,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
                                                            :nomulti true
                                                            :symtype :each}))
       (compiler.apply-manglings sub-scope new-manglings ast)
+      (compile-until until-condition sub-scope chunk)
       (compile-do ast sub-scope chunk 3)
       (compiler.emit parent chunk ast)
       (compiler.emit parent "end" ast))))
@@ -576,6 +589,7 @@ order, but can be used with any iterator.")
 (fn for* [ast scope parent]
   (let [ranges (compiler.assert (utils.table? (. ast 2))
                                 "expected binding table" ast)
+        until-condition (remove-until-condition (. ast 2))
         binding-sym (table.remove (. ast 2) 1)
         sub-scope (compiler.make-scope scope)
         range-args []
@@ -587,10 +601,11 @@ order, but can be used with any iterator.")
                      "expected body expression" (. ast 1))
     (for [i 1 (math.min (# ranges) 3)]
       (tset range-args i (tostring (. (compiler.compile1 (. ranges i) sub-scope
-                                                        parent {:nval 1}) 1))))
+                                                         parent {:nval 1}) 1))))
     (compiler.emit parent (: "for %s = %s do" :format
                              (compiler.declare-local binding-sym [] sub-scope ast)
                              (table.concat range-args ", ")) ast)
+    (compile-until until-condition sub-scope chunk)
     (compile-do ast sub-scope chunk 3)
     (compiler.emit parent chunk ast)
     (compiler.emit parent "end" ast)))

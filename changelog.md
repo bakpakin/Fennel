@@ -2,6 +2,7 @@
 
 ## 0.8.2 / ???
 
+* Support `:until` clauses for early termination in all loops
 * Support `:escape-newlines?` and `:prefer-colon?` options in fennel.view
 * Add nil-safe table access operator `?.`
 * Add support for guards using `where`/`or` clauses in `match`

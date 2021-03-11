@@ -179,20 +179,20 @@ a repl.
 local bytestream, clearstream = fennel.granulate(chunks)
 ```
 
-## Converts a stream of bytes to a stream of values
+## Converts a stream of bytes to a stream of AST nodes
 
-Valuestream gets the next top level value parsed.
-Returns true in the first return value if a value was read, and
-returns nil if and end of file was reached without error. Will error
+The `fennel.parser` function returns a stateful iterator function.
+It returns true in the first return value if an AST was read, and
+returns nil if an end of file was reached without error. Will error
 on bad input or unexpected end of source.
 
 ```lua
-local valuestream = fennel.parser(strm)
-local ok, value = valuestream()
+local parse = fennel.parser(strm)
+local ok, ast = parse()
 
 -- Or use in a for loop
-for ok, value in valuestream do
-    print(ok, value)
+for ok, ast in parse do
+    print(ok, ast)
 end
 ```
 
@@ -202,6 +202,78 @@ default to false:
 
 * `unfriendly`: disable enhanced parse error reporting
 * `comments`: include comment nodes in AST
+
+## AST node definition
+
+The AST returned by the parser consists of data structures
+representing the code. Passing AST nodes to the `fennel.view` function
+will give you a string which should round-trip thru the parser to give
+you the same data back. The same is true with `tostring`, except it
+does not work with kv tables.
+
+AST nodes can be any of these types:
+
+### list
+
+A list represents a call to function/macro, or destructuring multiple
+return values in a binding context. It's represented as a table which
+can be identified using the `fennel.list?` predicate function or
+constructed using `fennel.list` which takes any number of arguments
+for the contents of the list.
+
+The list also contains these keys indicating where it was defined:
+`filename`, `line`, `bytestart`, and `byteend`. This data is used for
+stack traces and for pinpointing compiler error messages.
+
+### sequence/kv table
+
+These are table literals in Fennel code produced by square brackets
+(sequences) or curly brackets (kv tables). Sequences can be identified
+using the `fennel.sequence?` function and constructed using
+`fennel.sequence`. There is no predicate or constructor for kv tables;
+any table which is not one of the other types is assumed to be one of
+these.
+
+At runtime there is no difference between sequences and kv tables
+which use monotonically increasing integer keys, but the parser is
+able to distinguish between them.
+
+Sequences have their source data in `filename`, `line`, etc keys just
+like lists. But kv tables cannot have this, because adding arbitrary
+keys to the table would change its contents, so these fields are
+instead stored on the metatable.
+
+### symbol
+
+Symbols typically represent identifiers in Fennel code. Symbols can be
+identified with `fennel.sym?` and constructed with `fennel.sym` which
+takes a string name as its first argument and a source data table as
+the second. Symbols are represented as tables which store their source
+data in fields on themselves. Unlike the other tables in the AST, they
+do not represent collections; they are used as scalar types.
+
+**Note:** `nil` is not a valid AST; code that references nil will have
+the symbol named `"nil"` which unfortunately prints in a way that is
+visually indistinguishable from actual `nil`.
+
+### vararg
+
+This is a special type of symbol-like construct (`...`) indicating
+functions using a variable number of arguments. Its meaning is the
+same as in Lua. It's identified with `fennel.varg?` and constructed
+with `fennel.varg`.
+
+### number/string/boolean
+
+These are literal types defined by Lua. They cannot carry source data.
+
+### comment
+
+By default, ASTs will omit comments. However, when the `:comment`
+field is set in the parser options, comments will be included in the
+parsed values. They are identified using `fennel.comment?` and
+constructed using the `fennel.comment` function. They are represented
+as tables that have source data as fields inside them.
 
 ## Work with docstrings and metadata
 

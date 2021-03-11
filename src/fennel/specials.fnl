@@ -892,7 +892,7 @@ Method name doesn't have to be known at compile-time; if it is, use
                  : setmetatable
                  :getmetatable safe-getmetatable :require safe-require
                  : rawget : rawset : rawequal :rawlen (rawget _G :rawlen)}
-                {:__index (if strict? compiler-env-warn)}))
+                {:__index (if strict? nil compiler-env-warn)}))
 
 (fn make-compiler-env [ast scope parent strict?]
   (setmetatable {:_AST ast ; state of compiler

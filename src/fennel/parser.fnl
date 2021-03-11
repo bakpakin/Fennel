@@ -302,10 +302,10 @@ stream is finished."
             (dispatch (rawstr:sub 2))
             (parse-number rawstr) nil
             (check-malformed-sym rawstr) nil
-            (dispatch (utils.sym rawstr nil {:byteend byteindex
-                                             :bytestart bytestart
-                                             :filename filename
-                                             :line line})))))
+            (dispatch (utils.sym rawstr {:byteend byteindex
+                                         :bytestart bytestart
+                                         :filename filename
+                                         :line line})))))
 
     (fn parse-loop [b]
       (if (not b) nil

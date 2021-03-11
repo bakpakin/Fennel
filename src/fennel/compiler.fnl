@@ -466,8 +466,8 @@ if opts contains the nval option."
                                           (- (# multi-sym-parts) 1))]
                                  ".")
               method-to-call (. multi-sym-parts (# multi-sym-parts))
-              new-ast (utils.list (utils.sym ":" scope)
-                                  (utils.sym table-with-method scope)
+              new-ast (utils.list (utils.sym ":" nil scope)
+                                  (utils.sym table-with-method nil scope)
                                   method-to-call (select 2 (unpack ast)))]
           (compile1 new-ast scope parent opts))
         (compile-function-call ast scope parent opts compile1 len))))
@@ -867,10 +867,10 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         ;; We should be able to use "%q" for this but Lua 5.1 throws an error
         ;; when you try to format nil, because it's extremely bad.
         (if (or (symstr:find "#$") (symstr:find "#[:.]")) ; autogensym
-            (string.format "sym('%s', nil, {filename=%s, line=%s})"
+            (string.format "sym('%s', {filename=%s, line=%s})"
                            (autogensym symstr scope) filename (or form.line :nil))
             ;; prevent non-gensymed symbols from being bound as an identifier
-            (string.format "sym('%s', nil, {quoted=true, filename=%s, line=%s})"
+            (string.format "sym('%s', {quoted=true, filename=%s, line=%s})"
                            symstr filename (or form.line :nil))))
       (and (utils.list? form) ; unquote
            (utils.sym? (. form 1))

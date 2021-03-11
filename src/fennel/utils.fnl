@@ -139,7 +139,7 @@ the parser, and they represent code which comes from reading a paren form;
 they are specifically not cons cells."
   (setmetatable [...] list-mt))
 
-(fn sym [str scope source]
+(fn sym [str source scope]
   "Create a new symbol. Symbols are a compile-time construct in Fennel and are
 not exposed outside the compiler. Symbols have source data describing what
 file, line, etc that they came from."

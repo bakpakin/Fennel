@@ -19,6 +19,7 @@
   (io.write (table.concat xs "\t"))
   (io.write "\n"))
 
+;; fnlfmt: skip
 (fn default-on-error [errtype err lua-source]
   (io.write
    (match errtype
@@ -61,6 +62,7 @@
                      name (or (compiler.metadata:get f :fnl/docstring)
                               "undocumented"))) "\n"))
 
+;; fnlfmt: skip
 (fn commands.help [_ _ on-values]
   "Show this message."
   (on-values [(.. "Welcome to Fennel.

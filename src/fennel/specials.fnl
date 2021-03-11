@@ -858,10 +858,10 @@ Method name doesn't have to be known at compile-time; if it is, use
 (local already-warned? {})
 
 (local compile-env-warning
-       (.. "WARNING: Attempting to %s %s in compile"
-           " scope.\nIn future versions of Fennel this will not"
-           " be allowed without the\n--no-compiler-sandbox flag"
-           " or passing a :compilerEnv globals table in options.\n"))
+       (-> ["WARNING: Attempting to %s %s in compile scope."
+            "In future versions of Fennel this will not be allowed without the"
+            "--no-compiler-sandbox flag or passing a :compilerEnv globals table"
+            "in the options.\n"] (table.concat "\n")))
 
 (fn compiler-env-warn [_ key]
   "Warn once when allowing a global that the sandbox would normally block."

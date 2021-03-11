@@ -40,6 +40,7 @@ Also returns a second function to clear the buffer in the byte stream"
 (fn whitespace? [b]
   (or (= b 32) (and (>= b 9) (<= b 13))))
 
+;; fnlfmt: skip
 (fn sym-char? [b]
   (let [b (if (= :number (type b)) b (string.byte b))]
     (and (> b 32)

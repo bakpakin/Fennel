@@ -519,12 +519,12 @@ if opts contains the nval option."
                   kstr (.. "[" (tostring compiled) "]")]
               [kstr k]))))
     (let [keys (doto (utils.kvmap ast write-other-values)
-                 (table.sort (fn [a b] (< (. a 1) (. b 1)))))]
-      (utils.map keys (fn [k]
-                        (let [v (tostring (. (compile1 (. ast (. k 2))
-                                                       scope parent
-                                                       {:nval 1}) 1))]
-                          (string.format "%s = %s" (. k 1) v)))
+                 (table.sort (fn [a b]
+                               (< (. a 1) (. b 1)))))]
+      (utils.map keys
+                 (fn [[k1 k2]]
+                   (let [[v] (compile1 (. ast k2) scope parent {:nval 1})]
+                     (string.format "%s = %s" k1 (tostring v))))
                  buffer))
     (handle-compile-opts [(utils.expr (.. "{" (table.concat buffer ", ") "}")
                                       :expression)] parent opts ast)))
@@ -588,15 +588,15 @@ which we have to do if we don't know."
   * forceglobal: Don't allow local bindings
   * symtype: the type of syntax calling the destructuring, for lua output names"
   (let [opts (or opts {})
-        {: isvar : declaration : nomulti : noundef : forceglobal : forceset : symtype} opts
-        symtype (.. "_" (or symtype "dst"))
+        {: isvar : declaration : forceglobal : forceset : symtype} opts
+        symtype (.. "_" (or symtype :dst))
         setter (if declaration "local %s = %s" "%s = %s")
         new-manglings []]
 
     (fn getname [symbol up1]
       "Get Lua source for symbol, and check for errors"
       (let [raw (. symbol 1)]
-        (assert-compile (not (and nomulti (utils.multi-sym? raw)))
+        (assert-compile (not (and opts.nomulti (utils.multi-sym? raw)))
                        (.. "unexpected multi symbol " raw) up1)
         (if declaration
             ;; Technically this is too early to declare the local, but leaving
@@ -610,7 +610,7 @@ which we have to do if we don't know."
                                               (tostring symbol)) symbol)
                 (assert-compile (not (and meta (not meta.var)))
                                (.. "expected var " raw) symbol)
-                (assert-compile (or meta (not noundef))
+                (assert-compile (or meta (not opts.noundef))
                                (.. "expected local " (. parts 1)) symbol))
               (when forceglobal
                 (assert-compile (not (. scope.symmeta (. scope.unmanglings raw)))
@@ -835,8 +835,6 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
                 (values k (fv v))
                 (values (fk k) (fv v)))))
 
-(fn no [] "Consume everything and return nothing." nil)
-
 (fn mixed-concat [t joiner]
   (let [seen []]
     (var (ret s) (values "" ""))
@@ -879,7 +877,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
             res (unpack (compile1 payload scope parent))]
         (. res 1))
       (utils.list? form)
-      (let [mapped (utils.kvmap form (entry-transform no q))
+      (let [mapped (utils.kvmap form (entry-transform #nil q))
             filename (if form.filename (string.format "%q" form.filename) :nil)]
         (assert-compile (not runtime?)
                        "lists may only be used at compile time" form)

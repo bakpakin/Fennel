@@ -111,13 +111,13 @@
               slength (or (and options.utf8? (-?> (rawget _G :utf8) (. :len)))
                           #(length $))
               prefix (if visible-cycle? (.. "@" id) "")
-              elements (icollect [_ [k v] (pairs kv)]
-                         (let [k (pp k options (+ indent 1) true)
-                               v (pp v options (+ indent (slength k) 1))]
-                           (set multiline? (or multiline? (k:find "\n") (v:find "
-")))
-                           (.. k " " v)))]
-          (concat-table-lines elements options multiline? indent :table prefix)))))
+              items (icollect [_ [k v] (pairs kv)]
+                      (let [k (pp k options (+ indent 1) true)
+                            v (pp v options (+ indent (slength k) 1))]
+                        (set multiline?
+                             (or multiline? (k:find "\n") (v:find "\n")))
+                        (.. k " " v)))]
+          (concat-table-lines items options multiline? indent :table prefix)))))
 
 (fn pp-sequence [t kv options indent]
   (var multiline? false)
@@ -128,11 +128,11 @@
               id (and visible-cycle? (. options.seen t))
               indent (table-indent t indent id)
               prefix (if visible-cycle? (.. "@" id) "")
-              elements (icollect [_ [_ v] (pairs kv)]
-                         (let [v (pp v options indent)]
-                           (set multiline? (or multiline? (v:find "\n")))
-                           v))]
-          (concat-table-lines elements options multiline? indent :seq prefix)))))
+              items (icollect [_ [_ v] (pairs kv)]
+                      (let [v (pp v options indent)]
+                        (set multiline? (or multiline? (v:find "\n")))
+                        v))]
+          (concat-table-lines items options multiline? indent :seq prefix)))))
 
 (fn concat-lines [lines options indent force-multi-line?]
   (if (= (length lines) 0)
@@ -152,14 +152,11 @@
       (let [_ (set options.visible-cycle? #(visible-cycle? $ options))
             (lines force-multi-line?) (metamethod t pp options indent)]
         (set options.visible-cycle? nil)
+        ;; TODO: assuming that a string result is already a single line
         (match (type lines)
-          :string
-          lines
-          ;; TODO: assuming that result is already a single line. Maybe warn?
-          :table
-          (concat-lines lines options indent force-multi-line?)
-          _
-          (error "Error: __fennelview metamethod must return a table of lines")))))
+          :string lines
+          :table (concat-lines lines options indent force-multi-line?)
+          _ (error "__fennelview metamethod must return a table of lines")))))
 
 (fn pp-table [x options indent]
   ;; Generic table pretty-printer.  Supports associative and

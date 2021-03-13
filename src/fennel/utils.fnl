@@ -12,8 +12,7 @@
         succ []]
     (each [k (pairs t)]
       (table.insert keys k))
-    (table.sort keys (fn [a b]
-                       (< (tostring a) (tostring b))))
+    (table.sort keys #(< (tostring $1) (tostring $2)))
     (each [i k (ipairs keys)]
       (tset succ k (. keys (+ i 1))))
 
@@ -32,9 +31,7 @@ Optionally takes a target table to insert the mapped values into."
   (let [out (or out [])
         f (if (= (type f) :function)
               f
-              (let [s f]
-                (fn [x]
-                  (. x s))))]
+              #(. $ f))]
     (each [_ x (ipairs t)]
       (match (f x)
         v (table.insert out v)))
@@ -47,9 +44,7 @@ Optionally takes a target table to insert the mapped values into."
   (let [out (or out [])
         f (if (= (type f) :function)
               f
-              (let [s f]
-                (fn [x]
-                  (. x s))))]
+              #(. $ f))]
     (each [k x (stablepairs t)]
       (match (f k x)
         (key value) (tset out key value)
@@ -104,9 +99,8 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
   "Get the name of a symbol."
   (. self 1))
 
+;; haven't defined sym yet; circularity is needed here
 (var nil-sym nil)
-
-; haven't defined sym yet; circularity is needed here
 
 ;; the tostring2 argument is passed in by fennelview; this lets us use the same
 ;; function for regular tostring as for fennelview. when called from fennelview
@@ -147,9 +141,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 (local vararg
        (setmetatable ["..."] {1 :VARARG :__fennelview deref :__tostring deref}))
 
-(local getenv (or (and os os.getenv)
-                  (fn []
-                    nil)))
+(local getenv (or (and os os.getenv) #nil))
 
 (fn debug-on? [flag]
   (let [level (or (getenv :FENNEL_DEBUG) "")]

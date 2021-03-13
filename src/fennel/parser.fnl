@@ -20,9 +20,7 @@ Also returns a second function to clear the buffer in the byte stream"
                                               (set c char)
                                               (set index 2)
                                               (c:byte))
-                    _ (set done? true)))))
-          (fn []
-            (set c ""))))
+                    _ (set done? true))))) #(set c "")))
 
 (fn string-stream [str]
   "Convert a string into a stream of bytes."
@@ -52,20 +50,15 @@ Also returns a second function to clear the buffer in the byte stream"
          (not= b 59) ; semicolon
          (not= b 44) ; comma
          (not= b 64) ; at
-         (not= b 96))))
-
-; backtick
+         (not= b 96) ; backtick
+         )))
 
 ;; prefix chars substituted while reading
 (local prefixes {35 :hashfn
-                 ; #
+                 ;; non-backtick quote
                  39 :quote
-                 ; '
                  44 :unquote
-                 ; ,
                  96 :quote})
-
-; `
 
 (fn parser [getbyte filename options]
   "Parse one value given a function that returns sequential bytes.
@@ -297,8 +290,7 @@ stream is finished."
       (if (and (rawstr:match "^~") (not= rawstr "~="))
           (parse-error "illegal character: ~")
           (rawstr:match "%.[0-9]")
-          (parse-error (.. "can't start multisym segment " "with a digit: "
-                           rawstr)
+          (parse-error (.. "can't start multisym segment with a digit: " rawstr)
                        (+ (+ (- byteindex (length rawstr))
                              (rawstr:find "%.[0-9]"))
                           1))
@@ -308,10 +300,10 @@ stream is finished."
                        (+ (- byteindex (length rawstr)) 1
                           (rawstr:find "[%.:][%.:]")))
           (rawstr:match ":.+[%.:]")
-          (parse-error (.. "method must be last component " "of multisym: "
-                           rawstr)
+          (parse-error (.. "method must be last component of multisym: " rawstr)
                        (+ (- byteindex (length rawstr))
-                          (rawstr:find ":.+[%.:]")))))
+                          (rawstr:find ":.+[%.:]")))
+          rawstr))
 
     (fn parse-sym [b] ; not just syms actually...
       (let [bytestart byteindex
@@ -324,11 +316,8 @@ stream is finished."
             (dispatch (utils.varg))
             (rawstr:match "^:.+$")
             (dispatch (rawstr:sub 2))
-            (parse-number rawstr)
-            nil
-            (check-malformed-sym rawstr)
-            nil
-            (dispatch (utils.sym rawstr
+            (not (parse-number rawstr))
+            (dispatch (utils.sym (check-malformed-sym rawstr)
                                  {:byteend byteindex
                                   : bytestart
                                   : filename
@@ -349,7 +338,6 @@ stream is finished."
 
     (parse-loop (skip-whitespace (getb))))
 
-  (values parse-stream (fn []
-                         (set stack []))))
+  (values parse-stream #(set stack [])))
 
 {: granulate : parser : string-stream : sym-char?}

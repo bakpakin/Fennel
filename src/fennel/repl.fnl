@@ -90,7 +90,8 @@ For more information about the language, see https://fennel-lang.org/reference")
                      new (if (not ok)
                              (do
                                (on-values [new])
-                               old) new)]
+                               old)
+                             new)]
                  ;; if the module isn't a table then we can't make changes
                  ;; which affect already-loaded code, but if it is then we
                  ;; should splice new values into the existing table and
@@ -124,10 +125,9 @@ For more information about the language, see https://fennel-lang.org/reference")
   (when (and utils.root utils.root.options utils.root.options.plugins)
     (each [_ plugin (ipairs utils.root.options.plugins)]
       (each [name f (pairs plugin)]
+        ;; first function to provide a command should win
         (match (name:match "^repl%-command%-(.*)")
-          ;; first function to provide a command should win
-          cmd-name
-          (tset commands cmd-name (or (. commands cmd-name) f)))))))
+          cmd-name (tset commands cmd-name (or (. commands cmd-name) f)))))))
 
 (fn run-command [input read loop env on-values on-error]
   (load-plugin-commands)

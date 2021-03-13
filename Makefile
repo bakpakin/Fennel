@@ -26,6 +26,9 @@ fuzz: fennel fennel.lua
 
 count: ; cloc --force-lang=lisp $(SRC)
 
+# install https://git.sr.ht/~technomancy/fnlfmt manually for this:
+format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
+
 # Avoid chicken/egg situation using the old Lua launcher.
 LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl --globals "_G,_ENV"
 
@@ -113,4 +116,4 @@ release: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz
 	gpg -ab downloads/fennel-$(VERSION).tar.gz
 	rsync -r downloads/* fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
-.PHONY: build test testall count ci clean coverage install release
+.PHONY: build test testall count format ci clean coverage install release

@@ -64,9 +64,8 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
   "Nil-safe table look up.
 Same as . (dot), except will short-circuit with nil when it encounters
 a nil value in any of subsequent keys."
-  (if (= nil k) tbl
-      `(let [res# (. ,tbl ,k)]
-         (and res# (?. res# ,...)))))
+  (if (= nil k) tbl `(let [res# (. ,tbl ,k)]
+                       (and res# (?. res# ,...)))))
 
 (fn doto* [val ...]
   "Evaluates val and splices it into the first argument of subsequent forms."
@@ -82,22 +81,26 @@ a nil value in any of subsequent keys."
   "Evaluate body for side-effects only when condition is truthy."
   (assert body1 "expected body")
   `(if ,condition
-       (do ,body1 ,...)))
+       (do
+         ,body1
+         ,...)))
 
 (fn with-open* [closable-bindings ...]
   "Like `let`, but invokes (v:close) on each binding after evaluating the body.
 The body is evaluated inside `xpcall` so that bound values will be closed upon
 encountering an error before propagating it."
-  (let [bodyfn    `(fn [] ,...)
-        closer `(fn close-handlers# [ok# ...] (if ok# ...
-                                                  (error ... 0)))
+  (let [bodyfn `(fn []
+                  ,...)
+        closer `(fn close-handlers# [ok# ...]
+                  (if ok# ... (error ... 0)))
         traceback `(. (or package.loaded.fennel debug) :traceback)]
-    (for [i 1 (# closable-bindings) 2]
+    (for [i 1 (length closable-bindings) 2]
       (assert (sym? (. closable-bindings i))
               "with-open only allows symbols in bindings")
       (table.insert closer 4 `(: ,(. closable-bindings i) :close)))
-    `(let ,closable-bindings ,closer
-          (close-handlers# (xpcall ,bodyfn ,traceback)))))
+    `(let ,closable-bindings
+       ,closer
+       (close-handlers# (xpcall ,bodyfn ,traceback)))))
 
 (fn collect* [iter-tbl key-value-expr ...]
   "Returns a table made by running an iterator and evaluating an expression
@@ -112,8 +115,7 @@ returns
   {:red \"apple\" :orange \"orange\"}"
   (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
           "expected iterator binding table")
-  (assert (not= nil key-value-expr)
-          "expected key-value expression")
+  (assert (not= nil key-value-expr) "expected key-value expression")
   (assert (= nil ...)
           "expected exactly one body expression. Wrap multiple expressions with do")
   `(let [tbl# {}]
@@ -133,8 +135,7 @@ returns
   [9 16 25]"
   (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
           "expected iterator binding table")
-  (assert (not= nil value-expr)
-          "expected table value expression")
+  (assert (not= nil value-expr) "expected table value expression")
   (assert (= nil ...)
           "expected exactly one body expression. Wrap multiple expressions with do")
   `(let [tbl# []]
@@ -147,7 +148,8 @@ returns
   (assert f "expected a function to partially apply")
   (let [body (list f ...)]
     (table.insert body _VARARG)
-    `(fn [,_VARARG] ,body)))
+    `(fn [,_VARARG]
+       ,body)))
 
 (fn pick-args* [n f]
   "Creates a function of arity n that applies its arguments to f.
@@ -159,8 +161,10 @@ expands to
   (assert (and (= (type n) :number) (= n (math.floor n)) (>= n 0))
           (.. "Expected n to be an integer literal >= 0, got " (tostring n)))
   (let [bindings []]
-    (for [i 1 n] (tset bindings i (gensym)))
-    `(fn ,bindings (,f ,(unpack bindings)))))
+    (for [i 1 n]
+      (tset bindings i (gensym)))
+    `(fn ,bindings
+       (,f ,(unpack bindings)))))
 
 (fn pick-values* [n ...]
   "Like the `values` special, but emits exactly n values.
@@ -172,11 +176,13 @@ expands to
     (values _0_ _1_))"
   (assert (and (= :number (type n)) (>= n 0) (= n (math.floor n)))
           (.. "Expected n to be an integer >= 0, got " (tostring n)))
-  (let [let-syms   (list)
-        let-values (if (= 1 (select :# ...)) ... `(values ,...))]
-    (for [i 1 n] (table.insert let-syms (gensym)))
+  (let [let-syms (list)
+        let-values (if (= 1 (select "#" ...)) ... `(values ,...))]
+    (for [i 1 n]
+      (table.insert let-syms (gensym)))
     (if (= n 0) `(values)
-        `(let [,let-syms ,let-values] (values ,(unpack let-syms))))))
+        `(let [,let-syms ,let-values]
+           (values ,(unpack let-syms))))))
 
 (fn lambda* [...]
   "Function literal with arity checking.
@@ -186,23 +192,25 @@ that argument name begins with ?."
         has-internal-name? (sym? (. args 1))
         arglist (if has-internal-name? (. args 2) (. args 1))
         docstring-position (if has-internal-name? 3 2)
-        has-docstring? (and (> (# args) docstring-position)
+        has-docstring? (and (> (length args) docstring-position)
                             (= :string (type (. args docstring-position))))
         arity-check-position (- 4 (if has-internal-name? 0 1)
                                 (if has-docstring? 0 1))
-        empty-body? (< (# args) arity-check-position)]
+        empty-body? (< (length args) arity-check-position)]
     (fn check! [a]
       (if (table? a)
           (each [_ a (pairs a)]
             (check! a))
           (let [as (tostring a)]
-            (and (not (as:match "^?")) (not= as "&") (not= as "_") (not= as "...")))
+            (and (not (as:match "^?")) (not= as "&") (not= as "_")
+                 (not= as "...")))
           (table.insert args arity-check-position
                         `(assert (not= nil ,a)
                                  (string.format "Missing argument %s on %s:%s"
                                                 ,(tostring a)
-                                                ,(or a.filename "unknown")
+                                                ,(or a.filename :unknown)
                                                 ,(or a.line "?"))))))
+
     (assert (= :table (type arglist)) "expected arg list")
     (each [_ a (ipairs arglist)]
       (check! a))
@@ -214,7 +222,7 @@ that argument name begins with ?."
   "Define a single macro."
   (assert (sym? name) "expected symbol for macro name")
   (local args [...])
-  `(macros { ,(tostring name) (fn ,(unpack args))}))
+  `(macros {,(tostring name) (fn ,(unpack args))}))
 
 (fn macrodebug* [form return?]
   "Print the resulting form after performing macroexpansion.
@@ -228,9 +236,9 @@ Each binding form can be either a symbol or a k/v destructuring table.
 Example:
   (import-macros mymacros                 :my-macros    ; bind to symbol
                  {:macro1 alias : macro2} :proj.macros) ; import by name"
-  (assert (and binding1 module-name1 (= 0 (% (select :# ...) 2)))
+  (assert (and binding1 module-name1 (= 0 (% (select "#" ...) 2)))
           "expected even number of binding/modulename pairs")
-  (for [i 1 (select :# binding1 module-name1 ...) 2]
+  (for [i 1 (select "#" binding1 module-name1 ...) 2]
     (let [(binding modname) (select i binding1 module-name1 ...)
           ;; generate a subscope of current scope, use require-macros
           ;; to bring in macro module. after that, we just copy the
@@ -240,10 +248,10 @@ Example:
       (_SPECIALS.require-macros `(require-macros ,modname) subscope {} ast)
       (if (sym? binding)
           ;; bind whole table of macros to table bound to symbol
-          (do (tset scope.macros (. binding 1) {})
-              (each [k v (pairs subscope.macros)]
-                (tset (. scope.macros (. binding 1)) k v)))
-
+          (do
+            (tset scope.macros (. binding 1) {})
+            (each [k v (pairs subscope.macros)]
+              (tset (. scope.macros (. binding 1)) k v)))
           ;; 1-level table destructuring for importing individual macros
           (table? binding)
           (each [macro-name [import-key] (pairs binding)]
@@ -271,14 +279,13 @@ Example:
         bindings []]
     (each [k pat (pairs pattern)]
       (if (= pat `&)
-          (do (assert (not (. pattern (+ k 2)))
-                      "expected rest argument before last parameter")
-              (table.insert bindings (. pattern (+ k 1)))
-              (table.insert bindings [`(select ,k ((or table.unpack
-                                                       _G.unpack)
-                                                   ,val))]))
-          (and (= :number (type k))
-               (= "&" (tostring (. pattern (- k 1)))))
+          (do
+            (assert (not (. pattern (+ k 2)))
+                    "expected rest argument before last parameter")
+            (table.insert bindings (. pattern (+ k 1)))
+            (table.insert bindings
+                          [`(select ,k ((or table.unpack _G.unpack) ,val))]))
+          (and (= :number (type k)) (= "&" (tostring (. pattern (- k 1)))))
           nil ; don't process the pattern right after &; already got it
           (let [subval `(. ,val ,k)
                 (subcondition subbindings) (match-pattern [subval] pat
@@ -297,11 +304,9 @@ introduce for the duration of the body if it does match."
   ;; of vals) or we're not, in which case we only care about the first one.
   (let [[val] vals]
     (if (or (and (sym? pattern) ; unification with outer locals (or nil)
-                 (not= :_ (tostring pattern)) ; never unify _
-                 (or (in-scope? pattern)
-                     (= :nil (tostring pattern))))
-            (and (multi-sym? pattern)
-                 (in-scope? (. (multi-sym? pattern) 1))))
+                 (not= "_" (tostring pattern)) ; never unify _
+                 (or (in-scope? pattern) (= :nil (tostring pattern))))
+            (and (multi-sym? pattern) (in-scope? (. (multi-sym? pattern) 1))))
         (values `(= ,val ,pattern) [])
         ;; unify a local we've seen already
         (and (sym? pattern) (. unifications (tostring pattern)))
@@ -310,18 +315,17 @@ introduce for the duration of the body if it does match."
         (sym? pattern)
         (let [wildcard? (: (tostring pattern) :find "^_")]
           (if (not wildcard?) (tset unifications (tostring pattern) val))
-          (values (if (or wildcard? (string.find (tostring pattern) "^?"))
-                      true `(not= ,(sym :nil) ,val))
-                  [pattern val]))
+          (values (if (or wildcard? (string.find (tostring pattern) "^?")) true
+                      `(not= ,(sym :nil) ,val)) [pattern val]))
         ;; guard clause
         (and (list? pattern) (= (. pattern 2) `?))
         (let [(pcondition bindings) (match-pattern vals (. pattern 1)
                                                    unifications)
               condition `(and ,pcondition)]
-          (for [i 3 (# pattern)] ; splice in guard clauses
+          (for [i 3 (length pattern)] ; splice in guard clauses
             (table.insert condition (. pattern i)))
-          (values `(let ,bindings ,condition) bindings))
-
+          (values `(let ,bindings
+                     ,condition) bindings))
         ;; multi-valued patterns (represented as lists)
         (list? pattern)
         (match-values vals pattern unifications match-pattern)
@@ -334,14 +338,15 @@ introduce for the duration of the body if it does match."
 (fn match-condition [vals clauses]
   "Construct the actual `if` AST for the given match values and clauses."
   (if (not= 0 (% (length clauses) 2)) ; treat odd final clause as default
-      (table.insert clauses (length clauses) (sym :_)))
+      (table.insert clauses (length clauses) (sym "_")))
   (let [out `(if)]
     (for [i 1 (length clauses) 2]
       (let [pattern (. clauses i)
             body (. clauses (+ i 1))
             (condition bindings) (match-pattern vals pattern {})]
         (table.insert out condition)
-        (table.insert out `(let ,bindings ,body))))
+        (table.insert out `(let ,bindings
+                             ,body))))
     out))
 
 (fn match-val-syms [clauses]
@@ -362,8 +367,7 @@ introduce for the duration of the body if it does match."
         vals (match-val-syms clauses)]
     ;; protect against multiple evaluation of the value, bind against as
     ;; many values as we ever match against in the clauses.
-    (list `let [vals val]
-          (match-condition vals clauses))))
+    (list `let [vals val] (match-condition vals clauses))))
 
 ;; Construction of old match syntax from new syntax
 
@@ -379,8 +383,8 @@ introduce for the duration of the body if it does match."
     (for [i 1 (length seq) 2]
       (let [first (. seq i)
             second (. seq (+ i 1))]
-        (table.insert firsts (if (not= nil first) first 'nil))
-        (table.insert seconds (if (not= nil second) second 'nil))))
+        (table.insert firsts (if (not= nil first) first `nil))
+        (table.insert seconds (if (not= nil second) second `nil))))
     (each [i v1 (ipairs firsts)]
       (let [v2 (. seconds i)]
         (if (not= nil v2)
@@ -393,7 +397,7 @@ introduce for the duration of the body if it does match."
   ;; (or pat1 pat2), guard => [(pat1 ? guard) (pat2 ? guard)]
   (let [res []]
     (each [_ pat (ipairs pats)]
-      (table.insert res (list pat '? (unpack guards))))
+      (table.insert res (list pat `? (unpack guards))))
     res))
 
 (fn transform-cond [cond]
@@ -407,7 +411,7 @@ introduce for the duration of the body if it does match."
         (if (and (list? second) (= (. second 1) `or))
             (transform-or second [(unpack cond 3)])
             :else
-            [(list second '? (unpack cond 3))]))
+            [(list second `? (unpack cond 3))]))
       :else
       [cond]))
 
@@ -421,8 +425,8 @@ Syntax:
   (where pattern guard guards*) body
   (where (or pattern patterns*) guard guards*) body)"
   (let [conds-bodies (partition-2 [...])
-        else-branch (if (not= 0 (% (select :# ...) 2))
-                        (select (select :# ...) ...))
+        else-branch (if (not= 0 (% (select "#" ...) 2))
+                        (select (select "#" ...) ...))
         match-body []]
     (each [_ [cond body] (ipairs conds-bodies)]
       (each [_ cond (ipairs (transform-cond cond))]
@@ -432,10 +436,21 @@ Syntax:
         (table.insert match-body else-branch))
     (match* val (unpack match-body))))
 
-{:-> ->* :->> ->>* :-?> -?>* :-?>> -?>>* :?. ?dot
- :doto doto* :when when* :with-open with-open*
- :collect collect* :icollect icollect*
- :partial partial* :lambda lambda*
- :pick-args pick-args* :pick-values pick-values*
- :macro macro* :macrodebug macrodebug* :import-macros import-macros*
+{:-> ->*
+ :->> ->>*
+ :-?> -?>*
+ :-?>> -?>>*
+ :?. ?dot
+ :doto doto*
+ :when when*
+ :with-open with-open*
+ :collect collect*
+ :icollect icollect*
+ :partial partial*
+ :lambda lambda*
+ :pick-args pick-args*
+ :pick-values pick-values*
+ :macro macro*
+ :macrodebug macrodebug*
+ :import-macros import-macros*
  :match match-where}

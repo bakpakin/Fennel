@@ -12,13 +12,16 @@
         succ []]
     (each [k (pairs t)]
       (table.insert keys k))
-    (table.sort keys (fn [a b] (< (tostring a) (tostring b))))
+    (table.sort keys (fn [a b]
+                       (< (tostring a) (tostring b))))
     (each [i k (ipairs keys)]
       (tset succ k (. keys (+ i 1))))
+
     (fn stablenext [tbl idx]
-      (let [key   (if (= idx nil) (. keys 1) (. succ idx))
+      (let [key (if (= idx nil) (. keys 1) (. succ idx))
             value (if (= key nil) nil (. tbl key))]
         (values key value)))
+
     (values stablenext t nil)))
 
 ;; Note: the collect/icollect macros mostly make map/kvmap obsolete.
@@ -27,9 +30,11 @@
   "Map function f over sequential table t, removing values where f returns nil.
 Optionally takes a target table to insert the mapped values into."
   (let [out (or out [])
-        f (if (= (type f) "function")
+        f (if (= (type f) :function)
               f
-              (let [s f] (fn [x] (. x s))))]
+              (let [s f]
+                (fn [x]
+                  (. x s))))]
     (each [_ x (ipairs t)]
       (match (f x)
         v (table.insert out v)))
@@ -40,9 +45,11 @@ Optionally takes a target table to insert the mapped values into."
 sequential table if f returns a single value or a k/v table if f returns two.
 Optionally takes a target table to insert the mapped values into."
   (let [out (or out [])
-        f (if (= (type f) "function")
+        f (if (= (type f) :function)
               f
-              (let [s f] (fn [x] (. x s))))]
+              (let [s f]
+                (fn [x]
+                  (. x s))))]
     (each [k x (stablepairs t)]
       (match (f k x)
         (key value) (tset out key value)
@@ -65,7 +72,7 @@ Optionally takes a target table to insert the mapped values into."
 (fn allpairs [tbl]
   "Like pairs, but if the table has an __index metamethod, it will recurisvely
 traverse upwards, skipping duplicates, to iterate all inherited properties"
-  (assert (= (type tbl) "table") "allpairs expects a table")
+  (assert (= (type tbl) :table) "allpairs expects a table")
   (var t tbl)
   (let [seen []]
     (fn allpairs-next [_ state]
@@ -73,12 +80,14 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
         (if (. seen next-state)
             (allpairs-next nil next-state)
             next-state
-            (do (tset seen next-state true)
-                (values next-state value))
+            (do
+              (tset seen next-state true)
+              (values next-state value))
             (let [meta (getmetatable t)]
               (when (and meta meta.__index)
                 (set t meta.__index)
                 (allpairs-next t))))))
+
     allpairs-next))
 
 ;;; AST functions
@@ -95,7 +104,9 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
   "Get the name of a symbol."
   (. self 1))
 
-(var nil-sym nil) ; haven't defined sym yet; circularity is needed here
+(var nil-sym nil)
+
+; haven't defined sym yet; circularity is needed here
 
 ;; the tostring2 argument is passed in by fennelview; this lets us use the same
 ;; function for regular tostring as for fennelview. when called from fennelview
@@ -103,34 +114,46 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 (fn list->string [self tostring2]
   (var (safe max) (values [] 0))
   (each [k (pairs self)]
-    (when (and (= (type k) "number") (> k max))
+    (when (and (= (type k) :number) (> k max))
       (set max k)))
   (for [i 1 max]
     (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
   (.. "(" (table.concat (map safe (or tostring2 tostring)) " " 1 max) ")"))
 
-(fn comment-view [c] (values c true))
+(fn comment-view [c]
+  (values c true))
 
 (fn sym= [a b]
   (and (= (deref a) (deref b)) (= (getmetatable a) (getmetatable b))))
 
-(fn sym< [a b] (< (. a 1) (tostring b)))
+(fn sym< [a b]
+  (< (. a 1) (tostring b)))
 
-(local symbol-mt {1 "SYMBOL" :__fennelview deref :__tostring deref
-                  :__eq sym= :__lt sym<})
-(local expr-mt {1 "EXPR" :__tostring deref})
-(local list-mt {1 "LIST" :__fennelview list->string :__tostring list->string})
-(local comment-mt {1 "COMMENT" :__fennelview comment-view :__tostring deref
-                   :__eq sym= :__lt sym<})
-(local sequence-marker ["SEQUENCE"])
-(local vararg (setmetatable ["..."]
-                            {1 "VARARG" :__fennelview deref :__tostring deref}))
+(local symbol-mt {1 :SYMBOL
+                  :__fennelview deref
+                  :__tostring deref
+                  :__eq sym=
+                  :__lt sym<})
 
-(local getenv (or (and os os.getenv) (fn [] nil)))
+(local expr-mt {1 :EXPR :__tostring deref})
+(local list-mt {1 :LIST :__fennelview list->string :__tostring list->string})
+(local comment-mt {1 :COMMENT
+                   :__fennelview comment-view
+                   :__tostring deref
+                   :__eq sym=
+                   :__lt sym<})
+
+(local sequence-marker [:SEQUENCE])
+(local vararg
+       (setmetatable ["..."] {1 :VARARG :__fennelview deref :__tostring deref}))
+
+(local getenv (or (and os os.getenv)
+                  (fn []
+                    nil)))
 
 (fn debug-on? [flag]
-  (let [level (or (getenv "FENNEL_DEBUG") "")]
-    (or (= level "all") (level:find flag))))
+  (let [level (or (getenv :FENNEL_DEBUG) "")]
+    (or (= level :all) (level:find flag))))
 
 (fn list [...]
   "Create a new list. Lists are a compile-time construct in Fennel; they are
@@ -143,13 +166,13 @@ they are specifically not cons cells."
   "Create a new symbol. Symbols are a compile-time construct in Fennel and are
 not exposed outside the compiler. Symbols have source data describing what
 file, line, etc that they came from."
-  (let [s {:scope scope 1 str}]
+  (let [s {: scope 1 str}]
     (each [k v (pairs (or source []))]
-      (when (= (type k) "string")
+      (when (= (type k) :string)
         (tset s k v)))
     (setmetatable s symbol-mt)))
 
-(set nil-sym (sym "nil"))
+(set nil-sym (sym :nil))
 
 (fn sequence [...]
   "Create a new sequence. Sequences are tables that come from the parser when
@@ -175,11 +198,12 @@ except when certain macros need to look for binding forms, etc specifically."
   (let [{: filename : line} (or source [])]
     (setmetatable {1 contents : filename : line} comment-mt)))
 
-(fn varg [] vararg)
+(fn varg []
+  vararg)
 
 (fn expr? [x]
   "Checks if an object is an expression. Returns the object if it is."
-  (and (= (type x) "table") (= (getmetatable x) expr-mt) x))
+  (and (= (type x) :table) (= (getmetatable x) expr-mt) x))
 
 (fn varg? [x]
   "Checks if an object is the vararg symbol. Returns the object if is."
@@ -187,49 +211,45 @@ except when certain macros need to look for binding forms, etc specifically."
 
 (fn list? [x]
   "Checks if an object is a list. Returns the object if is."
-  (and (= (type x) "table") (= (getmetatable x) list-mt) x))
+  (and (= (type x) :table) (= (getmetatable x) list-mt) x))
 
 (fn sym? [x]
   "Checks if an object is a symbol. Returns the object if it is."
-  (and (= (type x) "table") (= (getmetatable x) symbol-mt) x))
+  (and (= (type x) :table) (= (getmetatable x) symbol-mt) x))
 
 (fn table? [x]
   "Checks if an object any kind of table, EXCEPT list or symbol or vararg."
-  (and (= (type x) "table")
-       (not= x vararg)
-       (not= (getmetatable x) list-mt)
-       (not= (getmetatable x) symbol-mt)
-       x))
+  (and (= (type x) :table) (not= x vararg) (not= (getmetatable x) list-mt)
+       (not= (getmetatable x) symbol-mt) x))
 
 (fn sequence? [x]
   "Checks if an object is a sequence (created with a [] literal)"
-  (let [mt (and (= (type x) "table") (getmetatable x))]
+  (let [mt (and (= (type x) :table) (getmetatable x))]
     (and mt (= mt.sequence sequence-marker) x)))
 
 (fn comment? [x]
-  (and (= (type x) "table") (= (getmetatable x) comment-mt) x))
+  (and (= (type x) :table) (= (getmetatable x) comment-mt) x))
 
 (fn multi-sym? [str]
   "A multi symbol is a symbol that is actually composed of two or more symbols
 using dot syntax. The main differences from normal symbols is that they can't
 be declared local, and they may have side effects on invocation (metatables)."
   (if (sym? str) (multi-sym? (tostring str))
-      (not= (type str) "string") false
+      (not= (type str) :string) false
       (let [parts []]
         (each [part (str:gmatch "[^%.%:]+[%.%:]?")]
           (let [last-char (part:sub (- 1))]
             (when (= last-char ":")
               (set parts.multi-sym-method-call true))
             (if (or (= last-char ":") (= last-char "."))
-                (tset parts (+ (# parts) 1) (part:sub 1 (- 2)))
-                (tset parts (+ (# parts) 1) part))))
-        (and (> (# parts) 0) (or (: str "match" "%.") (: str "match" ":"))
-             (not (str:match "%.%."))
-             (not= (str:byte) (string.byte "."))
-             (not= (str:byte (- 1)) (string.byte "."))
-             parts))))
+                (tset parts (+ (length parts) 1) (part:sub 1 (- 2)))
+                (tset parts (+ (length parts) 1) part))))
+        (and (> (length parts) 0) (or (: str :match "%.") (: str :match ":"))
+             (not (str:match "%.%.")) (not= (str:byte) (string.byte "."))
+             (not= (str:byte (- 1)) (string.byte ".")) parts))))
 
-(fn quoted? [symbol] symbol.quoted)
+(fn quoted? [symbol]
+  symbol.quoted)
 
 ;;; Other
 
@@ -240,12 +260,32 @@ When f returns a truthy value, recursively walks the children."
     (when (f idx node parent)
       (each [k v (iterfn node)]
         (walk iterfn node k v))))
+
   (walk (or custom-iterator pairs) nil nil root)
   root)
 
-(local lua-keywords ["and" "break" "do" "else" "elseif" "end" "false" "for"
-                     "function" "if" "in" "local" "nil" "not" "or" "repeat"
-                     "return" "then" "true" "until" "while" "goto"])
+(local lua-keywords [:and
+                     :break
+                     :do
+                     :else
+                     :elseif
+                     :end
+                     :false
+                     :for
+                     :function
+                     :if
+                     :in
+                     :local
+                     :nil
+                     :not
+                     :or
+                     :repeat
+                     :return
+                     :then
+                     :true
+                     :until
+                     :while
+                     :goto])
 
 (each [i v (ipairs lua-keywords)]
   (tset lua-keywords v i))
@@ -253,8 +293,13 @@ When f returns a truthy value, recursively walks the children."
 (fn valid-lua-identifier? [str]
   (and (str:match "^[%a_][%w_]*$") (not (. lua-keywords str))))
 
-(local propagated-options [:allowedGlobals :indent :correlate :useMetadata
-                           :env :compiler-env :compilerEnv])
+(local propagated-options [:allowedGlobals
+                           :indent
+                           :correlate
+                           :useMetadata
+                           :env
+                           :compiler-env
+                           :compilerEnv])
 
 (fn propagate-options [options subopts]
   "Certain options should always get propagated onwards when a function that
@@ -276,14 +321,33 @@ has options calls down into compile."
       (match (. plugin event)
         f (f ...)))))
 
-{;; general table functions
- : allpairs : stablepairs : copy : kvmap : map : walk-tree : member?
-
- ;; AST functions
- : list : sequence : sym : varg : deref : expr :comment comment* : comment?
- : expr? : list? : multi-sym? : sequence? : sym? : table? : varg? : quoted?
-
- ;; other
- : valid-lua-identifier? : lua-keywords : hook
- : propagate-options : root : debug-on?
- :path (table.concat ["./?.fnl" "./?/init.fnl" (getenv "FENNEL_PATH")] ";")}
+{: allpairs
+ : stablepairs
+ : copy
+ : kvmap
+ : map
+ : walk-tree
+ : member?
+ : list
+ : sequence
+ : sym
+ : varg
+ : deref
+ : expr
+ :comment comment*
+ : comment?
+ : expr?
+ : list?
+ : multi-sym?
+ : sequence?
+ : sym?
+ : table?
+ : varg?
+ : quoted?
+ : valid-lua-identifier?
+ : lua-keywords
+ : hook
+ : propagate-options
+ : root
+ : debug-on?
+ :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")}

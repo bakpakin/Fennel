@@ -69,55 +69,67 @@ Run fennel, a lisp programming language for the Lua runtime.
   (table.remove arg i) ; remove the --lua flag from args
   (let [tgt-lua (table.remove arg i)
         cmd [(string.format "%s %s" tgt-lua (. arg 0))]]
-    (for [i 1 (# arg)] ; quote args to prevent shell escapes when executing
+    (for [i 1 (length arg)] ; quote args to prevent shell escapes when executing
       (table.insert cmd (string.format "%q" (. arg i))))
     (let [ok (os.execute (table.concat cmd " "))]
       (os.exit (if ok 0 1) true))))
 
 ;; check for --lua first to ensure its child process retains all flags
-(for [i (# arg) 1 -1]
-  (match (. arg i) "--lua" (handle-lua i)))
-
-(for [i (# arg) 1 -1]
+(for [i (length arg) 1 -1]
   (match (. arg i)
-    "--no-searcher" (do (set options.no-searcher true)
-                        (table.remove arg i))
-    "--indent" (do (set options.indent (table.remove arg (+ i 1)))
-                   (when (= options.indent "false")
-                     (set options.indent false))
-                   (table.remove arg i))
-    "--add-package-path" (let [entry (table.remove arg (+ i 1))]
-                           (set package.path (.. entry ";" package.path))
-                           (table.remove arg i))
-    "--add-fennel-path" (let [entry (table.remove arg (+ i 1))]
-                          (set fennel.path (.. entry ";" fennel.path))
-                          (table.remove arg i))
-    "--load" (handle-load i)
-    "-l" (handle-load i)
-    "--no-fennelrc" (do (set options.fennelrc false)
-                        (table.remove arg i))
-    "--correlate" (do (set options.correlate true)
-                      (table.remove arg i))
-    "--check-unused-locals" (do (set options.checkUnusedLocals true)
-                                (table.remove arg i))
-    "--globals" (do (allow-globals (table.remove arg (+ i 1)))
-                    (each [global-name (pairs _G)]
-                      (table.insert options.allowedGlobals global-name))
-                    (table.remove arg i))
-    "--globals-only" (do (allow-globals (table.remove arg (+ i 1)))
-                         (table.remove arg i))
-    "--require-as-include" (do (set options.requireAsInclude true)
-                               (table.remove arg i))
-    "--metadata" (do (set options.useMetadata true)
+    :--lua (handle-lua i)))
+
+(for [i (length arg) 1 -1]
+  (match (. arg i)
+    :--no-searcher (do
+                     (set options.no-searcher true)
                      (table.remove arg i))
-    "--no-metadata" (do (set options.useMetadata false)
-                        (table.remove arg i))
-    "--no-compiler-sandbox" (do (set options.compiler-env _G)
-                                (table.remove arg i))
-    "--plugin" (let [plugin (fennel.dofile (table.remove arg (+ i 1))
-                                           {:env :_COMPILER :useMetadata true})]
-                 (table.insert options.plugins 1 plugin)
-                 (table.remove arg i))))
+    :--indent (do
+                (set options.indent (table.remove arg (+ i 1)))
+                (when (= options.indent :false)
+                  (set options.indent false))
+                (table.remove arg i))
+    :--add-package-path (let [entry (table.remove arg (+ i 1))]
+                          (set package.path (.. entry ";" package.path))
+                          (table.remove arg i))
+    :--add-fennel-path (let [entry (table.remove arg (+ i 1))]
+                         (set fennel.path (.. entry ";" fennel.path))
+                         (table.remove arg i))
+    :--load (handle-load i)
+    :-l (handle-load i)
+    :--no-fennelrc (do
+                     (set options.fennelrc false)
+                     (table.remove arg i))
+    :--correlate (do
+                   (set options.correlate true)
+                   (table.remove arg i))
+    :--check-unused-locals (do
+                             (set options.checkUnusedLocals true)
+                             (table.remove arg i))
+    :--globals (do
+                 (allow-globals (table.remove arg (+ i 1)))
+                 (each [global-name (pairs _G)]
+                   (table.insert options.allowedGlobals global-name))
+                 (table.remove arg i))
+    :--globals-only (do
+                      (allow-globals (table.remove arg (+ i 1)))
+                      (table.remove arg i))
+    :--require-as-include (do
+                            (set options.requireAsInclude true)
+                            (table.remove arg i))
+    :--metadata (do
+                  (set options.useMetadata true)
+                  (table.remove arg i))
+    :--no-metadata (do
+                     (set options.useMetadata false)
+                     (table.remove arg i))
+    :--no-compiler-sandbox (do
+                             (set options.compiler-env _G)
+                             (table.remove arg i))
+    :--plugin (let [plugin (fennel.dofile (table.remove arg (+ i 1))
+                                          {:env :_COMPILER :useMetadata true})]
+                (table.insert options.plugins 1 plugin)
+                (table.remove arg i))))
 
 (local searcher-opts {})
 
@@ -130,28 +142,34 @@ Run fennel, a lisp programming language for the Lua runtime.
 (fn try-readline [ok readline]
   (when ok
     (when readline.set_readline_name
-      (readline.set_readline_name "fennel"))
+      (readline.set_readline_name :fennel))
     (readline.set_options {:keeplines 1000 :histfile ""})
+
     (fn options.readChunk [parser-state]
       (let [prompt (if (< 0 parser-state.stack-size) ".. " ">> ")
             str (readline.readline prompt)]
         (if str (.. str "\n"))))
+
     (var completer nil)
+
     (fn options.registerCompleter [repl-completer]
       (set completer repl-completer))
+
     (fn repl-completer [text from to]
       (if completer
-          (do (readline.set_completion_append_character "")
-              (completer (text:sub from to)))
+          (do
+            (readline.set_completion_append_character "")
+            (completer (text:sub from to)))
           []))
+
     (readline.set_complete_function repl-completer)
     readline))
 
 (fn load-initfile []
-  (let [home (or (os.getenv "HOME") "/")
-        xdg-config-home (or (os.getenv "XDG_CONFIG_HOME") (.. home "/.config"))
-        xdg-initfile (.. xdg-config-home "/fennel/fennelrc")
-        home-initfile (.. home "/.fennelrc")
+  (let [home (or (os.getenv :HOME) "/")
+        xdg-config-home (or (os.getenv :XDG_CONFIG_HOME) (.. home :/.config))
+        xdg-initfile (.. xdg-config-home :/fennel/fennelrc)
+        home-initfile (.. home :/.fennelrc)
         init (io.open xdg-initfile :rb)
         init-filename (if init xdg-initfile home-initfile)
         init (or init (io.open home-initfile :rb))]
@@ -179,37 +197,36 @@ Run fennel, a lisp programming language for the Lua runtime.
                                    form) options)))
 
 (match arg
-  ([] ? (= 0 (# arg))) (repl)
-  ["--repl"] (repl)
-  ["--compile" & files] (each [_ filename (ipairs files)]
-                          (set options.filename filename)
-                          (let [f (if (= filename "-")
-                                      io.stdin
-                                      (assert (io.open filename :rb)))
-                                (ok val) (xpcall #(fennel.compile-string
-                                                   (f:read :*a) options)
-                                                 fennel.traceback)]
-                            (if ok
-                                (print val)
-                                (do (io.stderr:write (.. val "\n"))
-                                    (os.exit 1)))
-                            (f:close)))
-  ["--compile-binary" filename out
-   static-lua lua-include-dir & args] (let [bin (require :fennel.binary)]
-                                        (set options.filename filename)
-                                        (set options.requireAsInclude true)
-                                        (bin.compile filename out
-                                                     static-lua lua-include-dir
-                                                     options args))
-  ["--compile-binary"] (print (. (require :fennel.binary) :help))
-
-  ["--eval" form] (eval form)
-  ["-e" form] (eval form)
-  ["--version"] (print (.. "Fennel " fennel.version " on " _VERSION))
-  ["--help"] (print help)
-  ["-h"] (print help)
+  ([] ? (= 0 (length arg))) (repl)
+  [:--repl] (repl)
+  [:--compile & files] (each [_ filename (ipairs files)]
+                         (set options.filename filename)
+                         (let [f (if (= filename "-")
+                                     io.stdin
+                                     (assert (io.open filename :rb)))
+                               (ok val) (xpcall #(fennel.compile-string (f:read :*a)
+                                                                        options)
+                                                fennel.traceback)]
+                           (if ok
+                               (print val)
+                               (do
+                                 (io.stderr:write (.. val "\n"))
+                                 (os.exit 1)))
+                           (f:close)))
+  [:--compile-binary filename out static-lua lua-include-dir & args]
+  (let [bin (require :fennel.binary)]
+    (set options.filename filename)
+    (set options.requireAsInclude true)
+    (bin.compile filename out static-lua lua-include-dir options args))
+  [:--compile-binary] (print (. (require :fennel.binary) :help))
+  [:--eval form] (eval form)
+  [:-e form] (eval form)
+  [:--version] (print (.. "Fennel " fennel.version " on " _VERSION))
+  [:--help] (print help)
+  [:-h] (print help)
   ["-" & args] (dosafely fennel.eval (io.stdin:read :*a))
-  [filename & args] (do (tset arg -2 (. arg -1))
-                        (tset arg -1 (. arg 0))
-                        (tset arg 0 (table.remove arg 1))
-                        (dosafely fennel.dofile filename options (unpack args))))
+  [filename & args] (do
+                      (tset arg -2 (. arg -1))
+                      (tset arg -1 (. arg 0))
+                      (tset arg 0 (table.remove arg 1))
+                      (dosafely fennel.dofile filename options (unpack args))))

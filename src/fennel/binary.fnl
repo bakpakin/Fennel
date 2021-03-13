@@ -21,8 +21,7 @@
       (table.insert hex (: "0x%02x" :format (string.byte character))))
     (table.concat hex ", ")))
 
-(local c-shim
-       "#ifdef __cplusplus
+(local c-shim "#ifdef __cplusplus
 extern \"C\" {
 #endif
 #include <lauxlib.h>
@@ -141,18 +140,19 @@ int main(int argc, char *argv[]) {
 }")
 
 (macro loader []
-  `(do (local bundle# ...)
-       (fn loader# [name#]
-         (match (or (. bundle# name#) (. bundle# (.. name# ".init")))
-           (mod# ? (= :function (type mod#))) mod#
-           (mod# ? (= :string (type mod#))) (assert
-                                             (if (= _VERSION "Lua 5.1")
-                                                 (loadstring mod# name#)
-                                                 (load mod# name#)))
-           nil (values nil (: "\n\tmodule '%%s' not found in fennel bundle"
-                              :format name#))))
-       (table.insert (or package.loaders package.searchers) 2 loader#)
-       ((assert (loader# "%s")) ((or unpack table.unpack) arg))))
+  `(do
+     (local bundle# ...)
+     (fn loader# [name#]
+       (match (or (. bundle# name#) (. bundle# (.. name# :.init)))
+         (mod# ? (= :function (type mod#))) mod#
+         (mod# ? (= :string (type mod#))) (assert (if (= _VERSION "Lua 5.1")
+                                                      (loadstring mod# name#)
+                                                      (load mod# name#)))
+         nil (values nil (: "\n\tmodule '%%s' not found in fennel bundle"
+                            :format name#))))
+
+     (table.insert (or package.loaders package.searchers) 2 loader#)
+     ((assert (loader# "%s")) ((or unpack table.unpack) arg))))
 
 (fn compile-fennel [filename options]
   (let [f (if (= filename "-")
@@ -163,18 +163,21 @@ int main(int argc, char *argv[]) {
     lua-code))
 
 (fn native-loader [native]
-  (let [nm (or (os.getenv "NM") "nm")
+  (let [nm (or (os.getenv :NM) :nm)
         out ["  /* native libraries */"]]
     (each [_ path (ipairs native)]
-      (each [open (: (shellout (.. nm " " path))
-                     :gmatch "[^dDt] _?luaopen_([%a%p%d]+)")]
+      (each [open (: (shellout (.. nm " " path)) :gmatch
+                     "[^dDt] _?luaopen_([%a%p%d]+)")]
         (table.insert out (: "  int luaopen_%s(lua_State *L);" :format open))
-        (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format open))
-        (table.insert out (: "  lua_setfield(L, -2, \"%s\");\n"
-                             ;; changing initial underscore breaks luaossl
-                             :format (.. (open:sub 1 1)
-                                         (-> (open:sub 2)
-                                             (: :gsub "_" ".")))))))
+        (table.insert out
+                      (: "  lua_pushcfunction(L, luaopen_%s);" :format open))
+        (table.insert out
+                      (: "  lua_setfield(L, -2, \"%s\");\n"
+                         ;; changing initial underscore breaks luaossl
+                         :format
+                         (.. (open:sub 1 1)
+                             (-> (open:sub 2)
+                                 (: :gsub "_" ".")))))))
     (table.concat out "\n")))
 
 (fn fennel->c [filename native options]
@@ -186,64 +189,73 @@ int main(int argc, char *argv[]) {
         dotpath-noextension (or (dotpath:match "(.+)%.") dotpath)
         fennel-loader (: (macrodebug (loader) :do) :format dotpath-noextension)
         lua-loader (fennel.compile-string fennel-loader)]
-    (c-shim:format (string->c-hex-literal lua-loader)
-                   basename-noextension
+    (c-shim:format (string->c-hex-literal lua-loader) basename-noextension
                    (string->c-hex-literal (compile-fennel filename options))
-                   dotpath-noextension
-                   (native-loader native))))
+                   dotpath-noextension (native-loader native))))
 
 (fn write-c [filename native options]
-  (let [out-filename (.. filename "_binary.c")
-        f (assert (io.open out-filename "w+"))]
+  (let [out-filename (.. filename :_binary.c)
+        f (assert (io.open out-filename :w+))]
     (f:write (fennel->c filename native options))
     (f:close)
     out-filename))
 
-(fn compile-binary [lua-c-path executable-name static-lua lua-include-dir native]
-  (let [cc (or (os.getenv "CC") "cc")
+(fn compile-binary [lua-c-path
+                    executable-name
+                    static-lua
+                    lua-include-dir
+                    native]
+  (let [cc (or (os.getenv :CC) :cc)
         ;; http://lua-users.org/lists/lua-l/2009-05/msg00147.html
         (rdynamic bin-extension ldl?) (if (: (shellout (.. cc " -dumpmachine"))
-                                             :match "mingw")
-                                          (values "" ".exe" false)
-                                          (values "-rdynamic" "" true))
-        compile-command [cc "-Os" ; optimize for size
+                                             :match :mingw)
+                                          (values "" :.exe false)
+                                          (values :-rdynamic "" true))
+        compile-command [cc
+                         :-Os
+                         ; optimize for size
                          lua-c-path
                          (table.concat native " ")
                          static-lua
                          rdynamic
-                         "-lm"
-                         (if ldl? "-ldl" "")
-                         "-o" (.. executable-name bin-extension)
-                         "-I" lua-include-dir
-                         (os.getenv "CC_OPTS")]]
-    (when (os.getenv "FENNEL_DEBUG")
+                         :-lm
+                         (if ldl? :-ldl "")
+                         :-o
+                         (.. executable-name bin-extension)
+                         :-I
+                         lua-include-dir
+                         (os.getenv :CC_OPTS)]]
+    (when (os.getenv :FENNEL_DEBUG)
       (print "Compiling with" (table.concat compile-command " ")))
     (when (not (execute (table.concat compile-command " ")))
-      (print :failed: (table.concat compile-command " "))
+      (print "failed:" (table.concat compile-command " "))
       (os.exit 1))
-    (when (not (os.getenv "FENNEL_DEBUG"))
+    (when (not (os.getenv :FENNEL_DEBUG))
       (os.remove lua-c-path))
     (os.exit 0)))
 
 (fn native-path? [path]
   (match (path:match "%.(%a+)$")
-    :a path :o path :so path :dylib path
+    :a path
+    :o path
+    :so path
+    :dylib path
     _ false))
 
 (fn extract-native-args [args]
   ;; all native libraries go in libraries; those with lua code go in modules too
   (let [native {:modules [] :libraries []}]
-    (for [i (# args) 1 -1]
-      (when (= "--native-module" (. args i))
+    (for [i (length args) 1 -1]
+      (when (= :--native-module (. args i))
         (let [path (assert (native-path? (table.remove args (+ i 1))))]
           (table.insert native.modules 1 path)
           (table.insert native.libraries 1 path)
           (table.remove args i)))
-      (when (= "--native-library" (. args i))
+      (when (= :--native-library (. args i))
         (table.insert native.libraries 1
                       (assert (native-path? (table.remove args (+ i 1)))))
         (table.remove args i)))
-    (when (< 0 (# args))
+    (when (< 0 (length args))
       (print (table.concat args " "))
       (error (.. "Unknown args: " (table.concat args " "))))
     native))

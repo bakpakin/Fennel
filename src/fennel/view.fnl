@@ -1,13 +1,18 @@
 ;; A pretty-printer that outputs tables in Fennel syntax.
 
-(local type-order {:number 1 :boolean 2 :string 3 :table 4
-                   :function 5 :userdata 6 :thread 7})
+(local type-order {:number 1
+                   :boolean 2
+                   :string 3
+                   :table 4
+                   :function 5
+                   :userdata 6
+                   :thread 7})
 
 (fn sort-keys [[a] [b]]
   ;; Sort keys depending on the `type-order`.
-  (let [ta (type a) tb (type b)]
-    (if (and (= ta tb)
-             (or (= ta "string") (= ta "number")))
+  (let [ta (type a)
+        tb (type b)]
+    (if (and (= ta tb) (or (= ta :string) (= ta :number)))
         (< a b)
         (let [dta (. type-order ta)
               dtb (. type-order tb)]
@@ -20,7 +25,6 @@
   ;; Return table of tables with first element representing key and second
   ;; element representing value.  Second value indicates table type, which is
   ;; either sequential or associative.
-
   ;; [:a :b :c] => [[1 :a] [2 :b] [3 :c]]
   ;; {:a 1 :b 2} => [[:a 1] [:b 2]]
   (var assoc? false)
@@ -28,8 +32,7 @@
   (let [kv []
         insert table.insert]
     (each [k v (pairs t)]
-      (when (or (not= (type k) :number)
-                (not= k i))
+      (when (or (not= (type k) :number) (not= k i))
         (set assoc? true))
       (set i (+ i 1))
       (insert kv [k v]))
@@ -41,10 +44,11 @@
 (fn count-table-appearances [t appearances]
   (when (= (type t) :table)
     (if (not (. appearances t))
-        (do (tset appearances t 1)
-            (each [k v (pairs t)]
-              (count-table-appearances k appearances)
-              (count-table-appearances v appearances)))
+        (do
+          (tset appearances t 1)
+          (each [k v (pairs t)]
+            (count-table-appearances k appearances)
+            (count-table-appearances v appearances)))
         (tset appearances t (+ (or (. appearances t) 0) 1))))
   appearances)
 
@@ -62,17 +66,14 @@
   (when (= :table (type t))
     (tset seen t true)
     (match (next t ?k)
-      (k v) (or (. seen k) (detect-cycle k seen)
-                (. seen v) (detect-cycle v seen)
-                (detect-cycle t seen k)))))
+      (k v) (or (. seen k) (detect-cycle k seen) (. seen v)
+                (detect-cycle v seen) (detect-cycle t seen k)))))
 
 (fn visible-cycle? [t options]
   ;; Detect cycle, save table's ID in seen tables, and determine if
   ;; cycle is visible.  Exposed via options table to use in
   ;; __fennelview metamethod implementations
-  (and options.detect-cycles?
-       (detect-cycle t {})
-       (save-table t options.seen)
+  (and options.detect-cycles? (detect-cycle t {}) (save-table t options.seen)
        (< 1 (or (. options.appearances t) 0))))
 
 (fn table-indent [t indent id]
@@ -89,15 +90,13 @@
 ;; forward declaration for recursive pretty printer
 (var pp nil)
 
-(fn concat-table-lines
-  [elements options multiline? indent table-type prefix]
+(fn concat-table-lines [elements options multiline? indent table-type prefix]
   (let [indent-str (.. "\n" (string.rep " " indent))
         open (.. (or prefix "") (if (= :seq table-type) "[" "{"))
         close (if (= :seq table-type) "]" "}")
         oneline (.. open (table.concat elements " ") close)]
     (if (and (not options.one-line?)
-             (or multiline?
-                 (> (+ indent (length oneline)) options.line-length)))
+             (or multiline? (> (+ indent (length oneline)) options.line-length)))
         (.. open (table.concat elements indent-str) close)
         oneline)))
 
@@ -115,10 +114,10 @@
               elements (icollect [_ [k v] (pairs kv)]
                          (let [k (pp k options (+ indent 1) true)
                                v (pp v options (+ indent (slength k) 1))]
-                           (set multiline? (or multiline? (k:find "\n") (v:find "\n")))
+                           (set multiline? (or multiline? (k:find "\n") (v:find "
+")))
                            (.. k " " v)))]
-          (concat-table-lines
-           elements options multiline? indent :table prefix)))))
+          (concat-table-lines elements options multiline? indent :table prefix)))))
 
 (fn pp-sequence [t kv options indent]
   (var multiline? false)
@@ -133,8 +132,7 @@
                          (let [v (pp v options indent)]
                            (set multiline? (or multiline? (v:find "\n")))
                            v))]
-          (concat-table-lines
-           elements options multiline? indent :seq prefix)))))
+          (concat-table-lines elements options multiline? indent :seq prefix)))))
 
 (fn concat-lines [lines options indent force-multi-line?]
   (if (= (length lines) 0)
@@ -143,8 +141,7 @@
                           (line:gsub "^%s+" ""))
                         (table.concat " "))]
         (if (and (not options.one-line?)
-                 (or force-multi-line?
-                     (oneline:find "\n")
+                 (or force-multi-line? (oneline:find "\n")
                      (> (+ indent (length oneline)) options.line-length)))
             (table.concat lines (.. "\n" (string.rep " " indent)))
             oneline))))
@@ -156,9 +153,13 @@
             (lines force-multi-line?) (metamethod t pp options indent)]
         (set options.visible-cycle? nil)
         (match (type lines)
-          :string lines ;; TODO: assuming that result is already a single line. Maybe warn?
-          :table  (concat-lines lines options indent force-multi-line?)
-          _ (error "Error: __fennelview metamethod must return a table of lines")))))
+          :string
+          lines
+          ;; TODO: assuming that result is already a single line. Maybe warn?
+          :table
+          (concat-lines lines options indent force-multi-line?)
+          _
+          (error "Error: __fennelview metamethod must return a table of lines")))))
 
 (fn pp-table [x options indent]
   ;; Generic table pretty-printer.  Supports associative and
@@ -174,27 +175,28 @@
     (set options.level (- options.level 1))
     x))
 
-
-
 (fn number->string [n]
   ;; Transform number to a string without depending on correct `os.locale`
-  (pick-values 1
-    (-> n
-        tostring
-        (string.gsub "," "."))))
+  (pick-values 1 (-> n
+                     tostring
+                     (string.gsub "," "."))))
 
 (fn colon-string? [s]
   ;; Test if given string is valid colon string.
   (s:find "^[-%w?^_!$%&*+./@|<=>]+$"))
 
-
-
 (fn pp-string [str options indent]
   "This is a more complicated version of string.format %q.
 However, we can't use that functionality because it always emits control codes
 as numeric escapes rather than letter-based escapes, which is ugly."
-  (let [escs (setmetatable {"\a" "\\a" "\b" "\\b" "\f" "\\f" "\v" "\\v"
-                            "\r" "\\r" "\t" "\\t" "\\" "\\\\" "\"" "\\\""
+  (let [escs (setmetatable {"\a" "\\a"
+                            "\b" "\\b"
+                            "\f" "\\f"
+                            "\v" "\\v"
+                            "\r" "\\r"
+                            "\t" "\\t"
+                            :\ "\\\\"
+                            "\"" "\\\""
                             "\n" (if (and options.escape-newlines?
                                           (< (length str)
                                              (- options.line-length indent)))
@@ -235,10 +237,8 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                 (= tv :number)
                 (number->string x)
                 (and (= tv :string) (colon-string? x)
-                     (if (not= colon? nil)
-                         colon?
-                         (= :function (type options.prefer-colon?))
-                         (options.prefer-colon? x)
+                     (if (not= colon? nil) colon?
+                         (= :function (type options.prefer-colon?)) (options.prefer-colon? x)
                          options.prefer-colon?))
                 (.. ":" x)
                 (= tv :string)

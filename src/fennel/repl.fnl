@@ -30,14 +30,14 @@
      "Runtime" (.. (compiler.traceback (tostring err) 4) "\n")
      _ (: "%s error: %s\n" :format errtype (tostring err)))))
 
-(local save-source
-       (table.concat ["local ___i___ = 1"
-                      "while true do"
-                      " local name, value = debug.getlocal(1, ___i___)"
-                      " if(name and name ~= \"___i___\") then"
-                      " ___replLocals___[name] = value"
-                      " ___i___ = ___i___ + 1"
-                      " else break end end"] "\n"))
+(local save-source (table.concat ["local ___i___ = 1"
+                                  "while true do"
+                                  " local name, value = debug.getlocal(1, ___i___)"
+                                  " if(name and name ~= \"___i___\") then"
+                                  " ___replLocals___[name] = value"
+                                  " ___i___ = ___i___ + 1"
+                                  " else break end end"]
+                                 "\n"))
 
 (fn splice-save-locals [env lua-source]
   (set env.___replLocals___ (or env.___replLocals___ {}))
@@ -47,20 +47,22 @@
       (table.insert spliced-source line))
     (each [name (pairs env.___replLocals___)]
       (table.insert spliced-source 1 (bind:format name name)))
-    (when (and (< 1 (# spliced-source))
-               (: (. spliced-source (# spliced-source)) :match "^ *return .*$"))
-      (table.insert spliced-source (# spliced-source) save-source))
+    (when (and (< 1 (length spliced-source))
+               (: (. spliced-source (length spliced-source)) :match
+                  "^ *return .*$"))
+      (table.insert spliced-source (length spliced-source) save-source))
     (table.concat spliced-source "\n")))
 
 (local commands {})
 
-(fn command? [input] (input:match "^%s*,"))
+(fn command? [input]
+  (input:match "^%s*,"))
 
 (fn command-docs []
   (table.concat (icollect [name f (pairs commands)]
-                  (: "  ,%s - %s" :format
-                     name (or (compiler.metadata:get f :fnl/docstring)
-                              "undocumented"))) "\n"))
+                  (: "  ,%s - %s" :format name
+                     (or (compiler.metadata:get f :fnl/docstring) :undocumented)))
+                "\n"))
 
 ;; fnlfmt: skip
 (fn commands.help [_ _ on-values]
@@ -85,7 +87,10 @@ For more information about the language, see https://fennel-lang.org/reference")
     (true old) (let [_ (tset package.loaded module-name nil)
                      (ok new) (pcall require module-name)
                      ;; keep the old module if reload failed
-                     new (if (not ok) (do (on-values [new]) old) new)]
+                     new (if (not ok)
+                             (do
+                               (on-values [new])
+                               old) new)]
                  ;; if the module isn't a table then we can't make changes
                  ;; which affect already-loaded code, but if it is then we
                  ;; should splice new values into the existing table and
@@ -98,20 +103,22 @@ For more information about the language, see https://fennel-lang.org/reference")
                        (tset old k nil)))
                    (tset package.loaded module-name old))
                  (on-values [:ok]))
-    (false msg) (on-error "Runtime" (pick-values 1 (msg:gsub "\n.*" "")))))
+    (false msg) (on-error :Runtime (pick-values 1 (msg:gsub "\n.*" "")))))
 
 (fn commands.reload [env read on-values on-error]
   (match (pcall read)
     (true true module-sym) (reload (tostring module-sym) env on-values on-error)
-    (false ?parse-ok ?msg) (on-error "Parse" (or ?msg ?parse-ok))))
+    (false ?parse-ok ?msg) (on-error :Parse (or ?msg ?parse-ok))))
 
-(compiler.metadata:set commands.reload :fnl/docstring "Reload the specified module.")
+(compiler.metadata:set commands.reload :fnl/docstring
+                       "Reload the specified module.")
 
 (fn commands.reset [env _ on-values]
   (set env.___replLocals___ {})
   (on-values [:ok]))
 
-(compiler.metadata:set commands.reset :fnl/docstring "Erase all repl-local scope.")
+(compiler.metadata:set commands.reset :fnl/docstring
+                       "Erase all repl-local scope.")
 
 (fn load-plugin-commands []
   (when (and utils.root utils.root.options utils.root.options.plugins)
@@ -119,16 +126,17 @@ For more information about the language, see https://fennel-lang.org/reference")
       (each [name f (pairs plugin)]
         (match (name:match "^repl%-command%-(.*)")
           ;; first function to provide a command should win
-          cmd-name (tset commands cmd-name (or (. commands cmd-name) f)))))))
+          cmd-name
+          (tset commands cmd-name (or (. commands cmd-name) f)))))))
 
 (fn run-command [input read loop env on-values on-error]
   (load-plugin-commands)
   (let [command-name (input:match ",([^%s/]+)")]
     (match (. commands command-name)
       command (command env read on-values on-error)
-      _ (when (not= "exit" command-name)
+      _ (when (not= :exit command-name)
           (on-values ["Unknown command" command-name])))
-    (when (not= "exit" command-name)
+    (when (not= :exit command-name)
       (loop))))
 
 (fn completer [env scope text]
@@ -139,10 +147,11 @@ For more information about the language, see https://fennel-lang.org/reference")
         (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
                     (. scope.unmanglings k)
                     k)]
-          (when (and (< (# matches) 2000) ; stop explosion on too many items
-                     (= (type k) "string")
-                     (= input (k:sub 0 (# input))))
+          (when (and (< (length matches) 2000)
+                     ; stop explosion on too many items
+                     (= (type k) :string) (= input (k:sub 0 (length input))))
             (table.insert matches (.. prefix k))))))
+
     (fn add-matches [input tbl prefix] ; add matches, descending into tbl fields
       (let [prefix (if prefix (.. prefix ".") "")]
         (if (not (input:find "%.")) ; no more dots, so add matches
@@ -151,7 +160,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                   raw-head (if (or (= tbl env) (= tbl env.___replLocals___))
                                (. scope.manglings head)
                                head)]
-              (when (= (type (. tbl raw-head)) "table")
+              (when (= (type (. tbl raw-head)) :table)
                 (add-matches tail (. tbl raw-head) (.. prefix head)))))))
 
     (add-matches input-fragment (or scope.specials []))
@@ -166,15 +175,15 @@ For more information about the language, see https://fennel-lang.org/reference")
         env (if options.env
                 (specials.wrap-env options.env)
                 (setmetatable {} {:__index (or (rawget _G :_ENV) _G)}))
-        save-locals? (and (not= options.saveLocals false)
-                          env.debug env.debug.getlocal)
+        save-locals? (and (not= options.saveLocals false) env.debug
+                          env.debug.getlocal)
         opts {}
-        _ (each [k v (pairs options)] (tset opts k v))
+        _ (each [k v (pairs options)]
+            (tset opts k v))
         read-chunk (or opts.readChunk default-read-chunk)
         on-values (or opts.onValues default-on-values)
         on-error (or opts.onError default-on-error)
-        pp (or opts.pp tostring)
-        ;; make parser
+        pp (or opts.pp tostring) ;; make parser
         (byte-stream clear-stream) (parser.granulate read-chunk)
         chars []
         (read reset) (parser.parser (fn [parser-state]
@@ -182,12 +191,10 @@ For more information about the language, see https://fennel-lang.org/reference")
                                         (table.insert chars c)
                                         c)))
         scope (compiler.make-scope)]
-
     ;; use metadata unless we've specifically disabled it
     (set opts.useMetadata (not= options.useMetadata false))
     (when (= opts.allowedGlobals nil)
       (set opts.allowedGlobals (specials.current-global-names opts.env)))
-
     (when opts.registerCompleter
       (opts.registerCompleter (partial completer env scope)))
 
@@ -196,40 +203,46 @@ For more information about the language, see https://fennel-lang.org/reference")
             out []]
         (set (env._ env.__) (values (. vals 1) vals))
         ;; utils.map won't work here because of sparse tables
-        (for [i 1 (select :# ...)]
+        (for [i 1 (select "#" ...)]
           (table.insert out (pp (. vals i))))
         (on-values out)))
 
     (fn loop []
-      (each [k (pairs chars)] (tset chars k nil))
+      (each [k (pairs chars)]
+        (tset chars k nil))
       (let [(ok parse-ok? x) (pcall read)
             src-string (string.char ((or table.unpack _G.unpack) chars))]
         (set utils.root.options opts)
         (if (not ok)
-            (do (on-error "Parse" parse-ok?)
-                (clear-stream)
-                (reset)
-                (loop))
-            (command? src-string) (run-command src-string read loop env
-                                               on-values on-error)
+            (do
+              (on-error :Parse parse-ok?)
+              (clear-stream)
+              (reset)
+              (loop))
+            (command? src-string)
+            (run-command src-string read loop env on-values on-error)
             (when parse-ok? ; if this is false, we got eof
-              (match (pcall compiler.compile x {:correlate opts.correlate
-                                                :source src-string
-                                                :scope scope
-                                                :useMetadata opts.useMetadata
-                                                :moduleName opts.moduleName
-                                                :assert-compile opts.assert-compile
-                                                :parse-error opts.parse-error})
-                (false msg) (do (clear-stream)
-                                (on-error "Compile" msg))
+              (match (pcall compiler.compile x
+                            {:correlate opts.correlate
+                             :source src-string
+                             : scope
+                             :useMetadata opts.useMetadata
+                             :moduleName opts.moduleName
+                             :assert-compile opts.assert-compile
+                             :parse-error opts.parse-error})
+                (false msg) (do
+                              (clear-stream)
+                              (on-error :Compile msg))
                 (true src) (let [src (if save-locals?
                                          (splice-save-locals env src)
                                          src)]
                              (match (pcall specials.load-code src env)
-                               (false msg) (do (clear-stream)
-                                               (on-error "Lua Compile" msg src))
+                               (false msg) (do
+                                             (clear-stream)
+                                             (on-error "Lua Compile" msg src))
                                (_ chunk) (xpcall #(print-values (chunk))
-                                                 (partial on-error "Runtime")))))
+                                                 (partial on-error :Runtime)))))
               (set utils.root.options old-root-options)
               (loop)))))
+
     (loop)))

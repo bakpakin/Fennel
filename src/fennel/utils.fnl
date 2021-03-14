@@ -154,12 +154,13 @@ the parser, and they represent code which comes from reading a paren form;
 they are specifically not cons cells."
   (setmetatable [...] list-mt))
 
-(fn sym [str source scope]
+(fn sym [str ?source ?scope]
   "Create a new symbol. Symbols are a compile-time construct in Fennel and are
-not exposed outside the compiler. Symbols have source data describing what
-file, line, etc that they came from."
-  (let [s {: scope 1 str}]
-    (each [k v (pairs (or source []))]
+not exposed outside the compiler. Second optional argument is a table describing
+where the symbol came from; should be a table with filename, line, bytestart,
+and byteend fields."
+  (let [s {: ?scope 1 str}]
+    (each [k v (pairs (or ?source []))]
       (when (= (type k) :string)
         (tset s k v)))
     (setmetatable s symbol-mt)))
@@ -186,8 +187,8 @@ except when certain macros need to look for binding forms, etc specifically."
   :sym symbol reference"
   (setmetatable {:type etype 1 strcode} expr-mt))
 
-(fn comment* [contents source]
-  (let [{: filename : line} (or source [])]
+(fn comment* [contents ?source]
+  (let [{: filename : line} (or ?source [])]
     (setmetatable {1 contents : filename : line} comment-mt)))
 
 (fn varg []
@@ -209,11 +210,6 @@ except when certain macros need to look for binding forms, etc specifically."
   "Checks if an object is a symbol. Returns the object if it is."
   (and (= (type x) :table) (= (getmetatable x) symbol-mt) x))
 
-(fn table? [x]
-  "Checks if an object any kind of table, EXCEPT list or symbol or vararg."
-  (and (= (type x) :table) (not= x vararg) (not= (getmetatable x) list-mt)
-       (not= (getmetatable x) symbol-mt) x))
-
 (fn sequence? [x]
   "Checks if an object is a sequence (created with a [] literal)"
   (let [mt (and (= (type x) :table) (getmetatable x))]
@@ -221,6 +217,11 @@ except when certain macros need to look for binding forms, etc specifically."
 
 (fn comment? [x]
   (and (= (type x) :table) (= (getmetatable x) comment-mt) x))
+
+(fn table? [x]
+  "Checks if an object any kind of table, EXCEPT list/symbol/vararg/comment."
+  (and (= (type x) :table) (not= x vararg) (not= (getmetatable x) list-mt)
+       (not= (getmetatable x) symbol-mt) (not (comment? x)) x))
 
 (fn multi-sym? [str]
   "A multi symbol is a symbol that is actually composed of two or more symbols

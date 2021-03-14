@@ -51,10 +51,10 @@ will see its values updated as expected, regardless of mangling rules."
   "Return a docstring for tgt."
   (if (not tgt)
       (.. name " not found")
-      (let [docstring (: (: (or (: compiler.metadata :get tgt :fnl/docstring)
-                                "#<undocumented>")
-                            :gsub "\n$" "") :gsub "\n"
-                         "\n  ")
+      (let [docstring (-> (: compiler.metadata :get tgt :fnl/docstring)
+                          (or "#<undocumented>")
+                          (: :gsub "\n$" "")
+                          (: :gsub "\n" "\n  "))
             mt (getmetatable tgt)]
         (if (or (= (type tgt) :function)
                 (and (= (type mt) :table) (= (type (. mt :__call)) :function)))
@@ -283,14 +283,12 @@ and lacking args will be nil, use lambda for arity-checked functions."))
         special-or-macro (or (. scope.specials target) (. scope.macros target))]
     (if special-or-macro
         (: "print(%q)" :format (doc* special-or-macro target))
-        (let [value (tostring (. (compiler.compile1 (. ast 2) scope parent
-                                                    {:nval 1})
-                                 1))]
+        (let [[value] (compiler.compile1 (. ast 2) scope parent {:nval 1})]
           ;; need to require here since the metadata is stored in the module
           ;; and we need to make sure we look it up in the same module it was
           ;; declared from.
           (: "print(require('%s').doc(%s, '%s'))" :format
-             (or utils.root.options.moduleName :fennel) value
+             (or utils.root.options.moduleName :fennel) (tostring value)
              (tostring (. ast 2)))))))
 
 (doc-special :doc [:x]
@@ -525,7 +523,8 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
 (fn compile-until [condition scope chunk]
   (when condition
     (let [[condition-lua] (compiler.compile1 condition scope chunk {:nval 1})]
-      (compiler.emit chunk (: "if %s then break end" :format condition-lua)
+      (compiler.emit chunk (: "if %s then break end" :format
+                              (tostring condition-lua))
                      condition))))
 
 (fn SPECIALS.each [ast scope parent]
@@ -734,31 +733,27 @@ Method name doesn't have to be known at compile-time; if it is, use
 (doc-special :hashfn ["..."]
              "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
+(fn arithmetic-special [name zero-arity unary-prefix ast scope parent]
+  (local len (length ast))
+  (if (= len 1)
+      (do
+        (compiler.assert zero-arity "Expected more than 0 arguments" ast)
+        (utils.expr zero-arity :literal))
+      (let [operands []
+            padded-op (.. " " name " ")]
+        (for [i 2 len]
+          (let [subexprs (compiler.compile1 (. ast i) scope parent
+                                            {:nval (if (not= i len) 1)})]
+            (utils.map subexprs tostring operands)))
+        (if (= (length operands) 1)
+            (if unary-prefix
+                (.. "(" unary-prefix padded-op (. operands 1) ")")
+                (. operands 1))
+            (.. "(" (table.concat operands padded-op) ")")))))
+
 (fn define-arithmetic-special [name zero-arity unary-prefix lua-name]
-  (let [padded-op (.. " " (or lua-name name) " ")]
-    (tset SPECIALS name (fn [ast scope parent]
-                          (local len (length ast))
-                          (if (= len 1)
-                              (do
-                                (compiler.assert (not= zero-arity nil)
-                                                 "Expected more than 0 arguments"
-                                                 ast)
-                                (utils.expr zero-arity :literal))
-                              (let [operands []]
-                                (for [i 2 len]
-                                  (let [subexprs (compiler.compile1 (. ast i)
-                                                                    scope parent
-                                                                    {:nval (if (not= i
-                                                                                     len)
-                                                                               1)})]
-                                    (utils.map subexprs tostring operands)))
-                                (if (= (length operands) 1)
-                                    (if unary-prefix
-                                        (.. "(" unary-prefix padded-op
-                                            (. operands 1) ")")
-                                        (. operands 1))
-                                    (.. "(" (table.concat operands padded-op)
-                                        ")")))))))
+  (tset SPECIALS name (partial arithmetic-special (or lua-name name) zero-arity
+                               unary-prefix))
   (doc-special name [:a :b "..."]
                "Arithmetic operator; works the same as Lua but accepts more arguments."))
 

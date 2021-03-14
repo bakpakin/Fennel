@@ -460,7 +460,7 @@ nested values, but all parents must contain an existing table.")
               fstr (if (not branch.nested) "if %s then" "elseif %s then")
               cond (tostring branch.cond)
               cond-line (if (and (= cond :true) branch.nested
-                                 (= i (length branches)))
+                                 (= i (length branches)) (not has-else?))
                             :else (: fstr :format cond))]
           (if branch.nested
               (compiler.emit last-buffer branch.condchunk ast)

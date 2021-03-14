@@ -167,20 +167,31 @@ stream is finished."
           (tset (getmetatable val) k v))
         (dispatch val)))
 
+    (fn add-comment-at [comments index node]
+      (match (. comments index)
+        existing (table.insert existing node)
+        _ (tset comments index [node])))
+
+    (fn next-noncomment [tbl i]
+      (if (utils.comment? (. tbl i))
+          (next-noncomment tbl (+ i 1))
+          (. tbl i)))
+
     (fn extract-comments [tbl]
       "Comment nodes can't be stored inside k/v tables; pull them out for later"
       ;; every comment either preceeds a key, preceeds a value, or is at the end
       (let [comments {:keys {}
                       :values {}
-                      :last (if (utils.comment? (. tbl (length tbl)))
-                                (table.remove tbl))}]
+                      :last []}]
+        (while (utils.comment? (. tbl (length tbl)))
+          (table.insert comments.last 1 (table.remove tbl)))
         (var last-key? false)
         (each [i node (ipairs tbl)]
           (if (not (utils.comment? node))
               (set last-key? (not last-key?))
               last-key?
-              (tset comments.values (. tbl (+ i 1)) node)
-              (tset comments.keys (. tbl (+ i 1)) node)))
+              (add-comment-at comments.values (next-noncomment tbl i) node)
+              (add-comment-at comments.keys (next-noncomment tbl i) node)))
         ;; strip out the comments in a second pass; if we did it in the first
         ;; pass we wouldn't be able to distinguish key-attached vs val-attached
         (for [i (length tbl) 1 -1]

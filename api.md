@@ -241,7 +241,10 @@ able to distinguish between them.
 Sequences have their source data in `filename`, `line`, etc keys just
 like lists. But kv tables cannot have this, because adding arbitrary
 keys to the table would change its contents, so these fields are
-instead stored on the metatable.
+instead stored on the metatable. The metatable for kv tables also
+includes a `keys` sequence which tells you which order the keys
+appeared originally, since kv tables are unordered and there would
+otherwise be no way to reconstruct this information.
 
 ### symbol
 
@@ -274,6 +277,13 @@ field is set in the parser options, comments will be included in the
 parsed values. They are identified using `fennel.comment?` and
 constructed using the `fennel.comment` function. They are represented
 as tables that have source data as fields inside them.
+
+In most data context, comments just get included inline in a list or
+sequence. However, in a kv table, this cannot be done, because kv
+tables must have balanced key/value pairs, and including comments
+inline would imbalance these or cause keys to be considered as values
+and vice versa. So the comments are stored on the `comments` field of
+metatable instead, keyed by the key or value they were attached to.
 
 ## Work with docstrings and metadata
 

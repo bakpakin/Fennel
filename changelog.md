@@ -2,6 +2,7 @@
 
 ## 0.8.2 / ???
 
+* Include stack trace for errors during macroexpansion
 * The `sym` function in compile scope now takes a source table second argument
 * Support `:until` clauses for early termination in all loops
 * Support `:escape-newlines?` and `:prefer-colon?` options in fennel.view

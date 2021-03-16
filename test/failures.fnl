@@ -88,6 +88,13 @@
       (l.assertFalse ok? (.. "Expected compiling " code " to fail."))
       (l.assertStrContains msg expected-msg))))
 
+(fn test-macro []
+  (let [code "(import-macros {: fail-one} :test.macros) (fail-one 1)"
+        (ok? msg) (pcall fennel.compileString code)]
+    (l.assertStrContains msg "test/macros.fnl:2: oh no")
+    (l.assertStrContains msg "test/macros.fnl:2: in upvalue 'def'")
+    (l.assertStrContains msg "test/macros.fnl:6: in upvalue 'abc'")))
+
 ;; automated tests for suggestions are rudimentary because the usefulness of the
 ;; output is so subjective. to see a full catalog of suggestions, run the script
 ;; test/bad/friendly.sh and review that output.
@@ -113,4 +120,4 @@
     (l.assertStrContains msg4 "msg4")
     (l.assertStrContains msg5 "msg5")))
 
-{: test-failures : test-suggestions}
+{: test-failures : test-suggestions : test-macro}

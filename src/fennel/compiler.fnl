@@ -406,18 +406,21 @@ if opts contains the nval option."
 
 (fn macroexpand* [ast scope once]
   "Expand macros in the ast. Only do one level if once is true."
-  (if (not (utils.list? ast)) ; bail early if not a list
-      ast (let [macro* (find-macro ast scope (utils.multi-sym? (. ast 1)))]
-           (if (not macro*)
-               ast
-               (let [old-scope scopes.macro
-                     _ (set scopes.macro scope)
-                     (ok transformed) (pcall macro* (unpack ast 2))]
-                 (set scopes.macro old-scope)
-                 (assert-compile ok transformed ast)
-                 (if (or once (not transformed))
-                     transformed
-                     (macroexpand* transformed scope)))))))
+  (match (if (utils.list? ast)
+             (find-macro ast scope (utils.multi-sym? (. ast 1))))
+    false ast
+    macro* (let [old-scope scopes.macro
+                 _ (set scopes.macro scope)
+                 ;; TODO: we want to pass a traceback level, but it only
+                 ;; supports trimming the trace from the wrong direction.
+                 (ok transformed) (xpcall #(macro* (unpack ast 2))
+                                          debug.traceback)]
+             (set scopes.macro old-scope)
+             (assert-compile ok transformed ast)
+             (if (or once (not transformed))
+                 transformed
+                 (macroexpand* transformed scope)))
+    _ ast))
 
 (fn compile-special [ast scope parent opts special]
   (let [exprs (or (special ast scope parent opts) (utils.expr :nil :literal))

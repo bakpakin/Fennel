@@ -1,4 +1,8 @@
 ;; this module is loaded by the test suite.
+
+(fn def [] (error "oh no") 32)
+(fn abc [] (def) 1)
+
 {"->1" (fn [val ...]
         (var x val)
         (each [_ elt (ipairs [...])]
@@ -15,4 +19,5 @@
                 `(let [x# {:abc (fn [] 518)}
                        y# {:one 1}]
                    (+ (x#:abc) y#.one)))
- :unsandboxed (fn [] (view [:no :sandbox]))}
+ :unsandboxed (fn [] (view [:no :sandbox]))
+ :fail-one (fn [x] (when (= x 1) (abc)) true)}

@@ -106,7 +106,7 @@
             : view
             : eval
             :dofile dofile*
-            :version :0.8.2-dev
+            :version :0.9.0-dev
             : repl
             ;; backwards-compatibility aliases
             :loadCode specials.load-code

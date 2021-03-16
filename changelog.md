@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.8.2 / ???
+## 0.9.0 / ???
 
 * Include stack trace for errors during macroexpansion
 * The `sym` function in compile scope now takes a source table second argument

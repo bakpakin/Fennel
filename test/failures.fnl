@@ -92,8 +92,9 @@
   (let [code "(import-macros {: fail-one} :test.macros) (fail-one 1)"
         (ok? msg) (pcall fennel.compileString code)]
     (l.assertStrContains msg "test/macros.fnl:2: oh no")
-    (l.assertStrContains msg "test/macros.fnl:2: in upvalue 'def'")
-    (l.assertStrContains msg "test/macros.fnl:6: in upvalue 'abc'")))
+    ;; sometimes it's "in function f" and sometimes "in upvalue f"
+    (l.assertStrMatches msg ".*test/macros.fnl:2: in %w+ 'def'.*")
+    (l.assertStrMatches msg ".*test/macros.fnl:6: in %w+ 'abc'.*")))
 
 ;; automated tests for suggestions are rudimentary because the usefulness of the
 ;; output is so subjective. to see a full catalog of suggestions, run the script

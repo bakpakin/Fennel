@@ -343,17 +343,18 @@ Tab is what is used to indent a block."
 
 (fn keep-side-effects [exprs chunk start ast]
   "Compile side effects for a chunk."
-  (let [start (or start 1)]
-    (for [j start (length exprs)]
-      (let [se (. exprs j)]
-        ;; Avoid the rogue 'nil' expression (nil is usually a literal,
-        ;; but becomes an expression if a special form returns 'nil')
-        (if (and (= se.type :expression) (not= (. se 1) :nil))
-            (emit chunk (string.format "do local _ = %s end" (tostring se)) ast)
-            (= se.type :statement)
-            (let [code (tostring se)]
-              (emit chunk
-                    (or (and (= (code:byte) 40) (.. "do end " code)) code) ast)))))))
+  (for [j (or start 1) (length exprs)]
+    (let [se (. exprs j)]
+      ;; Avoid the rogue 'nil' expression (nil is usually a literal,
+      ;; but becomes an expression if a special form returns 'nil')
+      (if (and (= se.type :expression) (not= (. se 1) :nil))
+          (emit chunk (string.format "do local _ = %s end" (tostring se)) ast)
+          (= se.type :statement)
+          (let [code (tostring se)
+                ;; without the semicolon, parens can be misinterpreted
+                ;; as a function call rather than being used for grouping.
+                unambiguous-code (if (= (code:byte) 40) (.. "; " code) code)]
+            (emit chunk unambiguous-code ast))))))
 
 (fn handle-compile-opts [exprs parent opts ast]
   "Does some common handling of returns and register targets for special

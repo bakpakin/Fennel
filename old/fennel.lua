@@ -1,5 +1,12 @@
+-- This is the bootstrap compiler from the days before self-hosting. It is
+-- version 0.4.2, with a handful of bugfixes and features backported:
+
+-- * Fix a bug where expressions would not get run.
+-- * Add collect/icollect
+-- * Fix a bug where long arglists would get reordered.
+
 --[[
-Copyright (c) 2016-2020 Calvin Rose and contributors
+Copyright (c) 2016-2021 Calvin Rose and contributors
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
@@ -1866,9 +1873,10 @@ local specials = (function()
         local argList = compiler.assert(utils.isTable(ast[index]),
                                       "expected parameters",
                                       type(ast[index]) == "table" and ast[index] or ast)
-        local function getArgName(i, name)
+        local function getArgName(name)
             if utils.isVarg(name) then
-                compiler.assert(i == #argList, "expected vararg as last parameter", ast[2])
+                compiler.assert(name == argList[#argList],
+                                "expected vararg as last parameter", ast[2])
                 fScope.vararg = true
                 return "..."
             elseif(utils.isSym(name) and utils.deref(name) ~= "nil"
@@ -1885,7 +1893,7 @@ local specials = (function()
                                   format(tostring(name)), ast[2])
             end
         end
-        local argNameList = utils.kvmap(argList, getArgName)
+        local argNameList = utils.map(argList, getArgName)
         if type(ast[index + 1]) == 'string' and index + 1 < #ast then
             index = index + 1
             docstring = ast[index]

@@ -200,7 +200,35 @@ Main purpose to print function argument list in docstring."
                   (compiler.declare-local fn-name [] scope ast)
                   (. (compiler.symbol-to-expression fn-name scope) 1))
               (not multi) 3)
-      (values (compiler.gensym scope) true 2)))
+      (values nil true 2)))
+
+(fn compile-named-fn [ast f-scope f-chunk parent index fn-name local?
+                      arg-name-list arg-list docstring]
+  (for [i (+ index 1) (length ast)]
+    (compiler.compile1 (. ast i) f-scope f-chunk
+                       {:nval (or (and (not= i (length ast)) 0) nil)
+                        :tail (= i (length ast))}))
+  (compiler.emit parent
+                 (string.format (if local? "local function %s(%s)"
+                                    "%s = function(%s)")
+                                fn-name (table.concat arg-name-list ", "))
+                 ast)
+  (compiler.emit parent f-chunk ast)
+  (compiler.emit parent :end ast)
+  (set-fn-metadata arg-list docstring parent fn-name)
+  (utils.hook :fn ast f-scope)
+  (utils.expr fn-name :sym))
+
+(fn compile-anonymous-fn [ast f-scope f-chunk parent index
+                          arg-name-list arg-list docstring scope]
+  ;; TODO: eventually compile this to an actual function value instead of
+  ;; binding it to a local and using the symbol. the difficulty here is that
+  ;; a function is a chunk with many lines, and the current representation of
+  ;; an expr can only be a string, making it difficult to pass around without
+  ;; losing line numbering information.
+  (let [fn-name (compiler.gensym scope)]
+    (compile-named-fn ast f-scope f-chunk parent index fn-name true
+                      arg-name-list arg-list docstring)))
 
 (fn SPECIALS.fn [ast scope parent]
   (let [f-scope (doto (compiler.make-scope scope)
@@ -208,7 +236,7 @@ Main purpose to print function argument list in docstring."
         f-chunk []
         fn-sym (utils.sym? (. ast 2))
         multi (and fn-sym (utils.multi-sym? (. fn-sym 1)))
-        (fn-name local-fn? index) (get-fn-name ast scope fn-sym multi)
+        (fn-name local? index) (get-fn-name ast scope fn-sym multi)
         arg-list (compiler.assert (utils.table? (. ast index))
                                   "expected parameters table" ast)]
     (compiler.assert (or (not multi) (not multi.multi-sym-method-call))
@@ -242,20 +270,11 @@ Main purpose to print function argument list in docstring."
                                      (< (+ index 1) (length ast)))
                                 (values (+ index 1) (. ast (+ index 1)))
                                 (values index nil))]
-      (for [i (+ index 1) (length ast)]
-        (compiler.compile1 (. ast i) f-scope f-chunk
-                           {:nval (or (and (not= i (length ast)) 0) nil)
-                            :tail (= i (length ast))}))
-      (compiler.emit parent
-                     (string.format (if local-fn? "local function %s(%s)"
-                                        "%s = function(%s)")
-                                    fn-name (table.concat arg-name-list ", "))
-                     ast)
-      (compiler.emit parent f-chunk ast)
-      (compiler.emit parent :end ast)
-      (set-fn-metadata arg-list docstring parent fn-name))
-    (utils.hook :fn ast f-scope)
-    (utils.expr fn-name :sym)))
+      (if fn-name
+          (compile-named-fn ast f-scope f-chunk parent index fn-name local?
+                            arg-name-list arg-list docstring)
+          (compile-anonymous-fn ast f-scope f-chunk parent index
+                                arg-name-list arg-list docstring scope)))))
 
 (doc-special :fn [:name? :args :docstring? "..."]
              (.. "Function syntax. May optionally include a name and docstring.

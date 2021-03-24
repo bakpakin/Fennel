@@ -280,13 +280,24 @@ Example:
     (each [k pat (pairs pattern)]
       (if (= pat `&)
           (do
-            (assert (not (. pattern (+ k 2)))
-                    "expected rest argument before last parameter")
+            (assert (= nil (. pattern (+ k 2)))
+                    "expected & rest argument before last parameter")
             (table.insert bindings (. pattern (+ k 1)))
             (table.insert bindings
                           [`(select ,k ((or table.unpack _G.unpack) ,val))]))
-          (and (= :number (type k)) (= "&" (tostring (. pattern (- k 1)))))
-          nil ; don't process the pattern right after &; already got it
+          (= k `&as)
+          (do
+            (table.insert bindings pat)
+            (table.insert bindings val))
+          (and (= :number (type k)) (= `&as pat))
+          (do
+            (assert (= nil (. pattern (+ k 2)))
+                    "expected &as argument before last parameter")
+            (table.insert bindings (. pattern (+ k 1)))
+            (table.insert bindings val))
+          ;; don't process the pattern right after &/&as; already got it
+          (or (not= :number (type k)) (and (not= `&as (. pattern (- k 1)))
+                                           (not= `& (. pattern (- k 1)))))
           (let [subval `(. ,val ,k)
                 (subcondition subbindings) (match-pattern [subval] pat
                                                           unifications)]

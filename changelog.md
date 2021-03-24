@@ -2,6 +2,7 @@
 
 ## 0.9.0 / ???
 
+* Support `&as` inside pattern matches
 * Include stack trace for errors during macroexpansion
 * The `sym` function in compile scope now takes a source table second argument
 * Support `:until` clauses for early termination in all loops

@@ -653,6 +653,8 @@ which we have to do if we don't know."
                    (. (. parent (length parent)) :leaf))
               (tset (. parent (length parent)) :leaf
                     (.. "local " (. (. parent (length parent)) :leaf)))
+              (= init :nil)
+              (table.insert parent (+ plen 1) {: ast :leaf (.. "local " lvalue)})
               (table.insert parent (+ plen 1)
                             {: ast :leaf (.. "local " lvalue " = " init)})))
         ret))

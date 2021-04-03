@@ -1049,7 +1049,37 @@ inside compiler scope which macros run in.
 
 The `require-macros` form is like `import-macros`, except it does not
 give you any control over the naming of the macros being
-imported. Consider using `import-macros` instead of `require-macros`.
+imported. It is strongly recommended to use `import-macros` instead.
+
+### Macro module searching
+
+By default, Fennel will search for macro modules using the same logic
+it uses to search for normal runtime modules: by walking thru entries
+on `fennel.path` and checking the filesystem for matches. However, in
+some cases this might not be suitable, for instance if your Fennel
+program is packaged in some kind of archive file and the modules do
+not exist as distinct files on disk.
+
+To support this case you can add your own searcher function to the
+`fennel.macro-searchers` table. For example, assuming `find-in-archive`
+is a function which can look up strings from the archive given a path:
+
+```fennel
+(local fennel (require :fennel))
+
+(fn my-searcher [module-name]
+  (let [filename (.. "src/" module-name ".fnl")]
+    (match (find-in-archive filename)
+      code (values (partial fennel.eval code {:env :_COMPILER})
+                   filename))))
+
+(table.insert fennel.macro-searchers my-searcher)
+```
+
+The searcher function should take a module name as a string and return
+two values if it can find the macro module: a loader function which will
+return the macro table when called, and an optional filename. The
+loader function will receive the module name and the filename as arguments.
 
 ### `macros` define several macros
 

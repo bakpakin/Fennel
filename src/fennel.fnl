@@ -50,6 +50,8 @@
     ;; to provide targeted error messages.
     (when (and (not opts.filename) (not opts.source))
       (set opts.source str))
+    (when (= opts.env :_COMPILER)
+      (set opts.scope (compiler.make-scope compiler.scopes.compiler)))
     opts))
 
 (fn eval [str options ...]
@@ -98,6 +100,7 @@
             :gensym compiler.gensym
             :load-code specials.load-code
             :macro-loaded specials.macro-loaded
+            :macro-searchers specials.macro-searchers
             :search-module specials.search-module
             :make-searcher specials.make-searcher
             :makeSearcher specials.make-searcher

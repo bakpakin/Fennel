@@ -2,6 +2,7 @@
 
 ## 0.9.0 / ???
 
+* Add `macro-searchers` table for finding macros similarly to `package.searchers`
 * Support `&as` inside pattern matches
 * Include stack trace for errors during macroexpansion
 * The `sym` function in compile scope now takes a source table second argument

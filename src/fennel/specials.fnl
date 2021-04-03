@@ -1044,17 +1044,18 @@ table.insert(package.loaders, fennel.searcher)"
       (table.insert allowed k))
     allowed))
 
-(fn compiler-env-domodule [modname env ?ast ?scope]
-  (let [filename (compiler.assert (search-module modname)
-                                  (.. modname " module not found.") ?ast)
-        globals (macro-globals env (current-global-names))
-        scope (or ?scope (compiler.make-scope compiler.scopes.compiler))]
-    (utils.fennel-module.dofile filename
-                                {:allowedGlobals globals
-                                 :useMetadata utils.root.options.useMetadata
-                                 : env
-                                 : scope}
-                                modname filename)))
+(fn default-macro-searcher [module-name]
+  (match (search-module module-name)
+    filename (values (partial utils.fennel-module.dofile filename
+                              {:env :_COMPILER}) filename)))
+
+(local macro-searchers [default-macro-searcher])
+
+(fn search-macro-module [modname n]
+  (match (. macro-searchers n)
+    f (match (f modname)
+        (loader ?filename) (values loader ?filename)
+        _ (search-macro-module modname (+ n 1)))))
 
 ;; This is the compile-env equivalent of package.loaded. It's used by
 ;; require-macros and import-macros, but also by require when used from within
@@ -1074,11 +1075,10 @@ table.insert(package.loaders, fennel.searcher)"
 It ensures that compile-scoped modules are loaded differently from regular
 modules in the compiler environment."
                     (or (. macro-loaded modname) (metadata-only-fennel modname)
-                        (let [scope (compiler.make-scope compiler.scopes.compiler)
-                              env (make-compiler-env nil scope nil)
-                              mod (compiler-env-domodule modname env nil scope)]
-                          (tset macro-loaded modname mod)
-                          mod))))
+                        (let [(loader filename) (search-macro-module modname 1)]
+                          (compiler.assert loader (.. modname " module not found."))
+                          (tset macro-loaded modname (loader modname filename))
+                          (. macro-loaded modname)))))
 
 (fn add-macros [macros* ast scope]
   (compiler.assert (utils.table? macros*) "expected macros to be table" ast)
@@ -1092,14 +1092,15 @@ modules in the compiler environment."
                    (or real-ast ast)) ; real-ast comes from import-macros
   ;; don't require modname to be string literal; it just needs to compile to one
   (let [filename (or (. ast 2 :filename) ast.filename)
-        modname-code (compiler.compile (. ast 2))
-        modname ((load-code modname-code nil filename) utils.root.options.module-name
-                                                       filename)]
+        modname-chunk (load-code (compiler.compile (. ast 2)) nil filename)
+        modname (modname-chunk utils.root.options.module-name filename)]
     (compiler.assert (= (type modname) :string)
                      "module name must compile to string" (or real-ast ast))
     (when (not (. macro-loaded modname))
-      (let [env (make-compiler-env ast scope parent)]
-        (tset macro-loaded modname (compiler-env-domodule modname env ast))))
+      (let [env (make-compiler-env ast scope parent)
+            (loader filename) (search-macro-module modname 1)]
+        (compiler.assert loader (.. modname " module not found.") ast)
+        (tset macro-loaded modname (loader modname filename))))
     (add-macros (. macro-loaded modname) ast scope parent)))
 
 (doc-special :require-macros [:macro-module-name]
@@ -1209,6 +1210,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
  : current-global-names
  : load-code
  : macro-loaded
+ : macro-searchers
  : make-compiler-env
  : search-module
  : make-searcher

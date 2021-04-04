@@ -670,9 +670,10 @@ this `begin` or `progn`.
 * `>`, `<`, `>=`, `<=`, `=`, `not=`: comparison
 * `lshift`, `rshift`, `band`, `bor`, `bxor`, `bnot`: bitwise operations
 
-These all work as you would expect, with a few caveats.  `//` for
-integer division and the bitwise operators are only available in Lua
-5.3 and onward.
+These all work as you would expect, with a few caveats. The bitwise operators
+are only availible in Lua 5.3+, unless you use the `--use-bit-lib` flag, which
+lets them be used in LuaJIT. The integer division operator (`//`) is only
+availible in Lua 5.3+.
 
 They all take any number of arguments, as long as that number is fixed
 at compile-time. For instance, `(= 2 2 (unpack [2 5]))` will evaluate

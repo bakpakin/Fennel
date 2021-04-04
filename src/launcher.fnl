@@ -19,6 +19,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --globals G1[,G2...]    : Allow these globals in addition to standard ones
   --globals-only G1[,G2]  : Same as above, but exclude standard ones
   --require-as-include    : Inline required modules in the output
+  --use-bit-lib           : Use LuaJITs bit library instead of operators
   --metadata              : Enable function metadata, even in compiled output
   --no-metadata           : Disable function metadata, even in REPL
   --correlate             : Make Lua output line numbers match Fennel input
@@ -117,6 +118,9 @@ Run fennel, a lisp programming language for the Lua runtime.
     :--require-as-include (do
                             (set options.requireAsInclude true)
                             (table.remove arg i))
+    :--use-bit-lib (do
+                     (set options.useBitLib true)
+                     (table.remove arg i))
     :--metadata (do
                   (set options.useMetadata true)
                   (table.remove arg i))

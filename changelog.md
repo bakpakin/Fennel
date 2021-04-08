@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.9.0 / ???
+## 0.9.0 / 2021-04-08
 
 * Add `--use-bit-lib` flag to allow bitwise operations to work in LuaJIT
 * Add `macro-searchers` table for finding macros similarly to `package.searchers`

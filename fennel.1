@@ -74,6 +74,10 @@ Instead of loading required modules at runtime, compile them inline
 into the main file being compiled. Only useful during ahead-of-time
 compilation.
 .TP
+.B \-\-use-bit-lib
+Compile bitwise operations to use LuaJIT's bitop library instead of Lua
+5.3+ bitwise operators.
+.TP
 .B \-\-load \fIFILE\fP
 Load the specified file before any command is run.
 .TP

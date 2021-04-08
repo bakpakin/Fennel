@@ -2,6 +2,7 @@
 
 ## 0.9.0 / ???
 
+* Add `--use-bit-lib` flag to allow bitwise operations to work in LuaJIT
 * Add `macro-searchers` table for finding macros similarly to `package.searchers`
 * Support `&as` inside pattern matches
 * Include stack trace for errors during macroexpansion

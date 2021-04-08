@@ -786,29 +786,26 @@ Method name doesn't have to be known at compile-time; if it is, use
 (define-arithmetic-special "//" nil :1)
 
 (fn bitop-special [native-name lib-name zero-arity unary-prefix ast scope parent]
-  (local len (length ast))
-  (if (= len 1)
-    (do
-      (compiler.assert zero-arity "Expected more than 0 arguments." ast))
-    (let [operands []
-          padded-native-name (.. " " native-name " ")
-          prefixed-lib-name (.. "bit." lib-name)]
-      (for [i 2 len]
-        (let [subexprs (compiler.compile1 (. ast i) scope parent
-                                          {:nval (if (not= i len) 1)})]
-          (utils.map subexprs tostring operands)))
-      (if (= (length operands) 1)
-        (if utils.root.options.useBitLib
-          (.. prefixed-lib-name "(" unary-prefix ", " (. operands 1) ")")
-          (.. "(" unary-prefix padded-native-name (. operands 1) ")"))
-        (if utils.root.options.useBitLib
-          (.. prefixed-lib-name "(" (table.concat operands ", ") ")")
-          (.. "(" (table.concat operands padded-native-name) ")"))))))
+  (if (= (length ast) 1)
+      (compiler.assert zero-arity "Expected more than 0 arguments." ast)
+      (let [len (length ast)
+            operands []
+            padded-native-name (.. " " native-name " ")
+            prefixed-lib-name (.. "bit." lib-name)]
+        (for [i 2 len]
+          (let [subexprs (compiler.compile1 (. ast i) scope parent
+                                            {:nval (if (not= i len) 1)})]
+            (utils.map subexprs tostring operands)))
+        (if (= (length operands) 1)
+            (if utils.root.options.useBitLib
+                (.. prefixed-lib-name "(" unary-prefix ", " (. operands 1) ")")
+                (.. "(" unary-prefix padded-native-name (. operands 1) ")"))
+            (if utils.root.options.useBitLib
+                (.. prefixed-lib-name "(" (table.concat operands ", ") ")")
+                (.. "(" (table.concat operands padded-native-name) ")"))))))
 
 (fn define-bitop-special [name zero-arity unary-prefix native]
-  (tset SPECIALS name (partial bitop-special native name zero-arity unary-prefix))
-  (doc-special name [:a :b "..."]
-    "Bitwise operator; works the same as Lua but accepts more arguments."))
+  (tset SPECIALS name (partial bitop-special native name zero-arity unary-prefix)))
 
 (define-bitop-special :lshift nil :1 "<<")
 (define-bitop-special :rshift nil :1 ">>")
@@ -817,18 +814,21 @@ Method name doesn't have to be known at compile-time; if it is, use
 (define-bitop-special :bxor :0 :0 "~")
 
 (doc-special :lshift [:x :n]
-             "Bitwise logical left shift of x by n bits; only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
+             "Bitwise logical left shift of x by n bits.
+Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
 (doc-special :rshift [:x :n]
-             "Bitwise logical right shift of x by n bits; only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
+             "Bitwise logical right shift of x by n bits.
+Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
-(doc-special :band [:x1 :x2]
-             "Bitwise AND of arguments; only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
+(doc-special :band [:x1 :x2 "..."] "Bitwise AND of any number of arguments.
+Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
-(doc-special :bor [:x1 :x2] "Bitwise OR of arguments; only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
+(doc-special :bor [:x1 :x2 "..."] "Bitwise OR of any number of arguments.
+Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
-(doc-special :bxor [:x1 :x2]
-             "Bitwise XOR of arguments; only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
+(doc-special :bxor [:x1 :x2 "..."] "Bitwise XOR of any number of arguments.
+Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
 (define-arithmetic-special :or :false)
 (define-arithmetic-special :and :true)

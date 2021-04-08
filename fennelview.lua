@@ -149,7 +149,7 @@ local function pp_associative(t, kv, options, indent, key_3f)
     else
       prefix = ""
     end
-    local elements = nil
+    local items = nil
     do
       local tbl_0_ = {}
       for _, _6_0 in pairs(kv) do
@@ -165,9 +165,9 @@ local function pp_associative(t, kv, options, indent, key_3f)
         end
         tbl_0_[(#tbl_0_ + 1)] = _8_
       end
-      elements = tbl_0_
+      items = tbl_0_
     end
-    return concat_table_lines(elements, options, multiline_3f, indent0, "table", prefix)
+    return concat_table_lines(items, options, multiline_3f, indent0, "table", prefix)
   end
 end
 local function pp_sequence(t, kv, options, indent)
@@ -187,7 +187,7 @@ local function pp_sequence(t, kv, options, indent)
     else
       prefix = ""
     end
-    local elements = nil
+    local items = nil
     do
       local tbl_0_ = {}
       for _, _3_0 in pairs(kv) do
@@ -202,9 +202,9 @@ local function pp_sequence(t, kv, options, indent)
         end
         tbl_0_[(#tbl_0_ + 1)] = _5_
       end
-      elements = tbl_0_
+      items = tbl_0_
     end
-    return concat_table_lines(elements, options, multiline_3f, indent0, "seq", prefix)
+    return concat_table_lines(items, options, multiline_3f, indent0, "seq", prefix)
   end
 end
 local function concat_lines(lines, options, indent, force_multi_line_3f)
@@ -255,7 +255,7 @@ local function pp_metamethod(t, metamethod, options, indent)
       return concat_lines(lines, options, indent, force_multi_line_3f)
     else
       local _0 = _3_0
-      return error("Error: __fennelview metamethod must return a table of lines")
+      return error("__fennelview metamethod must return a table of lines")
     end
   end
 end
@@ -311,7 +311,21 @@ local function number__3estring(n)
   return _2_0
 end
 local function colon_string_3f(s)
-  return s:find("^[-%w?\\^_!$%&*+./@|<=>]+$")
+  return s:find("^[-%w?^_!$%&*+./@|<=>]+$")
+end
+local function pp_string(str, options, indent)
+  local escs = nil
+  local _2_
+  if (options["escape-newlines?"] and (#str < (options["line-length"] - indent))) then
+    _2_ = "\\n"
+  else
+    _2_ = "\n"
+  end
+  local function _4_(_241, _242)
+    return ("\\%03d"):format(_242:byte())
+  end
+  escs = setmetatable({["\""] = "\\\"", ["\11"] = "\\v", ["\12"] = "\\f", ["\13"] = "\\r", ["\7"] = "\\a", ["\8"] = "\\b", ["\9"] = "\\t", ["\\"] = "\\\\", ["\n"] = _2_}, {__index = _4_})
+  return ("\"" .. str:gsub("[%c\\\"]", escs) .. "\"")
 end
 local function make_options(t, options)
   local defaults = {["detect-cycles?"] = true, ["empty-as-sequence?"] = false, ["escape-newlines?"] = false, ["line-length"] = 80, ["metamethod?"] = true, ["one-line?"] = false, ["prefer-colon?"] = false, ["utf8?"] = true, depth = 128}
@@ -344,6 +358,8 @@ local function _2_(x, options, indent, colon_3f)
     local function _5_()
       if (colon_3f ~= nil) then
         return colon_3f
+      elseif ("function" == type(options0["prefer-colon?"])) then
+        return options0["prefer-colon?"](x)
       else
         return options0["prefer-colon?"]
       end
@@ -351,16 +367,7 @@ local function _2_(x, options, indent, colon_3f)
     if ((tv == "string") and colon_string_3f(x) and _5_()) then
       return (":" .. x)
     elseif (tv == "string") then
-      local _6_0 = nil
-      local function _7_()
-        if options0["escape-newlines?"] then
-          return "\\n"
-        else
-          return "\n"
-        end
-      end
-      _6_0 = string.format("%q", x):gsub("\\\n", _7_())
-      return _6_0
+      return pp_string(x, options0, indent0)
     elseif ((tv == "boolean") or (tv == "nil")) then
       return tostring(x)
     else

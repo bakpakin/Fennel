@@ -2,13 +2,8 @@
 (local fennel (require :fennel))
 
 (fn == [test expected]
-  (let [opts (if (rawget _G :jit)
-                 {:useBitLib true}
-                 (and (not= _VERSION "Lua 5.1") (not= _VERSION "Lua 5.2"))
-                 {})]
-    ;; skip the test on PUC 5.1 and 5.2
-    (when opts
-      (l.assertEquals (fennel.eval test opts) expected))))
+  (let [opts (if (rawget _G :jit) {:useBitLib true})]
+    (l.assertEquals (fennel.eval test opts) expected)))
 
 (fn test-shifts []
   (== "(lshift 33 2)" 132)
@@ -24,5 +19,8 @@
   (== "(bxor 1)" 1)
   (== "(band)" 0))
 
-{: test-shifts
- : test-ops}
+;; skip the test on PUC 5.1 and 5.2
+(if (or (rawget _G :jit) (not (_VERSION:find "5%.[12]")))
+    {: test-shifts
+     : test-ops}
+    {})

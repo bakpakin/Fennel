@@ -91,6 +91,8 @@
                "(let [f {:+ #18}] (f:+))" 18
                ;; method calls don't double up side effects
                "(var a 0) (let [f (fn [] (set a (+ a 1)) :hi)] (: (f) :find :h)) a" 1
+               ;; method calls don't emit illegal semicolon
+               "(fn x [y] (y.obj:method) 77) (x {:obj {:method #$2}})" 77
 
                ;; functions with empty bodies return nil
                "(if (= nil ((fn [a]) 1)) :pass :fail)" "pass"

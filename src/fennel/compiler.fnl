@@ -341,6 +341,11 @@ Tab is what is used to indent a block."
   "Convert expressions to Lua string."
   (table.concat (utils.map exprs 1) ", "))
 
+(fn disambiguate-parens [code chunk]
+  ;; without the semicolon, parens can be misinterpreted
+  ;; as a function call rather than being used for grouping.
+  (if (and (= (code:byte) 40) (< 1 (length chunk))) (.. "; " code) code))
+
 (fn keep-side-effects [exprs chunk start ast]
   "Compile side effects for a chunk."
   (for [j (or start 1) (length exprs)]
@@ -350,11 +355,7 @@ Tab is what is used to indent a block."
       (if (and (= se.type :expression) (not= (. se 1) :nil))
           (emit chunk (string.format "do local _ = %s end" (tostring se)) ast)
           (= se.type :statement)
-          (let [code (tostring se)
-                ;; without the semicolon, parens can be misinterpreted
-                ;; as a function call rather than being used for grouping.
-                unambiguous-code (if (= (code:byte) 40) (.. "; " code) code)]
-            (emit chunk unambiguous-code ast))))))
+          (emit chunk (disambiguate-parens (tostring se) chunk) ast)))))
 
 (fn handle-compile-opts [exprs parent opts ast]
   "Does some common handling of returns and register targets for special

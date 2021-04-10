@@ -1,6 +1,8 @@
 # Summary of user-visible changes
 
-## 0.9.1 / ???
+## 0.9.1 / 2021-04-10
+
+* Fix a bug in compiled output for statement separators in LuaJIT
 
 ## 0.9.0 / 2021-04-08
 

@@ -1,11 +1,12 @@
 -- -*- lua -*-
 
 package = "fennel"
-version = "0.9.1-1"
+local fennel_version = "0.9.1"
+version = fennel_version .. "-1"
 
 source = {
     -- use URL to a pre-built release archive so the standalone launcher can be used
-    url = "https://fennel-lang.org/downloads/fennel-" .. version .. ".tar.gz",
+    url = "https://fennel-lang.org/downloads/fennel-" .. fennel_version .. ".tar.gz",
 }
 description = {
    summary = "Lisp that compiles to Lua",

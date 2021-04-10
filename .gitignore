@@ -6,6 +6,8 @@
 /lua-5.3.5
 /lua-5.4.2
 
+/rockspecs/*asc
+
 # Created by https://www.gitignore.io/api/lua
 
 # from static compilation

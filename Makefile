@@ -98,11 +98,12 @@ install: fennel fennel.lua fennelview.lua
 
 fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua fennelview.lua \
 		Makefile $(SRC)
+	rm -rf fennel-$(VERSION)
 	mkdir fennel-$(VERSION)
 	cp -r $^ fennel-$(VERSION)
 	tar czf $@ fennel-$(VERSION)
 
-uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
+uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec uploadtar
 	luarocks --local build $<
 	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
 	luarocks --local remove fennel
@@ -111,7 +112,7 @@ uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
 	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
 	luarocks --local remove fennel
 
-release: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz uploadrock
+uploadtar: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
@@ -125,4 +126,7 @@ release: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz uploadrock
 	gpg -ab downloads/fennel-$(VERSION).tar.gz
 	rsync -r downloads/* fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
-.PHONY: build test testall count format ci clean coverage install release uploadrock
+release: uploadtar uploadrock
+
+.PHONY: build test testall count format ci clean coverage install \
+	uploadtar uploadrock release

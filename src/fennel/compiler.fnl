@@ -70,11 +70,11 @@ The ast arg should be unmodified so that its first element is the form called."
 (fn serialize-string [str]
   (-> (string.format "%q" str)
       (string.gsub "." serialize-subst)
-      (string.gsub "[€-ÿ]" #(.. "\\" ($:byte)))))
+      (string.gsub "[â‚¬-Ã¿]" #(.. "\\" ($:byte)))))
 
 (fn global-mangling [str]
   "Mangler for global symbols. Does not protect against collisions,
-but makes them unlikely. This is the mangling that is exposed to to the world."
+but makes them unlikely. This is the mangling that is exposed to the world."
   (if (utils.valid-lua-identifier? str)
       str
       (.. :__fnl_global__ (str:gsub "[^%w]" #(string.format "_%02x" ($:byte))))))

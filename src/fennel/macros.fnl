@@ -364,10 +364,13 @@ introduce for the duration of the body if it does match."
   "How many multi-valued clauses are there? return a list of that many gensyms."
   (let [syms (list (gensym))]
     (for [i 1 (length clauses) 2]
-      (if (list? (. clauses i))
-          (each [valnum (ipairs (. clauses i))]
-            (if (not (. syms valnum))
-                (tset syms valnum (gensym))))))
+      (let [clause (if (and (list? (. clauses i)) (= `? (. clauses i 2)))
+                       (. clauses i 1)
+                       (. clauses i))]
+        (if (list? clause)
+            (each [valnum (ipairs clause)]
+              (if (not (. syms valnum))
+                  (tset syms valnum (gensym)))))))
     syms))
 
 (fn match* [val ...]

@@ -70,7 +70,7 @@ The ast arg should be unmodified so that its first element is the form called."
 (fn serialize-string [str]
   (-> (string.format "%q" str)
       (string.gsub "." serialize-subst)
-      (string.gsub "[€-ÿ]" #(.. "\\" ($:byte)))))
+      (string.gsub "[\x80-\xff]" #(.. "\\" ($:byte)))))
 
 (fn global-mangling [str]
   "Mangler for global symbols. Does not protect against collisions,
@@ -244,7 +244,7 @@ store it on the metatable instead."
   (let [m (getmetatable ast)]
     (or (and m m.line m) (and (= :table (type ast)) ast) {})))
 
-(fn flatten-chunk-correlated [main-chunk]
+(fn flatten-chunk-correlated [main-chunk options]
   "Correlate line numbers in input with line numbers in output."
   (fn flatten [chunk out last-line file]
     (var last-line last-line)
@@ -254,13 +254,13 @@ store it on the metatable instead."
           (when (or subchunk.leaf (> (length subchunk) 0)) ; ignore empty chunks
             ;; don't increase line unless it's from the same file
             (let [source (ast-source subchunk.ast)]
-              (when (= file source.file)
+              (when (= file source.filename)
                 (set last-line (math.max last-line (or source.line 0))))
               (set last-line (flatten subchunk out last-line file))))))
     last-line)
 
   (let [out []
-        last (flatten main-chunk out 1 main-chunk.file)]
+        last (flatten main-chunk out 1 options.filename)]
     (for [i 1 last]
       (when (= (. out i) nil)
         (tset out i "")))
@@ -306,7 +306,7 @@ Tab is what is used to indent a block."
   "Return Lua source and source map table."
   (let [chunk (peephole chunk)]
     (if options.correlate
-        (values (flatten-chunk-correlated chunk) [])
+        (values (flatten-chunk-correlated chunk options) [])
         (let [sm []
               ret (flatten-chunk sm chunk options.indent 0)]
           (when sm

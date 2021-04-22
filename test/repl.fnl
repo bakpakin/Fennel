@@ -12,6 +12,8 @@
           (and chunk (.. chunk "\n"))))
       (fn opts.onValues [x]
         (table.insert output (table.concat x "\t")))
+      (fn opts.onError [e-type e lua-src]
+        (table.insert output (.. "error: " e)))
       (fn opts.registerCompleter [x]
         (set repl-complete x))
       (fn opts.pp [x] x)
@@ -92,6 +94,14 @@
     (l.assertEquals (send "boo") ["!!!"])
     (l.assertStrContains (table.concat (send ",help")) "Set boo to")))
 
+(fn test-options []
+  ;; ensure options.useBitLib propagates to repl
+  (let [send (wrap-repl {:useBitLib true :onError (fn [e] (values :ERROR e))})
+        bxor-result (send "(bxor 0 0)")]
+    (if _G.jit
+      (l.assertEquals bxor-result [:0])
+      (l.assertStrContains (. bxor-result 1) "error:.*attempt to index.*global 'bit'"
+                           "--use-bit-lib should make bitops fail in non-luajit"))))
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -102,5 +112,6 @@
      : test-exit
      : test-reload
      : test-reset
-     : test-plugins}
+     : test-plugins
+     : test-options}
     {})

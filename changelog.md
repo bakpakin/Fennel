@@ -2,6 +2,7 @@
 
 ## 0.9.2 / ???
 
+* Fix a bug where `--use-bit-lib` was not propagating to the REPL
 * Fix a launcher bug where `-v` was not implemented as an alias for `--version`
 
 ## 0.9.1 / 2021-04-10

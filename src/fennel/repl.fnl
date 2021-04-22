@@ -229,7 +229,8 @@ For more information about the language, see https://fennel-lang.org/reference")
                              :useMetadata opts.useMetadata
                              :moduleName opts.moduleName
                              :assert-compile opts.assert-compile
-                             :parse-error opts.parse-error})
+                             :parse-error opts.parse-error
+                             :useBitLib opts.useBitLib})
                 (false msg) (do
                               (clear-stream)
                               (on-error :Compile msg))

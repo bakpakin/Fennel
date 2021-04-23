@@ -64,9 +64,14 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
   "Nil-safe table look up.
 Same as . (dot), except will short-circuit with nil when it encounters
 a nil value in any of subsequent keys."
-  (let [out `(-?> ,tbl)]
-    (each [_ k (ipairs [...])] (table.insert out `(. ,k)))
-    out))
+  (let [head (gensym :t)
+        lookups `(do (var ,head ,tbl) ,head)]
+    (each [_ k (ipairs [...])]
+      ;; Kinda gnarly to reassign in place like this, but it emits the best lua.
+      ;; With this impl, it emits a flat, concise, and readable set of if blocks.
+      (table.insert lookups (# lookups) `(if (not= nil ,head)
+                                           (set ,head (. ,head ,k)))))
+    lookups))
 
 (fn doto* [val ...]
   "Evaluates val and splices it into the first argument of subsequent forms."

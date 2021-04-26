@@ -24,15 +24,11 @@
                ["(?. [-1 -2] 3)" nil]
                ["(?. {:a {:b {:c 3}}} :a :b :c)" 3]
                ["(?. {:a {:b {:c 3}}} :d :b :c)" nil]
-               ["(?. {:a {:b {:c 3}}} :a :d :c)" nil]
-               ["(?. {:a {:b {:c 3}}} :a :b :d)" nil]
+               ["(?. nil 1 2 3)" nil] ; safe when table itself is nil
                ["(?. [-1 [-2 [-3] [-4]]] 2 3 1)" -4]
-               ["(?. [-1 [-2 [-3] [-4]]] 0 3 1)" nil]
-               ["(?. [-1 [-2 [-3] [-4]]] 2 5 1)" nil]
-               ["(?. [-1 [-2 [-3] [-4]]] 2 3 2)" nil]
+               ["(pcall #(?. [1] 1 2))" false] ; error due to indexing a number
+               ["(pcall #(?. {:a true} :a :b))" false] ; error due to indexing a boolean
                ["(?. {:a [{} {:b {:c 4}}]} :a 2 :b :c)" 4]
-               ["(?. {:a [{} {:b {:c 4}}]} :a 1 :b :c)" nil]
-               ["(?. {:a [{} {:b {:c 4}}]} :a 3 :b :c)" nil]
                ["(?. {:a [[{:b {:c 5}}]]} :a 1 :b :c)" nil]
                ["(?. {:a [[{:b {:c 5}}]]} :a 1 1 :b :c)" 5]
                ["(local t {:a [[{:b {:c 5}}]]}) (?. t :a 1 :b :c)" nil]

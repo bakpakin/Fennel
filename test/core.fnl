@@ -93,6 +93,11 @@
                "(var a 0) (let [f (fn [] (set a (+ a 1)) :hi)] (: (f) :find :h)) a" 1
                ;; method calls don't emit illegal semicolon
                "(fn x [y] (y.obj:method) 77) (x {:obj {:method #$2}})" 77
+               ;; method calls don't have ambiguous parens
+               "(fn func [] {:map #$1})
+                (macro foo [] `(let [a# (func)] ((. a# :map) 123)))
+                (foo) :yeah " :yeah
+
 
                ;; functions with empty bodies return nil
                "(if (= nil ((fn [a]) 1)) :pass :fail)" "pass"

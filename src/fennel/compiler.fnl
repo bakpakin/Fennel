@@ -341,21 +341,19 @@ Tab is what is used to indent a block."
   "Convert expressions to Lua string."
   (table.concat (utils.map exprs 1) ", "))
 
-(fn disambiguate-parens [code chunk]
-  ;; without the semicolon, parens can be misinterpreted
-  ;; as a function call rather than being used for grouping.
-  (if (and (= (code:byte) 40) (< 1 (length chunk))) (.. "; " code) code))
-
 (fn keep-side-effects [exprs chunk start ast]
   "Compile side effects for a chunk."
-  (for [j (or start 1) (length exprs)]
-    (let [se (. exprs j)]
-      ;; Avoid the rogue 'nil' expression (nil is usually a literal,
-      ;; but becomes an expression if a special form returns 'nil')
-      (if (and (= se.type :expression) (not= (. se 1) :nil))
-          (emit chunk (string.format "do local _ = %s end" (tostring se)) ast)
-          (= se.type :statement)
-          (emit chunk (disambiguate-parens (tostring se) chunk) ast)))))
+  (let [start (or start 1)]
+    (for [j start (length exprs)]
+      (let [se (. exprs j)]
+        ;; Avoid the rogue 'nil' expression (nil is usually a literal,
+        ;; but becomes an expression if a special form returns 'nil')
+        (if (and (= se.type :expression) (not= (. se 1) :nil))
+            (emit chunk (string.format "do local _ = %s end" (tostring se)) ast)
+            (= se.type :statement)
+            (let [code (tostring se)
+                  disambiguated (if (= (code:byte) 40) (.. "do end " code) code)]
+              (emit chunk disambiguated ast)))))))
 
 (fn handle-compile-opts [exprs parent opts ast]
   "Does some common handling of returns and register targets for special

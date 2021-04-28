@@ -179,12 +179,13 @@ as functions from special macro modules which are loaded in compile
 scope. They are brought in using `import-macros`:
 
 ```fennel
-;; macros.clj
+;; macros.fnl
 
 {:flip (fn [arg1 arg2] `(values ,arg2 ,arg1))}
 ```
 
 ```fennel
+;; otherfile.fnl
 (import-macros {: flip} :macros)
 
 (print (flip :abc :def))

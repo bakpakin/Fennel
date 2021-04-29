@@ -109,6 +109,13 @@
 
                ;; many args
                "((fn f [a sin cos radC cx cy x y limit dis] sin) 8 529)" 529
+
+               ;; string call thru metamethod
+               "(tset (getmetatable ::) :__call (fn [s t] (. t s)))
+                (let [res (:answer {:answer 42})]
+                  ; Breaks test-empty-values test if not restored. Maybe check?
+                  (tset (getmetatable ::) :__call nil)
+                  res)" 42
                }]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))

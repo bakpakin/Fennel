@@ -90,7 +90,7 @@ Takes a Lua identifier and returns the Fennel symbol string that created it."
 
 (var allowed-globals nil)
 
-(fn global-allowed [name]
+(fn global-allowed? [name]
   "If there's a provided list of allowed globals, don't let references thru that
 aren't on the list. This list is set at the compiler entry points of compile
 and compile-stream."
@@ -210,7 +210,8 @@ if they have already been declared via declare-local"
         (tset (. scope.symmeta (. parts 1)) :used true))
       ;; if it's a reference and not a symbol which introduces a new binding
       ;; then we need to check for allowed globals
-      (assert-compile (or (not reference?) local? (global-allowed (. parts 1)))
+      (assert-compile (or (not reference?) local? (= :_ENV (. parts 1))
+                          (global-allowed? (. parts 1)))
                       (.. "unknown global in strict mode: "
                           (tostring (. parts 1))) symbol)
       (when (and allowed-globals (not local?))

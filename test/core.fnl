@@ -160,7 +160,9 @@
                "(var x 12) ;; (set x 99)\n x" 12
                "74 ; (require \"hey.dude\")" 74}]
     (each [code expected (pairs cases)]
-      (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
+      (l.assertEquals (fennel.eval code {:correlate true}) expected code))
+    (when (not _G.getfenv)
+      (l.assertEquals (fennel.eval "(type _ENV)") :table))))
 
 (fn test-if []
   (let [cases {"(do (fn myfn [x y z] (+ x y z)) (myfn 1 (if 1 (values 2 5) 3) 4))" 7

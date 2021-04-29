@@ -621,7 +621,7 @@ current directory by default.
 [5]: https://github.com/rxi/lume
 [6]: https://www.lua.org/pil/7.1.html
 [7]: https://www.lua.org/manual/5.1/manual.html#pdf-string.gmatch
-[8]: http://home.pipeline.com/%7Ehbaker1/ObjectIdentity.html
+[8]: https://p.hagelb.org/equal-rights-for-functional-objects.html
 [9]: https://luafun.github.io/
 [10]: https://www.lua.org/manual/5.1/manual.html#5
 [11]: http://leafo.net/posts/itchio-and-coroutines.html

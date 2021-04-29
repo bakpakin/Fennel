@@ -196,6 +196,10 @@
                   (where [a b c d] (= 100 (* a b c d))) :nope3
                   ([a b c d] ? (= 100 (* a b c d))) :nope4
                   :success)" :success
+               ;; destructure multiple values with where
+               "(match (values 1 2 3 4 :ok)
+                  (where (a b c d e) (= 1 a)) e
+                  _ :not-ok)" :ok
                ;; old tests adopted to new syntax
                "(match [{:sieze :him} 5]
                   (where [f 4] f.sieze (= f.sieze :him)) 4

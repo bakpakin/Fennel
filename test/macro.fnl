@@ -189,6 +189,13 @@
                   [[1 2] [3 4]] :nope10
                   nil :success
                   :nope11)" :success
+               ;; nil matching with where
+               "(match nil
+                  (where (1 2 3 4) true) :nope1
+                  (where {:a 1 :b 2} true) :nope2
+                  (where [a b c d] (= 100 (* a b c d))) :nope3
+                  ([a b c d] ? (= 100 (* a b c d))) :nope4
+                  :success)" :success
                ;; no match
                "(match [1 2 3 4]
                   (1 2 3 4) :nope1

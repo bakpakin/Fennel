@@ -338,11 +338,10 @@ introduce for the duration of the body if it does match."
         (and (list? pattern) (= (. pattern 2) `?))
         (let [(pcondition bindings) (match-pattern vals (. pattern 1)
                                                    unifications)
-              condition `(and ,pcondition)]
-          (for [i 3 (length pattern)] ; splice in guard clauses
-            (table.insert condition (. pattern i)))
-          (values `(let ,bindings
-                     ,condition) bindings))
+              condition `(and ,(unpack pattern 3))]
+          (values `(and ,pcondition
+                        (let ,bindings
+                          ,condition)) bindings))
         ;; multi-valued patterns (represented as lists)
         (list? pattern)
         (match-values vals pattern unifications match-pattern)

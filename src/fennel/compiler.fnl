@@ -24,7 +24,8 @@ implement nesting. "
      :specials (setmetatable [] {:__index (and parent parent.specials)})
      :symmeta (setmetatable [] {:__index (and parent parent.symmeta)})
      :unmanglings (setmetatable [] {:__index (and parent parent.unmanglings)})
-     :autogensyms []
+     :gensyms (setmetatable [] {:__index (and parent parent.gensyms)})
+     :autogensyms (setmetatable [] {:__index (and parent parent.autogensyms)})
      :vararg (and parent parent.vararg)
      :depth (if parent (+ (or parent.depth 0) 1) 0)
      :hashfn (and parent parent.hashfn)
@@ -97,7 +98,7 @@ and compile-stream."
   (or (not allowed-globals) (utils.member? name allowed-globals)))
 
 (fn unique-mangling [original mangling scope append]
-  (if (. scope.unmanglings mangling)
+  (if (and (. scope.unmanglings mangling) (not (. scope.gensyms mangling)))
       (unique-mangling original (.. original append) scope (+ append 1))
       mangling))
 
@@ -145,6 +146,7 @@ these new manglings instead of the current manglings."
     (set mangling (.. (or base "") "_" append "_"))
     (set append (+ append 1)))
   (tset scope.unmanglings mangling (or base true))
+  (tset scope.gensyms mangling true)
   mangling)
 
 (fn autogensym [base scope]
@@ -826,7 +828,7 @@ which we have to do if we don't know."
   "A custom traceback function for Fennel that looks similar to debug.traceback.
 Use with xpcall to produce fennel specific stacktraces. Skips frames from the
 compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
-  (let [msg (or msg "")]
+  (let [msg (tostring (or msg ""))]
     (if (and (or (msg:find "^Compile error") (msg:find "^Parse error"))
              (not (utils.debug-on? :trace)))
         msg ; skip the trace because it's compiler internals.

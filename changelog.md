@@ -2,6 +2,12 @@
 
 ## 0.9.2 / ???
 
+* Add Fennel for Clojure Users guide
+* Never treat `_ENV` as an unknown global
+* Fix multi-value destructuring in pattern matches that use `where`
+* Fix a bug around disambiguating parens in method calls
+* Improve behavior of `?.` when used directly on nil
+* Fix a bug where line number correlation was thrown off in macros
 * Fix a bug where `--use-bit-lib` was not propagating to the REPL
 * Fix a launcher bug where `-v` was not implemented as an alias for `--version`
 

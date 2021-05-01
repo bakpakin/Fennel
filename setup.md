@@ -42,6 +42,9 @@ many versions of Fennel installed at once.
 Downloading a Fennel binary allows you to run Fennel on your computer without
 having to download Lua, if you are on a supported platform.
 
+This method requires you to manually update the `fennel` binary when
+you want to use a newer version that has come out.
+
  1. Choose one the options below, depending on your system:
       - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-0.9.1-x86_64)
         ([signature](https://fennel-lang.org/downloads/fennel-0.9.1-x86_64.asc))
@@ -222,7 +225,7 @@ support enables user-friendly features, such as:
   * GNU Readline (installation steps vary for different operating systems, but you may already have it!)
   * [readline.lua](https://pjb.com.au/comp/lua/readline.html) Lua bindings to libreadline
 
-**Note**: The stock Fennel REPL will automatically load and use the
+**Note**: The Fennel REPL will automatically load and use the
 readline bindings when it can resolve the `readline` module, so that's
 all you need to get started.
 
@@ -232,10 +235,6 @@ all you need to get started.
 The easiest way to get readline.lua is to install it with LuaRocks, which
 will fetch the package and automatically compile the native bindings for you.
 
-**Tip**: If you don't want to use LuaRocks, you can manually install
-readline.lua by following the guide
-[here](https://pjb.com.au/comp/lua/readline.html#installation).
-
 To install readline.lua with LuaRocks:
 
  1. Ensure libreadline is installed for the Lua version you intend to use.
@@ -244,9 +243,8 @@ To install readline.lua with LuaRocks:
       - `luarocks install --lua-version=5.1 readline` (for a non-default Lua version)
       - `luarocks install readline` (requires root or admin)
 
-**Note:** If you've installed with the `--local` flag, you may need to ensure your `package.path`
-and `package.cpath` contain its location. See the
-[note on LuaRocks installation](#downloading-fennel-using-luarocks) for details.
+**Note:** If you've installed with the `--local` flag, you may need to
+ensure your `package.path` and `package.cpath` contain its location.
 
 
 ### Configuring readline.lua
@@ -331,21 +329,16 @@ Support for Fennel is built into TIC-80. If you want to use the
 built-in text editor, you don't need any other tools, just launch
 TIC-80 and run `new fennel` to get started.
 
-  * The [TIC-80 wiki](https://github.com/nesbox/TIC-80/wiki) documents
-    the functions to use and important concepts.
-  * See this [project skeleton repo](https://github.com/stefandevai/fennel-tic80-game)
-    for information on using external editors, instead of the built-in
-    TIC-80 editor.
+The [TIC-80 wiki](https://github.com/nesbox/TIC-80/wiki) documents
+the functions to use and important concepts.
 
 All TIC-80 games allow you to view and edit the source and assets. Try
 loading this [Conway's Life](https://tic.computer/play?cart=656) game
 to see how it's made:
 
   * Click "start" to begin
-  * Press the Esc key to open a menu
-  * Use the arrow keys to navigate the menu
-  * Press the Z key to open the console, followed by Esc to see the
-    source code.
+  * Press the Esc key and click "Close game"
+  * Press Esc again to see the code
 
 
 ### Using Fennel with LÖVE

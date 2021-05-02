@@ -550,6 +550,8 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
   (compiler.assert (>= (length ast) 3) "expected body expression" (. ast 1))
   (let [binding (compiler.assert (utils.table? (. ast 2))
                                  "expected binding table" ast)
+        _ (compiler.assert (<= 2 (length binding))
+                           "expected binding and iterator" binding)
         until-condition (remove-until-condition binding)
         iter (table.remove binding (length binding))
         ; last item is iterator call

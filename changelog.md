@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.9.2 / ???
+## 0.9.2 / 2021-05-17
 
 * Add Fennel for Clojure Users guide
 * Never treat `_ENV` as an unknown global

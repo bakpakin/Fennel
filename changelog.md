@@ -1,10 +1,5 @@
 # Summary of user-visible changes
 
-## 0.9.4 / 2021-05-05
-
-* Fixed a typo in the Lua Primer page
-* Added a reference link to the Lua File System
-
 ## 0.9.3 / ???
 
 * Add `fennel.syntax` function describing built-ins.

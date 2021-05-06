@@ -68,10 +68,10 @@ will see its values updated as expected, regardless of mangling rules."
             (string.format "%s\n  %s" name docstring)))))
 
 ;; TODO: replace this with using the special fn's own docstring
-(fn doc-special [name arglist docstring]
+(fn doc-special [name arglist docstring body-form?]
   "Add a docstring to a special form."
   (tset compiler.metadata (. SPECIALS name)
-        {:fnl/arglist arglist :fnl/docstring docstring}))
+        {:fnl/arglist arglist :fnl/docstring docstring :fnl/body-form? body-form?}))
 
 (fn compile-do [ast scope parent start]
   "Compile a list of forms for side effects."
@@ -132,7 +132,7 @@ By default, start is 2."
           (compile-body nil true
                         (utils.expr (.. fname "(" fargs ")") :statement))))))
 
-(doc-special :do ["..."] "Evaluate multiple forms; return last value.")
+(doc-special :do ["..."] "Evaluate multiple forms; return last value." true)
 
 (fn SPECIALS.values [ast scope parent]
   "Unlike most expressions and specials, 'values' resolves with multiple
@@ -277,10 +277,10 @@ Main purpose to print function argument list in docstring."
                                 arg-name-list arg-list docstring scope)))))
 
 (doc-special :fn [:name? :args :docstring? "..."]
-             (.. "Function syntax. May optionally include a name and docstring.
+             "Function syntax. May optionally include a name and docstring.
 If a name is provided, the function will be bound in the current scope.
 When called with the wrong number of args, excess args will be discarded
-and lacking args will be nil, use lambda for arity-checked functions."))
+and lacking args will be nil, use lambda for arity-checked functions." true)
 
 ;; FORBIDDEN KNOWLEDGE:
 ;; (lua "print('hello!')") -> prints hello, evaluates to nil
@@ -405,7 +405,8 @@ and lacking args will be nil, use lambda for arity-checked functions."))
       (SPECIALS.do ast scope parent opts 3 sub-chunk sub-scope pre-syms))))
 
 (doc-special :let ["[name1 val1 ... nameN valN]" "..."]
-             "Introduces a new scope in which a given set of local bindings are used.")
+             "Introduces a new scope in which a given set of local bindings are used."
+             true)
 
 (fn SPECIALS.tset [ast scope parent]
   "For setting items in a table."
@@ -584,7 +585,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
 (doc-special :each ["[key value (iterator)]" "..."]
              "Runs the body once for each set of values provided by the given iterator.
 Most commonly used with ipairs for sequential tables or pairs for  undefined
-order, but can be used with any iterator.")
+order, but can be used with any iterator." true)
 
 (fn while* [ast scope parent]
   (let [len1 (length parent)
@@ -610,7 +611,8 @@ order, but can be used with any iterator.")
 (tset SPECIALS :while while*)
 
 (doc-special :while [:condition "..."]
-             "The classic while loop. Evaluates body until a condition is non-truthy.")
+             "The classic while loop. Evaluates body until a condition is non-truthy."
+             true)
 
 (fn for* [ast scope parent]
   (let [ranges (compiler.assert (utils.table? (. ast 2))
@@ -641,7 +643,7 @@ order, but can be used with any iterator.")
 
 (doc-special :for ["[index start stop step?]" "..."]
              "Numeric loop construct.
-Evaluates body once for each value between start and stop (inclusive).")
+Evaluates body once for each value between start and stop (inclusive)." true)
 
 (fn native-method-call [ast _scope _parent target args]
   "Prefer native Lua method calls when method name is a valid Lua identifier."
@@ -705,7 +707,7 @@ Method name doesn't have to be known at compile-time; if it is, use
       (table.insert els (pick-values 1 (: (tostring (. ast i)) :gsub "\n" " "))))
     (compiler.emit parent (.. "-- " (table.concat els " ")) ast)))
 
-(doc-special :comment ["..."] "Comment which will be emitted in Lua output.")
+(doc-special :comment ["..."] "Comment which will be emitted in Lua output." true)
 
 (fn hashfn-max-used [f-scope i max]
   (let [max (if (. f-scope.symmeta (.. "$" i) :used) i max)]
@@ -1232,7 +1234,8 @@ Lua output. The module must be a string literal and resolvable at compile time."
       val)))
 
 (doc-special :eval-compiler ["..."]
-             "Evaluate the body at compile-time. Use the macro system instead if possible.")
+             "Evaluate the body at compile-time. Use the macro system instead if possible."
+             true)
 
 {:doc doc*
  : current-global-names

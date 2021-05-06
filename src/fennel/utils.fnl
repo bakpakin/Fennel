@@ -61,7 +61,7 @@ Optionally takes a target table to insert the mapped values into."
 (fn member? [x tbl n]
   (match (. tbl (or n 1))
     x true
-    nil false
+    nil nil
     _ (member? x tbl (+ (or n 1) 1))))
 
 (fn allpairs [tbl]

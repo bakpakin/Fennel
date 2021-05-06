@@ -2,6 +2,8 @@
 
 ## 0.9.3 / ???
 
+* Add `fennel.syntax` function describing built-ins.
+
 ## 0.9.2 / 2021-05-02
 
 * Add Fennel for Clojure Users guide

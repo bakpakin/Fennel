@@ -73,6 +73,26 @@
     (set opts.filename filename)
     (eval source opts ...)))
 
+(fn syntax []
+  "Return a table describing the callable forms known by Fennel."
+  (let [body? [:when :with-open :collect :icollect :lambda :λ :macro :match]
+        binding? [:collect :icollect :each :for :let :with-open]
+        out {}]
+    (each [k v (pairs compiler.scopes.global.specials)]
+      (let [metadata (or (. compiler.metadata v) {})]
+        (tset out k {:special? true :body-form? metadata.fnl/body-form?
+                     :binding-form? (utils.member? binding? k)})))
+    (each [k v (pairs compiler.scopes.global.macros)]
+      (tset out k {:macro? true :body-form? (utils.member? body? k)
+                   :binding-form? (utils.member? binding? k)}))
+    (each [k v (pairs _G)]
+      (match (type v)
+        :function (tset out k {:global? true})
+        :table (each [k2 v2 (pairs v)]
+                 (when (= :function (type v2))
+                   (tset out (.. k "." k2) {:function? true})))))
+    out))
+
 ;; The public API module we export:
 (local mod {:list utils.list
             :list? utils.list?
@@ -111,6 +131,7 @@
             :dofile dofile*
             :version :0.9.3-dev
             : repl
+            : syntax
             ;; backwards-compatibility aliases
             :loadCode specials.load-code
             :make_searcher specials.make-searcher

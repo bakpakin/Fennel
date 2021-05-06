@@ -64,7 +64,7 @@ explicitly in your code).
 ## The io module
 
 This module contains functions for operating on the filesystem. Note
-that directory listing is absent; you need the luafilesystem library
+that directory listing is absent; you need the [luafilesystem][14] library
 for that.
 
 To open a file you use `io.open`, which returns a file descriptor upon
@@ -122,7 +122,7 @@ concatenated together with an optional separator.
   (print (table.concat t ", "))) prints "a, 2, 3"
 ```
 
-The `table.sort` function a table in-place, as a side-effect. It
+The `table.sort` function sorts a table in-place, as a side-effect. It
 takes an optional comparator function which should return true when
 its first argument is less than the second.
 
@@ -190,3 +190,4 @@ These are used for loading Lua code. The `load*` functions return a
 [11]: https://www.lua.org/pil/11.html
 [12]: https://www.lua.org/pil/9.1.html
 [13]: https://www.lua.org/pil/28.html
+[14]: https://keplerproject.github.io/luafilesystem/

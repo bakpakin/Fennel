@@ -643,6 +643,21 @@ body; if it is true at the beginning then the body will not run at all.
   (set x (+ x i)))
 ```
 
+### `while` good old while loop
+
+Loops over a body until a condition is met. Uses a native Lua `while`
+loop, so this can be faster than recursion.
+
+Example:
+
+```fennel
+(var done? false)
+(while (not done?)
+  (print :not-done)
+  (when (> (math.random) 0.95)
+    (set done? true)))
+```
+
 ### `do` evaluate multiple forms returning last value
 
 Accepts any number of forms and evaluates all of them in order,
@@ -755,76 +770,6 @@ Example:
 (let [t {:a [2 3 4 {:b 42}]}] (?. t :a 4 :b)) ; => 42
 ```
 
-
-### `:` method call
-
-Looks up a function in a table and calls it with the table as its
-first argument. This is a common idiom in many Lua APIs, including
-some built-in ones.
-
-*(Since 0.3.0)* Just like Lua, you can perform a method call by calling a function
-name where `:` separates the table variable and method name.
-
-Example:
-
-```fennel
-(let [f (assert (io.open "hello" "w"))]
-  (f:write "world")
-  (f:close))
-```
-
-If the name of the method isn't known at compile time, you can use `:`
-followed by the table and then the method's name as a string.
-
-Example:
-
-```fennel
-(let [f (assert (io.open "hello" "w"))
-      method1 :write
-      method2 :close]
-  (: f method1 "world")
-  (: f method2))
-```
-
-Both of these examples are equivalent to the following:
-
-```fennel
-(let [f (assert (io.open "hello" "w"))]
-  (f.write f "world")
-  (f.close f))
-```
-
-### `values` multi-valued return
-
-Returns multiple values from a function. Usually used to signal
-failure by returning nil followed by a message.
-
-Example:
-
-```fennel
-(fn [filename]
-  (if (valid-file-name? filename)
-      (open-file filename)
-      (values nil (.. "Invalid filename: " filename))))
-```
-
-### `while` good old while loop
-
-Loops over a body until a condition is met. Uses a native Lua `while`
-loop, so this can be faster than recursion.
-
-Example:
-
-```fennel
-(var done? false)
-(while (not done?)
-  (print :not-done)
-  (when (> (math.random) 0.95)
-    (set done? true)))
-```
-
-## Other
-
 ### `collect`, `icollect` table comprehension macros
 
 The `collect` macro takes a "iterator binding table" in the format
@@ -866,6 +811,60 @@ value into a table is a no-op.
 
 Like `each` and `for`, the table comprehensions support an `:until`
 clause for early termination.
+
+### `values` multi-valued return
+
+Returns multiple values from a function. Usually used to signal
+failure by returning nil followed by a message.
+
+Example:
+
+```fennel
+(fn [filename]
+  (if (valid-file-name? filename)
+      (open-file filename)
+      (values nil (.. "Invalid filename: " filename))))
+```
+
+## Other
+
+### `:` method call
+
+Looks up a function in a table and calls it with the table as its
+first argument. This is a common idiom in many Lua APIs, including
+some built-in ones.
+
+*(Since 0.3.0)* Just like Lua, you can perform a method call by calling a function
+name where `:` separates the table variable and method name.
+
+Example:
+
+```fennel
+(let [f (assert (io.open "hello" "w"))]
+  (f:write "world")
+  (f:close))
+```
+
+If the name of the method isn't known at compile time, you can use `:`
+followed by the table and then the method's name as a string.
+
+Example:
+
+```fennel
+(let [f (assert (io.open "hello" "w"))
+      method1 :write
+      method2 :close]
+  (: f method1 "world")
+  (: f method2))
+```
+
+Both of these examples are equivalent to the following:
+
+```fennel
+(let [f (assert (io.open "hello" "w"))]
+  (f.write f "world")
+  (f.close f))
+```
 
 ### `->`, `->>`, `-?>` and `-?>>` threading macros
 

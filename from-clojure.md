@@ -33,7 +33,13 @@ there are no functions whatsoever provided by the language; it only
 provides macros and special forms. Since the Lua standard library is
 quite minimal, it's common to pull in 3rd-party things like [Lume][1],
 [LuaFun][2], or [Penlight][8] for things you might expect to be
-built-in to the language, like `reduce` or `keys`.
+built-in to the language, like `reduce` or `keys`. There's also an
+experimental [Cljlib][12] library, that implements a lot of functions
+from `clojure.core` namespace, and has a set of macros to make writing
+code more familiar to Clojure programmers, like adding syntax for
+defining multi-arity functions, or multimethods, also providing deep
+comparison semantics, sequence abstraction, and some addition data
+structures, like sets.
 
 In Clojure it's typical to bring in libraries using a tool like
 [Leiningen][3]. In Fennel you can use [LuaRocks][4] for dependencies,
@@ -73,7 +79,7 @@ Fennel supports destructuring similarly to Clojure. The main
 difference is that rather than using `:keys` Fennel has a notation
 where a bare `:` is followed by a symbol naming the key.
 
-```clj
+```clojure
 ;; clojure
 (defn my-function [{:keys [msg abc def]}]
   (println msg)
@@ -91,7 +97,6 @@ where a bare `:` is followed by a symbol naming the key.
 (my-function {:msg "have a cola and smile" :abc 99 :def 523})
 ```
 
-
 Like Clojure, normal locals cannot be given new values. However,
 Fennel has a special `var` form that will allow you to declare a
 special kind of local which can be given a new value with `set`.
@@ -102,7 +107,7 @@ functions. There are two main differences; the first is that it uses `$1`,
 requires parens in this shorthand, Fennel does not. `#5` in Fennel
 is the equivalent of Clojure's `(constantly 5)`.
 
-```clj
+```clojure
 ;; clojure
 (def handler #(my-other-function %1 %3))
 (def handler2 (constantly "abc"))
@@ -117,7 +122,7 @@ is the equivalent of Clojure's `(constantly 5)`.
 Fennel does not have `apply`; instead you unpack arguments into
 function call forms:
 
-```clj
+```clojure
 ;; clojure
 (apply add [1 2 3])
 ```
@@ -165,14 +170,16 @@ always represents the absence of a value. As such, tables **cannot**
 contain `nil`. Attempting to put `nil` in a table is equivalent to
 removing the value from the table, and you never have to worry about
 the difference between "the table does not contain this key" vs "the
-table contains a nil value at this key".
+table contains a nil value at this key". And setting key to a `nil` in
+a sequential table will not shift all other elements, and will leave a
+"hole" in the table.
 
 Tables cannot be called like functions, (unless you set up a special
 metatable) nor can `:keyword` style strings. If a string key is
 statically known, you can use `tbl.key` notation; if it's not, you use
 the `.` form in cases where you can't destructure: `(. tbl key)`.
 
-```clj
+```clojure
 ;; clojure
 (dissoc my-map :abc)
 (when-not (contains? my-other-map some-key)
@@ -186,6 +193,89 @@ the `.` form in cases where you can't destructure: `(. tbl key)`.
   (print "no abc"))
 ```
 
+## Dynamic scope
+
+As was mentioned previously, Clojure has two types of scoping: lexical
+and dynamic. Vars can be declared in the dynamic scope with the
+special metadata attribute, supported by `def` and its derivatives, to
+be later altered with the `binding` macro:
+
+```clojure
+;; clojure
+(def ^:dynamic foo 32)
+(defn bar [x]
+  (println (+ x foo)))
+(println (bar 10)) ;; => 42
+(binding [foo 17]
+  (println (bar 10))) ;; => 27
+(println (bar 10)) ;; => 42
+```
+
+Fennel doesn't have dynamic scope. Instead we can use table mutability
+to alter values held, to be later dynamically looked up:
+
+```fennel
+;; fennel
+(local dynamic {:foo 32})
+(fn bar [x]
+  (print (+ dynamic.foo x)))
+(print (bar 10)) ;; => 42
+(set dynamic.foo 17)
+(print (bar 10)) ;; => 27
+```
+
+In contrast to Clojure's `binding`, which only binds var to a given
+value in the scope created by the `binding` macro, the modification of
+the table here is permanent, and table value have to be restored
+manually.
+
+In Clojure, similarly to variables, dynamic functions can be defined:
+
+```clojure
+;; clojure
+(defn ^:dynamic fred []
+  "Hi, I'm Fred!")
+(defn greet []
+  (println (fred)))
+(greet) ;; prints: Hi, I'm Fred!
+(binding [fred (fn [] "I'm no longer Fred!")]
+  (greet)) ;; prints: I'm no longer Fred!
+```
+
+In Fennel we can simply define a function as part of the table, either
+by assigning anonymous function to a table key, as done in the
+variable example above, or by separating function name and table name
+with a dot in the `fn` special:
+
+```fennel
+;; fennel
+(local dynamic {})
+(fn dynamic.fred []
+  "Hi, I'm Fred!")
+(fn greet []
+  (print (dynamic.fred)))
+(greet) ;; prints: Hi, I'm Fred!
+(set dynamic.fred (fn [] "I'm no longer Fred!"))
+(greet) ;; prints: I'm no longer Fred!
+```
+
+Another alternative is to use the `var` special. We can define a
+variable holding `nil`, use it in some function, and later set it to
+some other value:
+
+```fennel
+;; fennel
+(var foo nil)
+(fn bar []
+  (foo))
+(set foo #(print "foo!"))
+(bar) ;; prints: foo!
+(set foo #(print "baz!"))
+(bar) ;; prints: baz!
+```
+
+This can also be used for forward declarations.
+
 ## Iterators
 
 In Clojure, we have this idea that "everything is a seq". Lua and
@@ -194,7 +284,7 @@ an iterator". The book [Programming in Lua][7] has a detailed
 explanation of iterators. The `each` special form consumes iterators
 and steps thru them similarly to how `doseq` does.
 
-```clj
+```clojure
 ;; clojure
 (doseq [[k v] {:key "value" :other-key "SHINY"}]
   (println k "is" v))
@@ -220,7 +310,7 @@ returned table is key/value rather than sequential. The body of either
 macro allows you to return `nil` to filter out that entry from the
 result table.
 
-```clj
+```clojure
 ;; clojure
 (for [x [1 2 3 4 5 6]
       :when (= 0 (% x 2))]
@@ -251,6 +341,13 @@ All these forms accept iterators. Though the table-based `pairs` and
 Tables cannot be lazy (again other than thru metatable cleverness) so
 to some degree iterators take on the role of laziness.
 
+If you want the sequence abstraction from Clojure, the [Cljlib][12]
+library provides Clojure's `mapv`, `filter`, and other functions that
+work using similar `seq` abstraction implemented for ordinary tables
+with linear runtime cost of converting tables to a sequential ones. In
+practice, using Cljlib allows porting most Clojure data
+transformations almost directly to Fennel.
+
 ## Pattern Matching
 
 Tragically Clojure does not have pattern matching as part of the
@@ -258,7 +355,7 @@ language. Fennel fixes this problem by implementing the `match` macro.
 Refer to [the reference][6] for details. Since `if-let` just an anemic
 form of pattern matching, Fennel omits it in favor of `match`.
 
-```clj
+```clojure
 ;; clojure
 (if-let [result (calculate-thingy)]
   (println "Got" result)
@@ -285,7 +382,7 @@ the end of the file will cause it to be exported so other code can use
 it. This makes it easy to look in one place to see a list of
 everything that a module exports.
 
-```clj
+```clojure
 ;; clojure
 (ns my.namespace)
 
@@ -391,3 +488,4 @@ though the latter would work for functions rather than special forms.
 [9]: https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/
 [10]: https://www.lua.org/manual/5.4/manual.html#2.2
 [11]: https://fennel-lang.org/tutorial#error-handling
+[12]: https://gitlab.com/andreyorst/fennel-cljlib

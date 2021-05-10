@@ -202,7 +202,8 @@
                "(local [a b c &as t] [1 2 3]) (+ c (. t 2))" 5
                "(local (-a -b) ((fn [] (values 4 29)))) (+ -a -b)" 33
                "(var [a [b c]] [1 [2 3]]) (set a 2) (set c 8) (+ a b c)" 12
-               "(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x" 14}]
+               "(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x" 14
+               "(let [({: x} y) (values {:x 10} 20)] (+ x y))" 30}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

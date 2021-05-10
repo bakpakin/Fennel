@@ -722,7 +722,8 @@ which we have to do if we don't know."
         (compile-top-target left-names)
         (when declaration
           (each [_ sym (ipairs left)]
-            (tset scope.symmeta (utils.deref sym) {:var isvar})))
+            (when (utils.sym? sym)
+              (tset scope.symmeta (utils.deref sym) {:var isvar}))))
         ;; recurse if left-side tables found
         (each [_ pair (utils.stablepairs tables)]
           (destructure1 (. pair 1) [(. pair 2)] left))))

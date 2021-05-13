@@ -172,7 +172,8 @@ removing the value from the table, and you never have to worry about
 the difference between "the table does not contain this key" vs "the
 table contains a nil value at this key". And setting key to a `nil` in
 a sequential table will not shift all other elements, and will leave a
-"hole" in the table.
+"hole" in the table. Use `table.remove` instead on sequences to avoid
+these holes.
 
 Tables cannot be called like functions, (unless you set up a special
 metatable) nor can `:keyword` style strings. If a string key is
@@ -196,17 +197,17 @@ the `.` form in cases where you can't destructure: `(. tbl key)`.
 ## Dynamic scope
 
 As was mentioned previously, Clojure has two types of scoping: lexical
-and dynamic. Vars can be declared in the dynamic scope with the
+and dynamic. Clojure vars can be declared in the dynamic scope with the
 special metadata attribute, supported by `def` and its derivatives, to
 be later altered with the `binding` macro:
 
 ```clojure
 ;; clojure
-(def ^:dynamic foo 32)
+(def ^:dynamic *foo* 32)
 (defn bar [x]
-  (println (+ x foo)))
+  (println (+ x *foo*)))
 (println (bar 10)) ;; => 42
-(binding [foo 17]
+(binding [*foo* 17]
   (println (bar 10))) ;; => 27
 (println (bar 10)) ;; => 42
 ```
@@ -233,12 +234,12 @@ In Clojure, similarly to variables, dynamic functions can be defined:
 
 ```clojure
 ;; clojure
-(defn ^:dynamic fred []
+(defn ^:dynamic *fred* []
   "Hi, I'm Fred!")
 (defn greet []
-  (println (fred)))
+  (println (*fred*)))
 (greet) ;; prints: Hi, I'm Fred!
-(binding [fred (fn [] "I'm no longer Fred!")]
+(binding [*fred* (fn [] "I'm no longer Fred!")]
   (greet)) ;; prints: I'm no longer Fred!
 ```
 
@@ -274,7 +275,7 @@ some other value:
 (bar) ;; prints: baz!
 ```
 
-This can also be used for forward declarations.
+This can also be used for forward declarations like Clojure's `declare`.
 
 ## Iterators
 
@@ -343,7 +344,7 @@ to some degree iterators take on the role of laziness.
 
 If you want the sequence abstraction from Clojure, the [Cljlib][12]
 library provides Clojure's `mapv`, `filter`, and other functions that
-work using similar `seq` abstraction implemented for ordinary tables
+work using a similar `seq` abstraction implemented for ordinary tables
 with linear runtime cost of converting tables to a sequential ones. In
 practice, using Cljlib allows porting most Clojure data
 transformations almost directly to Fennel.

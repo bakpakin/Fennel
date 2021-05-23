@@ -78,7 +78,8 @@
   "(eval-compiler (assert-compile false \"oh no\" 123))" "oh no"
   "(partial)" "expected a function"
   "(#)" "expected one argument"
-  "\"\\!\"" "Invalid string"
+  ;; PUC is ridiculous in what it accepts in a string
+  "\"\\!\"" (if (or (not= _VERSION "Lua 5.1") _G.jit) "Invalid string")
 })
 
 (fn test-failures []

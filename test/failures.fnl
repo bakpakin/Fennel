@@ -78,6 +78,7 @@
   "(eval-compiler (assert-compile false \"oh no\" 123))" "oh no"
   "(partial)" "expected a function"
   "(#)" "expected one argument"
+  "\"\\!\"" "Invalid string"
 })
 
 (fn test-failures []

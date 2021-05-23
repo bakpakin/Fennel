@@ -250,10 +250,10 @@ stream is finished."
           (badend))
         (table.remove stack)
         (let [raw (string.char (unpack chars))
-              formatted (raw:gsub "[\a-\r]" escape-char)
-              load-fn ((or (rawget _G :loadstring) load) (.. "return "
-                                                             formatted))]
-          (dispatch (load-fn)))))
+              formatted (raw:gsub "[\a-\r]" escape-char)]
+          (match ((or (rawget _G :loadstring) load) (.. "return " formatted))
+            load-fn (dispatch (load-fn))
+            nil (parse-error (.. "Invalid string: " raw))))))
 
     (fn parse-prefix [b]
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"

@@ -528,12 +528,25 @@ Unless you are doing ahead-of-time compilation, Fennel will track all
 known globals and prevent you from refering to unknown globals, which
 prevents a common source of bugs in Lua where typos go undetected.
 
+### Strict global checking
 If you get an error that says `unknown global in strict mode` it means that
 you're trying compile code that uses a global which the Fennel compiler doesn't
 know about. Most of the time, this is due to a coding mistake. However, in some
 cases you may get this error with a legitimate global reference. If this
 happens, it may be due to an inherent limitation of Fennel's strategy. You can
 use `_G.myglobal` to refer to it in a way that works around this check.
+
+Another possible cause for this error is a modified [function environment][16].
+The solution depends on how you're using Fennel:
+* Embedded Fennel can have its searcher modified to ignore certain (or all) 
+  globals via the `allowedGlobals` parameter. See the [Lua API][17] page for
+  instructions.
+* Fennel's CLI has the `--globals` parameter, which accepts a comma-separated
+  list of globals to ignore. For example, to disable strict mode for globals 
+  x, y, and z:
+  ```shell
+  fennel --globals x,y,z yourfennelscript.fnl
+  ```
 
 ## Gotchas
 
@@ -629,3 +642,5 @@ current directory by default.
 [13]: https://love2d.org
 [14]: https://fennel-lang.org/lua-primer
 [15]: https://www.lua.org/manual/5.3/manual.html#6.5
+[16]: https://www.lua.org/pil/14.3.html
+[17]: https://fennel-lang.org/api

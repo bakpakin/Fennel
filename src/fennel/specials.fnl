@@ -408,6 +408,16 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
              "Introduces a new scope in which a given set of local bindings are used."
              true)
 
+(fn get-prev-line [parent]
+  (if (= :table (type parent))
+      (get-prev-line (or parent.leaf (. parent (length parent))))
+      (or parent "")))
+
+(fn disambiguate? [rootstr parent]
+  (or (rootstr:match "^{")
+      (match (get-prev-line parent)
+        prev-line (prev-line:match "%)$"))))
+
 (fn SPECIALS.tset [ast scope parent]
   "For setting items in a table."
   (compiler.assert (> (length ast) 3)
@@ -420,11 +430,11 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
     (let [value (. (compiler.compile1 (. ast (length ast)) scope parent
                                       {:nval 1}) 1)
           rootstr (tostring root)
-          ;; Prefix 'do end ' so parens are not ambiguous (grouping or fn call?)
-          fmtstr (if (: rootstr :match "^{") "do end (%s)[%s] = %s"
+          fmtstr (if (disambiguate? rootstr parent)
+                     "do end (%s)[%s] = %s"
                      "%s[%s] = %s")]
       (compiler.emit parent
-                     (: fmtstr :format (tostring root) (table.concat keys "][")
+                     (: fmtstr :format rootstr (table.concat keys "][")
                         (tostring value)) ast))))
 
 (doc-special :tset [:tbl :key1 "..." :keyN :val]

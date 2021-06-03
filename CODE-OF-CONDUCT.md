@@ -47,7 +47,7 @@ Examples of unacceptable behavior by participants include:
 
 ## Scope
 
-This Code of Conduct applies both within community spaces and in other spaces involving the community. This includes the Fennel Email list, #fennel IRC channel on FreeNode, private email communications in the context of the community, and any events where members of the community are participating, as well as adjacent communities and venues affecting the community's members.
+This Code of Conduct applies both within community spaces and in other spaces involving the community. This includes the Fennel Email list, #fennel IRC channel on Libera Chat, private email communications in the context of the community, and any events where members of the community are participating, as well as adjacent communities and venues affecting the community's members.
 
 Depending on the violation, the admins may decide that violations of this code of conduct that have happened outside of the scope of the community may deem an individual unwelcome, and take appropriate action to maintain the comfort and safety of its members.
 

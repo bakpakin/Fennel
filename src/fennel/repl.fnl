@@ -142,6 +142,8 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn completer [env scope text]
   (let [matches []
         input-fragment (text:gsub ".*[%s)(]+" "")]
+    (var stop-looking? false)
+
     (fn add-partials [input tbl prefix] ; add partial key matches in tbl
       (each [k (utils.allpairs tbl)]
         (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
@@ -161,13 +163,14 @@ For more information about the language, see https://fennel-lang.org/reference")
                                (. scope.manglings head)
                                head)]
               (when (= (type (. tbl raw-head)) :table)
+                (set stop-looking? true)
                 (add-matches tail (. tbl raw-head) (.. prefix head)))))))
 
-    (add-matches input-fragment (or scope.specials []))
-    (add-matches input-fragment (or scope.macros []))
-    (add-matches input-fragment (or env.___replLocals___ []))
-    (add-matches input-fragment env)
-    (add-matches input-fragment (or env._ENV env._G []))
+    (each [_ source (ipairs [scope.specials scope.macros
+                             (or env.___replLocals___ []) env])]
+      (add-matches input-fragment source)
+      ;; bootstrap compiler doesn't yet know how to :until
+      (when stop-looking? (lua :break)))
     matches))
 
 (fn repl [options]

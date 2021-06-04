@@ -37,7 +37,15 @@
     (assert-equal-unordered (send "(values !x-y !x_y)") [[1 2]]
                             "mangled locals do not collide")
     (assert-equal-unordered (comp "!x") ["!x_y" "!x-y"]
-                            "completions on mangled locals do not collide")))
+                            "completions on mangled locals do not collide"))
+  (let [(send comp) (wrap-repl)]
+    (send "(local mac {:incremented 9 :unsanitary 2})")
+    (send "(import-macros mac :test.macros)")
+    (let [[c1 c2 c3] (doto (comp "mac.i") table.sort)]
+      ;; local should be shadowed!
+      (l.assertNotEquals c1 "mac.incremented")
+      (l.assertNotEquals c2 "mac.incremented")
+      (l.assertNil c3))))
 
 (fn test-help []
   (let [send (wrap-repl)

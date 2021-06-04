@@ -29,7 +29,7 @@ important consideration is that tables are used for both sequential
 data (aka lists, vectors, or arrays) as well as associative data (aka
 maps, dictionaries, or hashes). The same table can be used in both
 roles; whether a table is sequential or associative is not an inherent
-property of the table itself but determined by a given piece of code
+property of the table itself but determined by how a given piece of code
 interacts with the table. Iterating over a table with `ipairs` will
 treat it as an array, while `pairs` will treat it as an unordered
 key/value map.

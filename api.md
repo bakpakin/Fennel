@@ -395,7 +395,7 @@ used to print normal values, and one which is used to print errors.
 
 ```fennel
 (local fennel (require :fennel)
-(fn locals [env _read on-values on-error]
+(fn locals [env read on-values on-error scope]
   "Print all locals in repl session scope."
   (on-values [(fennel.view env.___replLocals___)]))
 

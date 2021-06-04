@@ -53,6 +53,40 @@
       (table.insert spliced-source (length spliced-source) save-source))
     (table.concat spliced-source "\n")))
 
+(fn completer [env scope text]
+  (let [matches []
+        input-fragment (text:gsub ".*[%s)(]+" "")]
+    (var stop-looking? false)
+
+    (fn add-partials [input tbl prefix] ; add partial key matches in tbl
+      (each [k (utils.allpairs tbl)]
+        (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
+                    (. scope.unmanglings k)
+                    k)]
+          (when (and (< (length matches) 2000)
+                     ; stop explosion on too many items
+                     (= (type k) :string) (= input (k:sub 0 (length input))))
+            (table.insert matches (.. prefix k))))))
+
+    (fn add-matches [input tbl prefix] ; add matches, descending into tbl fields
+      (let [prefix (if prefix (.. prefix ".") "")]
+        (if (not (input:find "%.")) ; no more dots, so add matches
+            (add-partials input tbl prefix)
+            (let [(head tail) (input:match "^([^.]+)%.(.*)")
+                  raw-head (if (or (= tbl env) (= tbl env.___replLocals___))
+                               (. scope.manglings head)
+                               head)]
+              (when (= (type (. tbl raw-head)) :table)
+                (set stop-looking? true)
+                (add-matches tail (. tbl raw-head) (.. prefix head)))))))
+
+    (each [_ source (ipairs [scope.specials scope.macros
+                             (or env.___replLocals___ []) env env._G])]
+      (add-matches input-fragment source)
+      ;; bootstrap compiler doesn't yet know how to :until
+      (when stop-looking? (lua :break)))
+    matches))
+
 (local commands {})
 
 (fn command? [input]
@@ -121,6 +155,14 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.reset :fnl/docstring
                        "Erase all repl-local scope.")
 
+(fn commands.complete [env read on-values on-error scope]
+  (match (read)
+    (true input) (on-values (completer env scope (tostring input)))
+    (_ ?msg) (on-error :Parse (or ?msg "Couldn't parse completion input."))))
+
+(compiler.metadata:set commands.complete :fnl/docstring
+                       "Print all possible completions for a given input.")
+
 (fn load-plugin-commands []
   (when (and utils.root utils.root.options utils.root.options.plugins)
     (each [_ plugin (ipairs utils.root.options.plugins)]
@@ -129,49 +171,15 @@ For more information about the language, see https://fennel-lang.org/reference")
         (match (name:match "^repl%-command%-(.*)")
           cmd-name (tset commands cmd-name (or (. commands cmd-name) f)))))))
 
-(fn run-command [input read loop env on-values on-error]
+(fn run-command [input read loop env on-values on-error scope]
   (load-plugin-commands)
   (let [command-name (input:match ",([^%s/]+)")]
     (match (. commands command-name)
-      command (command env read on-values on-error)
+      command (command env read on-values on-error scope)
       _ (when (not= :exit command-name)
           (on-values ["Unknown command" command-name])))
     (when (not= :exit command-name)
       (loop))))
-
-(fn completer [env scope text]
-  (let [matches []
-        input-fragment (text:gsub ".*[%s)(]+" "")]
-    (var stop-looking? false)
-
-    (fn add-partials [input tbl prefix] ; add partial key matches in tbl
-      (each [k (utils.allpairs tbl)]
-        (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
-                    (. scope.unmanglings k)
-                    k)]
-          (when (and (< (length matches) 2000)
-                     ; stop explosion on too many items
-                     (= (type k) :string) (= input (k:sub 0 (length input))))
-            (table.insert matches (.. prefix k))))))
-
-    (fn add-matches [input tbl prefix] ; add matches, descending into tbl fields
-      (let [prefix (if prefix (.. prefix ".") "")]
-        (if (not (input:find "%.")) ; no more dots, so add matches
-            (add-partials input tbl prefix)
-            (let [(head tail) (input:match "^([^.]+)%.(.*)")
-                  raw-head (if (or (= tbl env) (= tbl env.___replLocals___))
-                               (. scope.manglings head)
-                               head)]
-              (when (= (type (. tbl raw-head)) :table)
-                (set stop-looking? true)
-                (add-matches tail (. tbl raw-head) (.. prefix head)))))))
-
-    (each [_ source (ipairs [scope.specials scope.macros
-                             (or env.___replLocals___ []) env])]
-      (add-matches input-fragment source)
-      ;; bootstrap compiler doesn't yet know how to :until
-      (when stop-looking? (lua :break)))
-    matches))
 
 (fn repl [options]
   (let [old-root-options utils.root.options
@@ -223,7 +231,7 @@ For more information about the language, see https://fennel-lang.org/reference")
               (reset)
               (loop))
             (command? src-string)
-            (run-command src-string read loop env on-values on-error)
+            (run-command src-string read loop env on-values on-error scope)
             (when parse-ok? ; if this is false, we got eof
               (match (pcall compiler.compile x
                             {:correlate opts.correlate

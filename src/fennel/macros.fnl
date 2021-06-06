@@ -255,7 +255,6 @@ Example:
       (if (sym? binding)
           ;; bind whole table of macros to table bound to symbol
           (do
-            (tset scope.manglings (. binding 1) false)
             (tset scope.macros (. binding 1) {})
             (each [k v (pairs subscope.macros)]
               (tset (. scope.macros (. binding 1)) k v)))

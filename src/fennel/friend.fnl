@@ -64,7 +64,8 @@
         "method must be last component" ["using a period instead of a colon for field access"
                                          "removing segments after the colon"
                                          "making the method call, then looking up the field on the result"]
-        "$ and $... in hashfn are mutually exclusive" ["modifying the hashfn so it only contains $... or $, $1, $2, $3, etc"]})
+        "$ and $... in hashfn are mutually exclusive" ["modifying the hashfn so it only contains $... or $, $1, $2, $3, etc"]
+        "tried to reference a macro at runtime" ["renaming the macro so as not to conflict with locals"]})
 
 (local unpack (or table.unpack _G.unpack))
 

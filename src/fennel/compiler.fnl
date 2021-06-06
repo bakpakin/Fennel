@@ -210,6 +210,8 @@ if they have already been declared via declare-local"
           local? (. scope.manglings (. parts 1))]
       (when (and local? (. scope.symmeta (. parts 1)))
         (tset (. scope.symmeta (. parts 1)) :used true))
+      (assert-compile (not (. scope.macros (. parts 1)))
+                      (.. "tried to reference a macro at runtime") symbol)
       ;; if it's a reference and not a symbol which introduces a new binding
       ;; then we need to check for allowed globals
       (assert-compile (or (not reference?) local? (= :_ENV (. parts 1))

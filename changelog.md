@@ -2,7 +2,9 @@
 
 ## 0.9.3 / ???
 
-* Add `fennel.syntax` function describing built-ins.
+* Make macro tables shadow runtime tables more consistently
+* Add `,complete foo` repl command
+* Add `fennel.syntax` function describing built-ins
 
 ## 0.9.2 / 2021-05-02
 

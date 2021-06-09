@@ -81,7 +81,7 @@
   ;; PUC is ridiculous in what it accepts in a string
   "\"\\!\"" (if (or (not= _VERSION "Lua 5.1") _G.jit) "Invalid string")
   ;; macros should shadow locals as values, not just when calling:
-  "(let [t {:b 2}] (import-macros t :test.macros) t.b)" "global in strict mode: t"
+  "(let [t {:b 2}] (import-macros t :test.macros) t.b)" "tried to reference a macro"
 })
 
 (fn test-failures []

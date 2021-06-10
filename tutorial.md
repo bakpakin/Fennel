@@ -558,13 +558,13 @@ runtime overhead over Lua.
   They can behave in surprising ways with multiple-return-valued functions,
   because the number of arguments to them must be known at compile-time.
 
-* There is no `apply` function; use `unpack` (or `table.unpack`
-  depending on your Lua version) instead: `(f 1 3 (unpack [4 9])`.
+* There is no `apply` function; instead use `table.unpack` or `unpack`
+  depending on your Lua version: `(f 1 3 (table.unpack [4 9]))`.
 
 * Tables are compared for identity, not based on the value of their
   contents, as per [Baker][8].
 
-* Return values in the default repl will get pretty-printed, but
+* Return values in the repl will get pretty-printed, but
   calling `(print tbl)` will emit output like `table: 0x55a3a8749ef0`.
   If you don't already have one, it's recommended for debugging to
   define a printer function which calls `fennel.view` on its argument

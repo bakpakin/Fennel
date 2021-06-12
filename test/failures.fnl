@@ -82,6 +82,8 @@
   "\"\\!\"" (if (or (not= _VERSION "Lua 5.1") _G.jit) "Invalid string")
   ;; macros should shadow locals as values, not just when calling:
   "(let [t {:b 2}] (import-macros t :test.macros) t.b)" "tried to reference a macro"
+  ;; strict mode applies to macro modules too
+  "(import-macros t :test.bad.unknown-global)" "unknown global in strict mode"
 })
 
 (fn test-failures []

@@ -31,7 +31,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
 (fn check-module-fields [symbol scope]
   "When referring to a field in a local that's a module, make sure it exists."
   (let [[module-local field] (or (multi-sym? symbol) [])
-        module-name (-?> scope.symmeta (. (tostring f-local)) (. :required))
+        module-name (-?> scope.symmeta (. (tostring module-local)) (. :required))
         module (and module-name (require module-name))]
     (assert-compile (or (= module nil) (not= (. module field) nil))
                     (string.format "Missing field %s in module %s"
@@ -46,12 +46,12 @@ Doesn't do any linting on its own; just saves the data for other linters."
         [f-local field] (or (multi-sym? f) [])
         module-name (-?> scope.symmeta (. (tostring f-local)) (. :required))
         module (and module-name (require module-name))]
-    (when (and (arity-check? module) debug debug.getinfo
+    (when (and (arity-check? module) _G.debug _G.debug.getinfo
                (not (varg? last-arg)) (not (list? last-arg)))
       (assert-compile (= (type (. module field)) :function)
                       (string.format "Missing function %s in module %s"
                                      (or field :?) module-name) f)
-      (match (debug.getinfo (. module field))
+      (match (_G.debug.getinfo (. module field))
         {: nparams :what "Lua" :isvararg true}
         (assert-compile (<= nparams (# args))
                         (: "Called %s.%s with %s arguments, expected %s+"

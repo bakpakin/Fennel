@@ -2,6 +2,7 @@
 
 ## 0.9.3 / ???
 
+* Fix a bug with strict global checking in macro modules
 * Make macro tables shadow runtime tables more consistently
 * Add `,complete foo` repl command
 * Add `fennel.syntax` function describing built-ins

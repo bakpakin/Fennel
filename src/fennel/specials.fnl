@@ -36,7 +36,13 @@ will see its values updated as expected, regardless of mangling rules."
                             (values next (utils.kvmap env putenv) nil))}))
 
 (fn current-global-names [env]
-  (utils.kvmap (or env _G) compiler.global-unmangling))
+  ;; if there's a metatable on env, we need to make sure it's one that has a
+  ;; __pairs metamethod, otherwise we give up entirely on globals checking.
+  (let [mt (match (getmetatable env)
+             ;; newer lua versions know about __pairs natively not 5.1
+             {: __pairs} (collect [k v (__pairs env)] (values k v))
+             nil (or env _G))]
+    (and mt (utils.kvmap mt compiler.global-unmangling))))
 
 (fn load-code [code environment filename]
   "Load Lua code with an environment in all recent Lua versions"
@@ -936,7 +942,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (doc-special :quote [:x]
              "Quasiquote the following form. Only works in macro/compiler scope.")
 
-(local already-warned? {})
+(local already-warned? {:_G true})
 
 (local compile-env-warning (-> ["WARNING: Attempting to %s %s in compile scope."
                                 "In future versions of Fennel this will not be allowed without the"
@@ -991,48 +997,63 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
                  :rawlen (rawget _G :rawlen)}
                 {:__index (if strict? nil compiler-env-warn)}))
 
+(fn combined-mt-pairs [env]
+  (let [combined {}
+        {: __index} (getmetatable env)]
+    (when (= :table (type __index))
+      (each [k v (pairs __index)]
+        (tset combined k v)))
+    (each [k v (values next env nil)]
+      (tset combined k v))
+    (values next combined nil)))
+
 (fn make-compiler-env [ast scope parent strict?]
-  (setmetatable {:_AST ast
-                 :_CHUNK parent
-                 :_IS_COMPILER true
-                 :_SCOPE scope
-                 :_SPECIALS compiler.scopes.global.specials
-                 :_VARARG (utils.varg)
-                 : unpack
-                 :assert-compile compiler.assert
-                 ;; AST functions
-                 :list utils.list
-                 :list? utils.list?
-                 :multi-sym? utils.multi-sym?
-                 :sequence utils.sequence
-                 :sequence? utils.sequence?
-                 :sym utils.sym
-                 :sym? utils.sym?
-                 :table? utils.table?
-                 :varg? utils.varg?
-                 : view
-                 ;; scoping functions
-                 :gensym (fn [base]
-                           (utils.sym (compiler.gensym (or compiler.scopes.macro
-                                                           scope)
-                                                       base)))
-                 :get-scope (fn []
-                              compiler.scopes.macro)
-                 :in-scope? (fn [symbol]
-                              (compiler.assert compiler.scopes.macro
-                                               "must call from macro" ast)
-                              (. compiler.scopes.macro.manglings
-                                 (tostring symbol)))
-                 :macroexpand (fn [form]
-                                (compiler.assert compiler.scopes.macro
-                                                 "must call from macro" ast)
-                                (compiler.macroexpand form
-                                                      compiler.scopes.macro))}
-                {:__index (match utils.root.options
-                            {:compiler-env :strict} (safe-compiler-env true)
-                            {: compilerEnv} compilerEnv
-                            {: compiler-env} compiler-env
-                            _ (safe-compiler-env false))}))
+  (let [provided (match utils.root.options
+                   {:compiler-env :strict} (safe-compiler-env true)
+                   {: compilerEnv} compilerEnv
+                   {: compiler-env} compiler-env
+                   _ (safe-compiler-env strict?))
+        env {:_AST ast
+             :_CHUNK parent
+             :_IS_COMPILER true
+             :_SCOPE scope
+             :_SPECIALS compiler.scopes.global.specials
+             :_VARARG (utils.varg)
+             : unpack
+             :assert-compile compiler.assert
+             ;; AST functions
+             :list utils.list
+             :list? utils.list?
+             :multi-sym? utils.multi-sym?
+             :sequence utils.sequence
+             :sequence? utils.sequence?
+             :sym utils.sym
+             :sym? utils.sym?
+             :table? utils.table?
+             :varg? utils.varg?
+             : view
+             ;; scoping functions
+             :gensym (fn [base]
+                       (utils.sym (compiler.gensym (or compiler.scopes.macro
+                                                       scope)
+                                                   base)))
+             :get-scope (fn []
+                          compiler.scopes.macro)
+             :in-scope? (fn [symbol]
+                          (compiler.assert compiler.scopes.macro
+                                           "must call from macro" ast)
+                          (. compiler.scopes.macro.manglings
+                             (tostring symbol)))
+             :macroexpand (fn [form]
+                            (compiler.assert compiler.scopes.macro
+                                             "must call from macro" ast)
+                            (compiler.macroexpand form
+                                                  compiler.scopes.macro))}]
+    (set env._G env)
+    (setmetatable env
+                  {:__index provided
+                   :__newindex provided
+                   :__pairs combined-mt-pairs})))
 
 ;; have search-module use package.config to process package.path (windows compat)
 (local cfg (string.gmatch package.config "([^\n]+)"))

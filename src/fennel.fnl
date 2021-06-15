@@ -99,6 +99,7 @@
             :comment? utils.comment?
             :varg utils.varg
             :path utils.path
+            :macro-path utils.path
             :sym-char? parser.sym-char?
             :parser parser.parser
             :granulate parser.granulate

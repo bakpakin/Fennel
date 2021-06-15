@@ -1106,7 +1106,7 @@ table.insert(package.loaders, fennel.searcher)"
     allowed))
 
 (fn default-macro-searcher [module-name]
-  (match (search-module module-name)
+  (match (search-module module-name utils.fennel-module.macro-path)
     filename (values (partial utils.fennel-module.dofile filename
                               {:env :_COMPILER}) filename)))
 

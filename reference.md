@@ -1053,10 +1053,10 @@ imported. It is strongly recommended to use `import-macros` instead.
 
 ### Macro module searching
 
-By default, Fennel will search for macro modules using the same logic
-it uses to search for normal runtime modules: by walking thru entries
-on `fennel.path` and checking the filesystem for matches. However, in
-some cases this might not be suitable, for instance if your Fennel
+By default, Fennel will search for macro modules similarly to how it
+searches for normal runtime modules: by walking thru entries on
+`fennel.macro-path` and checking the filesystem for matches. However,
+in some cases this might not be suitable, for instance if your Fennel
 program is packaged in some kind of archive file and the modules do
 not exist as distinct files on disk.
 

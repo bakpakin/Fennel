@@ -2,6 +2,8 @@
 
 ## 0.9.3 / ???
 
+* Add separate `FENNEL_MACRO_PATH` environment variable for `fennel.macro-path`
+* Add separate `fennel.macro-path` for searching for macro modules
 * Fix a bug with strict global checking in macro modules
 * Make macro tables shadow runtime tables more consistently
 * Add `,complete foo` repl command

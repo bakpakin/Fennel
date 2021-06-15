@@ -71,6 +71,10 @@
     (l.assertEquals (fennel.eval unsandboxed {:compiler-env _G})
                     "[\"no\" \"sandbox\"]") ))
 
+(fn test-macro-path []
+  (l.assertEquals (fennel.eval "(import-macros m :test.other-macros) (m.m)")
+                  "testing macro path"))
+
 (fn test-relative-macros []
   (l.assertEquals (fennel.eval "(require :test.relative)") 3))
 

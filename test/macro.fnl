@@ -239,4 +239,5 @@
  : test-eval-compiler
  : test-inline-macros
  : test-macrodebug
+ : test-macro-path
  : test-match}

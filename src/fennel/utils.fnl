@@ -344,5 +344,5 @@ has options calls down into compile."
  : root
  : debug-on?
  :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")
- :macro-path (table.concat [:./?.fnl :./?/init.fnl :./?/init-macros.fnl
+ :macro-path (table.concat [:./?.fnl :./?/init-macros.fnl :./?/init.fnl
                             (getenv :FENNEL_MACRO_PATH)] ";")}

@@ -78,10 +78,10 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
             (do
               (tset seen next-state true)
               (values next-state value))
-            (let [meta (getmetatable t)]
-              (when (and meta meta.__index)
-                (set t meta.__index)
-                (allpairs-next t))))))
+            (match (getmetatable t)
+              {: __index} (when (= :table (type __index))
+                            (set t __index)
+                            (allpairs-next t))))))
 
     allpairs-next))
 

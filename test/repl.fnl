@@ -37,7 +37,10 @@
     (assert-equal-unordered (send "(values !x-y !x_y)") [[1 2]]
                             "mangled locals do not collide")
     (assert-equal-unordered (comp "!x") ["!x_y" "!x-y"]
-                            "completions on mangled locals do not collide"))
+                            "completions on mangled locals do not collide")
+    (send "(local dynamic-index (setmetatable {:a 1 :b 2} {:__index #($2:upper)}))")
+    (assert-equal-unordered (comp "dynamic-index.") [:dynamic-index.a :dynamic-index.b]
+                            "completion doesn't error on table with a fn on mt.__index"))
   (let [(send comp) (wrap-repl)]
     (send "(local mac {:incremented 9 :unsanitary 2})")
     (send "(import-macros mac :test.macros)")

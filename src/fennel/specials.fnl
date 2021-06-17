@@ -942,6 +942,11 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (doc-special :quote [:x]
              "Quasiquote the following form. Only works in macro/compiler scope.")
 
+;; This is the compile-env equivalent of package.loaded. It's used by
+;; require-macros and import-macros, but also by require when used from within
+;; default compiler scope.
+(local macro-loaded {})
+
 (local already-warned? {:_G true})
 
 (local compile-env-warning (-> ["WARNING: Attempting to %s %s in compile scope."
@@ -1019,6 +1024,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              :_SCOPE scope
              :_SPECIALS compiler.scopes.global.specials
              :_VARARG (utils.varg)
+             : macro-loaded
              : unpack
              :assert-compile compiler.assert
              ;; AST functions
@@ -1117,11 +1123,6 @@ table.insert(package.loaders, fennel.searcher)"
     f (match (f modname)
         (loader ?filename) (values loader ?filename)
         _ (search-macro-module modname (+ n 1)))))
-
-;; This is the compile-env equivalent of package.loaded. It's used by
-;; require-macros and import-macros, but also by require when used from within
-;; default compiler scope.
-(local macro-loaded {})
 
 (fn metadata-only-fennel [modname]
   "Let limited Fennel module thru just for purposes of compiling docstrings."

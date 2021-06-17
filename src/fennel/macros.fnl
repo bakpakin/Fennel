@@ -254,10 +254,7 @@ Example:
       (_SPECIALS.require-macros `(require-macros ,modname) subscope {} ast)
       (if (sym? binding)
           ;; bind whole table of macros to table bound to symbol
-          (do
-            (tset scope.macros (. binding 1) {})
-            (each [k v (pairs subscope.macros)]
-              (tset (. scope.macros (. binding 1)) k v)))
+          (tset scope.macros (. binding 1) (. macro-loaded modname))
           ;; 1-level table destructuring for importing individual macros
           (table? binding)
           (each [macro-name [import-key] (pairs binding)]

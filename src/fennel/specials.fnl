@@ -781,8 +781,7 @@ Method name doesn't have to be known at compile-time; if it is, use
       (let [operands []
             padded-op (.. " " name " ")]
         (for [i 2 len]
-          (let [subexprs (compiler.compile1 (. ast i) scope parent
-                                            {:nval (if (not= i len) 1)})]
+          (let [subexprs (compiler.compile1 (. ast i) scope parent {:nval 1})]
             (utils.map subexprs tostring operands)))
         (if (= (length operands) 1)
             (if unary-prefix

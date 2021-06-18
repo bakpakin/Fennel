@@ -34,4 +34,13 @@
   (local (_ msg) (pcall c "\n\n\n\n(macro abc [] `(fn [... a#] 1)) (abc)"))
   (l.assertStrContains msg "unknown:5" "quoted tables have source data"))
 
-{: test-quote : test-quoted-source}
+(macro not-equal-gensym []
+  (let [s (gensym :sym)]
+    `(let [,s 10 sym# 20] (and sym# (not= ,s sym#)))))
+
+(fn test-autogensym []
+  (l.assertTrue (not-equal-gensym)))
+
+{: test-quote
+ : test-quoted-source
+ : test-autogensym}

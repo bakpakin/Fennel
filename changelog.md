@@ -2,8 +2,8 @@
 
 ## 0.9.3 / ???
 
-* Fix a bug where repl completion and `utils.allpairs` error out on tables with a function
-on `mt.__index`
+* Fix a bug when the repl does completion on tables with a function metatable index
+* Change how auto-gensym prefixes are calculated in compilation output
 * Add separate `FENNEL_MACRO_PATH` environment variable for `fennel.macro-path`
 * Add separate `fennel.macro-path` for searching for macro modules
 * Fix a bug with strict global checking in macro modules

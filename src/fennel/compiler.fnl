@@ -143,11 +143,11 @@ these new manglings instead of the current manglings."
   (set utils.root.scope.gensym-append (+ (or utils.root.scope.gensym-append 0) 1))
   (.. "_" utils.root.scope.gensym-append "_"))
 
-(fn gensym [scope base]
+(fn gensym [scope base ?suffix]
   "Generates a unique symbol in the scope."
-  (var mangling (.. (or base "") (next-append)))
+  (var mangling (.. (or base "") (next-append) (or ?suffix "")))
   (while (. scope.unmanglings mangling)
-    (set mangling (.. (or base "") (next-append))))
+    (set mangling (.. (or base "") (next-append) (or ?suffix ""))))
   (tset scope.unmanglings mangling (or base true))
   (tset scope.gensyms mangling true)
   mangling)
@@ -161,7 +161,7 @@ rather than generating new one."
             (tset parts 1 (autogensym (. parts 1) scope))
             (table.concat parts (or (and parts.multi-sym-method-call ":") ".")))
     _ (or (. scope.autogensyms base)
-          (let [mangling (gensym scope (base:sub 1 (- 2)))]
+          (let [mangling (gensym scope (base:sub 1 (- 2)) :auto)]
             (tset scope.autogensyms base mangling)
             mangling))))
 

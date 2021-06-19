@@ -772,26 +772,25 @@ Method name doesn't have to be known at compile-time; if it is, use
 (doc-special :hashfn ["..."]
              "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
-(fn arithmetic-special [name zero-arity unary-prefix ast scope parent]
-  (local len (length ast))
-  (if (= len 1)
-      (do
+(fn arithmetic-special [name zero-arity unary-prefix nval ast scope parent]
+  (match (length ast)
+    1 (do
         (compiler.assert zero-arity "Expected more than 0 arguments" ast)
         (utils.expr zero-arity :literal))
-      (let [operands []
-            padded-op (.. " " name " ")]
-        (for [i 2 len]
-          (let [subexprs (compiler.compile1 (. ast i) scope parent {:nval 1})]
-            (utils.map subexprs tostring operands)))
-        (if (= (length operands) 1)
-            (if unary-prefix
-                (.. "(" unary-prefix padded-op (. operands 1) ")")
-                (. operands 1))
-            (.. "(" (table.concat operands padded-op) ")")))))
+    len (let [operands []
+              padded-op (.. " " name " ")]
+          (for [i 2 len]
+            (let [subexprs (compiler.compile1 (. ast i) scope parent {: nval})]
+              (utils.map subexprs tostring operands)))
+          (if (= (length operands) 1)
+              (if unary-prefix
+                  (.. "(" unary-prefix padded-op (. operands 1) ")")
+                  (. operands 1))
+              (.. "(" (table.concat operands padded-op) ")")))))
 
 (fn define-arithmetic-special [name zero-arity unary-prefix lua-name]
   (tset SPECIALS name (partial arithmetic-special (or lua-name name) zero-arity
-                               unary-prefix))
+                               unary-prefix 1))
   (doc-special name [:a :b "..."]
                "Arithmetic operator; works the same as Lua but accepts more arguments."))
 
@@ -803,6 +802,19 @@ Method name doesn't have to be known at compile-time; if it is, use
 (define-arithmetic-special "%")
 (define-arithmetic-special "/" nil :1)
 (define-arithmetic-special "//" nil :1)
+
+(fn SPECIALS.or [ast scope parent]
+  ;; and/or have nval=nil in order to trigger IIFE so they can short-circuit
+  (arithmetic-special :or :false nil nil ast scope parent))
+
+(fn SPECIALS.and [ast scope parent]
+  (arithmetic-special :and :true nil nil ast scope parent))
+
+(doc-special :and [:a :b "..."]
+             "Boolean operator; works the same as Lua but accepts more arguments.")
+
+(doc-special :or [:a :b "..."]
+             "Boolean operator; works the same as Lua but accepts more arguments.")
 
 (fn bitop-special [native-name lib-name zero-arity unary-prefix ast scope parent]
   (if (= (length ast) 1)
@@ -848,15 +860,6 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
 (doc-special :bxor [:x1 :x2 "..."] "Bitwise XOR of any number of arguments.
 Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
-
-(define-arithmetic-special :or :false)
-(define-arithmetic-special :and :true)
-
-(doc-special :and [:a :b "..."]
-             "Boolean operator; works the same as Lua but accepts more arguments.")
-
-(doc-special :or [:a :b "..."]
-             "Boolean operator; works the same as Lua but accepts more arguments.")
 
 (doc-special ".." [:a :b "..."]
              "String concatenation operator; works the same as Lua but accepts more arguments.")

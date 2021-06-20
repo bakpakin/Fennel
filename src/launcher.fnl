@@ -182,14 +182,15 @@ Run fennel, a lisp programming language for the Lua runtime.
       (dosafely fennel.dofile init-filename options options fennel))))
 
 (fn repl []
-  (let [readline (try-readline (pcall require :readline))]
+  (let [readline (and (not= "dumb" (os.getenv "TERM"))
+                      (try-readline (pcall require :readline)))]
     (set searcher-opts.useMetadata (not= false options.useMetadata))
     (set options.pp (require :fennel.view))
     (when (not= false options.fennelrc)
       (load-initfile))
     (print (.. "Welcome to Fennel " fennel.version " on " _VERSION "!"))
     (print "Use ,help to see available commands.")
-    (when (not readline)
+    (when (and (not readline) (not= "dumb" (os.getenv "TERM")))
       (print "Try installing readline via luarocks for a better repl experience."))
     (fennel.repl options)
     (when readline

@@ -254,6 +254,10 @@ You can configure readline.lua using one of the following options:
   * the readline.lua API in `fennelrc`
   * the readline.lua `~/.inputrc` file
 
+If you have readline installed but do not wish to use it (for example,
+running Fennel inside an Emacs shell or recording a session to a file)
+you can export `TERM=dumb` as an environment variable.
+
 
 #### Enabling persistent history using `fennelrc`
 

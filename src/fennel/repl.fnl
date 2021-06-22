@@ -156,9 +156,9 @@ For more information about the language, see https://fennel-lang.org/reference")
                        "Erase all repl-local scope.")
 
 (fn commands.complete [env read on-values on-error scope]
-  (match (read)
-    (true input) (on-values (completer env scope (tostring input)))
-    (_ ?msg) (on-error :Parse (or ?msg "Couldn't parse completion input."))))
+  (match (pcall read)
+    (true true input) (on-values (completer env scope (tostring input)))
+    (_ _ ?msg) (on-error :Parse (or ?msg "Couldn't parse completion input."))))
 
 (compiler.metadata:set commands.complete :fnl/docstring
                        "Print all possible completions for a given input.")

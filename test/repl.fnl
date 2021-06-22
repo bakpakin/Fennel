@@ -48,7 +48,9 @@
       ;; local should be shadowed!
       (l.assertNotEquals c1 "mac.incremented")
       (l.assertNotEquals c2 "mac.incremented")
-      (l.assertNil c3))))
+      (l.assertNil c3))
+    (let [(ok msg) (pcall send ",complete ]")]
+      (l.assertTrue ok "shouldn't kill the repl on a parse error"))))
 
 (fn test-help []
   (let [send (wrap-repl)

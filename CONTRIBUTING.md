@@ -1,12 +1,26 @@
 # Guidelines for contributing to Fennel
 
-Thanks for taking time to contribute to Fennel!
-
-Please read this document before making contributions.
+> True leaders
+> are hardly known to their followers.
+> Next after them are the leaders
+> the people know and admire;
+> after them, those they fear;
+> after them, those they despise.
+>
+> To give no trust
+> is to get no trust.
+>
+> When the work's done right,
+> with no fuss or boasting,
+> ordinary people say,
+> Oh, we did it.
+>
+> - Tao Te Ching chapter 17, translated by Ursula K. Le Guin
 
 ## Reporting bugs
 
 * Check past and current issues to see if your problem has been run into before.
+  Take a look at the [issue tracker][3] and the [mailing list][2].
 * If you can't find a past issue for your problem, or if the issues has been
   closed you should open a new issue. If there is a closed issue that is
   relevant, make sure to reference it.
@@ -51,6 +65,10 @@ compile the new version.
 
 * `old/fennel.lua`: older version of Fennel compiler from before self-hosting
 * `old/launcher.lua`: older version of the command line launcher
+
+This old version (based on 0.4.2) does not have all the newer language features
+of Fennel except in cases where we have explicitly backported certain
+things, such as `collect` and `icollect`.
 
 ## Contributing Changes
 
@@ -100,3 +118,4 @@ changes before opening an issue.
 
 [1]: https://man.sr.ht/git.sr.ht/send-email.md
 [2]: https://lists.sr.ht/%7Etechnomancy/fennel
+[3]: https://todo.sr.ht/~technomancy/fennel

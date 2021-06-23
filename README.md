@@ -104,7 +104,7 @@ Lua is much more readily-available than it is for Fennel.
 * Join the `#fennel` chat [thru IRC on Libera.Chat][9] or [on Matrix][10]
 * The [mailing list][5] has slower-paced discussion and announcements
 * You can browse and edit [the Wiki][7]
-* [Build][8]
+* [Continuous integration][8]
 
 ## License
 

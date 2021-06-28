@@ -158,6 +158,12 @@ limited [pattern][2] language for `string.find`, `string.match`, etc.
 * `xpcall`: acts like `pcall` but accepts a handler; used to get a
   full stack trace rather than a single line number for errors
 
+The `...` values also work at the top level of a file. They are
+usually used to capture command-line arguments for files run directly
+from the command line, but they can also pass on values from a
+`dofile` call or tell you the name of the current module in a file
+that's loaded from `require`.
+
 ## Lua loading
 
 These are used for loading Lua code. The `load*` functions return a

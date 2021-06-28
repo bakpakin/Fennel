@@ -162,7 +162,14 @@ The `...` values also work at the top level of a file. They are
 usually used to capture command-line arguments for files run directly
 from the command line, but they can also pass on values from a
 `dofile` call or tell you the name of the current module in a file
-that's loaded from `require`.
+that's loaded from `require`. Note that since `...` represents
+multiple values it is common to put it in a table to store it, unless
+the number of values is known ahead of time:
+
+```fennel
+(local (first-arg second-arg) ...)
+(local all-args [...])
+```
 
 ## Lua loading
 

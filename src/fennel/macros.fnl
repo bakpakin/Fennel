@@ -149,6 +149,35 @@ returns
        (tset tbl# (+ (length tbl#) 1) ,value-expr))
      tbl#))
 
+(fn accumulate* [iter-tbl accum-expr ...]
+  "Accumulation macro.
+Similar to `collect` and `icollect`, it takes a binding table and an
+expression as its arguments.
+In the binding table, the first symbol is bound to the second value, being an
+initial accumulating variable. The rest are an iterator binding table in the
+format `each` takes.
+It runs through the iterator in each step of which the given expression is
+evaluated, and its returned value updates the accumulating variable.
+It eventually returns the final value of the accumulating variable.
+
+For example,
+  (accumulate [total 0
+               _ n (pairs {:apple 2 :orange 3})]
+    (+ total n))
+returns
+  5"
+  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 4))
+          "expected initial value and iterator binding table")
+  (assert (not= nil accum-expr) "expected accumulating expression")
+  (assert (= nil ...)
+          "expected exactly one body expression. Wrap multiple expressions with do")
+  (let [accum-var (table.remove iter-tbl 1)
+        accum-init (table.remove iter-tbl 1)]
+    `(do (var ,accum-var ,accum-init)
+         (each ,iter-tbl
+           (set ,accum-var ,accum-expr))
+         ,accum-var)))
+
 (fn partial* [f ...]
   "Returns a function with all arguments partially applied to f."
   (assert f "expected a function to partially apply")
@@ -462,6 +491,7 @@ Syntax:
  :with-open with-open*
  :collect collect*
  :icollect icollect*
+ :accumulate accumulate*
  :partial partial*
  :lambda lambda*
  :pick-args pick-args*

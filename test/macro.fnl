@@ -231,6 +231,12 @@
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
+(fn test-lua-module []
+  (let [ok-code "(macro abc [] (let [l (require :test.luamod)] (l.abc))) (abc)"
+        bad-code "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"]
+    (l.assertEquals (fennel.eval ok-code) "abc")
+    (l.assertFalse (pcall fennel.eval bad-code {:compiler-env :strict}))))
+
 {: test-arrows
  : test-?.
  : test-import-macros
@@ -240,4 +246,5 @@
  : test-inline-macros
  : test-macrodebug
  : test-macro-path
- : test-match}
+ : test-match
+ : test-lua-module}

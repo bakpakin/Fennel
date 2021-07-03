@@ -1113,12 +1113,18 @@ table.insert(package.loaders, fennel.searcher)"
       (table.insert allowed k))
     allowed))
 
-(fn default-macro-searcher [module-name]
+(fn fennel-macro-searcher [module-name]
   (match (search-module module-name utils.fennel-module.macro-path)
     filename (values (partial utils.fennel-module.dofile filename
                               {:env :_COMPILER}) filename)))
 
-(local macro-searchers [default-macro-searcher])
+(fn lua-macro-searcher [module-name]
+  (match (search-module module-name package.path)
+    filename (let [code (with-open [f (io.open filename)] (assert (f:read :*a)))
+                   chunk (load-code code (make-compiler-env) filename)]
+               (values chunk filename))))
+
+(local macro-searchers [lua-macro-searcher fennel-macro-searcher])
 
 (fn search-macro-module [modname n]
   (match (. macro-searchers n)

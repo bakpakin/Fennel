@@ -86,9 +86,11 @@
     (each [k v (pairs _G)]
       (match (type v)
         :function (tset out k {:global? true})
-        :table (each [k2 v2 (pairs v)]
-                 (when (and (= :function (type v2)) (not= k :_G))
-                   (tset out (.. k "." k2) {:function? true :global? true})))))
+        :table (do
+                 (each [k2 v2 (pairs v)]
+                   (when (and (= :function (type v2)) (not= k :_G))
+                     (tset out (.. k "." k2) {:function? true :global? true})))
+                 (tset out k {:global? true}))))
     out))
 
 ;; The public API module we export:

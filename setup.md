@@ -63,23 +63,7 @@ you want to use a newer version that has come out.
 If you already use a package manager on your system, you may be
 able to use it to install Fennel. See [the
 wiki](https://github.com/bakpakin/Fennel/wiki/Packaging) for a list of
-systems which offer Fennel.
-
-[LuaRocks](https://luarocks.org/) is one such package manager that is
-specific to packages written in Lua; it can be used to install Fennel.
-
- 1. Ensure the `~/.luarocks/bin` directory is added to your shell's `$PATH`.
- 2. Run one of the following commands:
-      - `luarocks --local install fennel` to install locally (recommended)
-      - `luarocks install fennel` to install system-wide (requires root or admin)
- 3. Run `fennel --help` to confirm the installation succeeded.
-
-**Note:** When using `luarocks` with `--local`, you'll need to ensure
-you have a `$PATH` which contains the LuaRocks `bin/` directory. You can add
-`eval $(luarocks path --bin)` to your shell's init file to do this. See the
-[LuaRocks path docs](https://github.com/luarocks/luarocks/wiki/path)
-for more information.
-
+packaging systems which offer Fennel.
 
 ## Embedding Fennel
 

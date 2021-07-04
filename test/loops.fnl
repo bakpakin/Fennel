@@ -36,6 +36,17 @@
       [24 58 1999]))
 
 (fn test-accum []
+  (== "(var x true)
+       (let [y (accum [state :init
+                       _ _ (pairs {})]
+                 (do (set x false)
+                     :update))]
+         [x y])"
+      [true :init])
+  (== "(accum [s :fen
+               _ c (ipairs [:n :e :l :o]) :until (>= c :o)]
+         (.. s c))"
+      "fennel")
   (== "(accum [n 0
                _ _ (pairs {:one 1 :two nil :three 3})]
          (+ n 1))"

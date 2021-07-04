@@ -35,13 +35,13 @@
          (tonumber num))"
       [24 58 1999]))
 
-(fn test-accumulate []
-  (== "(accumulate [n 0
-                    _ _ (pairs {:one 1 :two nil :three 3})]
+(fn test-accum []
+  (== "(accum [n 0
+               _ _ (pairs {:one 1 :two nil :three 3})]
          (+ n 1))"
       2)
-  (== "(accumulate [yes? true
-                    _ s (ipairs [:yes :no :yes])]
+  (== "(accum [yes? true
+               _ s (ipairs [:yes :no :yes])]
          (and yes? (string.match s :yes)))"
       nil))
 
@@ -54,5 +54,5 @@
 {: test-each
  : test-for
  : test-comprehensions
- : test-accumulate
+ : test-accum
  : test-conditions}

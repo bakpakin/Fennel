@@ -149,7 +149,7 @@ returns
        (tset tbl# (+ (length tbl#) 1) ,value-expr))
      tbl#))
 
-(fn accum* [iter-tbl accum-expr ...]
+(fn accumulate* [iter-tbl accum-expr ...]
   "Accumulation macro.
 Similar to `collect` and `icollect`, it takes a binding table and an
 expression as its arguments.
@@ -161,8 +161,8 @@ evaluated, and its returned value updates the accumulating variable.
 It eventually returns the final value of the accumulating variable.
 
 For example,
-  (accum [total 0
-          _ n (pairs {:apple 2 :orange 3})]
+  (accumulate [total 0
+               _ n (pairs {:apple 2 :orange 3})]
     (+ total n))
 returns
   5"
@@ -491,7 +491,7 @@ Syntax:
  :with-open with-open*
  :collect collect*
  :icollect icollect*
- :accum accum*
+ :accumulate accumulate*
  :partial partial*
  :lambda lambda*
  :pick-args pick-args*

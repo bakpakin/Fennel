@@ -85,7 +85,7 @@
                    :define? (utils.member? k define?)}))
     (each [k v (pairs _G)]
       (match (type v)
-        :function (tset out k {:global? true})
+        :function (tset out k {:global? true :function? true})
         :table (do
                  (each [k2 v2 (pairs v)]
                    (when (and (= :function (type v2)) (not= k :_G))

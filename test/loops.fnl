@@ -35,24 +35,24 @@
          (tonumber num))"
       [24 58 1999]))
 
-(fn test-accum []
+(fn test-accumulate []
   (== "(var x true)
-       (let [y (accum [state :init
-                       _ _ (pairs {})]
+       (let [y (accumulate [state :init
+                            _ _ (pairs {})]
                  (do (set x false)
                      :update))]
          [x y])"
       [true :init])
-  (== "(accum [s :fen
-               _ c (ipairs [:n :e :l :o]) :until (>= c :o)]
+  (== "(accumulate [s :fen
+                    _ c (ipairs [:n :e :l :o]) :until (>= c :o)]
          (.. s c))"
       "fennel")
-  (== "(accum [n 0
-               _ _ (pairs {:one 1 :two nil :three 3})]
+  (== "(accumulate [n 0
+                    _ _ (pairs {:one 1 :two nil :three 3})]
          (+ n 1))"
       2)
-  (== "(accum [yes? true
-               _ s (ipairs [:yes :no :yes])]
+  (== "(accumulate [yes? true
+                    _ s (ipairs [:yes :no :yes])]
          (and yes? (string.match s :yes)))"
       nil))
 
@@ -65,5 +65,5 @@
 {: test-each
  : test-for
  : test-comprehensions
- : test-accum
+ : test-accumulate
  : test-conditions}

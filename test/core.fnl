@@ -143,7 +143,7 @@
                "(: {:foo (fn [self] (.. self.bar 2)) :bar :baz} :foo)" "baz2"
                "(do (tset {} :a 1) 1)" 1
                "(do (var a nil) (var b nil) (local ret (fn [] a)) (set (a b) (values 4 5)) (ret))" 4
-               "(fn b [] (each [e {}] (e))) (let [(_ e) (pcall b)] (e:match \":[1]: .*\"))" ":1: attempt to call a table value"
+               "(fn b [] (each [e {}] (e))) (let [(_ e) (pcall b)] (e:match \"a .*\"))" "a table value"
                "(global a_b :global) (local a-b :local) a_b" "global"
                "(global x 1) (global x 284) x" 284
                "(let [k 5 t {: k}] t.k)" 5

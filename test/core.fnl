@@ -106,6 +106,10 @@
                "(let [add (fn [x y z] (+ x y z)) f2 (partial add 1 2)] (f2 6))" 9
                "(let [add (fn [x y] (+ x y)) add2 (partial add)] (add2 99 2))" 101
                "(let [add (fn [x y] (+ x y)) inc (partial add 1)] (inc 99))" 100
+               ;; partial evaluates args only once
+               "(let [t {:x 1} f (partial + t.x)] [(f 1) (do (set t.x 2) (f 1))])" [2 2]
+               "(let [f (partial + (math.random 10))] (= (f 1) (f 1) (f 1)))" true
+               "(let [f (partial #(doto $1 (table.insert $2)) [])] (f 1) (f 2) (f 3))" [1 2 3]
 
                ;; many args
                "((fn f [a sin cos radC cx cy x y limit dis] sin) 8 529)" 529

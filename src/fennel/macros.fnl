@@ -180,10 +180,23 @@ returns
 (fn partial* [f ...]
   "Returns a function with all arguments partially applied to f."
   (assert f "expected a function to partially apply")
-  (let [body (list f ...)]
-    (table.insert body _VARARG)
-    `(fn [,_VARARG]
-       ,body)))
+  (let [bindings []
+        args []]
+    (each [_ arg (ipairs [...])]
+      (if (or (= :number (type arg))
+              (= :string (type arg))
+              (= :boolean (type arg))
+              (= `nil arg))
+        (table.insert args arg)
+        (let [name (gensym)]
+          (table.insert bindings name)
+          (table.insert bindings arg)
+          (table.insert args name))))
+    (let [body (list f (unpack args))]
+      (table.insert body _VARARG)
+      `(let ,bindings
+         (fn [,_VARARG]
+           ,body)))))
 
 (fn pick-args* [n f]
   "Creates a function of arity n that applies its arguments to f.

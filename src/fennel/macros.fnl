@@ -151,14 +151,13 @@ returns
 
 (fn accumulate* [iter-tbl accum-expr ...]
   "Accumulation macro.
-Similar to `collect` and `icollect`, it takes a binding table and an
-expression as its arguments.
+It takes a binding table and an expression as its arguments.
 In the binding table, the first symbol is bound to the second value, being an
-initial accumulating variable. The rest are an iterator binding table in the
+initial accumulator variable. The rest are an iterator binding table in the
 format `each` takes.
 It runs through the iterator in each step of which the given expression is
-evaluated, and its returned value updates the accumulating variable.
-It eventually returns the final value of the accumulating variable.
+evaluated, and its returned value updates the accumulator variable.
+It eventually returns the final value of the accumulator variable.
 
 For example,
   (accumulate [total 0

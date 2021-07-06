@@ -12,6 +12,7 @@ Backwards-incompatible changes are **marked in bold**.
 * Make macro tables shadow runtime tables more consistently
 * Add `,complete foo` repl command
 * Add `fennel.syntax` function describing built-ins
+* Add `accumulate` macro
 
 ## 0.9.2 / 2021-05-02
 

@@ -13,6 +13,8 @@ Backwards-incompatible changes are **marked in bold**.
 * Add `,complete foo` repl command
 * Add `fennel.syntax` function describing built-ins
 * Add `accumulate` macro
+* Keep gaps when printing sparse sequences; see `max-sparse-gap`
+  option in `fennel.view`
 
 ## 0.9.2 / 2021-05-02
 

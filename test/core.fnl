@@ -147,7 +147,7 @@
                "(: {:foo (fn [self] (.. self.bar 2)) :bar :baz} :foo)" "baz2"
                "(do (tset {} :a 1) 1)" 1
                "(do (var a nil) (var b nil) (local ret (fn [] a)) (set (a b) (values 4 5)) (ret))" 4
-               "(fn b [] (each [e {}] (e))) (let [(_ e) (pcall b)] (e:match \"a .*\"))" "a table value"
+               "(pcall #(each [e {}] nil))" false
                "(global a_b :global) (local a-b :local) a_b" "global"
                "(global x 1) (global x 284) x" 284
                "(let [k 5 t {: k}] t.k)" 5
@@ -314,7 +314,7 @@
                "((require :fennel.view) [1 2 [3 4]] {:line-length 7})"
                "[1\n 2\n [3 4]]"
                "((require :fennel.view) {[1] [2 [3]] :data {4 {:data 5} 6 [0 1 2 3]}} {:line-length 15})"
-               "{:data {4 {:data 5}\n        6 [0\n           1\n           2\n           3]}\n [1] [2 [3]]}"
+               "{:data [nil\n        nil\n        nil\n        {:data 5}\n        nil\n        [0\n         1\n         2\n         3]]\n [1] [2 [3]]}"
                "((require :fennel.view) {{:a 1} {:b 2 :c 3}})"
                "{{:a 1} {:b 2 :c 3}}"
                "((require :fennel.view) [{:aaa [1 2 3]}] {:line-length 0})"
@@ -325,13 +325,28 @@
                "{:a [1\n     2]\n :b [1\n     2]\n :c [1\n     2]\n :d [1\n     2]}"
                "((require :fennel.view)  {:a [1 2 3 4 5 6 7 8] :b [1 2 3 4 5 6 7 8] :c [1 2 3 4 5 6 7 8] :d [1 2 3 4 5 6 7 8]})"
                "{:a [1 2 3 4 5 6 7 8]\n :b [1 2 3 4 5 6 7 8]\n :c [1 2 3 4 5 6 7 8]\n :d [1 2 3 4 5 6 7 8]}"
+               ;; sparse tables
+               "((require :fennel.view) {1 1 5 5})"
+               "[1 nil nil nil 5]"
+               "((require :fennel.view) {1 1 15 5})"
+               "{1 1 15 5}"
+               "((require :fennel.view) {1 1 15 15} {:one-line? true :max-sparse-gap 1000})"
+               "[1 nil nil nil nil nil nil nil nil nil nil nil nil nil 15]"
+               "((require :fennel.view) {1 1 3 3} {:max-sparse-gap 1})"
+               "{1 1 3 3}"
+               "((require :fennel.view) {1 1 3 3} {:max-sparse-gap 0})"
+               "{1 1 3 3}"
+               "((require :fennel.view) {1 1 5 5 :n 5})"
+               "{1 1 5 5 :n 5}"
+               "((require :fennel.view) [1 nil 2 nil nil 3 nil nil nil])"
+               "[1 nil 2 nil nil 3]"
                ;; Unicode
                "((require :fennel.view) \"ваыв\")"
                "\"ваыв\""
                "((require :fennel.view) {[1] [2 [3]] :ваыв {4 {:ваыв 5} 6 [0 1 2 3]}} {:line-length 15})"
                (if _G.utf8
-                   "{\"ваыв\" {4 {\"ваыв\" 5}\n         6 [0\n            1\n            2\n            3]}\n [1] [2 [3]]}"
-                   "{\"ваыв\" {4 {\"ваыв\" 5}\n             6 [0\n                1\n                2\n                3]}\n [1] [2 [3]]}")
+                   "{\"ваыв\" [nil\n         nil\n         nil\n         {\"ваыв\" 5}\n         nil\n         [0\n          1\n          2\n          3]]\n [1] [2 [3]]}"
+                   "{\"ваыв\" [nil\n             nil\n             nil\n             {\"ваыв\" 5}\n             nil\n             [0\n              1\n              2\n              3]]\n [1] [2 [3]]}")
                ;; the next one may look incorrect in some editors, but is actually correct
                "((require :fennel.view) {:ǍǍǍ {} :ƁƁƁ {:ǍǍǍ {} :ƁƁƁ {}}} {:line-length 1})"
                (if _G.utf8 ; older versions of Lua can't indent this correctly

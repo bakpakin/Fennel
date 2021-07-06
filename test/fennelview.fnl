@@ -59,7 +59,7 @@
     (tset sparse 4 sparse)
     (l.assertEquals (view t) "@1{:a 1 :b 2 :t @1{...}}")
     (l.assertEquals (view t2) "@1{:foo 19 :tbl [1 \"b\" @1{...}]}")
-    (l.assertEquals (view sparse) "@1{1 \"abc\" 4 @1{...}}")))
+    (l.assertEquals (view sparse) "@1[\"abc\" nil nil @1[...]]")))
 
 (fn test-newline []
   (let [s "hello\nworld!\n"]

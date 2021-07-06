@@ -21,22 +21,50 @@
               dtb false
               (< ta tb))))))
 
-(fn table-kv-pairs [t]
+(fn max-index-gap [kv]
+  ;; Find the largest gap between neighbor items
+  (var gap 0)
+  (when (> (length kv) 0)
+    (var [[i] & rest] kv)
+    (each [_ [k] (ipairs rest)]
+      (when (> (- k i) gap)
+        (set gap (- k i)))
+      (set i k)))
+  gap)
+
+(fn fill-gaps [kv]
+  ;; Fill gaps in sequential kv-table
+  ;; [[1 "a"] [4 "d"]] => [[1 "a"] [2] [3] [4 "d"]]
+  (let [missing-indexes []]
+    (var i 0)
+    (each [_ [j] (ipairs kv)]
+      (set i (+ i 1))
+      (while (< i j)
+        (table.insert missing-indexes i)
+        (set i (+ i 1))))
+    (each [_ k (ipairs missing-indexes)]
+      (table.insert kv k [k])))
+  kv)
+
+(fn table-kv-pairs [t options]
   ;; Return table of tables with first element representing key and second
   ;; element representing value.  Second value indicates table type, which is
   ;; either sequential or associative.
   ;; [:a :b :c] => [[1 :a] [2 :b] [3 :c]]
   ;; {:a 1 :b 2} => [[:a 1] [:b 2]]
   (var assoc? false)
-  (var i 1)
   (let [kv []
         insert table.insert]
     (each [k v (pairs t)]
-      (when (or (not= (type k) :number) (not= k i))
+      (when (or (not= (type k) :number))
         (set assoc? true))
-      (set i (+ i 1))
       (insert kv [k v]))
     (table.sort kv sort-keys)
+    (when (not assoc?)
+      (let [gap (max-index-gap kv)]
+        (if (> (max-index-gap kv) options.max-sparse-gap)
+            (set assoc? true)
+            (fill-gaps kv))))
     (if (= (length kv) 0)
         (values kv :empty)
         (values kv (if assoc? :table :seq)))))
@@ -165,7 +193,7 @@
   (set options.level (+ options.level 1))
   (let [x (match (if options.metamethod? (-?> x getmetatable (. :__fennelview)))
             metamethod (pp-metamethod x metamethod options indent)
-            _ (match (table-kv-pairs x)
+            _ (match (table-kv-pairs x options)
                 (_ :empty) (if options.empty-as-sequence? "[]" "{}")
                 (kv :table) (pp-associative x kv options indent)
                 (kv :seq) (pp-sequence x kv options indent)))]
@@ -211,7 +239,8 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                   :metamethod? true
                   :prefer-colon? false
                   :escape-newlines? false
-                  :utf8? true}
+                  :utf8? true
+                  :max-sparse-gap 10}
         ;; overrides can't be accessed via options
         overrides {:level 0
                    :appearances (count-table-appearances t {})
@@ -259,6 +288,8 @@ Can take an options table with these keys:
 * :prefer-colon? (default: false) emit strings in colon notation when possible
 * :utf8? (boolean, default true) whether to use utf8 module to compute string
   lengths
+* :max-sparse-gap (integer, default 10) maximum gap to fill in with nils in
+  sparse sequential tables.
 
 The `__fennelview` metamethod should take the table being serialized as its
 first argument, a function as its second argument, options table as third

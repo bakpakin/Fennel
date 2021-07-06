@@ -22,30 +22,73 @@ local function sort_keys(_0_0, _1_0)
     end
   end
 end
-local function table_kv_pairs(t)
+local function max_index_gap(kv)
+  local gap = 0
+  if (#kv > 0) then
+    local _2_ = kv
+    local _3_ = _2_[1]
+    local i = _3_[1]
+    local rest = {(table.unpack or unpack)(_2_, 2)}
+    for _, _4_0 in ipairs(rest) do
+      local _5_ = _4_0
+      local k = _5_[1]
+      if ((k - i) > gap) then
+        gap = (k - i)
+      end
+      i = k
+    end
+  end
+  return gap
+end
+local function fill_gaps(kv)
+  do
+    local missing_indexes = {}
+    local i = 0
+    for _, _2_0 in ipairs(kv) do
+      local _3_ = _2_0
+      local j = _3_[1]
+      i = (i + 1)
+      while (i < j) do
+        table.insert(missing_indexes, i)
+        i = (i + 1)
+      end
+    end
+    for _, k in ipairs(missing_indexes) do
+      table.insert(kv, k, {k})
+    end
+  end
+  return kv
+end
+local function table_kv_pairs(t, options)
   local assoc_3f = false
-  local i = 1
   local kv = {}
   local insert = table.insert
   for k, v in pairs(t) do
-    if ((type(k) ~= "number") or (k ~= i)) then
+    if (type(k) ~= "number") then
       assoc_3f = true
     end
-    i = (i + 1)
     insert(kv, {k, v})
   end
   table.sort(kv, sort_keys)
+  if not assoc_3f then
+    local gap = max_index_gap(kv)
+    if (max_index_gap(kv) > options["max-sparse-gap"]) then
+      assoc_3f = true
+    else
+      fill_gaps(kv)
+    end
+  end
   if (#kv == 0) then
     return kv, "empty"
   else
-    local function _2_()
+    local function _3_()
       if assoc_3f then
         return "table"
       else
         return "seq"
       end
     end
-    return kv, _2_()
+    return kv, _3_()
   end
 end
 local function count_table_appearances(t, appearances)
@@ -284,7 +327,7 @@ local function pp_table(x, options, indent)
       x0 = pp_metamethod(x, metamethod, options, indent)
     else
       local _ = _2_0
-      local _4_0, _5_0 = table_kv_pairs(x)
+      local _4_0, _5_0 = table_kv_pairs(x, options)
       if (true and (_5_0 == "empty")) then
         local _0 = _4_0
         if options["empty-as-sequence?"] then
@@ -328,7 +371,7 @@ local function pp_string(str, options, indent)
   return ("\"" .. str:gsub("[%c\\\"]", escs) .. "\"")
 end
 local function make_options(t, options)
-  local defaults = {["detect-cycles?"] = true, ["empty-as-sequence?"] = false, ["escape-newlines?"] = false, ["line-length"] = 80, ["metamethod?"] = true, ["one-line?"] = false, ["prefer-colon?"] = false, ["utf8?"] = true, depth = 128}
+  local defaults = {["detect-cycles?"] = true, ["empty-as-sequence?"] = false, ["escape-newlines?"] = false, ["line-length"] = 80, ["max-sparse-gap"] = 10, ["metamethod?"] = true, ["one-line?"] = false, ["prefer-colon?"] = false, ["utf8?"] = true, depth = 128}
   local overrides = {appearances = count_table_appearances(t, {}), level = 0, seen = {len = 0}}
   for k, v in pairs((options or {})) do
     defaults[k] = v

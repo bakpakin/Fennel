@@ -812,6 +812,28 @@ value into a table is a no-op.
 Like `each` and `for`, the table comprehensions support an `:until`
 clause for early termination.
 
+### `accumulate` iterator accumulation
+
+Run through an iterator and performs accumulation, similar to `fold`
+and `reduce` commonly used in functional programming languages.
+Like `collect` and `icollect`, it takes an iterator binding table
+and an expression as its arguments. The difference is that in
+`accumulate`, the first two items in the binding table are used as
+an "accumulator" variable and its initial value.
+For each iteration step, it evaluates the given expression and
+the returned value becomes the next accumulator variable.
+`accumulate` returns the final value of the accumulator variable.
+
+Example:
+
+```fennel
+(accumulate [avg 0
+             i n (ipairs [1 2 3 4])]
+  (let [/i (/ i)]
+    (+ (* avg (- 1 /i)) (* n /i))))
+;; -> 2.5
+```
+
 ### `values` multi-valued return
 
 Returns multiple values from a function. Usually used to signal

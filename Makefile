@@ -49,16 +49,18 @@ LUA_DIR ?= $(PWD)/lua-5.3.5
 STATIC_LUA_LIB ?= $(LUA_DIR)/src/liblua-linux-x86_64.a
 LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
 
+PATH_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
+
 fennel-bin: src/launcher.fnl fennel $(STATIC_LUA_LIB)
-	./fennel --add-fennel-path src/?.fnl --no-compiler-sandbox --compile-binary \
+	$(PATH_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
 		$< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 fennel-bin.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
-	CC=i686-w64-mingw32-gcc ./fennel --compile-binary $< fennel-bin \
+	$(PATH_ARGS) CC=i686-w64-mingw32-gcc ./fennel --compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 
 fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
-	CC=arm-linux-gnueabihf-gcc ./fennel --compile-binary $< $@ \
+	$(PATH_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --compile-binary $< $@ \
 		$(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
 $(LUA_DIR): ; curl https://www.lua.org/ftp/lua-5.3.5.tar.gz | tar xz
@@ -124,7 +126,7 @@ uploadtar: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz
 	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
 	gpg -ab downloads/fennel-$(VERSION)-arm32
 	gpg -ab downloads/fennel-$(VERSION).tar.gz
-	rsync -t downloads/* fenneler@fennel-lang.org:fennel-lang.org/downloads/
+	rsync -tAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
 release: uploadtar uploadrock
 

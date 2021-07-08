@@ -419,7 +419,14 @@
                               (fennel.view styles {:prefer-colon? true})
                               (fennel.view styles {:prefer-colon? false})]
                              {:one-line? true})"
-               "[\":colon \\\"quote\\\" \\\"depends\\\"\" \":colon \\\"quote\\\" :depends\" \":colon \\\"quote\\\" \\\"depends\\\"\"]"}]
+               "[\":colon \\\"quote\\\" \\\"depends\\\"\" \":colon \\\"quote\\\" :depends\" \":colon \\\"quote\\\" \\\"depends\\\"\"]"
+               ;; :preprocess
+               "((require :fennel.view) [1 2 3] {:preprocess (fn [x] x)})"
+               "[1 2 3]"
+               "((require :fennel.view) [1 2 3] {:preprocess (fn [x] (if (= (type x) :number) (+ x 1) x))})"
+               "[2 3 4]"
+               "((require :fennel.view) [[] [1] {:x [] [] [2]}] {:preprocess (fn [x] (if (and (= (type x) :table) (= (next x) nil)) :empty-table x))})"
+               "[\"empty-table\" [1] {:x \"empty-table\" :empty-table [2]}]"}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true :compiler-env _G})
                       expected code))

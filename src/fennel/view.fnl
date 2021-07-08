@@ -255,6 +255,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
           ;; main serialization loop, entry point is defined below
           (let [indent (or indent 0)
                 options (or options (make-options x))
+                x (if options.preprocess (options.preprocess x options) x)
                 tv (type x)]
             (if (or (= tv :table)
                     (and (= tv :userdata)
@@ -290,6 +291,9 @@ Can take an options table with these keys:
   lengths
 * :max-sparse-gap (integer, default 10) maximum gap to fill in with nils in
   sparse sequential tables.
+* :preprocess (function) if present, called on x (and recursively on each value
+  in x), and the result is used for pretty printing; takes the same arguments as
+  `fennel.view`
 
 The `__fennelview` metamethod should take the table being serialized as its
 first argument, a function as its second argument, options table as third
@@ -375,5 +379,10 @@ results regardless of nesting:
 
 Note that even though we've only indented inner elements of our table
 with 10 spaces, the result is correctly indented in terms of outer
-table, and inner tables also remain indented correctly."
+table, and inner tables also remain indented correctly.
+
+When using the `:preprocess` option, avoid modifying any tables in-place in the
+passed function. Since Lua tables are mutable and provided to `:preprocess`
+without copying, any modification done in `:preprocess` will be visible outside
+of `fennel.view`."
   (pp x (make-options x options) 0))

@@ -58,27 +58,38 @@
         input-fragment (text:gsub ".*[%s)(]+" "")]
     (var stop-looking? false)
 
-    (fn add-partials [input tbl prefix] ; add partial key matches in tbl
+    (fn add-partials [input tbl prefix method?] ; add partial key matches in tbl
       (each [k (utils.allpairs tbl)]
         (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
                     (. scope.unmanglings k)
                     k)]
           (when (and (< (length matches) 2000)
                      ; stop explosion on too many items
-                     (= (type k) :string) (= input (k:sub 0 (length input))))
-            (table.insert matches (.. prefix k))))))
+                     (= (type k) :string) (= input (k:sub 0 (length input)))
+                     (or (not method?) (= :function (type (. tbl k)))))
+            (table.insert matches (if method?
+                                      (.. prefix ":" k)
+                                      (.. prefix k)))))))
 
-    (fn add-matches [input tbl prefix] ; add matches, descending into tbl fields
+    (fn descend [input tbl prefix add-matches method?]
+      (let [splitter (if method? "^([^:]+):(.*)" "^([^.]+)%.(.*)")
+            (head tail) (input:match splitter)
+            raw-head (if (or (= tbl env) (= tbl env.___replLocals___))
+                         (. scope.manglings head)
+                         head)]
+        (when (= (type (. tbl raw-head)) :table)
+          (set stop-looking? true)
+          (if method?
+              (add-partials tail (. tbl raw-head) (.. prefix head) true)
+              (add-matches tail (. tbl raw-head) (.. prefix head))))))
+
+    (fn add-matches [input tbl prefix]
       (let [prefix (if prefix (.. prefix ".") "")]
-        (if (not (input:find "%.")) ; no more dots, so add matches
+        (if (and (not (input:find "%.")) (input:find ":")) ; found a method call
+            (descend input tbl prefix add-matches true)
+            (not (input:find "%.")) ; done descending; add matches
             (add-partials input tbl prefix)
-            (let [(head tail) (input:match "^([^.]+)%.(.*)")
-                  raw-head (if (or (= tbl env) (= tbl env.___replLocals___))
-                               (. scope.manglings head)
-                               head)]
-              (when (= (type (. tbl raw-head)) :table)
-                (set stop-looking? true)
-                (add-matches tail (. tbl raw-head) (.. prefix head)))))))
+            (descend input tbl prefix add-matches false))))
 
     (each [_ source (ipairs [scope.specials scope.macros
                              (or env.___replLocals___ []) env env._G])]

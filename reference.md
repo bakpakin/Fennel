@@ -1247,7 +1247,6 @@ can use `tostring` to get the name of a symbol.
 * `gensym` - generates a unique symbol for use in macros.
 * `varg?` - is this a `...` symbol which indicates var args?
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
-* `gensym` - generate a guaranteed-unique symbol
 * `view` - `fennel.view` table serializer
 
 * `assert-compile` - works like `assert` but takes a list/symbol as its third

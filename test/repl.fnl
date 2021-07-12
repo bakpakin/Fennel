@@ -25,7 +25,7 @@
 (fn assert-equal-unordered [a b msg]
   (l.assertEquals (table.sort a) (table.sort b) msg))
 
-(fn test-completion []
+(fn test-local-completion []
   (let [(send comp) (wrap-repl)]
     (send "(local [foo foo-ba* moe-larry] [1 2 {:*curly* \"Why soitenly\"}])")
     (send "(local [!x-y !x_y] [1 2])")
@@ -40,7 +40,11 @@
                             "completions on mangled locals do not collide")
     (send "(local dynamic-index (setmetatable {:a 1 :b 2} {:__index #($2:upper)}))")
     (assert-equal-unordered (comp "dynamic-index.") [:dynamic-index.a :dynamic-index.b]
-                            "completion doesn't error on table with a fn on mt.__index"))
+                            "completion doesn't error on table with a fn on mt.__index")
+    (let [(ok msg) (pcall send ",complete ]")]
+      (l.assertTrue ok "shouldn't kill the repl on a parse error"))))
+
+(fn test-macro-completion []
   (let [(send comp) (wrap-repl)]
     (send "(local mac {:incremented 9 :unsanitary 2})")
     (send "(import-macros mac :test.macros)")
@@ -48,9 +52,15 @@
       ;; local should be shadowed!
       (l.assertNotEquals c1 "mac.incremented")
       (l.assertNotEquals c2 "mac.incremented")
-      (l.assertNil c3))
-    (let [(ok msg) (pcall send ",complete ]")]
-      (l.assertTrue ok "shouldn't kill the repl on a parse error"))))
+      (l.assertNil c3))))
+
+(fn test-method-completion []
+  (let [(send comp) (wrap-repl)]
+    (send "(local ttt {:abc 12 :fff (fn [] :val) :inner {:foo #:f :fa #:f}})")
+    (l.assertEquals (comp "ttt:f") ["ttt:fff"] "method completion works on fns")
+    (assert-equal-unordered (comp "ttt.inner.f") ["ttt:foo" "ttt:fa"]
+                            "method completion nests")
+    (l.assertEquals (comp "ttt:ab") [] "no method completion on numbers")))
 
 (fn test-help []
   (let [send (wrap-repl)
@@ -120,7 +130,9 @@
 ;; this case the feature will work fine; we just can't use this method of
 ;; testing it on PUC 5.1, so skip it.
 (if (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
-    {: test-completion
+    {: test-local-completion
+     : test-macro-completion
+     : test-method-completion
      : test-help
      : test-exit
      : test-reload

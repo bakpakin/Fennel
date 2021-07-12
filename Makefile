@@ -10,7 +10,7 @@ SRC=src/fennel.fnl $(wildcard src/fennel/*.fnl)
 build: fennel fennel.lua
 
 test: fennel.lua fennel
-	$(LUA) test/init.lua
+	$(LUA) test/init.lua $(TESTS)
 
 testall: export FNL_TESTALL = 1
 testall: export FNL_TEST_OUTPUT ?= text

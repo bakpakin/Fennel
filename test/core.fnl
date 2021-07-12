@@ -74,10 +74,6 @@
                      f3 (fn [f] (fn [x] (f 5 x)))]
                   (f 9 5 (f3 f2)))" 44
 
-               ;; pick-args
-               "((pick-args 5 (partial select :#)))" 5
-               "(let [f (fn [...] [...]) f-0 (pick-args 0 f)] (f-0 :foo))" []
-               "(let [f (fn [...] [...]) f-2 (pick-args 2 f)] (f-2 1 2 3))" [1 2]
                ;; pick-values
                "(select :# (pick-values 3))" 3
                "(let [f #(values :a :b :c)] [(pick-values 0 (f))])" []

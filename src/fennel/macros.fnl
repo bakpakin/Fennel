@@ -205,6 +205,9 @@ For example,
   (pick-args 2 func)
 expands to
   (fn [_0_ _1_] (func _0_ _1_))"
+  (if (and _G.io _G.io.stderr)
+      (_G.io.stderr:write
+       "-- WARNING: pick-args is deprecated and will be removed in the future.\n"))
   (assert (and (= (type n) :number) (= n (math.floor n)) (>= n 0))
           (.. "Expected n to be an integer literal >= 0, got " (tostring n)))
   (let [bindings []]

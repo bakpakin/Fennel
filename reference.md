@@ -9,6 +9,10 @@ Everything Fennel does happens at compile-time, so you will need to
 familiarize yourself with Lua's standard library functions. Thankfully
 it's much smaller than almost any other language.
 
+The one exception to this compile-time rule is the `fennel.view`
+function which returns a string representation of any Fennel data
+suitable for printing.
+
 Fennel source code should be UTF-8-encoded text, although currently
 only ASCII forms of whitespace and numerals are supported.
 
@@ -150,7 +154,7 @@ greater than the argument it is passed.
 
 *(Since 0.4.0)*
 
-Discard all values after the first n when dealing with multi-values (`...`)
+Discards all values after the first n when dealing with multi-values (`...`)
 and multiple returns. Useful for composing functions that return multiple values
 with variadic functions. Expands to a `let` expression that binds and re-emits
 exactly n values, e.g.
@@ -512,7 +516,7 @@ Supports destructuring and multiple-value binding.
 
 ### `tset` set table field
 
-Set the field of a given table to a new value. The field name does not
+Sets the field of a given table to a new value. The field name does not
 need to be known at compile-time. Works on any table, even those bound
 with `local` and `let`.
 
@@ -596,7 +600,7 @@ Example:
 
 ### `each` general iteration
 
-Run the body once for each value provided by the iterator. Commonly
+Runs the body once for each value provided by the iterator. Commonly
 used with `ipairs` (for sequential tables) or `pairs` (for any table
 in undefined order) but can be used with any iterator.
 
@@ -772,6 +776,8 @@ Example:
 
 ### `collect`, `icollect` table comprehension macros
 
+*(Since 0.8.0)*
+
 The `collect` macro takes a "iterator binding table" in the format
 that `each` takes, and an expression that produces key-value pairs,
 and runs through the iterator, filling a new table with the key-value
@@ -814,7 +820,9 @@ clause for early termination.
 
 ### `accumulate` iterator accumulation
 
-Run through an iterator and performs accumulation, similar to `fold`
+*(Since 0.10.0)*
+
+Runs through an iterator and performs accumulation, similar to `fold`
 and `reduce` commonly used in functional programming languages.
 Like `collect` and `icollect`, it takes an iterator binding table
 and an expression as its arguments. The difference is that in
@@ -833,6 +841,8 @@ Example:
     (+ (* avg (- 1 /i)) (* n /i))))
 ;; -> 2.5
 ```
+
+The `:until` clause is also supported here for early termination.
 
 ### `values` multi-valued return
 
@@ -965,7 +975,7 @@ subsequent forms are evaluated solely for side-effects.
 (include :my.embedded.module)
 ```
 
-Load Fennel/Lua module code at compile time and embed in the compiled
+Loads Fennel/Lua module code at compile time and embeds it in the compiled
 output. The module name must be a string literal that can resolve to
 a module during compilation.  The bundled code will be wrapped in a
 function invocation in the emitted Lua and set on
@@ -987,7 +997,7 @@ All forms which introduce macros do so inside the current scope. This
 is usually the top level for a given file, but you can introduce
 macros into smaller scopes as well. Note that macros are a
 compile-time construct; they do not exist at runtime. As such macros
-cannot be exported at the bottom of a module.
+cannot be exported at the bottom of a module like functions and other values.
 
 ### `import-macros` load macros from a separate module
 

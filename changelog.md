@@ -1,12 +1,11 @@
 # Summary of user-visible changes
 
-Backwards-incompatible changes are **marked in bold**.
+Changes are **marked in bold** which could result in backwards-incompatibility.
 
-## 0.9.3 / ???
+## 0.10.0 / ???
 
 * Deprecate `pick-args` macro
 * Support repl completion on methods inside tables
-* Change how auto-gensym prefixes are calculated in compilation output
 * Add separate `FENNEL_MACRO_PATH` environment variable for `fennel.macro-path`
 * **Add separate `fennel.macro-path` for searching for macro modules**
 * Fix a bug with strict global checking in macro modules

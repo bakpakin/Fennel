@@ -48,16 +48,12 @@ Takes these additional options:
 
 * `readChunk()`: a function that when called, returns a string of source code.
   The empty is string is used as the end of source marker.
-* `pp`: a pretty-printer function to apply on values.
+* `pp`: a pretty-printer function to apply on values (default: `fennel.view`).
 * `onValues(values)`: a function that will be called on all returned top level values.
 * `onError(errType, err, luaSource)`: a function that will be called on each error.
   `errType` is a string with the type of error, can be either, 'parse',
   'compile', 'runtime',  or 'lua'. `err` is the error message, and `luaSource`
   is the source of the generated lua code.
-
-`src/fennel/view.fnl` will produce output that can be fed back into Fennel
-(other than functions, coroutines, etc) but you can use a 3rd-party
-pretty-printer that produces output in Lua format if you prefer.
 
 If you don't provide `allowedGlobals` then it defaults to being all
 the globals in the environment under which the code will run. Passing
@@ -289,6 +285,19 @@ tables must have balanced key/value pairs, and including comments
 inline would imbalance these or cause keys to be considered as values
 and vice versa. So the comments are stored on the `comments` field of
 metatable instead, keyed by the key or value they were attached to.
+
+## Serialization
+
+The `fennel.view` function takes any Fennel data and turns it into a
+representation suitable for feeding back to Fennel's parser. In
+addition to tables, strings, numbers, and booleans, it can produce
+reasonable output from ASTs that come from the parser. It will emit an
+unreadable placeholder for coroutines, functions, and userdata though.
+
+```lua
+print(fennel.view({abc=123}[, options])
+{:abc 123}
+```
 
 ## Work with docstrings and metadata
 

@@ -125,6 +125,31 @@
       (l.assertEquals bxor-result [:0])
       (l.assertStrContains (. bxor-result 1) "error:.*attempt to index.*global 'bit'"
                            "--use-bit-lib should make bitops fail in non-luajit"))))
+
+(fn test-apropos []
+  (local (send) (wrap-repl))
+  (let [res (. (send ",apropos table%.") 1)]
+    (l.assertEquals
+     (doto (icollect [item (res:gmatch "[^%s]+")] item)
+       (table.sort))
+     ["table.concat" "table.insert" "table.move"
+
+      "table.pack" "table.remove" "table.sort"
+      "table.unpack"]
+     "apropos returns all matching patterns"))
+  (let [res (. (send ",apropos not-found") 1)]
+    (l.assertEquals res "" "apropos returns no results for unknown pattern")
+    (l.assertEquals
+     (doto (icollect [item (res:gmatch "[^%s]+")] item)
+       (table.sort))
+     []
+     "apropos returns no results for unknown pattern"))
+  (let [res (. (send ",apropos-doc function") 1)]
+    (l.assertStrContains res "partial" "apropos returns matching doc patterns")
+    (l.assertStrContains res "pick%-args" "apropos returns matching doc patterns"))
+  (let [res (. (send ",apropos-doc \"there's no way this could match\"") 1)]
+    (l.assertEquals res "" "apropos returns no results for unknown doc pattern")))
+
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -138,5 +163,6 @@
      : test-reload
      : test-reset
      : test-plugins
-     : test-options}
+     : test-options
+     : test-apropos}
     {})

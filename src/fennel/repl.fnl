@@ -174,6 +174,84 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.complete :fnl/docstring
                        "Print all possible completions for a given input.")
 
+(fn apropos* [pattern module prefix seen names]
+  ;; package.loaded can contain modules with dots in the names.  Such
+  ;; names are renamed to contain / instead of a dot.
+  (each [name module (pairs module)]
+    (when (and (= :string (type name))
+               (not= package module))
+      (match (type module)
+        :function (when (: (.. prefix name) :match pattern)
+                    (table.insert names (.. prefix name)))
+        :table (when (not (. seen module))
+                 (apropos* pattern
+                           module
+                           (.. prefix (name:gsub "%." "/") ".")
+                           (doto seen (tset module true))
+                           names)))))
+  names)
+
+(fn apropos [pattern]
+  ;; _G. part is stripped from patterns to provide more stable output.
+  ;; The order we traverse package.loaded is arbitrary, so we may see
+  ;; top level functions either as is or under the _G module.
+  (let [names (apropos* pattern package.loaded "" {} [])]
+    (icollect [_ name (ipairs names)]
+      (name:gsub "^_G%." ""))))
+
+(fn commands.apropos [env read on-values on-error scope]
+  (match (pcall read)
+    (true true input) (on-values (apropos (tostring input)))
+    (_ _ ?msg) (on-error :Parse (or ?msg "Couldn't parse apropos input."))))
+
+(compiler.metadata:set commands.apropos :fnl/docstring
+                       "Print all functions matching a pattern in all loaded modules.")
+
+(fn apropos-follow-path [path]
+  ;; Follow path to the target based on apropos path format
+  (let [paths (icollect [p (path:gmatch "[^%.]+")] p)]
+    (var tgt package.loaded)
+    (each [_ path (ipairs paths)]
+      (set tgt (. tgt (pick-values 1 (path:gsub "%/" "."))))
+      (if (= nil tgt) (lua :break)))
+    tgt))
+
+(fn apropos-doc [pattern]
+  "Search function documentations for a given pattern."
+  (let [names []]
+    (each [_ path (ipairs (apropos ".*"))]
+      (let [tgt (apropos-follow-path path)]
+        (if (= :function (type tgt))
+            (match (compiler.metadata:get tgt :fnl/docstring)
+              docstr (when (docstr:match pattern)
+                       (table.insert names path))))))
+    names))
+
+(fn commands.apropos-doc [env read on-values on-error scope]
+  (match (pcall read)
+    (true true input) (on-values (apropos-doc (tostring input)))
+    (_ _ ?msg) (on-error :Parse (or ?msg "Couldn't parse apropos-doc input."))))
+
+(compiler.metadata:set commands.apropos-doc :fnl/docstring
+                       "Print all functions that match the pattern in their docs")
+
+(fn apropos-show-docs [pattern]
+  "Print function documentations for a given function pattern."
+  (each [_ path (ipairs (apropos pattern))]
+    (let [tgt (apropos-follow-path path)]
+      (when (and (= :function (type tgt))
+                 (compiler.metadata:get tgt :fnl/docstring))
+        (print (specials.doc tgt path))
+        (print)))))
+
+(fn commands.apropos-show-docs [env read _ on-error scope]
+  (match (pcall read)
+    (true true input) (apropos-show-docs (tostring input))
+    (_ _ ?msg) (on-error :Parse (or ?msg "Couldn't parse apropos-show-docs input."))))
+
+(compiler.metadata:set commands.apropos-show-docs :fnl/docstring
+                       "Print all documentations matching a pattern in function name")
+
 (fn load-plugin-commands []
   (when (and utils.root utils.root.options utils.root.options.plugins)
     (each [_ plugin (ipairs utils.root.options.plugins)]

@@ -295,9 +295,9 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 (fn SPECIALS.lua [ast _ parent]
   (compiler.assert (or (= (length ast) 2) (= (length ast) 3))
                    "expected 1 or 2 arguments" ast)
-  (when (not= (. ast 2) nil)
+  (when (not= :nil (-?> (utils.sym? (. ast 2)) utils.deref))
     (table.insert parent {: ast :leaf (tostring (. ast 2))}))
-  (when (not= (. ast 3) nil)
+  (when (not= :nil (-?> (utils.sym? (. ast 3)) utils.deref))
     (tostring (. ast 3))))
 
 (fn SPECIALS.doc [ast scope parent]

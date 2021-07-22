@@ -561,7 +561,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
     (let [[condition-lua] (compiler.compile1 condition scope chunk {:nval 1})]
       (compiler.emit chunk (: "if %s then break end" :format
                               (tostring condition-lua))
-                     condition))))
+                     (utils.expr condition :expression)))))
 
 (fn SPECIALS.each [ast scope parent]
   (compiler.assert (>= (length ast) 3) "expected body expression" (. ast 1))

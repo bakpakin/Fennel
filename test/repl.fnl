@@ -127,16 +127,11 @@
                            "--use-bit-lib should make bitops fail in non-luajit"))))
 
 (fn test-apropos []
-  (local (send) (wrap-repl))
+  (local send (wrap-repl))
   (let [res (. (send ",apropos table%.") 1)]
-    (l.assertEquals
-     (doto (icollect [item (res:gmatch "[^%s]+")] item)
-       (table.sort))
-     ["table.concat" "table.insert" "table.move"
-
-      "table.pack" "table.remove" "table.sort"
-      "table.unpack"]
-     "apropos returns all matching patterns"))
+    (each [_ k (ipairs ["table.concat" "table.insert" "table.remove"
+                        "table.sort"])]
+      (l.assertStrContains res k)))
   (let [res (. (send ",apropos not-found") 1)]
     (l.assertEquals res "" "apropos returns no results for unknown pattern")
     (l.assertEquals

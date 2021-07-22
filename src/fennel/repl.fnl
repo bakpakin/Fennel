@@ -151,10 +151,13 @@ For more information about the language, see https://fennel-lang.org/reference")
                  (on-values [:ok]))
     (false msg) (on-error :Runtime (pick-values 1 (msg:gsub "\n.*" "")))))
 
-(fn commands.reload [env read on-values on-error]
+(fn run-command [read on-error f]
   (match (pcall read)
-    (true true module-sym) (reload (tostring module-sym) env on-values on-error)
-    (false ?parse-ok ?msg) (on-error :Parse (or ?msg ?parse-ok))))
+    (true true val) (f val)
+    (false ?parse-ok ?err) (on-error :Parse "Couldn't parse input.")))
+
+(fn commands.reload [env read on-values on-error]
+  (run-command read on-error #(reload (tostring $) env on-values on-error)))
 
 (compiler.metadata:set commands.reload :fnl/docstring
                        "Reload the specified module.")
@@ -167,9 +170,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                        "Erase all repl-local scope.")
 
 (fn commands.complete [env read on-values on-error scope]
-  (match (pcall read)
-    (true true input) (on-values (completer env scope (tostring input)))
-    (_ _ ?msg) (on-error :Parse (or ?msg "Couldn't parse completion input."))))
+  (run-command read on-error #(on-values (completer env scope (tostring $)))))
 
 (compiler.metadata:set commands.complete :fnl/docstring
                        "Print all possible completions for a given input.")
@@ -200,9 +201,7 @@ For more information about the language, see https://fennel-lang.org/reference")
       (name:gsub "^_G%." ""))))
 
 (fn commands.apropos [env read on-values on-error scope]
-  (match (pcall read)
-    (true true input) (on-values (apropos (tostring input)))
-    (_ _ ?msg) (on-error :Parse (or ?msg "Couldn't parse apropos input."))))
+  (run-command read on-error #(on-values (apropos (tostring $)))))
 
 (compiler.metadata:set commands.apropos :fnl/docstring
                        "Print all functions matching a pattern in all loaded modules.")
@@ -228,9 +227,7 @@ For more information about the language, see https://fennel-lang.org/reference")
     names))
 
 (fn commands.apropos-doc [env read on-values on-error scope]
-  (match (pcall read)
-    (true true input) (on-values (apropos-doc (tostring input)))
-    (_ _ ?msg) (on-error :Parse (or ?msg "Couldn't parse apropos-doc input."))))
+  (run-command read on-error #(on-values (apropos-doc (tostring $)))))
 
 (compiler.metadata:set commands.apropos-doc :fnl/docstring
                        "Print all functions that match the pattern in their docs")
@@ -245,9 +242,7 @@ For more information about the language, see https://fennel-lang.org/reference")
         (print)))))
 
 (fn commands.apropos-show-docs [env read _ on-error scope]
-  (match (pcall read)
-    (true true input) (apropos-show-docs (tostring input))
-    (_ _ ?msg) (on-error :Parse (or ?msg "Couldn't parse apropos-show-docs input."))))
+  (run-command read on-error #(apropos-show-docs (tostring $))))
 
 (compiler.metadata:set commands.apropos-show-docs :fnl/docstring
                        "Print all documentations matching a pattern in function name")

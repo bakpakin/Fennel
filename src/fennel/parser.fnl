@@ -97,7 +97,7 @@ stream is finished."
   (fn parse-error [msg byteindex-override]
     (let [{: source : unfriendly} (or options utils.root.options {})]
       (utils.root.reset)
-      (if unfriendly
+      (if (or unfriendly (not _G.io) (not _G.io.read))
           (error (string.format "Parse error in %s:%s: %s"
                                 (or filename :unknown) (or line "?") msg)
                  0)

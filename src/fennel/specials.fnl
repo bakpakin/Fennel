@@ -1236,7 +1236,9 @@ Consider using import-macros instead as it is more flexible.")
             (opts.fallback modexpr)
             (compiler.assert false "module name must be string literal" ast))
         (let [mod ((load-code (.. "return " (. modexpr 1))))]
-          (or (include-circular-fallback mod modexpr opts.fallback ast)
+          (or (and (utils.member? mod (or utils.root.options.skipInclude []))
+                   (utils.expr "nil --[[SKIPPED INCLUDE]]--" :literal))
+              (include-circular-fallback mod modexpr opts.fallback ast)
               (. utils.root.scope.includes mod) ; check cache
               ;; Find path to Fennel or Lua source; prefering Fennel
               (match (search-module mod)

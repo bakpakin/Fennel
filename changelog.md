@@ -4,6 +4,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 
 ## 0.10.0 / ???
 
+* Add `--skip-include` option to prevent modules from being included in output
 * Add `,apropos pattern` and `,apropos-doc pattern` repl commands
 * Deprecate `pick-args` macro
 * Support repl completion on methods inside tables

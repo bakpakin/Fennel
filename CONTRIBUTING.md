@@ -74,9 +74,16 @@ things, such as `collect` and `icollect`.
 
 If you want to contribute code to the project, please [send patches][1] to the
 [mailing list][2]. (Note that you do not need to subscribe to the mailing list
-in order to post to it.) We also accept code contributions on the
-[GitHub mirror](https://github.com/bakpakin/Fennel) if you prefer not
-to use email.
+in order to post to it.) We also accept code contributions on the [GitHub
+mirror](https://github.com/bakpakin/Fennel) if you prefer not to use email. For
+smaller changes, you can also push your changes to a branch on a public git
+remote hosted anywhere you like and ask someone on IRC or the mailing list to
+take a look.
+
+In order to get CI to automatically run your patches, they will need to have
+`[PATCH fennel]` in the subject. You can configure git to do this automatically:
+
+    git config format.subjectPrefix 'PATCH fennel'
 
 For large changes, please discuss it first either on the mailing list,
 IRC/Matrix channel, or in the issue tracker before sinking time and effort into
@@ -85,9 +92,8 @@ something that may not be able to get merged.
 * Branch off the `main` branch. The contents of this branch should be
   the same on Sourcehut as they are on the Github mirror. But make
   sure that `main` on your copy of the repo matches upstream.
-* Include a description of the changes.
-* If there are changes to the compiler or the language, please include
-  tests. You can run tests with `make test`.
+* Include a description of the changes in the commit message.
+* Please include tests if at all possible. You can run tests with `make test`.
 * Make sure that your changes will work on Lua versions 5.1, 5.2, 5.3, 5.4, and
   LuaJIT. Making fennel require LuaJIT or 5.2+ specific features is a
   non-goal of the project. In general, this means target Lua 5.1, but provide

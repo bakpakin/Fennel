@@ -1158,15 +1158,26 @@ modules in the compiler environment."
                      "expected each macro to be function" ast)
     (tset scope.macros k v)))
 
+(fn resolve-module-name [ast scope parent opts]
+  ;; Compile module path to resolve real module name.  Allows using
+  ;; (.. ... :.foo.bar) expressions and self-contained
+  ;; statement-expressions in `require`, `include`, `require-macros`,
+  ;; and `import-macros`.
+  (let [filename (or ast.filename (. ast 2 :filename))
+        module-name utils.root.options.module-name
+        modexpr (compiler.compile (. ast 2) opts)
+        modname-chunk (load-code modexpr)]
+    (match (pcall modname-chunk module-name filename)
+      (true modname) (utils.expr (string.format "%q" modname) :literal)
+      _ (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))))
+
 (fn SPECIALS.require-macros [ast scope parent real-ast]
   (compiler.assert (= (length ast) 2) "Expected one module name argument"
                    (or real-ast ast)) ; real-ast comes from import-macros
-  ;; don't require modname to be string literal; it just needs to compile to one
-  (let [filename (or (. ast 2 :filename) ast.filename)
-        modname-chunk (load-code (compiler.compile (. ast 2)) nil filename)
-        modname (modname-chunk utils.root.options.module-name filename)]
-    (compiler.assert (= (type modname) :string)
-                     "module name must compile to string" (or real-ast ast))
+  (let [modexpr (resolve-module-name ast scope parent {})
+        _ (compiler.assert (= modexpr.type :literal)
+                           "module name must compile to string" (or real-ast ast))
+        modname ((load-code (.. "return " (. modexpr 1))))]
     (when (not (. macro-loaded modname))
       (let [env (make-compiler-env ast scope parent)
             (loader filename) (search-macro-module modname 1)]
@@ -1231,21 +1242,25 @@ Consider using import-macros instead as it is more flexible.")
 
 (fn SPECIALS.include [ast scope parent opts]
   (compiler.assert (= (length ast) 2) "expected one argument" ast)
-  (let [modexpr (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1)]
+  (let [modexpr (resolve-module-name ast scope parent opts)]
     (if (or (not= modexpr.type :literal) (not= (: (. modexpr 1) :byte) 34))
         (if opts.fallback
             (opts.fallback modexpr)
             (compiler.assert false "module name must be string literal" ast))
-        (let [mod ((load-code (.. "return " (. modexpr 1))))]
-          (or (include-circular-fallback mod modexpr opts.fallback ast)
-              (. utils.root.scope.includes mod) ; check cache
-              ;; Find path to Fennel or Lua source; prefering Fennel
-              (match (search-module mod)
-                fennel-path (include-path ast opts fennel-path mod true)
-                _ (let [lua-path (search-module mod package.path)]
-                    (if lua-path (include-path ast opts lua-path mod false)
-                        opts.fallback (opts.fallback modexpr)
-                        (compiler.assert false (.. "module not found " mod) ast)))))))))
+        (let [mod ((load-code (.. "return " (. modexpr 1))))
+              oldmod utils.root.options.module-name
+              _ (set utils.root.options.module-name mod)
+              res (or (include-circular-fallback mod modexpr opts.fallback ast)
+                      (. utils.root.scope.includes mod) ; check cache
+                      ;; Find path to Fennel or Lua source; prefering Fennel
+                      (match (search-module mod)
+                        fennel-path (include-path ast opts fennel-path mod true)
+                        _ (let [lua-path (search-module mod package.path)]
+                            (if lua-path (include-path ast opts lua-path mod false)
+                                opts.fallback (opts.fallback modexpr)
+                                (compiler.assert false (.. "module not found " mod) ast)))))]
+          (set utils.root.options.module-name oldmod)
+          res))))
 
 (doc-special :include [:module-name-literal]
              "Like require but load the target module during compilation and embed it in the

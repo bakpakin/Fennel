@@ -975,10 +975,10 @@ subsequent forms are evaluated solely for side-effects.
 (include :my.embedded.module)
 ```
 
-Loads Fennel/Lua module code at compile time and embeds it in the compiled
-output. The module name must be a string literal that can resolve to
-a module during compilation.  The bundled code will be wrapped in a
-function invocation in the emitted Lua and set on
+Loads Fennel/Lua module code at compile time and embeds it in the
+compiled output. The module name must resolve to a string literal
+during compilation.  The bundled code will be wrapped in a function
+invocation in the emitted Lua and set on
 `package.preload[modulename]`; a normal `require` is then emitted
 where `include` was used to load it on demand as a normal module.
 
@@ -987,9 +987,15 @@ In most cases it's better to use `require` in your code and use the
 `--require-as-include` CLI flag (`fennel --help`) to accomplish this.
 
 The `require` function is not part of Fennel; it comes from
-Lua. However, it works to load Fennel code. See the end of
-[the tutorial](tutorial.md) and [Programming in Lua][5] for details
-about `require`.
+Lua. However, it works to load Fennel code. See the [Modules and
+multiple files](tutorial#modules-and-multiple-files) section in the
+tutorial and [Programming in Lua][5] for details about `require`.
+
+Starting from version 0.10.0 `include` and hence
+`--require-as-include` support semi-dynamic compile-time resolution of
+module paths similarly to `import-macros`.  See the [relative
+require](tutorial#relative-require) section in the tutorial for more
+information.
 
 ## Macros
 

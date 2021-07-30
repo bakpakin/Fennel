@@ -26,15 +26,36 @@
   (let [expected "foo:FOO-1bar:BAR-2-BAZ-3"
         (ok out) (pcall fennel.dofile "test/mod/foo.fnl")
         (ok2 out2) (pcall fennel.dofile "test/mod/foo2.fnl"
-                          {:requireAsIncluede true})]
-    (l.assertTrue ok "Expected foo to run")
+                          {:requireAsInclude true})
+        (ok3 out3) (pcall fennel.dofile "test/mod/foo3.fnl"
+                          {:requireAsInclude true})
+        (ok4 out4) (pcall fennel.dofile "test/mod/foo4.fnl")
+        (ok5 out5) (pcall fennel.dofile "test/mod/foo5.fnl"
+                          {:requireAsInclude true}
+                          :test)
+        (ok6 out6) (pcall fennel.dofile "test/mod/foo6.fnl"
+                          {:requireAsInclude true}
+                          :test)]
+    (l.assertTrue ok out)
     (l.assertTrue ok2 "Expected foo2 to run")
+    (l.assertTrue ok3 "Expected foo3 to run")
+    (l.assertTrue ok4 "Expected foo4 to run")
+    (l.assertTrue ok5 "Expected foo5 to run")
+    (l.assertTrue ok6 "Expected foo6 to run")
     (l.assertEquals (and (= :table (type out)) out.result) expected
                     (.. "Expected include to have result: " expected))
     (l.assertFalse out.quux
                    "Expected include not to leak upvalues into included modules")
     (l.assertEquals (view out) (view out2)
                     "Expected requireAsInclude to behave the same as include")
+    (l.assertEquals (view out) (view out3)
+                    "Expected requireAsInclude to behave the same as include when given an expression")
+    (l.assertEquals (view out) (view out4)
+                    "Expected include to work when given an expression")
+    (l.assertEquals (view out) (view out5)
+                    "Expected relative requireAsInclude to work when given a ...")
+    (l.assertEquals (view out) (view out6)
+                    "Expected relative requireAsInclude to work with nested modules")
     (l.assertNil _G.quux "Expected include to actually be local")
     (let [spliceOk (pcall fennel.dofile "test/mod/splice.fnl")]
       (l.assertTrue spliceOk "Expected splice to run")

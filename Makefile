@@ -24,7 +24,7 @@ testall: fennel fennel.lua
 fuzz: fennel fennel.lua
 	$(LUA) test/init.lua fuzz
 
-count: ; cloc --force-lang=lisp $(SRC)
+count: ; cloc $(SRC) # older versions of cloc might need --force-lang=lisp
 
 # install https://git.sr.ht/~technomancy/fnlfmt manually for this:
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
@@ -79,7 +79,7 @@ $(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
 	make -C $(LUA_DIR) clean linux CC=arm-linux-gnueabihf-gcc
 	mv $(LUA_DIR)/src/liblua.a $@
 
-ci: testall count fuzz
+ci: testall fuzz
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-bin.exe  fennel-arm32 \

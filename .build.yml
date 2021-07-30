@@ -1,4 +1,4 @@
-image: debian/testing
+image: debian/sid
 packages:
   - lua5.1
   - lua5.2
@@ -6,12 +6,10 @@ packages:
   - lua5.4
   - luajit
   - make
-  - cloc
   - git
+  - netcat
 sources:
   - https://git.sr.ht/~technomancy/fennel
 tasks:
-  - build: |
-      cd fennel
-      make ci
-      git diff --quiet
+  - build: IRC_CHANNEL="#fennel" make -C fennel ci
+

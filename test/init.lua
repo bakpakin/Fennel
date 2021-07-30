@@ -35,4 +35,6 @@ else
    testall(arg)
 end
 
+oldfennel.dofile("test/irc.fnl", {}, runner.result.notSuccessCount)
+
 os.exit(runner.result.notSuccessCount == 0 and 0 or 1)

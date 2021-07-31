@@ -93,6 +93,8 @@
                "(fn func [] {:map #$1})
                 (macro foo [] `(let [a# (func)] ((. a# :map) 123)))
                 (foo) :yeah " :yeah
+               ;; method calls work with varg
+               "((fn [...] (: ... :gsub :foo :bar)) :foofoo)" :barbar
 
 
                ;; functions with empty bodies return nil

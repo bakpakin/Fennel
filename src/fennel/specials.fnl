@@ -665,6 +665,7 @@ Evaluates body once for each value between start and stop (inclusive)." true)
   "Prefer native Lua method calls when method name is a valid Lua identifier."
   (let [[_ _ method-string] ast
         call-string (if (or (= target.type :literal)
+                            (= target.type :varg)
                             (= target.type :expression))
                         "(%s):%s(%s)" "%s:%s(%s)")]
     (utils.expr (string.format call-string (tostring target) method-string

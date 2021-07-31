@@ -59,7 +59,20 @@
     (l.assertNil _G.quux "Expected include to actually be local")
     (let [spliceOk (pcall fennel.dofile "test/mod/splice.fnl")]
       (l.assertTrue spliceOk "Expected splice to run")
-      (l.assertNil _G.q "Expected include to actually be local"))))
+      (l.assertNil _G.q "Expected include to actually be local")))
+  (let [code "(local bar (require :test.mod.bar))
+              (local baz (require :test.mod.baz))
+              (local quux (require :test.mod.quux))
+              [bar baz quux]"
+        opts {:requireAsInclude true :skipInclude [:test.mod.bar :test.mod.quux]}
+        out (fennel.compile-string code opts)
+        value (fennel.eval code opts)]
+    (l.assertStrContains out "bar = nil")
+    (l.assertNotStrContains out "baz = nil")
+    (l.assertStrContains out "quux = nil")
+    (l.assertNotStrContains out "test.mod.bar")
+    (l.assertNotStrContains out "test.mod.quux")
+    (l.assertEquals [nil [:BAZ 3] nil] value)))
 
 (fn test-env-iteration []
   (local tbl [])

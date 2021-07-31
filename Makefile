@@ -45,6 +45,12 @@ fennel: src/launcher.fnl $(SRC)
 fennel.lua: $(SRC)
 	$(LAUNCHER) --no-metadata --require-as-include --compile $< > $@
 
+# A lighter version of the compiler that excludes some features; experimental.
+minifennel.lua: $(SRC) fennel
+	./fennel --no-metadata --require-as-include --add-fennel-path src/?.fnl \
+		--skip-include fennel.repl,fennel.view,fennel.friend \
+		--compile $< > $@
+
 LUA_DIR ?= $(PWD)/lua-5.3.5
 STATIC_LUA_LIB ?= $(LUA_DIR)/src/liblua-linux-x86_64.a
 LUA_INCLUDE_DIR ?= $(LUA_DIR)/src

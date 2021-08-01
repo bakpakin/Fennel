@@ -9,7 +9,7 @@ Usage: fennel [FLAG] [FILE]
 Run fennel, a lisp programming language for the Lua runtime.
 
   --repl                  : Command to launch an interactive repl session
-  --compile FILES         : Command to AOT compile files, writing Lua to stdout
+  --compile FILES (-c)    : Command to AOT compile files, writing Lua to stdout
   --eval SOURCE (-e)      : Command to evaluate source code and print the result
 
   --no-searcher           : Skip installing package.searchers entry
@@ -36,26 +36,26 @@ Run fennel, a lisp programming language for the Lua runtime.
   --help (-h)             : Display this text
   --version (-v)          : Show version
 
-  Globals are not checked when doing AOT (ahead-of-time) compilation unless
-  the --globals-only flag is provided.
+Globals are not checked when doing AOT (ahead-of-time) compilation unless
+the --globals-only flag is provided.
 
-  Metadata is typically considered a development feature and is not recommended
-  for production. It is used for docstrings and enabled by default in the REPL.
+Metadata is typically considered a development feature and is not recommended
+for production. It is used for docstrings and enabled by default in the REPL.
 
-  When not given a command, runs the file given as the first argument.
-  When given neither command nor file, launches a repl.
+When not given a command, runs the file given as the first argument.
+When given neither command nor file, launches a repl.
 
-  If ~/.fennelrc exists, loads it before launching a repl.")
+If ~/.fennelrc exists, it will be loaded before launching a repl.")
 
 (local options {:plugins []})
 
 (fn dosafely [f ...]
-  (let [args [...]
-        (ok val) (xpcall #(f (unpack args)) fennel.traceback)]
-    (when (not ok)
-      (io.stderr:write (.. val "\n"))
-      (os.exit 1))
-    val))
+  (let [args [...]]
+    (match (xpcall #(f (unpack args)) fennel.traceback)
+      (true val) val
+      (_ msg) (do
+                (io.stderr:write (.. msg "\n"))
+                (os.exit 1)))))
 
 (fn allow-globals [global-names]
   (set options.allowedGlobals [])
@@ -206,23 +206,25 @@ Run fennel, a lisp programming language for the Lua runtime.
                                    (io.stdin:read :*a)
                                    form) options)))
 
+(fn compile [files]
+  (each [_ filename (ipairs files)]
+    (set options.filename filename)
+    (let [f (if (= filename "-")
+                io.stdin
+                (assert (io.open filename :rb)))]
+      (match (xpcall #(fennel.compile-string (f:read :*a) options)
+                     fennel.traceback)
+        (true val) (print val)
+        (_ msg) (do
+                  (io.stderr:write (.. msg "\n"))
+                  (os.exit 1)))
+      (f:close))))
+
 (match arg
   ([] ? (= 0 (length arg))) (repl)
   [:--repl] (repl)
-  [:--compile & files] (each [_ filename (ipairs files)]
-                         (set options.filename filename)
-                         (let [f (if (= filename "-")
-                                     io.stdin
-                                     (assert (io.open filename :rb)))
-                               (ok val) (xpcall #(fennel.compile-string (f:read :*a)
-                                                                        options)
-                                                fennel.traceback)]
-                           (if ok
-                               (print val)
-                               (do
-                                 (io.stderr:write (.. val "\n"))
-                                 (os.exit 1)))
-                           (f:close)))
+  [:--compile & files] (compile files)
+  [:-c & files] (compile files)
   [:--compile-binary filename out static-lua lua-include-dir & args]
   (let [bin (require :fennel.binary)]
     (set options.filename filename)

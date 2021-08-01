@@ -4,6 +4,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 
 ## 0.10.0 / ???
 
+* Add `-c` alias for `--compile` in command line arguments
 * Allow using expressions in `include` and make `--require-as-include`
   resolve module names dynamically.  See the require section in the reference.
 * Add `--skip-include` option to prevent modules from being included in output

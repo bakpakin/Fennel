@@ -342,6 +342,7 @@ stream is finished."
           (= b 34) (parse-string b)
           (. prefixes b) (parse-prefix b)
           (or (sym-char? b) (= b (string.byte "~"))) (parse-sym b)
+          (not (utils.hook :illegal-char b getb ungetb dispatch))
           (parse-error (.. "illegal character: " (string.char b))))
       (if (not b) nil ; EOF
           done? (values true retval)

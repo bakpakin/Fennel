@@ -309,10 +309,17 @@ has options calls down into compile."
          (values chunk scope options reset))))
 
 (fn hook [event ...]
+  "Side-effecting plugins should return nil. In the event that a plugin handler
+returns non-nil it will be used as the value of the call and further plugin
+handlers will be skipped."
+  (var result nil)
   (when (and root.options root.options.plugins)
     (each [_ plugin (ipairs root.options.plugins)]
       (match (. plugin event)
-        f (f ...)))))
+        f (set result (f ...)))
+      (when (not= nil result)
+        ;; bootstrap compiler does not have :until support
+        (lua "return result")))))
 
 {: allpairs
  : stablepairs

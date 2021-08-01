@@ -378,7 +378,9 @@ various ways. A plugin is a module containing various functions in fields
 named after different compiler extension points. When the compiler hits an
 extension point, it will call each plugin's function for that extension
 point, if provided, with various arguments; usually the AST in question and
-the scope table.
+the scope table. Each plugin function should normally do side effects and
+return nil or error out. If a function returns non-nil, it will cause
+the rest of the plugins for a given event to be skipped.
 
 * `symbol-to-expression`
 * `call`

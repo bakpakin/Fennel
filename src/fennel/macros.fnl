@@ -425,6 +425,8 @@ introduce for the duration of the body if it does match."
   ;; which simply generates old syntax and feeds it to `match*'.
   (let [clauses [...]
         vals (match-val-syms clauses)]
+    (assert (= 0 (math.fmod (length clauses) 2))
+            "expected even number of pattern/body pairs")
     ;; protect against multiple evaluation of the value, bind against as
     ;; many values as we ever match against in the clauses.
     (list `let [vals val] (match-condition vals clauses))))

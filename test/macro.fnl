@@ -125,7 +125,7 @@
                "(match (values 5 9) 9 :no (a b) (+ a b))" 14
                "(match (values nil :nonnil) (true _) :no (nil b) b)" "nonnil"
                "(match [1 2 1] [x y x] :yes)" "yes"
-               "(match [1 2 3] [3 2 1] :no [2 9 1] :NO :default)" "default"
+               "(match [1 2 3] [3 2 1] :no [2 9 1] :NO _ :default)" "default"
                "(match [1 2 3] [a & b] (+ a (. b 1) (. b 2)))" 6
                "(match [1 2 3] [x y x] :no [x y z] :yes)" "yes"
                "(match [1 2 [[1]]] [x y [z]] (. z 1))" 1
@@ -160,7 +160,7 @@
                   (where [a 1 2] (> a 0)) :nope5
                   (where [a b c] (> a 2) (> b 0) (> c 0)) :nope6
                   (where (or [a 1] [a -2 -3] [a 2 3 4]) (> a 0)) :success
-                  :nope7)" :success
+                  _ :nope7)" :success
                ;; Booleans are OR'ed as patterns
                "(match false
                   (where (or false true)) :false
@@ -192,21 +192,21 @@
                   {:a 1} :nope9
                   [[1 2] [3 4]] :nope10
                   nil :success
-                  :nope11)" :success
+                  _ :nope11)" :success
                ;; nil matching with where
                "(match nil
                   (where (1 2 3 4) true) :nope1
                   (where {:a 1 :b 2} true) :nope2
                   (where [a b c d] (= 100 (* a b c d))) :nope3
                   ([a b c d] ? (= 100 (* a b c d))) :nope4
-                  :success)" :success
+                  _ :success)" :success
                ;; no match
                "(match [1 2 3 4]
                   (1 2 3 4) :nope1
                   {:a 1 :b 2} :nope2
                   (where [a b c d] (= 100 (* a b c d))) :nope3
                   ([a b c d] ? (= 100 (* a b c d))) :nope4
-                  :success)" :success
+                  _ :success)" :success
                ;; destructure multiple values with where
                "(match (values 1 2 3 4 :ok)
                   (where (a b c d e) (= 1 a)) e
@@ -221,11 +221,11 @@
                "(match {:sieze :him}
                   (where tbl tbl.sieze tbl.no) :no
                   (where tbl tbl.sieze (= tbl.sieze :him)) :siezed2)" :siezed2
-               "(match false false false true)" false
-               "(match nil false false true)" true
-               "(match true (where (or nil false true)) :ok :not-ok)" :ok
-               "(match false (where (or nil false true)) :ok :not-ok)" :ok
-               "(match nil (where (or nil false true)) :ok :not-ok)" :ok
+               "(match false false false _ true)" false
+               "(match nil false false _ true)" true
+               "(match true (where (or nil false true)) :ok _ :not-ok)" :ok
+               "(match false (where (or nil false true)) :ok _ :not-ok)" :ok
+               "(match nil (where (or nil false true)) :ok _ :not-ok)" :ok
                "(match {:a 1 :b 2} {: a &as t} (+ a t.b))" 3
                "(match [1 2 3] [a b &as t] (+ a b (. t 3)))" 6}]
     (each [code expected (pairs cases)]

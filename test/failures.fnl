@@ -84,6 +84,7 @@
   "(let [t {:b 2}] (import-macros t :test.macros) t.b)" "tried to reference a macro"
   ;; strict mode applies to macro modules too
   "(import-macros t :test.bad.unknown-global)" "unknown global in strict mode"
+  "(match abc true false def)" "even number of pattern/body pairs"
 })
 
 (fn test-failures []

@@ -138,3 +138,10 @@ release: uploadtar uploadrock
 
 .PHONY: build test testall count format ci clean coverage install \
 	uploadtar uploadrock release
+
+# TODO for 1.0.0 release
+
+# * remove fennelview.lua as a separate file
+# * update fennel-bin to lua 5.4
+# * enforce compiler sandbox
+# * start disallowing & in identifiers

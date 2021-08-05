@@ -576,6 +576,8 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
         new-manglings []
         sub-scope (compiler.make-scope scope)]
     (fn destructure-binding [v]
+      (compiler.assert (not= :string (type v))
+                       (.. "unexpected iterator clause " (tostring v)) binding)
       (if (utils.sym? v)
           (compiler.declare-local v [] sub-scope ast new-manglings)
           (let [raw (utils.sym (compiler.gensym sub-scope))]
@@ -642,10 +644,10 @@ order, but can be used with any iterator." true)
                      (: "unable to bind %s %s" :format (type binding-sym)
                         (tostring binding-sym)) (. ast 2))
     (compiler.assert (>= (length ast) 3) "expected body expression" (. ast 1))
+    (compiler.assert (<= (length ranges) 3) "unexpected arguments" (. ranges 4))
     (for [i 1 (math.min (length ranges) 3)]
       (tset range-args i (tostring (. (compiler.compile1 (. ranges i) sub-scope
-                                                         parent {:nval 1})
-                                      1))))
+                                                         parent {:nval 1}) 1))))
     (compiler.emit parent
                    (: "for %s = %s do" :format
                       (compiler.declare-local binding-sym [] sub-scope ast)

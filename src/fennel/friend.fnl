@@ -67,7 +67,11 @@
         "$ and $... in hashfn are mutually exclusive" ["modifying the hashfn so it only contains $... or $, $1, $2, $3, etc"]
         "tried to reference a macro at runtime" ["renaming the macro so as not to conflict with locals"]
         "expected even number of pattern/body pairs" ["checking that every pattern has a body to go with it"
-                                                      "adding _ before the final body"]})
+                                                      "adding _ before the final body"]
+        "unexpected arguments" ["removing an argument"
+                                "checking for typos"]
+        "unexpected iterator clause" ["removing an argument"
+                                      "checking for typos"]})
 
 (local unpack (or table.unpack _G.unpack))
 

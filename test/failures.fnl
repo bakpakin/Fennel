@@ -85,6 +85,9 @@
   ;; strict mode applies to macro modules too
   "(import-macros t :test.bad.unknown-global)" "unknown global in strict mode"
   "(match abc true false def)" "even number of pattern/body pairs"
+  ;; validity check on iterator clauses
+  "(each [k (do-iter) :igloo 33] nil)" "unexpected iterator clause igloo"
+  "(for [i 1 3 2 other-stuff] nil)" "unexpected arguments"
 })
 
 (fn test-failures []

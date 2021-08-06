@@ -1183,7 +1183,7 @@ they are passed a form which has side-effects, the result will be unexpected:
 (print (my-max (f) 2)) ; -> 3 since (f) is called twice in the macro body above
 ```
 
-*(Since 0.3.0)* In order to prevent accidental symbol capture[2], you may not bind a
+*(Since 0.3.0)* In order to prevent [accidental symbol capture][2], you may not bind a
 bare symbol inside a backtick as an identifier. Appending a `#` on
 the end of the identifier name as above invokes "auto gensym" which
 guarantees the local name is unique.

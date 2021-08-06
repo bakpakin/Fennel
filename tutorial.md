@@ -525,7 +525,7 @@ value.
 ```
 
 Unless you are doing ahead-of-time compilation, Fennel will track all
-known globals and prevent you from refering to unknown globals, which
+known globals and prevent you from referring to unknown globals, which
 prevents a common source of bugs in Lua where typos go undetected.
 
 ### Strict global checking
@@ -629,148 +629,153 @@ current directory by default.
 
 ## Relative require
 
-There are several ways of how to write a library which uses nested modules.
-One of which is to rely on something like Luarocks, to manage library installation and availability of it and it's modules.
-Another way is using relative require style for loading nested modules.
-With relative require, libraries don't depend on the root directory name or its location when resolving inner module paths.
+There are several ways to write a library which uses modules.  One of
+these is to rely on something like LuaRocks, to manage library
+installation and availability of it and its modules.  Another way is
+to use the relative require style for loading nested modules.  With
+relative require, libraries don't depend on the root directory name or
+its location when resolving inner module paths.
 
-For example, here's small a library, which contains `init.fnl` file at the root directory, and a subdirectory `utils` with a file `private.fnl` that contains private library API.
-Such libraries are usually written like this:
+For example, here's a small `example` library, which contains an
+`init.fnl` file, and a module at the root directory:
 
 ```fennel
 ;; file example/init.fnl:
-(local p (require :example.utils.private))
-(fn publicfn [] (p.privatefn))
-{:publicfn publicfn}
+(local a (require :example.module-a))
+
+{:hello-a a.hello}
 ```
 
-for the main module.
-Which requires `example.utils.private` module:
+Here, the main module requires additional `example.module-a` module,
+which holds the implementation:
 
 ```fennel
-;; file example/utils/private.fnl:
-(local secret "super-secret-thing")
-(fn privatefn [] secret)
-{:privatefn privatefn}
+;; file example/module-a.fnl
+(fn hello [] (print "hello from a"))
+{:hello hello}
 ```
 
-One issue here is that the path to the library must be exactly `example`, e.g. `(require :example)`, which can't be enforced on the library user.
-For example, the library can be put into `libs` directory of the project to avoid the top level cluttering, and required as `(require :libs.example)`.
-This will not work, because library itself will try to require `:example.utils.private` and not `:libs.example.utils.private`, which is now a correct module path.
-Another example of breakage can happen when library is pulled from git, and the directory was renamed by the user like this: `git clone /url/to/example.git example-lib`.
+The main issue here is that the path to the library must be exactly
+`example`, e.g. library must be required as `(require :example)` for
+it to work, which can't be enforced on the library user.  For example,
+if the library were moved into `libs` directory of the project to
+avoid cluttering, and required as `(require :libs.example)`, there
+will be a runtime error.  This happens because library itself will try
+to require `:example.module-a` and not `:libs.example.module-a`, which
+is now the correct module path:
 
-Luarocks addresses this problem by enforcing both the directory name, and installation path, populating `LUA_PATH` environment variable to make the library available.
-This, of course, can be done manually by setting `LUA_PATH` per project in the build pipeline, pointing it to the right directory.
-But it's not very transparent, and when requiring some libraries it's better to see full path, that directly maps to the project's file structure rather than looking up where the `LUA_PATH` is modified.
+    runtime error: module 'example.module-a' not found:
+            no field package.preload['example.module-a']
+            ...
+            no file './example/module-a.lua'
+            ...
+    stack traceback:
+      [C]: in function 'require'
+      ./libs/example/init.fnl:2: in main chunk
 
-In Fennel ecosystem we encourage a simpler way of managing libraries in the project.
-Simply dropping a library into your project's tree or using git submodule is usually enough, and the require paths should be handled by the library itself.
+LuaRocks addresses this problem by enforcing both the directory name
+and installation path, populating the `LUA_PATH` environment variable
+to make the library available.  This, of course, can be done manually
+by setting `LUA_PATH` per project in the build pipeline, pointing it
+to the right directory.  But this is not very transparent, and when
+requiring a project local library it's better to see the full path,
+that directly maps to the project's file structure, rather than
+looking up where the `LUA_PATH` is modified.
 
-Here's how a relative require path can be specified in the `example/init.fnl` to make this library name/path agnostic:
+In the Fennel ecosystem we encourage a simpler way of managing project
+dependencies.  Simply dropping a library into your project's tree or
+using git submodule is usually enough, and the require paths should be
+handled by the library itself.
+
+Here's how a relative require path can be specified in the
+`libs/example/init.fnl` to make it name/path agnostic, assuming that
+we've moved our `example` library there:
 
 ```fennel
-;;; file example/init.fnl:
-(local p (require (.. ... :.utils.private)))
-(fn publicfn [] (p.privatefn))
-{: publicfn}
+;; file libs/example/init.fnl:
+(local a (require (.. ... :.module-a)))
+
+{:hello-a a.hello}
 ```
 
-This way, when requiring the library with `(require :lib.example)`, the first value in `...` will hold the `"lib.example"` string.
-This string is then concatenated with the `".utils.private"`, and `require` will properly find and load the nested module at runtime under the `"lib.example.utils.private"` path.
-This is a Lua feature, and not something Fennel specific, and it will work the same when library is AOT compiled to Lua.
+Now, it doesn't matter how library is named or where we put it - we
+can require it from anywhere.  It works because when requiring the
+library with `(require :lib.example)`, the first value in `...` will
+hold the `"lib.example"` string.  This string is then concatenated
+with the `".module-a"`, and `require` will properly find and load the
+nested module at runtime under the `"lib.example.module-a"` path.
+It's a Lua feature, and not something Fennel specific, and it will
+work the same when the library is AOT compiled to Lua.
 
-Since Fennel version 0.10.0 this also works at compile-time, when using `include` special or the `--require-as-include` flag, with the constraint that the expression can be computed at compile time.
-Compile time here means that the expression must be self-contained, e.g. don't refer to locals or globals, but embed all values directly.
-In other words, this will only work at runtime, but not with `include` or `--require-as-include`:
+### Compile-time relative include
+
+Since Fennel v0.10.0 this also works at compile-time, when using the
+`include` special or the `--require-as-include` flag, with the
+constraint that the expression can be computed at compile time.  This
+means that the expression must be self-contained, i.e. doesn't refer
+to locals or globals, but embeds all values directly.  In other words,
+the following code will only work at runtime, but not with `include`
+or `--require-as-include` because `current-module` is not known at
+compile time:
 
 ```fennel
 (local current-module ...)
-(require (.. current-module :.nested-module))
+(require (.. current-module :.other-module))
 ```
 
-This won't work with `include` because `current-module` is not known at compile time.
-This, on the other hand, will work both at runtime and at compile time:
+This, on the other hand, will work both at runtime and at compile
+time:
 
 ```fennel
-(require (.. ... :.nested-module))
+(require (.. ... :.other-module))
 ```
 
-It works because the `...` args are propagated during compilation, so when the application, which uses this library is compiled, all library code is correctly included into the self-contained Lua file.
-For a better illustration of the idea, here's the example project structure, with all the code from the above, plus `main.fnl` file which uses the example library.
+The `...` module args are propagated during compilation, so when the
+application, which uses this library is compiled, all library code is
+correctly included into the self-contained Lua file.
 
-```
-$ tree .
-├ libs
-│ └ example
-│   ├ init.fnl
-│   └ utils
-│     └ private.fnl
-└ lib-user.fnl
-$ cat main.fnl
-(local example (require :libs.example))
-(print (example.publicfn))
-$ fennel --require-as-include --compile main.fnl
-```
-
-Compiling `main.fnl` with the `--require-as-include` flag produces the following Lua code:
+Compiling a project, that uses this `example` library with the
+`--require-as-include` will include the following section in the
+resulting Lua code:
 
 ```lua
-local example
-package.preload["libs.example.utils.private"] = package.preload["libs.example.utils.private"] or function(...)
-  local function privatefn()
-    return "super-secret-thing"
+package.preload["libs.example.module-a"] = package.preload["libs.example.module-a"] or function(...)
+  local function hello()
+    return print("hello from a")
   end
-  return {privatefn = privatefn}
+  return {hello = hello}
 end
-package.preload["libs.example"] = package.preload["libs.example"] or function(...)
-  local p = require("libs.example.utils.private")
-  local function publicfn()
-    return p.privatefn()
-  end
-  return {publicfn = publicfn}
-end
-example = require("libs.example")
-return print(example.publicfn())
 ```
 
-Note that `package.preload` entries contain fully qualified paths like `"libs.example.utils.private"`, which were resolved at compile time.
+Note that `package.preload` entry contain a fully qualified path
+`"libs.example.module-a"`, which was resolved at compile time.
 
-### Multiple nested modules
+### Requiring modules from modules other than `init.fnl`
 
-When the library uses nested modules, that reference other modules, it gets a bit trickier.
-To require a nested module from another nested module we must keep the prefix up to current module, but remove the module name itself.
-For example, let's add another module to `libs/example/utils/another-mod.fnl` and reference it from `libs/example/utils/private.fnl`:
+To require a module from a module other than `init` module, we must
+keep the path up to current module, but remove the module name.  For
+example, let's add `greet` module to `libs/example/utils/greet.fnl`,
+and require it from `libs/example/module-a.fnl`:
 
 ```fennel
-;; file example/utils/another-mod.fnl:
-(fn inc [x] (+ x 1))
+;; file libs/example/utils/greet.fnl:
+(fn greet [who] (print (.. "hello " who)))
 ```
 
-And we can reference this module like this:
+This module can be required as follows:
 
 ```fennel
-;; file example/utils/private.fnl:
-(local inc (require (string.gsub ... "(utils%.)private$" "%1another-mod")))
-(local secret "super-secret-thing")
-(fn anotherfn [x] (inc x))
-(fn privatefn [] secret)
-{: privatefn
- : anotherfn}
+;; file libs/example/module-a.fnl
+(local greet (require (: ... :gsub "(.*)%.module%-a$" "%1.utils.greet")))
+(fn hello [] (print "hello from a"))
+
+{:hello hello :greet greet}
 ```
 
-Compiling the `main.fnl` with `--require-as-include` will add the following block of code to the output file, that references the module:
-
-```lua
-package.preload["libs.example.utils.another-mod"] = package.preload["libs.example.utils.another-mod"] or function(...)
-  local function inc(x)
-    return (x + 1)
-  end
-  return {inc = inc}
-end
--- rest of compiler output is the same as in previous section
-```
-
-Other modules will use simple way to reference other modules, with the only difference being their name in the pattern.
+The resulting module name is constructed via `gsub` call, on the
+module name string.  All other modules need to use a similar way to
+require other modules, with the only difference being their name in
+the pattern.
 
 [1]: https://stopa.io/post/265
 [2]: http://danmidwood.com/content/2014/11/21/animated-paredit.html

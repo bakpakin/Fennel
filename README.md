@@ -29,12 +29,12 @@ each release.
 ## Example
 
 #### Hello World
-```
+```Fennel
 (print "hello, world!")
 ```
 
 #### Fibonacci sequence
-```
+```Fennel
 (fn fib [n]
  (if (< n 2)
   n

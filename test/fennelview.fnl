@@ -29,7 +29,7 @@
       (= (type a) (type b) :table) (table= a b deep=)
       (= (tostring a) (tostring b))))
 
-(fn test-fennelview []
+(fn test-generated []
   (for [_ 1 16]
     (let [item (generate 1)
           viewed (view item)
@@ -71,8 +71,12 @@
   (l.assertEquals (view ["\a" "\t"]) "[\"\\a\" \"\\t\"]")
   (l.assertEquals (view "[\7-\13]") "\"[\\a-\\r]\""))
 
-{: test-fennelview
+(fn test-gaps []
+  (l.assertEquals (view {967216353 788}) "{967216353 788}"))
+
+{: test-generated
  : test-newline
  : test-fennelview-userdata-handling
  : test-cycles
- : test-escapes}
+ : test-escapes
+ : test-gaps}

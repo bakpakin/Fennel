@@ -2,17 +2,21 @@
 
 Changes are **marked in bold** which could result in backwards-incompatibility.
 
-## 0.10.0 / ???
+## 0.10.0 / 2021-08-07
+
+It's Fennel's 5th birthday! We've got the new `accumulate` macro for
+reducing over tables, plus a couple new repl commands and more
+flexibility when using `include`.
 
 ### New Forms
-* Add `accumulate` macro
+* Add `accumulate` macro for reduce operations
 
 ### New Features
-* Add `-c` alias for `--compile` in command line arguments
 * Add `--skip-include` option to prevent modules from being included in output
 * Add `,apropos pattern` and `,apropos-doc pattern` repl commands
 * Add `,complete foo` repl command
 * Add `fennel.syntax` function describing built-ins
+* Add `-c` alias for `--compile` in command line arguments
 * Allow using expressions in `include` and make `--require-as-include`
   resolve module names dynamically.  See the require section in the reference
 * Support repl completion on methods

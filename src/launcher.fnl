@@ -27,6 +27,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --load FILE (-l)        : Load the specified FILE before executing the command
   --lua LUA_EXE           : Run in a child process with LUA_EXE
   --no-fennelrc           : Skip loading ~/.fennelrc when launching repl
+  --unfriendly            : Disable friendly compile error reporting
   --plugin FILE           : Activate the compiler plugin in FILE
   --compile-binary FILE
       OUT LUA_LIB LUA_DIR : Compile FILE to standalone binary OUT
@@ -135,6 +136,9 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
     :--no-compiler-sandbox (do
                              (set options.compiler-env _G)
                              (table.remove arg i))
+    :--unfriendly (do
+                    (set options.unfriendly true)
+                    (table.remove arg i))
     :--plugin (let [plugin (fennel.dofile (table.remove arg (+ i 1))
                                           {:env :_COMPILER :useMetadata true})]
                 (table.insert options.plugins 1 plugin)

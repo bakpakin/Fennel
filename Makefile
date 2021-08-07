@@ -115,7 +115,7 @@ uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec uploadtar
 	luarocks --local build $<
 	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
 	luarocks --local remove fennel
-	luarocks upload --sign --api-key $(shell pass luarocks-api-key) $<
+	luarocks upload --api-key $(shell pass luarocks-api-key) $<
 	luarocks --local install fennel
 	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
 	luarocks --local remove fennel
@@ -132,7 +132,7 @@ uploadtar: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz
 	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
 	gpg -ab downloads/fennel-$(VERSION)-arm32
 	gpg -ab downloads/fennel-$(VERSION).tar.gz
-	rsync -tAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/downloads/
+	rsync -rtAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
 release: uploadtar uploadrock
 

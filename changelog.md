@@ -2,6 +2,10 @@
 
 Changes are **marked in bold** which could result in backwards-incompatibility.
 
+## 0.10.1 / ???
+
+* ???
+
 ## 0.10.0 / 2021-08-07
 
 It's Fennel's 5th birthday! We've got the new `accumulate` macro for

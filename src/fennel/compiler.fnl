@@ -36,10 +36,8 @@ implement nesting. "
         m (getmetatable ast)
         filename (or (and m m.filename) ast-tbl.filename :unknown)
         line (or (and m m.line) ast-tbl.line "?")
-        target (tostring (if (utils.sym? (. ast-tbl 1))
-                             (utils.deref (. ast-tbl 1))
-                             (or (. ast-tbl 1) "()")))]
-    (string.format "Compile error in '%s' %s:%s: %s" target filename line msg)))
+        target (tostring (or (utils.sym? (. ast-tbl 1)) (. ast-tbl 1) "()"))]
+    (string.format "%s:%s: Compile error in '%s': %s" filename line target msg)))
 
 ;; If you add new calls to this function, please update fennel.friend
 ;; as well to add suggestions for how to fix the new error!

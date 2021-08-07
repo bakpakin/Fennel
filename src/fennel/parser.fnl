@@ -98,7 +98,7 @@ stream is finished."
     (let [{: source : unfriendly} (or options utils.root.options {})]
       (utils.root.reset)
       (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
-          (error (string.format "Parse error in %s:%s: %s"
+          (error (string.format "%s:%s: Parse error: %s"
                                 (or filename :unknown) (or line "?") msg)
                  0)
           (friend.parse-error msg (or filename :unknown) (or line "?")

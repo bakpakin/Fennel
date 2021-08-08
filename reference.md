@@ -446,11 +446,11 @@ variables are missing:
   :body)
 ```
 
-**Note:**: The `match` macro can be used in place of the `if-let` macro
+**Note:** The `match` macro can be used in place of the `if-let` macro
 from Clojure. The reason Fennel doesn't have `if-let` is that `match`
 makes it redundant.
 
-**Note 2:**: Prior to Fennel 0.8.2 the `match` macro used infix `?`
+**Note 2:** Prior to Fennel 0.8.2 the `match` macro used infix `?`
 operator to test patterns against the guards. While this syntax is
 still supported, `where` should be preferred instead:
 

@@ -1253,17 +1253,20 @@ from regular tables defined with square or curly brackets. Similarly symbols
 are tables with a string entry for their name and a marker metatable. You
 can use `tostring` to get the name of a symbol.
 
-* `list` - return a list, which is a special kind of table used for code
-* `sym` - turn a string into a symbol
-* `list?` - is the argument a list?
-* `sym?` - is the argument a symbol?
-* `table?` - is the argument a non-list table?
+* `list` - return a list, which is a special kind of table used for code.
+* `sym` - turn a string into a symbol.
+* `gensym` - generates a unique symbol for use in macros, accepts an optional prefix string.
+* `list?` - is the argument a list? Returns the argument or `false`.
+* `sym?` - is the argument a symbol? Returns the argument or `false`.
+* `table?` - is the argument a non-list table? Returns the argument or `false`.
 * `sequence?` - is the argument a non-list _sequential_ table (created
-  with `[]`, as opposed to `{}`)?
-* `gensym` - generates a unique symbol for use in macros.
-* `varg?` - is this a `...` symbol which indicates var args?
-* `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
-* `view` - `fennel.view` table serializer
+                with `[]`, as opposed to `{}`)? Returns the argument or `false`.
+* `varg?` - is this a `...` symbol which indicates var args? Returns a special
+            table describing the type or `false`.
+* `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's
+                 field. Returns a table containing each separate symbol, or
+                 `false`.
+* `view` - `fennel.view` table serializer.
 
 * `assert-compile` - works like `assert` but takes a list/symbol as its third
   argument in order to provide pinpointed error messages.
@@ -1271,8 +1274,8 @@ can use `tostring` to get the name of a symbol.
 These functions can be used from within macros only, not from any
 `eval-compiler` call:
 
-* `in-scope?` - does this symbol refer to an in-scope local?
-* `macroexpand` - performs macroexpansion on its argument form; returns an AST
+* `in-scope?` - does the symbol refer to an in-scope local? Returns the symbol or `nil`.
+* `macroexpand` - performs macroexpansion on its argument form; returns an AST.
 
 Note that other internals of the compiler exposed in compiler scope are
 subject to change.

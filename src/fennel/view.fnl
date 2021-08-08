@@ -25,8 +25,8 @@
   ;; Find the largest gap between neighbor items
   (var gap 0)
   (when (> (length kv) 0)
-    (var [[i] & rest] kv)
-    (each [_ [k] (ipairs rest)]
+    (var i 0)
+    (each [_ [k] (ipairs kv)]
       (when (> (- k i) gap)
         (set gap (- k i)))
       (set i k)))
@@ -38,15 +38,13 @@
   (let [missing-indexes []]
     (var i 0)
     (each [_ [j] (ipairs kv)]
-      ;; without this, a table like {967216353 788} will make it churn for ages
-      (when (< 512 j)
-        (lua "return true"))
       (set i (+ i 1))
       (while (< i j)
         (table.insert missing-indexes i)
         (set i (+ i 1))))
     (each [_ k (ipairs missing-indexes)]
-      (table.insert kv k [k]))))
+      (table.insert kv k [k])))
+  kv)
 
 (fn table-kv-pairs [t options]
   ;; Return table of tables with first element representing key and second
@@ -66,8 +64,7 @@
       (let [gap (max-index-gap kv)]
         (if (> (max-index-gap kv) options.max-sparse-gap)
             (set assoc? true)
-            (when (fill-gaps kv)
-              (set assoc? true)))))
+            (fill-gaps kv))))
     (if (= (length kv) 0)
         (values kv :empty)
         (values kv (if assoc? :table :seq)))))

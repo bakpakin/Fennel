@@ -339,6 +339,12 @@
                "{1 1 5 5 :n 5}"
                "((require :fennel.view) [1 nil 2 nil nil 3 nil nil nil])"
                "[1 nil 2 nil nil 3]"
+               "((require :fennel.view) [nil nil nil nil nil 1])"
+               "[nil nil nil nil nil 1]"
+               "((require :fennel.view) {10 1})"
+               "[nil nil nil nil nil nil nil nil nil 1]"
+               "((require :fennel.view) {11 1})"
+               "{11 1}"
                ;; Unicode
                "((require :fennel.view) \"ваыв\")"
                "\"ваыв\""

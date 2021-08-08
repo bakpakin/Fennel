@@ -835,11 +835,9 @@ the returned value becomes the next accumulator variable.
 Example:
 
 ```fennel
-(accumulate [avg 0
-             i n (ipairs [1 2 3 4])]
-  (let [/i (/ i)]
-    (+ (* avg (- 1 /i)) (* n /i))))
-;; -> 2.5
+(accumulate [sum 0
+             i n (ipairs [10 20 30 40])]
+    (+ sum n)) ; -> 100
 ```
 
 The `:until` clause is also supported here for early termination.

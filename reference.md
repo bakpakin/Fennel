@@ -191,7 +191,7 @@ ignore trailing nils:
 
 ### `pick-args` create a function of fixed arity
 
-*(Since 0.4.0)*
+*(Since 0.4.0, deprecated 0.10.0)*
 
 Like `pick-values`, but takes an integer `n` and a function/operator
 `f`, and creates a new function that applies exactly `n` arguments to `f`.

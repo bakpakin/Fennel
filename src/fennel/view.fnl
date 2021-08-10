@@ -43,8 +43,7 @@
         (table.insert missing-indexes i)
         (set i (+ i 1))))
     (each [_ k (ipairs missing-indexes)]
-      (table.insert kv k [k])))
-  kv)
+      (table.insert kv k [k]))))
 
 (fn table-kv-pairs [t options]
   ;; Return table of tables with first element representing key and second

@@ -1017,12 +1017,12 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
       (tset combined k v))
     (values next combined nil)))
 
-(fn make-compiler-env [ast scope parent strict?]
-  (let [provided (match utils.root.options
+(fn make-compiler-env [ast scope parent ?opts]
+  (let [provided (match (or ?opts utils.root.options)
                    {:compiler-env :strict} (safe-compiler-env true)
                    {: compilerEnv} compilerEnv
                    {: compiler-env} compiler-env
-                   _ (safe-compiler-env strict?))
+                   _ (safe-compiler-env false))
         env {:_AST ast
              :_CHUNK parent
              :_IS_COMPILER true

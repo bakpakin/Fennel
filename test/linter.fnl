@@ -1,7 +1,7 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
-(local linter (fennel.dofile "src/linter.fnl" {:env :_COMPILER}))
-(local options {:plugins [linter] :compilerEnv :strict})
+(local linter (fennel.dofile "src/linter.fnl" {:env :_COMPILER :compilerEnv _G}))
+(local options {:plugins [linter]})
 
 (fn test-used []
   "A test for the locals shadowing bug described in
@@ -13,7 +13,8 @@ https://todo.sr.ht/~technomancy/fennel/12"
 (fn test-arity-check []
   (let [src "(let [s (require :test.mod.splice)] (s.myfn 1))"
         ok? (pcall fennel.compile-string src options)]
-    (l.assertFalse ok?)))
+    (when (not= _VERSION "Lua 5.1")
+      (l.assertFalse ok?))))
 
 (fn test-missing-fn []
   (let [src "(let [s (require :test.mod.splice)] (s.missing-fn))"

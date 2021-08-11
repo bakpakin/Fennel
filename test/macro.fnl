@@ -237,6 +237,16 @@
     (l.assertEquals (fennel.eval ok-code) "abc")
     (l.assertFalse (pcall fennel.eval bad-code {:compiler-env :strict}))))
 
+(fn test-disabled-sandbox-searcher []
+  (let [opts {:env :_COMPILER :compiler-env _G}
+        code "{:path (fn [] (os.getenv \"PATH\"))}"
+        searcher #(match $
+                    :dummy (fn [] (fennel.eval code opts)))]
+    (table.insert fennel.macro-searchers 1 searcher)
+    (let [(ok msg) (pcall fennel.eval "(import-macros {: path} :dummy) (path)")]
+      (l.assertTrue ok msg))
+    (table.remove fennel.macro-searchers 1)))
+
 {: test-arrows
  : test-?.
  : test-import-macros
@@ -247,4 +257,5 @@
  : test-macrodebug
  : test-macro-path
  : test-match
- : test-lua-module}
+ : test-lua-module
+ : test-disabled-sandbox-searcher}

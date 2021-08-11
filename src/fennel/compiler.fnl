@@ -837,7 +837,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
              (not (utils.debug-on? :trace)))
         msg ; skip the trace because it's compiler internals.
         (let [lines []]
-          (if (or (msg:find "^Compile error") (msg:find "^Parse error"))
+          (if (or (msg:find ":%d+: Compile error") (msg:find ":%d+: Parse error"))
               (table.insert lines msg)
               (let [newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
                 (table.insert lines newmsg)))

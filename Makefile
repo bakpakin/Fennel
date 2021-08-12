@@ -5,7 +5,11 @@ PREFIX ?= /usr/local
 BIN_DIR ?= $(PREFIX)/bin
 LUA_LIB_DIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 
-SRC=src/fennel.fnl $(wildcard src/fennel/*.fnl)
+LIB_SRC=src/fennel.fnl src/fennel/friend.fnl src/fennel/parser.fnl \
+		src/fennel/specials.fnl src/fennel/utils.fnl src/fennel/view.fnl \
+		src/fennel/compiler.fnl  src/fennel/macros.fnl  src/fennel/repl.fnl
+
+SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
 build: fennel fennel.lua
 
@@ -24,16 +28,14 @@ testall: fennel fennel.lua
 fuzz: fennel fennel.lua
 	$(LUA) test/init.lua fuzz
 
-count: ; cloc $(SRC) # older versions of cloc might need --force-lang=lisp
+# older versions of cloc might need --force-lang=lisp
+count: ; cloc $(LIB_SRC) ; cloc $(SRC)
 
 # install https://git.sr.ht/~technomancy/fnlfmt manually for this:
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 
 # Avoid chicken/egg situation using the old Lua launcher.
-LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl --globals "_G,_ENV"
-
-# Precompile standalone serializer
-fennelview.lua: src/fennel/view.fnl fennel.lua ; $(LAUNCHER) --compile $< > $@
+LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl
 
 # All-in-one pure-lua script:
 fennel: src/launcher.fnl $(SRC)
@@ -51,7 +53,8 @@ minifennel.lua: $(SRC) fennel
 		--skip-include fennel.repl,fennel.view,fennel.friend \
 		--compile $< > $@
 
-LUA_DIR ?= $(PWD)/lua-5.3.5
+LUA_VERSION=5.4.3
+LUA_DIR ?= $(PWD)/lua-$(LUA_VERSION)
 STATIC_LUA_LIB ?= $(LUA_DIR)/src/liblua-linux-x86_64.a
 LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
 
@@ -62,14 +65,15 @@ fennel-bin: src/launcher.fnl fennel $(STATIC_LUA_LIB)
 		$< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 fennel-bin.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
-	$(PATH_ARGS) CC=i686-w64-mingw32-gcc ./fennel --compile-binary $< fennel-bin \
+	$(PATH_ARGS) CC=i686-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
+		--compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 
 fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
-	$(PATH_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --compile-binary $< $@ \
-		$(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
+	$(PATH_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --no-compiler-sandbox \
+		--compile-binary $< $@  $(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
-$(LUA_DIR): ; curl https://www.lua.org/ftp/lua-5.3.5.tar.gz | tar xz
+$(LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(LUA_VERSION).tar.gz | tar xz
 
 $(STATIC_LUA_LIB): $(LUA_DIR)
 	make -C $(LUA_DIR) clean linux
@@ -80,7 +84,7 @@ $(LUA_DIR)/src/liblua-mingw.a: $(LUA_DIR)
 	make -C $(LUA_DIR) clean mingw CC=i686-w64-mingw32-gcc
 	mv $(LUA_DIR)/src/liblua.a $@
 
-# install gcc-arm-linux-gnueabihf
+# install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
 $(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
 	make -C $(LUA_DIR) clean linux CC=arm-linux-gnueabihf-gcc
 	mv $(LUA_DIR)/src/liblua.a $@
@@ -96,15 +100,13 @@ coverage: fennel
 	$(LUA) -lluacov test/init.lua
 	@echo "generated luacov.report.out"
 
-install: fennel fennel.lua fennelview.lua
-	mkdir -p $(DESTDIR)$(BIN_DIR) && \
-		cp fennel $(DESTDIR)$(BIN_DIR)/
-	mkdir -p $(DESTDIR)$(LUA_LIB_DIR) && \
-		for f in fennel.lua fennelview.lua; do cp $$f $(DESTDIR)$(LUA_LIB_DIR)/; done
+install: fennel fennel.lua
+	mkdir -p $(DESTDIR)$(BIN_DIR) && cp fennel $(DESTDIR)$(BIN_DIR)/
+	mkdir -p $(DESTDIR)$(LUA_LIB_DIR) && cp fennel.lua $(DESTDIR)$(LUA_LIB_DIR)/
 
 # Release-related tasks:
 
-fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua fennelview.lua \
+fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua \
 		Makefile $(SRC)
 	rm -rf fennel-$(VERSION)
 	mkdir fennel-$(VERSION)
@@ -141,7 +143,5 @@ release: uploadtar uploadrock
 
 # TODO for 1.0.0 release
 
-# * remove fennelview.lua as a separate file
-# * update fennel-bin to lua 5.4
-# * enforce compiler sandbox
-# * start disallowing & in identifiers
+# * fix cross-compiling on arm64
+

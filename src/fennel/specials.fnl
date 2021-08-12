@@ -954,23 +954,6 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 ;; default compiler scope.
 (local macro-loaded {})
 
-(local already-warned? {:_G true})
-
-(local compile-env-warning (-> ["WARNING: Attempting to %s %s in compile scope."
-                                "In future versions of Fennel this will not be allowed without the"
-                                "--no-compiler-sandbox flag or passing a :compilerEnv globals table"
-                                "in the options.\n"]
-                               (table.concat "\n")))
-
-(fn compiler-env-warn [_ key]
-  "Warn once when allowing a global that the sandbox would normally block."
-  (let [v (. _G key)]
-    (when (and v io io.stderr (not (. already-warned? key)))
-      (tset already-warned? key true)
-      ;; Make this an error in a future release!
-      (io.stderr:write (compile-env-warning:format "use global" key)))
-    v))
-
 (fn safe-getmetatable [tbl]
   (let [mt (getmetatable tbl)]
     ;; we can't let the string metatable leak
@@ -980,34 +963,14 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 ;; Circularity
 (var safe-require nil)
 
-;; Note that this is not yet the safe compiler env! Enforcing a compiler sandbox
-;; is a breaking change, so we need to do it in a way that warns for several
-;; releases before enforcing the sandbox.
-(fn safe-compiler-env [strict?]
-  (setmetatable {:table (utils.copy table)
-                 :math (utils.copy math)
-                 :string (utils.copy string)
-                 : pairs
-                 : ipairs
-                 : select
-                 : tostring
-                 : tonumber
-                 : pcall
-                 : xpcall
-                 : next
-                 : print
-                 : type
-                 :bit (rawget _G :bit)
-                 : assert
-                 : error
-                 : setmetatable
-                 :getmetatable safe-getmetatable
-                 :require safe-require
-                 : rawget
-                 : rawset
-                 : rawequal
-                 :rawlen (rawget _G :rawlen)}
-                {:__index (if strict? nil compiler-env-warn)}))
+(fn safe-compiler-env []
+  {:table (utils.copy table)
+   :math (utils.copy math)
+   :string (utils.copy string)
+   : pairs : ipairs : select : tostring : tonumber :bit (rawget _G :bit)
+   : pcall : xpcall : next : print : type : assert : error
+   : setmetatable :getmetatable safe-getmetatable :require safe-require
+   :rawlen (rawget _G :rawlen) : rawget : rawset : rawequal})
 
 (fn combined-mt-pairs [env]
   (let [combined {}
@@ -1021,7 +984,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
 (fn make-compiler-env [ast scope parent ?opts]
   (let [provided (match (or ?opts utils.root.options)
-                   {:compiler-env :strict} (safe-compiler-env true)
+                   {:compiler-env :strict} (safe-compiler-env)
                    {: compilerEnv} compilerEnv
                    {: compiler-env} compiler-env
                    _ (safe-compiler-env false))

@@ -4,8 +4,7 @@
 /downloads
 /scratch.fnl
 
-/lua-5.3.5
-/lua-5.4.2
+/lua-5.*
 
 /rockspecs/*asc
 

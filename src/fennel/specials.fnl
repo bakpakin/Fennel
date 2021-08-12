@@ -255,8 +255,8 @@ Main purpose to print function argument list in docstring."
                              "expected vararg as last parameter" ast)
             (set f-scope.vararg true)
             "...")
-          (and (utils.sym? arg) (not= (utils.deref arg) :nil)
-               (not (utils.multi-sym? (utils.deref arg))))
+          (and (utils.sym? arg) (not= (tostring arg) :nil)
+               (not (utils.multi-sym? (tostring arg))))
           (compiler.declare-local arg [] f-scope ast)
           (utils.table? arg)
           (let [raw (utils.sym (compiler.gensym scope))
@@ -295,16 +295,16 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 (fn SPECIALS.lua [ast _ parent]
   (compiler.assert (or (= (length ast) 2) (= (length ast) 3))
                    "expected 1 or 2 arguments" ast)
-  (when (not= :nil (-?> (utils.sym? (. ast 2)) utils.deref))
+  (when (not= :nil (-?> (utils.sym? (. ast 2)) tostring))
     (table.insert parent {: ast :leaf (tostring (. ast 2))}))
-  (when (not= :nil (-?> (utils.sym? (. ast 3)) utils.deref))
+  (when (not= :nil (-?> (utils.sym? (. ast 3)) tostring))
     (tostring (. ast 3))))
 
 (fn SPECIALS.doc [ast scope parent]
   (assert utils.root.options.useMetadata
           "can't look up doc with metadata disabled.")
   (compiler.assert (= (length ast) 2) "expected one argument" ast)
-  (let [target (utils.deref (. ast 2))
+  (let [target (tostring (. ast 2))
         special-or-macro (or (. scope.specials target) (. scope.macros target))]
     (if special-or-macro
         (: "print(%q)" :format (doc* special-or-macro target))
@@ -750,7 +750,7 @@ Method name doesn't have to be known at compile-time; if it is, use
     ;; recursively walk the AST, transforming $... into ...
 
     (fn walker [idx node parent-node]
-      (if (and (utils.sym? node) (= (utils.deref node) "$..."))
+      (if (and (utils.sym? node) (= (tostring node) "$..."))
           (do
             (tset parent-node idx (utils.varg))
             (set f-scope.vararg true))
@@ -764,7 +764,7 @@ Method name doesn't have to be known at compile-time; if it is, use
         (compiler.assert (= max-used 0)
                          "$ and $... in hashfn are mutually exclusive" ast))
       (let [arg-str (if f-scope.vararg
-                        (utils.deref (utils.varg))
+                        (tostring (utils.varg))
                         (table.concat args ", " 1 max-used))]
         (compiler.emit parent
                        (string.format "local function %s(%s)" name arg-str) ast)

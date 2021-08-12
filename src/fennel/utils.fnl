@@ -332,7 +332,6 @@ handlers will be skipped."
  : sequence
  : sym
  : varg
- : deref
  : expr
  :comment comment*
  : comment?

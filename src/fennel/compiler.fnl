@@ -167,7 +167,7 @@ rather than generating new one."
 
 (fn check-binding-valid [symbol scope ast]
   "Check to see if a symbol will be overshadowed by a special."
-  (let [name (utils.deref symbol)]
+  (let [name (tostring symbol)]
     ;; TODO: make this an error for 1.0
     (when (and io io.stderr (name:find "&") (not (. already-warned symbol)))
       (tset already-warned symbol true)
@@ -184,7 +184,7 @@ rather than generating new one."
 (fn declare-local [symbol meta scope ast temp-manglings]
   "Declare a local symbol"
   (check-binding-valid symbol scope ast)
-  (let [name (utils.deref symbol)]
+  (let [name (tostring symbol)]
     (assert-compile (not (utils.multi-sym? name))
                     (.. "unexpected multi symbol " name) ast)
     (tset scope.symmeta name meta)
@@ -401,7 +401,7 @@ if opts contains the nval option."
         t))
 
   (let [macro* (and (utils.sym? (. ast 1))
-                    (. scope.macros (utils.deref (. ast 1))))]
+                    (. scope.macros (tostring (. ast 1))))]
     (if (and (not macro*) multi-sym-parts)
         (let [nested-macro (find-in-table scope.macros 1)]
           (assert-compile (or (not (. scope.macros (. multi-sym-parts 1)))
@@ -470,7 +470,7 @@ if opts contains the nval option."
   (let [len (length ast)
         first (. ast 1)
         multi-sym-parts (utils.multi-sym? first)
-        special (and (utils.sym? first) (. scope.specials (utils.deref first)))]
+        special (and (utils.sym? first) (. scope.specials (tostring first)))]
     (assert-compile (> len 0) "expected a function, macro, or special to call"
                     ast)
     (if special
@@ -677,7 +677,7 @@ which we have to do if we don't know."
         ;; We have to declare meta for the left *after* compiling the right
         ;; see https://todo.sr.ht/~technomancy/fennel/12
         (when declaration
-          (tset scope.symmeta (utils.deref left) {:var isvar}))))
+          (tset scope.symmeta (tostring left) {:var isvar}))))
 
     (fn destructure-table [left rightexprs top? destructure1]
       (let [s (gensym scope symtype)
@@ -690,7 +690,7 @@ which we have to do if we don't know."
         (each [k v (utils.stablepairs left)]
           (when (not (and (= :number (type k))
                           (: (tostring (. left (- k 1))) :find "^&")))
-            (if (and (utils.sym? v) (= (utils.deref v) "&"))
+            (if (and (utils.sym? v) (= (tostring v) "&"))
                 (let [unpack-str "{(table.unpack or unpack)(%s, %s)}"
                       formatted (string.format unpack-str s k)
                       subexpr (utils.expr formatted :expression)]
@@ -699,9 +699,9 @@ which we have to do if we don't know."
                                   "expected rest argument before last parameter"
                                   left)
                   (destructure1 (. left (+ k 1)) [subexpr] left))
-                (and (utils.sym? k) (= (utils.deref k) :&as))
+                (and (utils.sym? k) (= (tostring k) :&as))
                 (destructure-sym v [(utils.expr (tostring s))] left)
-                (and (utils.sequence? left) (= (utils.deref v) :&as))
+                (and (utils.sequence? left) (= (tostring v) :&as))
                 (let [(_ next-sym trailing) (select k (unpack left))]
                   (assert-compile (= nil trailing)
                                   "expected &as argument before last parameter"
@@ -726,7 +726,7 @@ which we have to do if we don't know."
         (when declaration
           (each [_ sym (ipairs left)]
             (when (utils.sym? sym)
-              (tset scope.symmeta (utils.deref sym) {:var isvar}))))
+              (tset scope.symmeta (tostring sym) {:var isvar}))))
         ;; recurse if left-side tables found
         (each [_ pair (utils.stablepairs tables)]
           (destructure1 (. pair 1) [(. pair 2)] left))))
@@ -885,7 +885,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         :_VARARG)
       (utils.sym? form) ; symbol
       (let [filename (if form.filename (string.format "%q" form.filename) :nil)
-            symstr (utils.deref form)]
+            symstr (tostring form)]
         (assert-compile (not runtime?)
                         "symbols may only be used at compile time" form)
         ;; We should be able to use "%q" for this but Lua 5.1 throws an error
@@ -898,7 +898,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
             (string.format "sym('%s', {quoted=true, filename=%s, line=%s})"
                            symstr filename (or form.line :nil))))
       (and (utils.list? form) ; unquote
-           (utils.sym? (. form 1)) (= (utils.deref (. form 1)) :unquote))
+           (utils.sym? (. form 1)) (= (tostring (. form 1)) :unquote))
       (let [payload (. form 2)
             res (unpack (compile1 payload scope parent))]
         (. res 1))

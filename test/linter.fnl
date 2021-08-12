@@ -13,7 +13,7 @@ https://todo.sr.ht/~technomancy/fennel/12"
 (fn test-arity-check []
   (let [src "(let [s (require :test.mod.splice)] (s.myfn 1))"
         ok? (pcall fennel.compile-string src options)]
-    (when (not= _VERSION "Lua 5.1")
+    (when (not= _VERSION "Lua 5.1") ; debug.getinfo nparams was added in 5.2
       (l.assertFalse ok?))))
 
 (fn test-missing-fn []

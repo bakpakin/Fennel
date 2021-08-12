@@ -139,8 +139,8 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
     :--raw-errors (do
                     (set options.unfriendly true)
                     (table.remove arg i))
-    :--plugin (let [plugin (fennel.dofile (table.remove arg (+ i 1))
-                                          {:env :_COMPILER :useMetadata true})]
+    :--plugin (let [opts {:env :_COMPILER :useMetadata true :compiler-env _G}
+                    plugin (fennel.dofile (table.remove arg (+ i 1)) opts)]
                 (table.insert options.plugins 1 plugin)
                 (table.remove arg i))))
 

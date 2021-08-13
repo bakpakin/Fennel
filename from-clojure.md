@@ -71,9 +71,9 @@ remaining chunk instead of just for the body of the `let`.
 Like Clojure, Fennel uses the `fn` form to create functions. However,
 giving it a name will also declare it as a local rather than having
 the name be purely internal. Functions declared with `fn` have no
-arity checking; you can call them with any number of arguments. To
-have arity checking, declare with `lambda` instead, and it will throw
-an exception if you provide too few arguments.
+arity checking; you can call them with any number of arguments. If you
+declare with `lambda` instead, it will throw an exception when you
+provide too few arguments.
 
 Fennel supports destructuring similarly to Clojure. The main
 difference is that rather than using `:keys` Fennel has a notation

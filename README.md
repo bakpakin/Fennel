@@ -69,7 +69,7 @@ run a Fennel file anywhere on your system.
 * Clearer syntactic distinction between sequential tables and key/value tables
 * Separate looping constructs for numeric loops vs iterators instead of overloading `for`
 * Opt-in mutability for local variables
-* Opt-in arity checks for `lambda` functions
+* Opt-in nil checks for `lambda` functions
 * Pattern matching
 * Ability to extend the syntax with your own macros and special forms
 

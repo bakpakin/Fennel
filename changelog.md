@@ -299,7 +299,7 @@ identifiers in backtick.
 
 ### Bug Fixes
 * Fix a bug where errors would show incorrect line numbers
-* Fix a bug in `lambda` arity checks when using destructuring
+* Fix a bug in `lambda` argument checks when using destructuring
 * Fix a few bugs in `match`
 
 ### Changes and Removals
@@ -378,7 +378,7 @@ also introduces the name "Fennel".
 * Add `doto` macro
 * Add `:` for method calls
 * Add `each`
-* Add `lambda`/`λ` for arity-checked functions
+* Add `lambda`/`λ` for nil-argument-checked functions
 * Add `when`
 
 ### New Features

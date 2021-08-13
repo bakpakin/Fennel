@@ -39,7 +39,7 @@ providing a name will cause your stack traces to be more readable, so
 it's recommended. Providing a name that's a table field will cause it
 to be inserted in a table instead of bound as a local.
 
-### `lambda`/`λ` arity-checked function
+### `lambda`/`λ` nil-checked function
 
 Creates a function like `fn` does, but throws an error at runtime if
 any of the listed arguments are nil, unless its identifier begins with `?`.

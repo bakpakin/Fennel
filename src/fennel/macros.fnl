@@ -235,9 +235,9 @@ expands to
            (values ,(unpack let-syms))))))
 
 (fn lambda* [...]
-  "Function literal with arity checking.
-Will throw an exception if a declared argument is passed in as nil, unless
-that argument name begins with ?."
+  "Function literal with nil-checked arguments.
+Like `fn`, but will throw an exception if a declared argument is passed in as
+nil, unless that argument's name begins with a question mark."
   (let [args [...]
         has-internal-name? (sym? (. args 1))
         arglist (if has-internal-name? (. args 2) (. args 1))

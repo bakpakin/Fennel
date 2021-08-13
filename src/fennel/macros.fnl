@@ -256,10 +256,10 @@ nil, unless that argument's name begins with a question mark."
                  (not= as "...")))
           (table.insert args arity-check-position
                         `(assert (not= nil ,a)
-                                 (string.format "Missing argument %s on %s:%s"
-                                                ,(tostring a)
-                                                ,(or a.filename :unknown)
-                                                ,(or a.line "?"))))))
+                                 ,(: "Missing argument %s on %s:%s" :format
+                                     (tostring a)
+                                     (or a.filename :unknown)
+                                     (or a.line "?"))))))
 
     (assert (= :table (type arglist)) "expected arg list")
     (each [_ a (ipairs arglist)]

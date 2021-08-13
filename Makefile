@@ -53,48 +53,71 @@ minifennel.lua: $(SRC) fennel
 		--skip-include fennel.repl,fennel.view,fennel.friend \
 		--compile $< > $@
 
+## Binaries
+
 LUA_VERSION=5.4.3
 LUA_DIR ?= $(PWD)/lua-$(LUA_VERSION)
-STATIC_LUA_LIB ?= $(LUA_DIR)/src/liblua-linux-x86_64.a
+NATIVE_LUA_LIB ?= $(LUA_DIR)/src/liblua-native.a
 LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
 
 PATH_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
 
-fennel-bin: src/launcher.fnl fennel $(STATIC_LUA_LIB)
-	$(PATH_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
-		$< $@ $(STATIC_LUA_LIB) $(LUA_INCLUDE_DIR)
+$(LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(LUA_VERSION).tar.gz | tar xz
 
-fennel-bin.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
+# Native binary for whatever platform you're currently on
+fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
+	$(PATH_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
+		$< $@ $(NATIVE_LUA_LIB) $(LUA_INCLUDE_DIR)
+
+$(NATIVE_LUA_LIB): $(LUA_DIR)
+	$(MAKE) -C $(LUA_DIR)/src clean liblua.a
+	mv $(LUA_DIR)/src/liblua.a $@
+
+## Cross compiling
+
+xc-deps:
+	apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
+		gcc-multilib-x86-64-linux-gnu libc6-dev-amd64-cross \
+		gcc-mingw-w64-i686 curl lua5.3
+
+fennel-x86_64: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-x86_64.a
+	$(PATH_ARGS) CC=x86_64-linux-gnu-gcc ./fennel --no-compiler-sandbox \
+		--compile-binary $< $@ \
+		$(LUA_INCLUDE_DIR)/liblua-x86_64.a $(LUA_INCLUDE_DIR)
+
+fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
 	$(PATH_ARGS) CC=i686-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
+	mv fennel-bin.exe $@
 
 fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
 	$(PATH_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< $@  $(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
-$(LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(LUA_VERSION).tar.gz | tar xz
-
-$(STATIC_LUA_LIB): $(LUA_DIR)
-	make -C $(LUA_DIR) clean linux
+$(LUA_DIR)/src/liblua-x86_64.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_DIR)/src clean liblua.a CC=x86_64-linux-gnu-gcc
 	mv $(LUA_DIR)/src/liblua.a $@
 
-# install gcc-mingw-w64-i686
+# There's a bug in the Lua makefile that doesn't let you override RANLIB so it
+# tries to call system strip(1) which only knows how to strip arm64 binaries.
+# To work around it, rather than call `make mingw' we expand the call.
 $(LUA_DIR)/src/liblua-mingw.a: $(LUA_DIR)
-	make -C $(LUA_DIR) clean mingw CC=i686-w64-mingw32-gcc
+	$(MAKE) -C $(LUA_DIR)/src CC=i686-w64-mingw32-gcc \
+		"AR=i686-w64-mingw32-gcc -shared -o" \
+		"RANLIB=i686-w64-mingw32-strip --strip-unneeded" clean liblua.a
 	mv $(LUA_DIR)/src/liblua.a $@
 
-# install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
 $(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
-	make -C $(LUA_DIR) clean linux CC=arm-linux-gnueabihf-gcc
+	$(MAKE) -C $(LUA_DIR) clean liblua.a CC=arm-linux-gnueabihf-gcc
 	mv $(LUA_DIR)/src/liblua.a $@
 
 ci: testall fuzz
 
 clean:
-	rm -f fennel.lua fennel fennel-bin fennel-bin.exe  fennel-arm32 \
+	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \
 		*_binary.c luacov.*
-	make -C $(LUA_DIR) clean || true # this dir might not exist
+	$(MAKE) -C $(LUA_DIR) clean || true # this dir might not exist
 
 coverage: fennel
 	$(LUA) -lluacov test/init.lua
@@ -122,11 +145,11 @@ uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec uploadtar
 	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
 	luarocks --local remove fennel
 
-uploadtar: fennel fennel-bin fennel-bin.exe fennel-arm32 fennel.tar.gz
+uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
-	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
-	mv fennel-bin.exe downloads/fennel-$(VERSION)-windows32.exe
+	mv fennel-x86_64 downloads/fennel-$(VERSION)-x86_64
+	mv fennel.exe downloads/fennel-$(VERSION)-windows32.exe
 	mv fennel-arm32 downloads/fennel-$(VERSION)-arm32
 	mv fennel.tar.gz downloads/fennel-$(VERSION).tar.gz
 	gpg -ab downloads/fennel-$(VERSION)

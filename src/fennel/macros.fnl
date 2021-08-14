@@ -253,7 +253,7 @@ nil, unless that argument's name begins with a question mark."
             (check! a))
           (let [as (tostring a)]
             (and (not (as:match "^?")) (not= as "&") (not= as "_")
-                 (not= as "...")))
+                 (not= as "...") (not= as "&as")))
           (table.insert args arity-check-position
                         `(assert (not= nil ,a)
                                  ,(: "Missing argument %s on %s:%s" :format

@@ -62,7 +62,7 @@
                ;; &as lambda
                "((lambda [[x &as t]] t) [10])" [10]
                ;; lambda doesn't symbol capture
-               "(pcall (lambda [string] nil))" false
+               "(pcall (lambda [string] nil) 1)" true
                ;; lambdas perform arity checks
                "(let [(ok e) (pcall (lambda [x] (+ x 2)))]
                   (string.match e \"Missing argument x\"))" "Missing argument x"

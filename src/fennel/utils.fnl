@@ -3,6 +3,8 @@
 ;; the definitions of several core compiler types. It could be split into two
 ;; distinct modules along those lines.
 
+(local view (require :fennel.view))
+
 ;;; General-purpose helper functions
 
 (fn stablepairs [t]
@@ -112,7 +114,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
       (set max k)))
   (for [i 1 max]
     (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
-  (.. "(" (table.concat (map safe (or tostring2 tostring)) " " 1 max) ")"))
+  (.. "(" (table.concat (map safe (or tostring2 view)) " " 1 max) ")"))
 
 (fn comment-view [c]
   (values c true))

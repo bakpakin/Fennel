@@ -145,6 +145,18 @@
   (let [res (. (send ",apropos-doc \"there's no way this could match\"") 1)]
     (l.assertEquals res "" "apropos returns no results for unknown doc pattern")))
 
+(fn test-byteoffset []
+  (let [send (wrap-repl)
+        _ (send "(macro b [x] (view (getmetatable x)))")
+        _ (send "(macro f [x] (assert-compile false :lol-no x))")
+        out (table.concat (send "(b [1])"))
+        out2 (table.concat (send "(b [1])"))
+        out3 (table.concat (send "   (f [123])"))]
+    (l.assertEquals out out2 "lines and byte offsets should be stable")
+    (l.assertStrContains out ":bytestart 5")
+    (l.assertStrContains out ":byteend 7")
+    (l.assertStrContains out3 "   (f [123])\n      ^^^^^")))
+
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -159,5 +171,6 @@
      : test-reset
      : test-plugins
      : test-options
-     : test-apropos}
+     : test-apropos
+     : test-byteoffset}
     {})

@@ -102,7 +102,7 @@
         current-line (or ?current-line 1)
         bytes (+ (or ?bytes 0) (length this-line) (length newline))]
     (if (= target-line current-line)
-        (values this-line bytes)
+        (values this-line (- bytes (length this-line) 1))
         this-line
         (read-line-from-string matcher target-line (+ current-line 1) bytes))))
 

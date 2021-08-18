@@ -307,12 +307,12 @@ For more information about the language, see https://fennel-lang.org/reference")
         (tset chars k nil))
       (let [(ok parse-ok? x) (pcall read)
             src-string (string.char ((or table.unpack _G.unpack) chars))]
+        (reset)
         (set utils.root.options opts)
         (if (not ok)
             (do
               (on-error :Parse parse-ok?)
               (clear-stream)
-              (reset)
               (loop))
             (command? src-string)
             (run-command src-string read loop env on-values on-error scope)

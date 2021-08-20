@@ -533,9 +533,8 @@ if opts contains the nval option."
                   kstr (.. "[" (tostring compiled) "]")]
               [kstr k]))))
 
-    (let [keys (doto (utils.kvmap ast write-other-values)
-                 (table.sort (fn [a b]
-                               (< (. a 1) (. b 1)))))]
+    (let [keys (icollect [k v (utils.astpairs ast)]
+                 (write-other-values k v))]
       (utils.map keys
                  (fn [[k1 k2]]
                    (let [[v] (compile1 (. ast k2) scope parent {:nval 1})]
@@ -687,7 +686,7 @@ which we have to do if we don't know."
                     "" :nil
                     right right)]
         (emit parent (string.format "local %s = %s" s right) left)
-        (each [k v (utils.stablepairs left)]
+        (each [k v (utils.astpairs left)]
           (when (not (and (= :number (type k))
                           (: (tostring (. left (- k 1))) :find "^&")))
             (if (and (utils.sym? v) (= (tostring v) "&"))
@@ -728,7 +727,7 @@ which we have to do if we don't know."
             (when (utils.sym? sym)
               (tset scope.symmeta (tostring sym) {:var isvar}))))
         ;; recurse if left-side tables found
-        (each [_ pair (utils.stablepairs tables)]
+        (each [_ pair (utils.astpairs tables)]
           (destructure1 (. pair 1) [(. pair 2)] left))))
 
     (fn destructure1 [left rightexprs up1 top?]

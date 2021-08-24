@@ -144,13 +144,15 @@ provided. Unlike the other functions, the `compile` functions default
 to performing no global checks, though you can pass in an `allowedGlobals`
 table in `options` to enable it.
 
+Accepts `filename` in `options` as in `fennel.eval`.
+
 ## Compile an iterator of bytes into a string of Lua (can throw errors)
 
 ```lua
 local lua = fennel.compileStream(strm[, options])
 ```
 
-Accepts `indent` in `options` as per above.
+Accepts `indent` and `filename` in `options` as per above.
 
 ## Compile a data structure (AST) into Lua source code (can throw errors)
 
@@ -160,7 +162,7 @@ The code can be loaded via dostring or other methods. Will error on bad input.
 local lua = fennel.compile(ast[, options])
 ```
 
-Accepts `indent` in `options` as per above.
+Accepts `indent` and `filename` in `options` as per above.
 
 ## Get an iterator over the bytes in a string
 

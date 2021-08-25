@@ -7,7 +7,7 @@ packages:
   - luajit
   - make
   - git
-  - netcat
+  - netcat-openbsd
 sources:
   - https://git.sr.ht/~technomancy/fennel
 tasks:

@@ -4,7 +4,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 
 ## 0.10.1 / ???
 
-* ???
+* Add `:into` clause to `collect` and `icollect`
 
 ## 0.10.0 / 2021-08-07
 

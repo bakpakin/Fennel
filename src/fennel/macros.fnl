@@ -108,6 +108,15 @@ encountering an error before propagating it."
        ,closer
        (close-handlers# (xpcall ,bodyfn ,traceback)))))
 
+(fn into-val [iter-tbl]
+  (var into nil)
+  (for [i (length iter-tbl) 2 -1]
+    (if (= :into (. iter-tbl i))
+        (do (set into (table.remove iter-tbl (+ i 1)))
+            (table.remove iter-tbl i))))
+  (assert (or (not into) (table? into)) "expected table in :into clause")
+  (or into []))
+
 (fn collect* [iter-tbl key-value-expr ...]
   "Returns a table made by running an iterator and evaluating an expression
 that returns key-value pairs to be inserted sequentially into the table.
@@ -118,13 +127,16 @@ For example,
   (collect [k v (pairs {:apple \"red\" :orange \"orange\"})]
     (values v k))
 returns
-  {:red \"apple\" :orange \"orange\"}"
+  {:red \"apple\" :orange \"orange\"}
+
+Supports an :into clause after the iterator to put results in an existing table.
+Supports early termination with an :until clause."
   (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
           "expected iterator binding table")
   (assert (not= nil key-value-expr) "expected key-value expression")
   (assert (= nil ...)
           "expected exactly one body expression. Wrap multiple expressions with do")
-  `(let [tbl# {}]
+  `(let [tbl# ,(into-val iter-tbl)]
      (each ,iter-tbl
        (match ,key-value-expr
          (k# v#) (tset tbl# k# v#)))
@@ -138,13 +150,16 @@ This can be thought of as a \"list comprehension\".
 For example,
   (icollect [_ v (ipairs [1 2 3 4 5])] (when (> v 2) (* v v)))
 returns
-  [9 16 25]"
+  [9 16 25]
+
+Supports an :into clause after the iterator to put results in an existing table.
+Supports early termination with an :until clause."
   (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
           "expected iterator binding table")
   (assert (not= nil value-expr) "expected table value expression")
   (assert (= nil ...)
           "expected exactly one body expression. Wrap multiple expressions with do")
-  `(let [tbl# []]
+  `(let [tbl# ,(into-val iter-tbl)]
      (each ,iter-tbl
        (tset tbl# (+ (length tbl#) 1) ,value-expr))
      tbl#))

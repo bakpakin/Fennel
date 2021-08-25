@@ -28,12 +28,17 @@
   (== "(collect [k v (pairs {:foo 3 :bar 4 :baz 5 :qux 6})]
          (when (> v 4) (values k (+ v 1))))"
       {:baz 6 :qux 7})
+  (== "(collect [k v (pairs {:neon :lights}) :into {:shimmering-neon :lights}]
+         (values k (v:upper)))"
+      {:neon "LIGHTS" :shimmering-neon "lights"})
   (== "(icollect [_ v (ipairs [1 2 3 4 5 6])]
          (when (= 0 (% v 2)) (* v v)))"
       [4 16 36])
   (== "(icollect [num (string.gmatch \"24,58,1999\" \"%d+\")]
          (tonumber num))"
-      [24 58 1999]))
+      [24 58 1999])
+  (== "(icollect [_ x (ipairs [2 3]) :into [11]] (* x 11))"
+      [11 22 33]))
 
 (fn test-accumulate []
   (== "(var x true)

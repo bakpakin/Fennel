@@ -818,6 +818,16 @@ value into a table is a no-op.
 Like `each` and `for`, the table comprehensions support an `:until`
 clause for early termination.
 
+Both `collect` and `icollect` take an `:into` clause which allows you
+put your results into an existing table instead of starting with an
+empty one:
+
+```fennel
+(icollect [_ x (ipairs [2 3]) :into [9]]
+  (* x 11))
+;; -> [9 22 33]
+```
+
 ### `accumulate` iterator accumulation
 
 *(Since 0.10.0)*

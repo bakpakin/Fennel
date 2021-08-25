@@ -5,6 +5,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 ## 0.10.1 / ???
 
 * Apply strict globals checking in the repl by default
+* Allow strict globals checking to be disabled with `--globals "*"`
 * Add `:into` clause to `collect` and `icollect`
 
 ## 0.10.0 / 2021-08-07

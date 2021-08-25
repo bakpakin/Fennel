@@ -38,7 +38,8 @@ Run fennel, a lisp programming language for the Lua runtime.
   --version (-v)          : Show version
 
 Globals are not checked when doing AOT (ahead-of-time) compilation unless
-the --globals-only flag is provided.
+the --globals-only or --globals flag is provided. Use --globals \"*\" to disable
+strict globals checking in other contexts.
 
 Metadata is typically considered a development feature and is not recommended
 for production. It is used for docstrings and enabled by default in the REPL.
@@ -58,10 +59,14 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
                 (io.stderr:write (.. msg "\n"))
                 (os.exit 1)))))
 
-(fn allow-globals [global-names]
-  (set options.allowedGlobals [])
-  (each [g (global-names:gmatch "([^,]+),?")]
-    (table.insert options.allowedGlobals g)))
+(fn allow-globals [global-names globals]
+  (if (= global-names "*")
+      (set options.allowedGlobals false)
+      (do
+        (set options.allowedGlobals
+             (icollect [g (global-names:gmatch "([^,]+),?")] g))
+        (each [global-name (pairs globals)]
+          (table.insert options.allowedGlobals global-name)))))
 
 (fn handle-load [i]
   (let [file (table.remove arg (+ i 1))]
@@ -110,12 +115,10 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
                              (set options.checkUnusedLocals true)
                              (table.remove arg i))
     :--globals (do
-                 (allow-globals (table.remove arg (+ i 1)))
-                 (each [global-name (pairs _G)]
-                   (table.insert options.allowedGlobals global-name))
+                 (allow-globals (table.remove arg (+ i 1)) _G)
                  (table.remove arg i))
     :--globals-only (do
-                      (allow-globals (table.remove arg (+ i 1)))
+                      (allow-globals (table.remove arg (+ i 1)) {})
                       (table.remove arg i))
     :--require-as-include (do
                             (set options.requireAsInclude true)

@@ -110,7 +110,7 @@
         plugin1 {:repl-command-log #(table.insert logged (select 2 ($2)))}
         plugin2 {:repl-command-log #(error "p1 should handle this!")
                  :repl-command-set-boo set-boo}
-        send (wrap-repl {:plugins [plugin1 plugin2]})]
+        send (wrap-repl {:plugins [plugin1 plugin2] :allowedGlobals false})]
     (send ",log :log-me")
     (l.assertEquals logged ["log-me"])
     (send ",set-boo")

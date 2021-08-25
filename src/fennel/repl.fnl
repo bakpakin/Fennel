@@ -317,15 +317,9 @@ For more information about the language, see https://fennel-lang.org/reference")
             (command? src-string)
             (run-command src-string read loop env on-values on-error scope)
             (when parse-ok? ; if this is false, we got eof
-              (match (pcall compiler.compile x
-                            {:correlate opts.correlate
-                             :source src-string
-                             : scope
-                             :useMetadata opts.useMetadata
-                             :moduleName opts.moduleName
-                             :assert-compile opts.assert-compile
-                             :parse-error opts.parse-error
-                             :useBitLib opts.useBitLib})
+              (match (pcall compiler.compile x (doto opts
+                                                 (tset :source src-string)
+                                                 (tset :scope scope)))
                 (false msg) (do
                               (clear-stream)
                               (on-error :Compile msg))

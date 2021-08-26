@@ -9,12 +9,24 @@
 
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
-  pairs is already stable, but on 5.3+ every run gives different ordering."
+  pairs is already stable, but on 5.3+ every run gives different ordering. Gives
+  the same order as parsed in the AST when present in the metatable."
   (let [keys []
-        succ []]
-    (each [k (pairs t)]
-      (table.insert keys k))
-    (table.sort keys #(< (tostring $1) (tostring $2)))
+        used-keys {} ;; if a key has already shown up, we want to remove it
+        succ {}]
+    (if (and (getmetatable t) (. (getmetatable t) :keys))
+        (do
+          (each [_ k (ipairs (. (getmetatable t) :keys))]
+            (when (. used-keys k)
+              (for [i (length keys) 1 -1]
+                (when (= (. keys i) k)
+                  (table.remove keys i))))
+            (tset used-keys k true)
+            (table.insert keys k)))
+        (do
+          (each [k (pairs t)]
+            (table.insert keys k))
+          (table.sort keys #(< (tostring $1) (tostring $2)))))
     (each [i k (ipairs keys)]
       (tset succ k (. keys (+ i 1))))
 
@@ -24,31 +36,6 @@
         (values key value)))
 
     (values stablenext t nil)))
-
-(fn astpairs [t]
-  "Like pairs, but returns the same order of keys as the parsed syntax when
-  available. Defaults to stablepairs otherwise."
-  (if (not (and (getmetatable t) (. (getmetatable t) :keys)))
-      (stablepairs t)
-      (let [keys []
-            used-keys {} ;; if a key has already shown up, we want to remove it
-            succ {}]
-        (each [_ k (ipairs (. (getmetatable t) :keys))]
-          (when (. used-keys k)
-            (for [i (length keys) 1 -1]
-              (when (= (. keys i) k)
-                (table.remove keys i))))
-          (tset used-keys k true)
-          (table.insert keys k))
-        (each [i k (ipairs keys)]
-          (tset succ k (. keys (+ i 1))))
-
-        (fn astnext [tbl idx]
-          (let [key (if (= idx nil) (. keys 1) (. succ idx))
-                value (if (= key nil) nil (. tbl key))]
-            (values key value)))
-
-        (values astnext t nil))))
 
 ;; Note: the collect/icollect macros mostly make map/kvmap obsolete.
 
@@ -350,7 +337,6 @@ handlers will be skipped."
 
 {: allpairs
  : stablepairs
- : astpairs
  : copy
  : kvmap
  : map

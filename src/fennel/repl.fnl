@@ -8,6 +8,7 @@
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))
 (local specials (require :fennel.specials))
+(local unpack (or table.unpack _G.unpack))
 
 (fn default-read-chunk [parser-state]
   (io.write (if (< 0 parser-state.stack-size) ".." ">> "))
@@ -169,11 +170,14 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.reset :fnl/docstring
                        "Erase all repl-local scope.")
 
-(fn commands.complete [env read on-values on-error scope]
-  (run-command read on-error #(on-values (completer env scope (tostring $)))))
+(fn commands.complete [env read on-values on-error scope chars]
+  (run-command read on-error
+               #(on-values (completer env scope (-> (string.char (unpack chars))
+                                                    (: :gsub ",complete +" "")
+                                                    (: :sub 1 -2))))))
 
 (compiler.metadata:set commands.complete :fnl/docstring
-                       "Print all possible completions for a given input.")
+                       "Print all possible completions for a given input symbol.")
 
 (fn apropos* [pattern module prefix seen names]
   ;; package.loaded can contain modules with dots in the names.  Such
@@ -255,11 +259,11 @@ For more information about the language, see https://fennel-lang.org/reference")
         (match (name:match "^repl%-command%-(.*)")
           cmd-name (tset commands cmd-name (or (. commands cmd-name) f)))))))
 
-(fn run-command [input read loop env on-values on-error scope]
+(fn run-command-loop [input read loop env on-values on-error scope chars]
   (load-plugin-commands)
   (let [command-name (input:match ",([^%s/]+)")]
     (match (. commands command-name)
-      command (command env read on-values on-error scope)
+      command (command env read on-values on-error scope chars)
       _ (when (not= :exit command-name)
           (on-values ["Unknown command" command-name])))
     (when (not= :exit command-name)
@@ -306,7 +310,7 @@ For more information about the language, see https://fennel-lang.org/reference")
       (each [k (pairs chars)]
         (tset chars k nil))
       (let [(ok parse-ok? x) (pcall read)
-            src-string (string.char ((or table.unpack _G.unpack) chars))]
+            src-string (string.char (unpack chars))]
         (reset)
         (set utils.root.options opts)
         (if (not ok)
@@ -315,9 +319,11 @@ For more information about the language, see https://fennel-lang.org/reference")
               (clear-stream)
               (loop))
             (command? src-string)
-            (run-command src-string read loop env on-values on-error scope)
+            (run-command-loop src-string read loop env on-values on-error
+                              scope chars)
             (when parse-ok? ; if this is false, we got eof
               (match (pcall compiler.compile x (doto opts
+                                                 (tset :env env)
                                                  (tset :source src-string)
                                                  (tset :scope scope)))
                 (false msg) (do

@@ -106,7 +106,7 @@ encountering an error before propagating it."
       (table.insert closer 4 `(: ,(. closable-bindings i) :close)))
     `(let ,closable-bindings
        ,closer
-       (close-handlers# (xpcall ,bodyfn ,traceback)))))
+       (close-handlers# (_G.xpcall ,bodyfn ,traceback)))))
 
 (fn into-val [iter-tbl]
   (var into nil)
@@ -270,11 +270,11 @@ nil, unless that argument's name begins with a question mark."
             (and (not (as:match "^?")) (not= as "&") (not= as "_")
                  (not= as "...") (not= as "&as")))
           (table.insert args arity-check-position
-                        `(assert (not= nil ,a)
-                                 ,(: "Missing argument %s on %s:%s" :format
-                                     (tostring a)
-                                     (or a.filename :unknown)
-                                     (or a.line "?"))))))
+                        `(_G.assert (not= nil ,a)
+                                    ,(: "Missing argument %s on %s:%s" :format
+                                        (tostring a)
+                                        (or a.filename :unknown)
+                                        (or a.line "?"))))))
 
     (assert (= :table (type arglist)) "expected arg list")
     (each [_ a (ipairs arglist)]
@@ -337,7 +337,7 @@ Example:
     (values condition bindings)))
 
 (fn match-table [val pattern unifications match-pattern]
-  (let [condition `(and (= (type ,val) :table))
+  (let [condition `(and (= (_G.type ,val) :table))
         bindings []]
     (each [k pat (pairs pattern)]
       (if (= pat `&)

@@ -130,7 +130,10 @@
     (l.assertStrContains msg "test/macros.fnl:2: oh no")
     ;; sometimes it's "in function f" and sometimes "in upvalue f"
     (l.assertStrMatches msg ".*test/macros.fnl:2: in %w+ 'def'.*")
-    (l.assertStrMatches msg ".*test/macros.fnl:6: in %w+ 'abc'.*")))
+    (l.assertStrMatches msg ".*test/macros.fnl:6: in %w+ 'abc'.*"))
+  (let [(ok? msg) (pcall fennel.eval "(require-macros 100)")]
+    (l.assertFalse ok?)
+    (l.assertStrMatches msg ".*module name must compile to string.*")))
 
 ;; automated tests for suggestions are rudimentary because the usefulness of the
 ;; output is so subjective. to see a full catalog of suggestions, run the script

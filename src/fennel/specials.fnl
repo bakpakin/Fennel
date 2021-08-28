@@ -1160,26 +1160,23 @@ modules in the compiler environment."
                      "expected each macro to be function" ast)
     (tset scope.macros k v)))
 
-(fn resolve-module-name [ast scope parent opts]
+(fn resolve-module-name [{: filename 2 second} scope parent opts]
   ;; Compile module path to resolve real module name.  Allows using
   ;; (.. ... :.foo.bar) expressions and self-contained
   ;; statement-expressions in `require`, `include`, `require-macros`,
   ;; and `import-macros`.
-  (let [filename (or ast.filename (. ast 2 :filename))
+  (let [filename (or filename (and (utils.table? second) second.filename))
         module-name utils.root.options.module-name
-        modexpr (compiler.compile (. ast 2) opts)
+        modexpr (compiler.compile second opts)
         modname-chunk (load-code modexpr)]
-    (match (pcall modname-chunk module-name filename)
-      (true modname) (utils.expr (string.format "%q" modname) :literal)
-      _ (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))))
+    (modname-chunk module-name filename)))
 
 (fn SPECIALS.require-macros [ast scope parent real-ast]
   (compiler.assert (= (length ast) 2) "Expected one module name argument"
                    (or real-ast ast)) ; real-ast comes from import-macros
-  (let [modexpr (resolve-module-name ast scope parent {})
-        _ (compiler.assert (= modexpr.type :literal)
-                           "module name must compile to string" (or real-ast ast))
-        modname ((load-code (.. "return " (. modexpr 1))))]
+  (let [modname (resolve-module-name ast scope parent {})]
+    (compiler.assert (= :string (type modname))
+                     "module name must compile to string" (or real-ast ast))
     (when (not (. macro-loaded modname))
       (let [env (make-compiler-env ast scope parent)
             (loader filename) (search-macro-module modname 1)]
@@ -1244,7 +1241,13 @@ Consider using import-macros instead as it is more flexible.")
 
 (fn SPECIALS.include [ast scope parent opts]
   (compiler.assert (= (length ast) 2) "expected one argument" ast)
-  (let [modexpr (resolve-module-name ast scope parent opts)]
+  (let [modexpr (match (pcall resolve-module-name ast scope parent opts)
+                  ;; if we're in a dofile and not a require, then module-name
+                  ;; will be nil and we will not be able to successfully
+                  ;; compile relative requires into includes, but we can still
+                  ;; emit a runtime relative require.
+                  (true modname) (utils.expr (string.format "%q" modname) :literal)
+                  (_ err) (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))]
     (if (or (not= modexpr.type :literal) (not= (: (. modexpr 1) :byte) 34))
         (if opts.fallback
             (opts.fallback modexpr)

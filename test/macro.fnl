@@ -247,6 +247,11 @@
       (l.assertTrue ok msg))
     (table.remove fennel.macro-searchers 1)))
 
+(fn test-expand []
+  (let [code "(macro a [f] (doto (macroexpand f) (table.remove 1)))
+              (a (do (fn [] :x)))"]
+    (l.assertEquals (fennel.eval code) :x)))
+
 {: test-arrows
  : test-?.
  : test-import-macros
@@ -258,4 +263,5 @@
  : test-macro-path
  : test-match
  : test-lua-module
- : test-disabled-sandbox-searcher}
+ : test-disabled-sandbox-searcher
+ : test-expand}

@@ -248,9 +248,11 @@
     (table.remove fennel.macro-searchers 1)))
 
 (fn test-expand []
-  (let [code "(macro a [f] (doto (macroexpand f) (table.remove 1)))
-              (a (do (fn [] :x)))"]
-    (l.assertEquals (fennel.eval code) :x)))
+  (let [code "(macro expand-string [f]
+                (list (sym :table.concat)
+                      (icollect [_ x (ipairs (macroexpand f))] (tostring x))))
+              (expand-string (when true (fn [] :x)))"]
+    (l.assertEquals (fennel.eval code) "iftrue(do (fn {} \"x\"))")))
 
 {: test-arrows
  : test-?.

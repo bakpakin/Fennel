@@ -345,7 +345,7 @@ Tab is what is used to indent a block."
 
 (fn exprs1 [exprs]
   "Convert expressions to Lua string."
-  (table.concat (utils.map exprs 1) ", "))
+  (table.concat (utils.map exprs tostring) ", "))
 
 (fn keep-side-effects [exprs chunk start ast]
   "Compile side effects for a chunk."

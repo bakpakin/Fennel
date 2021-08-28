@@ -9,7 +9,8 @@
 (table.insert generate.order 4 :sym)
 (table.insert generate.order 1 :list)
 
-(local keywords (icollect [k (pairs (fennel.syntax))] k))
+(local keywords (icollect [k (pairs (doto (fennel.syntax)
+                                      (tset :eval-compiler nil)))] k))
 
 (fn generate.generators.sym []
   (fennel.sym (generate.generators.string)))

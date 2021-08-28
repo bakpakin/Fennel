@@ -52,7 +52,9 @@
     (l.assertEquals (fennel.eval reverse) 1)
     (l.assertEquals (fennel.eval nest-quote {:compiler-env env :env env})
                     "(quote nest)")
-    (fennel.eval "(eval-compiler (set _SPECIALS.reverse-it nil))")))
+    (fennel.eval "(eval-compiler (set _SPECIALS.reverse-it nil))")
+    (l.assertEquals (fennel.eval "(eval-compiler 99)") 99)
+    (l.assertEquals (fennel.eval "(eval-compiler true)") true)))
 
 (fn test-import-macros []
   (let [multigensym "(import-macros m :test.macros) (m.multigensym)"

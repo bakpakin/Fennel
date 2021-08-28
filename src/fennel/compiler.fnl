@@ -432,7 +432,7 @@ if opts contains the nval option."
   (let [exprs (or (special ast scope parent opts) (utils.expr :nil :literal))
         ;; Be very accepting of strings or expressions as well as lists
         ;; or expressions
-        exprs (if (= (type exprs) :string)
+        exprs (if (not= :table (type exprs))
                   (utils.expr exprs :expression)
                   exprs)
         exprs (if (utils.expr? exprs) [exprs] exprs)]

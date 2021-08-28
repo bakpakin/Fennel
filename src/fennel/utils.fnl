@@ -131,7 +131,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
                   :__eq sym=
                   :__lt sym<})
 
-(local expr-mt {1 :EXPR :__tostring deref})
+(local expr-mt {1 :EXPR :__tostring (fn [x] (tostring (deref x)))})
 (local list-mt {1 :LIST :__fennelview list->string :__tostring list->string})
 (local comment-mt {1 :COMMENT
                    :__fennelview comment-view

@@ -105,6 +105,7 @@ Lua is much more readily-available than it is for Fennel.
 * The [mailing list][5] has slower-paced discussion and announcements
 * You can browse and edit [the Wiki][7]
 * [Continuous integration][8]
+* Community interactions are subject to the [code of conduct](CODE-OF-CONDUCT.md).
 
 ## License
 

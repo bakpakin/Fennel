@@ -618,6 +618,7 @@ which we have to do if we don't know."
             (declare-local symbol nil scope symbol new-manglings)
             (let [parts (or (utils.multi-sym? raw) [raw])
                   meta (. scope.symmeta (. parts 1))]
+              (assert-compile (not (raw:find ":")) "cannot set method sym" symbol)
               (when (and (= (length parts) 1) (not forceset))
                 (assert-compile (not (and forceglobal meta))
                                 (string.format "global %s conflicts with local"

@@ -92,7 +92,8 @@
     "(let [x {:foo (fn [self] self.bar) :bar :baz}] x:foo)"
     "multisym method calls may only be in call position"
     "(let [x {:y {:foo (fn [self] self.bar) :bar :baz}}] x:y:foo)"
-    "method must be last component of multisym: x:y:foo"}))
+    "method must be last component of multisym: x:y:foo"
+    "(set abc:def 2)" "cannot set method sym"}))
 
 (fn test-core-fails []
   (test-failures

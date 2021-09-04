@@ -17,6 +17,7 @@ use without installing anything.
 * The [tutorial](tutorial.md) teaches the basics of the language
 * The [rationale](rationale.md) explains the reasoning of why Fennel was created
 * The [reference](reference.md) describes all Fennel special forms
+* The [macro guide](macros.md) explains how to write macros
 * The [API listing](api.md) shows how to integrate Fennel into your codebase
 * The [Lua primer](lua-primer.md) gives a very brief intro to Lua with
   pointers to further details

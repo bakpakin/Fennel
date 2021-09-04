@@ -94,7 +94,7 @@ The vast majority of situations work out like this, in our experience. This inte
 
 > Patt: "Hey, could you not use that word? What about 'ridiculous' instead?"
 
-> Alex: "oh sorry, sure." -> edits old message to say "it was really confusing!"
+> Alex: "oh sorry, sure. will be more careful in the future."
 
 #### The Admin Case
 

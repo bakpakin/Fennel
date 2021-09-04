@@ -1,8 +1,14 @@
 # Fennel Reference
 
-These are all the special forms recognized by the Fennel compiler. It
-does not include built-in Lua functions; see the
+These are all the built-in macros and special forms recognized by the
+Fennel compiler. It does not include built-in Lua functions; see the
 [Lua reference manual][1] or the [Lua primer][3] for that.
+
+A macro is a function which runs at compile time and transforms some
+Fennel code into different Fennel. A special form (or special) is a
+primitive construct which emits Lua code directly. When you are
+coding, you don't need to care about the difference between built-in
+macros and special forms; it is an implementation detail.
 
 Remember that Fennel relies completely on Lua for its runtime.
 Everything Fennel does happens at compile-time, so you will need to

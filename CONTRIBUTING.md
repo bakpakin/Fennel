@@ -1,20 +1,20 @@
 # Guidelines for contributing to Fennel
 
-> True leaders
-> are hardly known to their followers.
-> Next after them are the leaders
-> the people know and admire;
-> after them, those they fear;
-> after them, those they despise.
->
-> To give no trust
-> is to get no trust.
->
-> When the work's done right,
-> with no fuss or boasting,
-> ordinary people say,
-> Oh, we did it.
->
+> True leaders  
+> are hardly known to their followers.  
+> Next after them are the leaders  
+> the people know and admire;  
+> after them, those they fear;  
+> after them, those they despise.  
+>  
+> To give no trust  
+> is to get no trust.  
+>  
+> When the work's done right,  
+> with no fuss or boasting,  
+> ordinary people say,  
+> Oh, we did it.  
+>  
 > - Tao Te Ching chapter 17, translated by Ursula K. Le Guin
 
 ## Reporting bugs

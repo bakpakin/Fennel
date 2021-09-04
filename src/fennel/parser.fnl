@@ -310,6 +310,9 @@ stream is finished."
           (parse-error (.. "malformed multisym: " rawstr)
                        (+ (- byteindex (length rawstr)) 1
                           (rawstr:find "[%.:][%.:]")))
+          (and (not= rawstr ":") (rawstr:match ":$"))
+          (parse-error (.. "malformed multisym: " rawstr)
+                       (+ (- byteindex (length rawstr)) 1 (rawstr:find ":$")))
           (rawstr:match ":.+[%.:]")
           (parse-error (.. "method must be last component of multisym: " rawstr)
                        (+ (- byteindex (length rawstr))

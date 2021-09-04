@@ -95,10 +95,15 @@
     "method must be last component of multisym: x:y:foo"
     "(set abc:def 2)" "cannot set method sym"}))
 
-(fn test-core-fails []
+(fn test-parse-fails []
   (test-failures
    {"\n\n(+))" "unknown:3: Parse error: unexpected closing delimiter )"
-    "\n\n(let [f (lambda []\n(local))] (f))" "unknown:4: "
+    "(foo:)" "malformed multisym"
+    "(foo.bar:)" "malformed multisym"}))
+
+(fn test-core-fails []
+  (test-failures
+   {"\n\n(let [f (lambda []\n(local))] (f))" "unknown:4: "
     "\n\n(let [x.y 9] nil)" "unknown:3: Compile error in 'let': unexpected multi"
     "\n(when)" "unknown:2: Compile error in 'when'"
     "()" "expected a function, macro, or special"
@@ -167,4 +172,5 @@
  : test-macro-fails
  : test-core-fails
  : test-suggestions
- : test-macro}
+ : test-macro
+ : test-parse-fails}

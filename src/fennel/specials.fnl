@@ -395,7 +395,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 (fn SPECIALS.let [ast scope parent opts]
   (let [bindings (. ast 2)
         pre-syms []]
-    (compiler.assert (and bindings (not (utils.list? bindings)) (not (kv? bindings)))
+    (compiler.assert (and (utils.table? bindings) (not (kv? bindings)))
                      "expected binding sequence" bindings)
     (compiler.assert (= (% (length bindings) 2) 0)
                      "expected even number of name/value bindings" (. ast 2))

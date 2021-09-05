@@ -778,20 +778,19 @@ Method name doesn't have to be known at compile-time; if it is, use
              "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
 (fn arithmetic-special [name zero-arity unary-prefix nval ast scope parent]
-  (match (length ast)
-    1 (do
-        (compiler.assert zero-arity "Expected more than 0 arguments" ast)
-        (utils.expr zero-arity :literal))
-    len (let [operands []
-              padded-op (.. " " name " ")]
-          (for [i 2 len]
-            (let [subexprs (compiler.compile1 (. ast i) scope parent {: nval})]
-              (utils.map subexprs tostring operands)))
-          (if (= (length operands) 1)
-              (if unary-prefix
-                  (.. "(" unary-prefix padded-op (. operands 1) ")")
-                  (. operands 1))
-              (.. "(" (table.concat operands padded-op) ")")))))
+  (let [len (length ast) operands []
+        padded-op (.. " " name " ")]
+    (for [i 2 len]
+      (let [subexprs (compiler.compile1 (. ast i) scope parent {: nval})]
+        (utils.map subexprs tostring operands)))
+    (match (length operands)
+      0 (utils.expr (doto zero-arity
+                      (compiler.assert "Expected more than 0 arguments" ast))
+                    :literal)
+      1 (if unary-prefix
+            (.. "(" unary-prefix padded-op (. operands 1) ")")
+            (. operands 1))
+      _ (.. "(" (table.concat operands padded-op) ")"))))
 
 (fn define-arithmetic-special [name zero-arity unary-prefix lua-name]
   (tset SPECIALS name (partial arithmetic-special (or lua-name name) zero-arity

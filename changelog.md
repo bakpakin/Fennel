@@ -2,11 +2,22 @@
 
 Changes are **marked in bold** which could result in backwards-incompatibility.
 
-## 0.10.1 / ???
+## 1.0.0 / ???
 
+### New Features
+* Add `:into` clause to `collect` and `icollect`
+* Add Macro guide
+* Improve consistency of table key ordering in compiled output
 * Apply strict globals checking in the repl by default
 * Allow strict globals checking to be disabled with `--globals "*"`
-* Add `:into` clause to `collect` and `icollect`
+
+### Bug Fixes
+* Fix a bug where macro modules did not get compiler options propagated
+
+### Changes and Removals
+* **Enforce compiler sandbox** by default instead of warning
+* **Disallow &** in identifiers
+
 
 ## 0.10.0 / 2021-08-07
 

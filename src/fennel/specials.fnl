@@ -1117,9 +1117,11 @@ table.insert(package.loaders, fennel.searcher)"
     allowed))
 
 (fn fennel-macro-searcher [module-name]
-  (match (search-module module-name utils.fennel-module.macro-path)
-    filename (values (partial utils.fennel-module.dofile filename
-                              {:env :_COMPILER}) filename)))
+  (let [opts (doto (utils.copy utils.root.options)
+               (tset :env :_COMPILER))]
+    (match (search-module module-name utils.fennel-module.macro-path)
+      filename (values (partial utils.fennel-module.dofile filename opts)
+                       filename))))
 
 (fn lua-macro-searcher [module-name]
   (match (search-module module-name package.path)
@@ -1178,8 +1180,7 @@ modules in the compiler environment."
     (compiler.assert (= :string (type modname))
                      "module name must compile to string" (or real-ast ast))
     (when (not (. macro-loaded modname))
-      (let [env (make-compiler-env ast scope parent)
-            (loader filename) (search-macro-module modname 1)]
+      (let [(loader filename) (search-macro-module modname 1)]
         (compiler.assert loader (.. modname " module not found.") ast)
         (tset macro-loaded modname (loader modname filename))))
     (add-macros (. macro-loaded modname) ast scope parent)))

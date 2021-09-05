@@ -17,6 +17,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 ### Changes and Removals
 * **Enforce compiler sandbox** by default instead of warning
 * **Disallow &** in identifiers
+* Implicit else branches in `if` are treated as nil, **not zero values**
 
 
 ## 0.10.0 / 2021-08-07

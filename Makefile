@@ -35,7 +35,7 @@ count: ; cloc $(LIB_SRC) ; cloc $(SRC)
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 
 # Avoid chicken/egg situation using the old Lua launcher.
-LAUNCHER=$(LUA) old/launcher.lua --add-fennel-path src/?.fnl
+LAUNCHER=$(LUA) old/launcher.lua --no-compiler-sandbox --add-fennel-path src/?.fnl
 
 # All-in-one pure-lua script:
 fennel: src/launcher.fnl $(SRC)

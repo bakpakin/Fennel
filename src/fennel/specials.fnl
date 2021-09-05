@@ -390,11 +390,13 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 
 (doc-special :var [:name :val] "Introduce new mutable local.")
 
+(fn kv? [t] (. (icollect [k (pairs t)] (if (not (= :number (type k))) k)) 1))
+
 (fn SPECIALS.let [ast scope parent opts]
   (let [bindings (. ast 2)
         pre-syms []]
-    (compiler.assert (or (utils.list? bindings) (utils.table? bindings))
-                     "expected binding table" ast)
+    (compiler.assert (and bindings (not (utils.list? bindings)) (not (kv? bindings)))
+                     "expected binding sequence" bindings)
     (compiler.assert (= (% (length bindings) 2) 0)
                      "expected even number of name/value bindings" (. ast 2))
     (compiler.assert (>= (length ast) 3) "expected body expression" (. ast 1))

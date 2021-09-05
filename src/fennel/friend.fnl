@@ -42,7 +42,7 @@
                           "looking for a local which is used out of its scope"]
         "expected body expression" ["putting some code in the body of this form after the bindings"]
         "expected binding and iterator" ["making sure you haven't omitted a local name or iterator"]
-        "expected binding table" ["placing a table here in square brackets containing identifiers to bind"]
+        "expected binding sequence" ["placing a table here in square brackets containing identifiers to bind"]
         "expected even number of name/value bindings" ["finding where the identifier or value is missing"]
         "may only be used at compile time" ["moving this to inside a macro if you need to manipulate symbols/lists"
                                             "using square brackets instead of parens to construct a table"]

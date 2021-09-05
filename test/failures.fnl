@@ -150,7 +150,7 @@
         (_ assert-msg) (pcall fennel.eval
                               "(eval-compiler (assert-compile nil \"bad\" 1))")
         (_ msg4) (pcall fennel.eval "(abc] ;; msg4")
-        (_ msg5) (pcall fennel.eval "(let) ;; msg5")]
+        (_ msg5) (pcall fennel.eval "(let {:a 1}) ;; msg5")]
     ;; show the raw error message
     (l.assertStrContains msg "expected var x")
     ;; offer suggestions

@@ -40,7 +40,7 @@ will see its values updated as expected, regardless of mangling rules."
   ;; __pairs metamethod, otherwise we give up entirely on globals checking.
   (let [mt (match (getmetatable env)
              ;; newer lua versions know about __pairs natively not 5.1
-             {: __pairs} (collect [k v (__pairs env)] (values k v))
+             (where {: __pairs} __pairs) (collect [k v (__pairs env)] (values k v))
              nil (or env _G))]
     (and mt (utils.kvmap mt compiler.global-unmangling))))
 

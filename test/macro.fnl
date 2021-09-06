@@ -235,9 +235,11 @@
 
 (fn test-lua-module []
   (let [ok-code "(macro abc [] (let [l (require :test.luamod)] (l.abc))) (abc)"
-        bad-code "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"]
+        bad-code "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"
+        reversed "(import-macros {: reverse} :test.mod.reverse) (reverse (29 2 +))"]
     (l.assertEquals (fennel.eval ok-code) "abc")
-    (l.assertFalse (pcall fennel.eval bad-code {:compiler-env :strict}))))
+    (l.assertFalse (pcall fennel.eval bad-code {:compiler-env :strict}))
+    (l.assertEquals 31 (fennel.eval reversed))))
 
 (fn test-disabled-sandbox-searcher []
   (let [opts {:env :_COMPILER :compiler-env _G}

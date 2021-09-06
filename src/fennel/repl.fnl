@@ -4,7 +4,7 @@
 ;; preserved in between "chunks"; by default Lua throws away all locals after
 ;; evaluating each piece of input.
 
-(local utils (require :fennel.utils))
+(local {: sym : list &as utils} (require :fennel.utils))
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))
 (local specials (require :fennel.specials))
@@ -31,28 +31,39 @@
      "Runtime" (.. (compiler.traceback (tostring err) 4) "\n")
      _ (: "%s error: %s\n" :format errtype (tostring err)))))
 
-(local save-source (table.concat ["local ___i___ = 1"
-                                  "while true do"
-                                  " local name, value = debug.getlocal(1, ___i___)"
-                                  " if(name and name ~= \"___i___\") then"
-                                  " ___replLocals___[name] = value"
-                                  " ___i___ = ___i___ + 1"
-                                  " else break end end"]
-                                 "\n"))
+;; Lua's lexical scoping mechanism is extremely hostile to repls. Without
+;; implementing locals-saving in the repl, locals from each line are simply
+;; discarded, forcing you to save things in globals if you want to make any
+;; use of them in the repl! This is a big problem and makes the stock Lua repl
+;; nearly useless. So we implement a system which wraps every form input
+;; and grabs locals using debug.getlocal to stuff them into the ___replLocals___
+;; table which persists across lines. It's very ugly, but it works.
 
-(fn splice-save-locals [env lua-source]
+(macro source-saver []
+  `(do (var ___i___ 1)
+       (while true
+         (let [(name value) (debug.getlocal 1 ___i___)]
+           (if (and name (not= "___i___" name))
+               (do (set ___i___ (+ ___i___ 1))
+                   (tset ___replLocals___ name value))
+               (lua "break"))))))
+
+;; a few shenanigans to work around the lack of runtime quote.
+(local (_ save-source) ((-> (macrodebug (source-saver) :do)
+                            (parser.string-stream)
+                            (parser.parser))))
+
+(fn wrap-save-locals [env scope form]
   (set env.___replLocals___ (or env.___replLocals___ {}))
-  (let [spliced-source []
-        bind "local %s = ___replLocals___['%s']"]
-    (each [line (lua-source:gmatch "([^\n]+)\n?")]
-      (table.insert spliced-source line))
+  (let [bindings []
+        result (sym (compiler.gensym scope))
+        wrapped-form (list (sym :let) bindings save-source result)]
     (each [name (pairs env.___replLocals___)]
-      (table.insert spliced-source 1 (bind:format name name)))
-    (when (and (< 1 (length spliced-source))
-               (: (. spliced-source (length spliced-source)) :match
-                  "^ *return .*$"))
-      (table.insert spliced-source (length spliced-source) save-source))
-    (table.concat spliced-source "\n")))
+      (table.insert bindings 1 (sym name))
+      (table.insert bindings 2 (list (sym ".") (sym "___replLocals___") name)))
+    (table.insert bindings result)
+    (table.insert bindings form)
+    wrapped-form))
 
 (fn completer [env scope text]
   (let [matches []
@@ -75,9 +86,7 @@
     (fn descend [input tbl prefix add-matches method?]
       (let [splitter (if method? "^([^:]+):(.*)" "^([^.]+)%.(.*)")
             (head tail) (input:match splitter)
-            raw-head (if (or (= tbl env) (= tbl env.___replLocals___))
-                         (. scope.manglings head)
-                         head)]
+            raw-head (or (. scope.manglings head) head)]
         (when (= (type (. tbl raw-head)) :table)
           (set stop-looking? true)
           (if method?
@@ -236,17 +245,17 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.apropos-doc :fnl/docstring
                        "Print all functions that match the pattern in their docs")
 
-(fn apropos-show-docs [pattern]
+(fn apropos-show-docs [on-values pattern]
   "Print function documentations for a given function pattern."
   (each [_ path (ipairs (apropos pattern))]
     (let [tgt (apropos-follow-path path)]
       (when (and (= :function (type tgt))
                  (compiler.metadata:get tgt :fnl/docstring))
-        (print (specials.doc tgt path))
-        (print)))))
+        (on-values (specials.doc tgt path))
+        (on-values)))))
 
-(fn commands.apropos-show-docs [env read _ on-error scope]
-  (run-command read on-error #(apropos-show-docs (tostring $))))
+(fn commands.apropos-show-docs [env read on-values on-error scope]
+  (run-command read on-error #(apropos-show-docs on-values (tostring $))))
 
 (compiler.metadata:set commands.apropos-show-docs :fnl/docstring
                        "Print all documentations matching a pattern in function name")
@@ -294,8 +303,11 @@ For more information about the language, see https://fennel-lang.org/reference")
     (set opts.useMetadata (not= options.useMetadata false))
     (when (= opts.allowedGlobals nil)
       (set opts.allowedGlobals (specials.current-global-names opts.env)))
+    (when (and opts.allowedGlobals save-locals?)
+      (table.insert opts.allowedGlobals :___replLocals___))
     (when opts.registerCompleter
       (opts.registerCompleter (partial completer env scope)))
+    (set (utils.root.options utils.root.scope) (values opts scope))
 
     (fn print-values [...]
       (let [vals [...]
@@ -309,10 +321,12 @@ For more information about the language, see https://fennel-lang.org/reference")
     (fn loop []
       (each [k (pairs chars)]
         (tset chars k nil))
-      (let [(ok parse-ok? x) (pcall read)
-            src-string (string.char (unpack chars))]
+      (let [(ok parse-ok? form) (pcall read)
+            src-string (string.char (unpack chars))
+            form (if save-locals?
+                     (wrap-save-locals env scope form)
+                     form)]
         (reset)
-        (set utils.root.options opts)
         (if (not ok)
             (do
               (on-error :Parse parse-ok?)
@@ -322,22 +336,19 @@ For more information about the language, see https://fennel-lang.org/reference")
             (run-command-loop src-string read loop env on-values on-error
                               scope chars)
             (when parse-ok? ; if this is false, we got eof
-              (match (pcall compiler.compile x (doto opts
-                                                 (tset :env env)
-                                                 (tset :source src-string)
-                                                 (tset :scope scope)))
+              (match (pcall compiler.compile form (doto opts
+                                                    (tset :env env)
+                                                    (tset :source src-string)
+                                                    (tset :scope scope)))
                 (false msg) (do
                               (clear-stream)
                               (on-error :Compile msg))
-                (true src) (let [src (if save-locals?
-                                         (splice-save-locals env src)
-                                         src)]
-                             (match (pcall specials.load-code src env)
-                               (false msg) (do
-                                             (clear-stream)
-                                             (on-error "Lua Compile" msg src))
-                               (_ chunk) (xpcall #(print-values (chunk))
-                                                 (partial on-error :Runtime)))))
+                (true src) (match (pcall specials.load-code src env)
+                             (false msg) (do
+                                           (clear-stream)
+                                           (on-error "Lua Compile" msg src))
+                             (_ chunk) (xpcall #(print-values (chunk))
+                                               (partial on-error :Runtime))))
               (set utils.root.options old-root-options)
               (loop)))))
 

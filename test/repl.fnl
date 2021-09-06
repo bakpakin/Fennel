@@ -99,7 +99,7 @@
         _ (send ",reset")
         abc2 (table.concat (send "abc"))]
     (l.assertEquals abc "123")
-    (l.assertEquals abc2 "")))
+    (l.assertStrMatches abc2 ".*unknown global in strict mode.*")))
 
 (fn set-boo [env]
   "Set boo to exclaimation points."
@@ -157,6 +157,11 @@
     (l.assertStrContains out ":byteend 7")
     (l.assertStrContains out3 "   (f [123])\n      ^^^^^")))
 
+(fn test-code []
+  (let [send (wrap-repl)]
+    (send "(local {: foo} (require :test.mod.foo7))")
+    (l.assertEquals (send "(foo)") [:foo])))
+
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -172,5 +177,6 @@
      : test-plugins
      : test-options
      : test-apropos
-     : test-byteoffset}
+     : test-byteoffset
+     : test-code}
     {})

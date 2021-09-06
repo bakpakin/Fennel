@@ -781,7 +781,8 @@ Method name doesn't have to be known at compile-time; if it is, use
   (let [len (length ast) operands []
         padded-op (.. " " name " ")]
     (for [i 2 len]
-      (let [subexprs (compiler.compile1 (. ast i) scope parent {: nval})]
+      (let [subexprs (compiler.compile1 (. ast i) scope parent
+                                        {:nval (if (< i len) 1)})]
         (utils.map subexprs tostring operands)))
     (match (length operands)
       0 (utils.expr (doto zero-arity

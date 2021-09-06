@@ -28,7 +28,9 @@
                "(or false nil true 12 false)" true
                "(or)" false
                "(and (values))" true
-               "(and true true (values))" true}]
+               "(and true true (values))" true
+               "(and true (values true false) true)" true
+               "(and true (values true false))" false}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

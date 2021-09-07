@@ -77,7 +77,23 @@ which prints with parens instead of square brackets.
 That's all! Everything else is details.
 
 OK, so ... that's not quite fair. There are a few things you still
-need to understand. Let's walk thru an example.
+need to understand. Let's start with the tiniest of examples just to kick
+things off:
+
+```fennel
+(macro postfix3 [[x1 x2 x3]]
+  (list x3 x2 x1))
+
+(postfix3 ("world" "hello" print)) ; -> becomes (print "hello" "world")
+```
+
+This is one of the simplest macros possible. It takes a list of three
+elements and returns a list with the elements in the opposite
+order. From this example you can see that macros look like functions
+which take arguments. But you can't write a function that takes
+`("world" "hello" print)` as an argument! What's going on here?
+
+Let's walk thru a bigger example.
 
 The first step when you want to write a macro is to identify the
 transformation you want to perform. Let's take a look at what it might

@@ -1040,11 +1040,12 @@ macro module which implements `when2` in terms of `if` and `do`:
 {:when2 when2}
 ```
 
-A full explanation of how macros work is out of scope for this document,
-but you can think of it as a compile-time template function. The backtick
-on the third line creates a template for the code emitted by the macro. The
-`,` serves as "unquote" which splices values into the template. *(Changed
-in 0.3.0: `@` was used instead of `,` before.)*
+For a full explanation of how this works see [the macro guide](macros.md).
+All forms in Fennel are normal tables you can use `table.insert`,
+`ipairs`, destructuring, etc on. The backtick on the third line
+creates a template list for the code emitted by the macro, and the
+comma serves as "unquote" which splices values into the
+template. *(Changed in 0.3.0: `@` was used instead of `,` before.)*
 
 Assuming the code above is in the file "my-macros.fnl" then it turns this input:
 

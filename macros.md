@@ -3,8 +3,8 @@
 Macros are how lisps accomplish metaprogramming. You'll see a lot
 of people treat lisp macros with a kind of mystical reverence. "Macros
 allow you to do things that aren't possible in other languages" is a
-common refrain, but that's nonsense. [Turing tarpits][1] exist; other
-languages have macros. The difference is that lisps allow you to write
+common refrain, but that's nonsense. ([Turing tarpits][1] exist; other
+languages have macros.) The difference is that lisps allow you to write
 programs using the same notation you use for data structures. It's not
 that these things are impossible in other languages; it's just that
 the lisp way flows seamlessly instead of feeling arcane.
@@ -96,7 +96,7 @@ which take arguments. But you can't write a function that takes
 Let's walk thru a bigger example.
 
 The first step when you want to write a macro is to identify the
-transformation you want to perform. Let's take a look at what it might
+transformation you want to perform on the code. Let's take a look at what it might
 look like to write a `thrice-if` macro which takes a condition and a
 form, and runs the form three times, each time first checking that the
 condition is still true.
@@ -179,7 +179,8 @@ to `list` and `sym`: quoting.
 
 The backtick character can be thought of as creating a template of a
 list which you can then selectively interpolate values using a comma
-character to unquote.
+character to unquote. This is similar to how string interpolation
+works in languages like Ruby.
 
 ```fennel
 (macro thrice-if [condition body]

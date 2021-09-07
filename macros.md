@@ -28,7 +28,7 @@ etched in a stone tablet (or perhaps the wrath of the compiler if you
 made a mistake). The data it used to produce that executable is not
 accessible to the lowly program.
 
-But it doesn't have to be this way. Using a compiler can feel more
+But it doesn't have to be this way. Using a compiler can feel more like
 having a conversation where you go back and forth, and macros can blur
 the line between the compiler and the program. In the case of Fennel,
 that means you can get the program's own data as a table.

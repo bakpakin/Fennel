@@ -38,6 +38,8 @@
          (tonumber num))"
       [24 58 1999])
   (== "(icollect [_ x (ipairs [2 3]) :into [11]] (* x 11))"
+      [11 22 33])
+  (== "(icollect [:into [11] _ x (ipairs [2 3])] (* x 11))"
       [11 22 33]))
 
 (fn test-accumulate []

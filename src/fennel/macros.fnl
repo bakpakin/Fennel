@@ -110,7 +110,7 @@ encountering an error before propagating it."
 
 (fn into-val [iter-tbl]
   (var into nil)
-  (for [i (length iter-tbl) 2 -1]
+  (for [i (length iter-tbl) 1 -1]
     (if (= :into (. iter-tbl i))
         (do (set into (table.remove iter-tbl (+ i 1)))
             (table.remove iter-tbl i))))

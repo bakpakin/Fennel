@@ -43,6 +43,16 @@
       [11 22 33])
   (let [(ok? msg) (pcall fennel.compileString "(icollect [:into [] _ x (ipairs [2 3]) :into []] x)")]
     (l.assertFalse ok?)
+    (l.assertStrContains msg ":into clause"))
+  (== "(icollect [:into (#[11]) _ x (ipairs [2 3])] (* x 11))"
+      [11 22 33])
+  (== "(let [xs [11]] (icollect [_ x (ipairs [2 3]) :into xs] (* x 11)))"
+      [11 22 33])
+  (let [(ok? msg) (pcall fennel.compileString "(icollect [_ x (ipairs [2 3]) :into \"oops\"] x)")]
+    (l.assertFalse ok?)
+    (l.assertStrContains msg ":into clause"))
+  (let [(ok? msg) (pcall fennel.compileString "(icollect [_ x (ipairs [2 3]) :into 2] x)")]
+    (l.assertFalse ok?)
     (l.assertStrContains msg ":into clause")))
 
 (fn test-accumulate []

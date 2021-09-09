@@ -115,7 +115,11 @@ encountering an error before propagating it."
         (do (assert (not into) "expected only one :into clause")
             (set into (table.remove iter-tbl (+ i 1)))
             (table.remove iter-tbl i))))
-  (assert (or (not into) (table? into)) "expected table in :into clause")
+  (assert (or (not into)
+              (sym? into)
+              (table? into)
+              (list? into))
+          "expected table, function call, or symbol in :into clause")
   (or into []))
 
 (fn collect* [iter-tbl key-value-expr ...]

@@ -170,8 +170,7 @@ syntax highlighting and indentation support.
   * For syntax highlighting and indentation, install
     [fennel.vim](https://github.com/bakpakin/fennel.vim)
   * To spin up a REPL in the terminal buffer, you can install a REPL plugin
-    like [iron.nvim](https://github.com/Vigemus/iron.nvim) and follow the
-    documentation to add fennel as an executable REPL command.
+    like [conjure](https://conjure.fun/).
 
 
 ### Adding Fennel support to Visual Studio Code

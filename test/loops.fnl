@@ -38,7 +38,10 @@
          (tonumber num))"
       [24 58 1999])
   (== "(icollect [_ x (ipairs [2 3]) :into [11]] (* x 11))"
-      [11 22 33]))
+      [11 22 33])
+  (let [(ok? msg) (pcall fennel.compileString "(icollect [:into [] _ x (ipairs [2 3]) :into []] x)")]
+    (l.assertFalse ok?)
+    (l.assertStrContains msg ":into clause")))
 
 (fn test-accumulate []
   (== "(var x true)

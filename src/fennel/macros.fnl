@@ -112,7 +112,8 @@ encountering an error before propagating it."
   (var into nil)
   (for [i (length iter-tbl) 2 -1]
     (if (= :into (. iter-tbl i))
-        (do (set into (table.remove iter-tbl (+ i 1)))
+        (do (assert (not into) "expected only one :into clause")
+            (set into (table.remove iter-tbl (+ i 1)))
             (table.remove iter-tbl i))))
   (assert (or (not into) (table? into)) "expected table in :into clause")
   (or into []))

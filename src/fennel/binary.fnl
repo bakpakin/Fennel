@@ -5,6 +5,9 @@
 ;; based on https://github.com/ers35/luastatic/
 (local fennel (require :fennel))
 
+(fn warn [warning]
+  (io.stderr:write (.. "WARNING: " warning "\n")))
+
 (fn shellout [command]
   (let [f (io.popen command)
         stdout (f:read :*all)]
@@ -166,18 +169,25 @@ int main(int argc, char *argv[]) {
   (let [nm (or (os.getenv :NM) :nm)
         out ["  /* native libraries */"]]
     (each [_ path (ipairs native)]
-      (each [open (: (shellout (.. nm " " path)) :gmatch
-                     "[^dDt] _?luaopen_([%a%p%d]+)")]
-        (table.insert out (: "  int luaopen_%s(lua_State *L);" :format open))
-        (table.insert out
-                      (: "  lua_pushcfunction(L, luaopen_%s);" :format open))
-        (table.insert out
-                      (: "  lua_setfield(L, -2, \"%s\");\n"
-                         ;; changing initial underscore breaks luaossl
-                         :format
-                         (.. (open:sub 1 1)
-                             (-> (open:sub 2)
-                                 (: :gsub "_" ".")))))))
+      (let [opens []]
+        (each [open (: (shellout (.. nm " " path)) :gmatch
+                       "[^dDt] _?luaopen_([%a%p%d]+)")]
+          (table.insert opens open))
+        (when (= 0 (length opens))
+          (warn (: (.. "Native module %s did not contain any luaopen_* symbols. "
+                       "Did you mean to use --native-library instead of --native-module?")
+                   :format path)))
+        (each [_ open (ipairs opens)]
+          (table.insert out (: "  int luaopen_%s(lua_State *L);" :format open))
+          (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format
+                               open))
+          (table.insert out
+                        (: "  lua_setfield(L, -2, \"%s\");\n"
+                           ;; changing initial underscore breaks luaossl
+                           :format
+                           (.. (open:sub 1 1)
+                               (-> (open:sub 2)
+                                   (: :gsub "_" "."))))))))
     (table.concat out "\n")))
 
 (fn fennel->c [filename native options]

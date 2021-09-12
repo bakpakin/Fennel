@@ -465,6 +465,7 @@ nested values, but all parents must contain an existing table.")
 
 ;; TODO: refactor; too long!
 (fn if* [ast scope parent opts]
+  (compiler.assert (< 2 (length ast)) "expected condition and body" ast)
   (let [do-scope (compiler.make-scope scope)
         branches []
         (wrapper inner-tail inner-target target-exprs) (calculate-target scope
@@ -478,6 +479,10 @@ nested values, but all parents must contain an existing table.")
                                     chunk nil (. ast i))
         {: chunk :scope cscope}))
 
+    ;; Implicit else becomes nil
+    (when (= 1 (% (length ast) 2))
+      (table.insert ast (utils.sym :nil)))
+
     (for [i 2 (- (length ast) 1) 2]
       (let [condchunk []
             res (compiler.compile1 (. ast i) do-scope condchunk {:nval 1})
@@ -488,8 +493,7 @@ nested values, but all parents must contain an existing table.")
         (set branch.nested (and (not= i 2) (= (next condchunk nil) nil)))
         (table.insert branches branch)))
     ;; Emit code
-    (let [has-else? (and (> (length ast) 3) (= (% (length ast) 2) 0))
-          else-branch (and has-else? (compile-body (length ast)))
+    (let [else-branch (compile-body (length ast))
           s (compiler.gensym scope)
           buffer []]
       (var last-buffer buffer)
@@ -497,9 +501,7 @@ nested values, but all parents must contain an existing table.")
         (let [branch (. branches i)
               fstr (if (not branch.nested) "if %s then" "elseif %s then")
               cond (tostring branch.cond)
-              cond-line (if (and (= cond :true) branch.nested
-                                 (= i (length branches)) (not has-else?))
-                            :else (: fstr :format cond))]
+              cond-line (: fstr :format cond)]
           (if branch.nested
               (compiler.emit last-buffer branch.condchunk ast)
               (each [_ v (ipairs branch.condchunk)]
@@ -508,16 +510,8 @@ nested values, but all parents must contain an existing table.")
           (compiler.emit last-buffer branch.chunk ast)
           (if (= i (length branches))
               (do
-                (if has-else?
-                    (do
-                      (compiler.emit last-buffer :else ast)
-                      (compiler.emit last-buffer else-branch.chunk ast))
-                    ;; TODO: Consolidate use of cond-line ~= "else" with has-else
-                    (and inner-target (not= cond-line :else))
-                    (do
-                      (compiler.emit last-buffer :else ast)
-                      (compiler.emit last-buffer
-                                     (: "%s = nil" :format inner-target) ast)))
+                (compiler.emit last-buffer :else ast)
+                (compiler.emit last-buffer else-branch.chunk ast)
                 (compiler.emit last-buffer :end ast))
               (not (. (. branches (+ i 1)) :nested))
               (let [next-buffer []]

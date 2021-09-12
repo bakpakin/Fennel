@@ -144,7 +144,8 @@
                ["(var x 12) (if true (set x 22) 0) x" 22]
                ["(when (= 12 88) (os.exit 1)) false" false]
                ["(while (let [f false] f) (lua :break))" nil]
-               ["(if _G.abc :abc true 55 :else)" 55]]]
+               ["(if _G.abc :abc true 55 :else)" 55]
+               ["(select :# (if false 3))" 1]]]
     (each [_ [code expected] (ipairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

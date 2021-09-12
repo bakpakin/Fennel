@@ -10,6 +10,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Improve consistency of table key ordering in compiled output
 * Apply strict globals checking in the repl by default
 * Allow strict globals checking to be disabled with `--globals "*"`
+* Emit warning when `--require-as-include` fails to find a module to include
 
 ### Bug Fixes
 * Fix a bug where macro modules did not get compiler options propagated

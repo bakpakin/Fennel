@@ -23,7 +23,10 @@
                 "Expected global mangling to work."))
 
 (fn test-include []
-  (let [expected "foo:FOO-1bar:BAR-2-BAZ-3"
+  (let [stderr io.stderr
+        ;; disable warnings because these are supposed to fall back
+        _ (set io.stderr nil)
+        expected "foo:FOO-1bar:BAR-2-BAZ-3"
         (ok out) (pcall fennel.dofile "test/mod/foo.fnl")
         (ok2 out2) (pcall fennel.dofile "test/mod/foo2.fnl"
                           {:requireAsInclude true})
@@ -59,7 +62,8 @@
     (l.assertNil _G.quux "Expected include to actually be local")
     (let [spliceOk (pcall fennel.dofile "test/mod/splice.fnl")]
       (l.assertTrue spliceOk "Expected splice to run")
-      (l.assertNil _G.q "Expected include to actually be local")))
+      (l.assertNil _G.q "Expected include to actually be local"))
+    (set io.stderr stderr))
   (let [code "(local bar (require :test.mod.bar))
               (local baz (require :test.mod.baz))
               (local quux (require :test.mod.quux))

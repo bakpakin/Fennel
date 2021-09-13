@@ -236,7 +236,8 @@ int main(int argc, char *argv[]) {
 
 (fn native-path? [path]
   (let [(extension version-extension) (path:match "%.(%a+)(%.?%d*)$")]
-    (if (and version-extension (not (version-extension:match "%.%d+"))) false
+    (if (and version-extension (not (= version-extension ""))
+             (not (version-extension:match "%.%d+"))) false
         (match extension
           :a path
           :o path

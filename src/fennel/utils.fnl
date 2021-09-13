@@ -9,7 +9,7 @@
 
 (fn warn [message]
   (when (and _G.io _G.io.stderr)
-    (_G.io.stderr:write (: "--WARNING: %s\n" :format message))))
+    (_G.io.stderr:write (: "--WARNING: %s\n" :format (tostring message)))))
 
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT

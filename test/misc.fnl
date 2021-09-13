@@ -39,12 +39,12 @@
         (ok6 out6) (pcall fennel.dofile "test/mod/foo6.fnl"
                           {:requireAsInclude true}
                           :test)]
-    (l.assertTrue ok out)
-    (l.assertTrue ok2 "Expected foo2 to run")
-    (l.assertTrue ok3 "Expected foo3 to run")
-    (l.assertTrue ok4 "Expected foo4 to run")
-    (l.assertTrue ok5 "Expected foo5 to run")
-    (l.assertTrue ok6 "Expected foo6 to run")
+    (l.assertTrue ok (: "Expected foo to run but it failed with error %s" :format (tostring out)))
+    (l.assertTrue ok2 (: "Expected foo2 to run but it failed with error %s" :format (tostring out2)))
+    (l.assertTrue ok3 (: "Expected foo3 to run but it failed with error %s" :format (tostring out3)))
+    (l.assertTrue ok4 (: "Expected foo4 to run but it failed with error %s" :format (tostring out4)))
+    (l.assertTrue ok5 (: "Expected foo5 to run but it failed with error %s" :format (tostring out5)))
+    (l.assertTrue ok6 (: "Expected foo6 to run but it failed with error %s" :format (tostring out6)))
     (l.assertEquals (and (= :table (type out)) out.result) expected
                     (.. "Expected include to have result: " expected))
     (l.assertFalse out.quux

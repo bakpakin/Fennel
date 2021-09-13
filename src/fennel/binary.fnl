@@ -163,8 +163,11 @@ int main(int argc, char *argv[]) {
     (f:close)
     lua-code))
 
-(fn native-loader [native]
-  (let [nm (or (os.getenv :NM) :nm)
+(fn native-loader [native options]
+  (let [opts (or options {:rename-modules {}})
+        rename (or opts.rename-modules {})
+        used-renames {}
+        nm (or (os.getenv :NM) :nm)
         out ["  /* native libraries */"]]
     (each [_ path (ipairs native)]
       (let [opens []]
@@ -176,16 +179,23 @@ int main(int argc, char *argv[]) {
                        "Did you mean to use --native-library instead of --native-module?")
                    :format path)))
         (each [_ open (ipairs opens)]
-          (table.insert out (: "  int luaopen_%s(lua_State *L);" :format open))
-          (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format
-                               open))
-          (table.insert out
-                        (: "  lua_setfield(L, -2, \"%s\");\n"
-                           ;; changing initial underscore breaks luaossl
-                           :format
-                           (.. (open:sub 1 1)
-                               (-> (open:sub 2)
-                                   (: :gsub "_" "."))))))))
+          (let [maybe-rename (. rename open)
+                require-name (if maybe-rename
+                                 (do
+                                   (tset used-renames open true)
+                                   maybe-rename)
+                                 open)]
+            (table.insert out
+                          (: "  int luaopen_%s(lua_State *L);" :format open))
+            (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format
+                                 open))
+            (table.insert out (: "  lua_setfield(L, -2, \"%s\");\n" :format
+                                 require-name))))))
+    (each [key val (pairs rename)]
+      (when (not (. used-renames key))
+        (warn (: (.. "unused --rename-native-module %s %s argument. "
+                     "Did you mean to include a native module?")
+                 :format key val))))
     (table.concat out "\n")))
 
 (fn fennel->c [filename native options]
@@ -196,10 +206,11 @@ int main(int argc, char *argv[]) {
                     (: :gsub "[\\/]" "."))
         dotpath-noextension (or (dotpath:match "(.+)%.") dotpath)
         fennel-loader (: (macrodebug (loader) :do) :format dotpath-noextension)
-        lua-loader (fennel.compile-string fennel-loader)]
+        lua-loader (fennel.compile-string fennel-loader)
+        {: rename-modules} options]
     (c-shim:format (string->c-hex-literal lua-loader) basename-noextension
                    (string->c-hex-literal (compile-fennel filename options))
-                   dotpath-noextension (native-loader native))))
+                   dotpath-noextension (native-loader native {: rename-modules}))))
 
 (fn write-c [filename native options]
   (let [out-filename (.. filename :_binary.c)
@@ -255,7 +266,7 @@ int main(int argc, char *argv[]) {
 
 (fn extract-native-args [args]
   ;; all native libraries go in libraries; those with lua code go in modules too
-  (let [native {:modules [] :libraries []}]
+  (let [native {:modules [] :libraries [] :rename-modules {}}]
     (for [i (length args) 1 -1]
       (when (= :--native-module (. args i))
         (let [path (assert (native-path? (table.remove args (+ i 1))))]
@@ -265,15 +276,22 @@ int main(int argc, char *argv[]) {
       (when (= :--native-library (. args i))
         (table.insert native.libraries 1
                       (assert (native-path? (table.remove args (+ i 1)))))
-        (table.remove args i)))
+        (table.remove args i))
+      (when (= :--rename-native-module (. args i))
+        (let [original (table.remove args (+ i 1))
+              new (table.remove args (+ i 1))]
+          (tset native.rename-modules original new))))
     (when (< 0 (length args))
       (print (table.concat args " "))
       (error (.. "Unknown args: " (table.concat args " "))))
     native))
 
 (fn compile [filename executable-name static-lua lua-include-dir options args]
-  (let [{: modules : libraries} (extract-native-args args)]
-    (compile-binary (write-c filename modules options) executable-name
+  (let [{: modules : libraries : rename-modules} (extract-native-args args)
+        opts {: rename-modules}]
+    (each [key val (pairs options)]
+      (tset opts key val))
+    (compile-binary (write-c filename modules opts) executable-name
                     static-lua lua-include-dir libraries)))
 
 (local help (: "
@@ -303,6 +321,11 @@ set CC_OPTS=-static to generate a binary with static linking.
 To include C libraries that contain Lua modules, add --native-module path/to.so,
 and to include C libraries without modules, use --native-library path/to.so.
 These options are unstable, barely tested, and even more likely to break.
+
+If you need to change the require name that a given native module is referenced
+as, you can use the --rename-native-module ORIGINAL NEW. ORIGINAL should be the
+suffix of the luaopen_* symbol in the native module. NEW should be the string
+you wish to pass to require to require the given native module.
 
 This method is currently limited to programs do not transitively require Lua
 modules. Requiring a Lua module directly will work, but requiring a Lua module

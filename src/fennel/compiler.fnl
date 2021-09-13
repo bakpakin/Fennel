@@ -747,9 +747,7 @@ which we have to do if we don't know."
 
 (fn require-include [ast scope parent opts]
   (fn opts.fallback [e]
-    (when (and _G.io _G.io.stderr)
-      (_G.io.stderr:write (.. "-- WARNING: include module not found, "
-                              "falling back to require: " (tostring e) "\n")))
+    (utils.warn (: "include module not found,- falling back to require: %s" :format e))
     (utils.expr (string.format "require(%s)" (tostring e)) :statement))
 
   (scopes.global.specials.include ast scope parent opts))

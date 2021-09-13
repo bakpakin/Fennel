@@ -4,9 +4,7 @@
 
 ;; based on https://github.com/ers35/luastatic/
 (local fennel (require :fennel))
-
-(fn warn [warning]
-  (io.stderr:write (.. "WARNING: " warning "\n")))
+(local {: warn} (require :fennel.utils))
 
 (fn shellout [command]
   (let [f (io.popen command)

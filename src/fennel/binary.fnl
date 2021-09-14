@@ -280,7 +280,8 @@ int main(int argc, char *argv[]) {
       (when (= :--rename-native-module (. args i))
         (let [original (table.remove args (+ i 1))
               new (table.remove args (+ i 1))]
-          (tset native.rename-modules original new))))
+          (tset native.rename-modules original new)
+          (table.remove args i))))
     (when (< 0 (length args))
       (print (table.concat args " "))
       (error (.. "Unknown args: " (table.concat args " "))))

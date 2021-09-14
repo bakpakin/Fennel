@@ -7,6 +7,10 @@
 
 ;;; General-purpose helper functions
 
+(fn warn [message]
+  (when (and _G.io _G.io.stderr)
+    (_G.io.stderr:write (: "--WARNING: %s\n" :format (tostring message)))))
+
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
   pairs is already stable, but on 5.3+ every run gives different ordering. Gives
@@ -335,7 +339,8 @@ handlers will be skipped."
         ;; bootstrap compiler does not have :until support
         (lua "return result")))))
 
-{: allpairs
+{: warn
+ : allpairs
  : stablepairs
  : copy
  : kvmap

@@ -134,7 +134,7 @@
         (and id options.detect-cycles?) (.. "@" id "{...}")
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
-              indent (table-indent t indent id)
+              indent (table-indent indent id)
               slength (or (and options.utf8? (-?> (rawget _G :utf8) (. :len)))
                           #(length $))
               prefix (if visible-cycle? (.. "@" id) "")

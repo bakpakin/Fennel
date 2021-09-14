@@ -149,9 +149,13 @@
 (set utils.fennel-module mod)
 
 ;; Load the built-in macros from macros.fnl.
-(let [builtin-macros (eval-compiler
-                       (with-open [f (assert (io.open :src/fennel/macros.fnl))]
-                         (.. "[===[" (f:read :*all) "]===]")))
+(let [builtin-macros
+      (eval-compiler
+        (let [FENNEL_SRC (and os os.getenv (= :table (type os)) (= :function (type os.getenv))
+                              (os.getenv :FENNEL_SRC))
+              fennel-src (if FENNEL_SRC (.. FENNEL_SRC :/) "")]
+          (with-open [f (assert (io.open (.. fennel-src :src/fennel/macros.fnl)))]
+            (.. "[===[" (f:read :*all) "]===]"))))
       module-name :fennel.macros
       _ (tset package.preload module-name #mod)
       env (doto (specials.make-compiler-env nil compiler.scopes.compiler {})

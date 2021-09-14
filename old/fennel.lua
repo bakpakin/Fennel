@@ -618,7 +618,7 @@ package.preload["fennel.specials"] = package.preload["fennel.specials"] or funct
         fargs = ""
       end
       compiler.emit(parent, string.format("local function %s(%s)", fname, fargs), ast)
-      utils.hook("do", ast, sub_scope0)
+      utils.hook("do", ast, scope)
       return compile_body(nil, true, utils.expr((fname .. "(" .. fargs .. ")"), "statement"))
     end
   end

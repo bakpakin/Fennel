@@ -134,7 +134,7 @@ By default, start is 2."
               fargs (if scope.vararg "..." "")]
           (compiler.emit parent
                          (string.format "local function %s(%s)" fname fargs) ast)
-          (utils.hook :do ast sub-scope)
+          (utils.hook :do ast scope)
           (compile-body nil true
                         (utils.expr (.. fname "(" fargs ")") :statement))))))
 

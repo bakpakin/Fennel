@@ -179,20 +179,19 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.complete :fnl/docstring
                        "Print all possible completions for a given input symbol.")
 
-(fn apropos* [pattern module prefix seen names]
+(fn apropos* [pattern tbl prefix seen names]
   ;; package.loaded can contain modules with dots in the names.  Such
   ;; names are renamed to contain / instead of a dot.
-  (each [name module (pairs module)]
+  (each [name subtbl (pairs tbl)]
     (when (and (= :string (type name))
-               (not= package module))
-      (match (type module)
+               (not= package subtbl))
+      (match (type subtbl)
         :function (when (: (.. prefix name) :match pattern)
                     (table.insert names (.. prefix name)))
-        :table (when (not (. seen module))
-                 (apropos* pattern
-                           module
+        :table (when (not (. seen subtbl))
+                 (apropos* pattern subtbl
                            (.. prefix (name:gsub "%." "/") ".")
-                           (doto seen (tset module true))
+                           (doto seen (tset subtbl true))
                            names)))))
   names)
 
@@ -204,7 +203,7 @@ For more information about the language, see https://fennel-lang.org/reference")
     (icollect [_ name (ipairs names)]
       (name:gsub "^_G%." ""))))
 
-(fn commands.apropos [env read on-values on-error scope]
+(fn commands.apropos [_env read on-values on-error _scope]
   (run-command read on-error #(on-values (apropos (tostring $)))))
 
 (compiler.metadata:set commands.apropos :fnl/docstring
@@ -230,7 +229,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                        (table.insert names path))))))
     names))
 
-(fn commands.apropos-doc [env read on-values on-error scope]
+(fn commands.apropos-doc [_env read on-values on-error _scope]
   (run-command read on-error #(on-values (apropos-doc (tostring $)))))
 
 (compiler.metadata:set commands.apropos-doc :fnl/docstring
@@ -245,7 +244,7 @@ For more information about the language, see https://fennel-lang.org/reference")
         (print (specials.doc tgt path))
         (print)))))
 
-(fn commands.apropos-show-docs [env read _ on-error scope]
+(fn commands.apropos-show-docs [_env read _ on-error _scope]
   (run-command read on-error #(apropos-show-docs (tostring $))))
 
 (compiler.metadata:set commands.apropos-show-docs :fnl/docstring

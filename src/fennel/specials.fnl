@@ -771,7 +771,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 (doc-special :hashfn ["..."]
              "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
-(fn arithmetic-special [name zero-arity unary-prefix nval ast scope parent]
+(fn arithmetic-special [name zero-arity unary-prefix ast scope parent]
   (let [len (length ast) operands []
         padded-op (.. " " name " ")]
     (for [i 2 len]
@@ -789,7 +789,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 
 (fn define-arithmetic-special [name zero-arity unary-prefix lua-name]
   (tset SPECIALS name (partial arithmetic-special (or lua-name name) zero-arity
-                               unary-prefix 1))
+                               unary-prefix))
   (doc-special name [:a :b "..."]
                "Arithmetic operator; works the same as Lua but accepts more arguments."))
 
@@ -804,10 +804,10 @@ Method name doesn't have to be known at compile-time; if it is, use
 
 (fn SPECIALS.or [ast scope parent]
   ;; and/or have nval=nil in order to trigger IIFE so they can short-circuit
-  (arithmetic-special :or :false nil nil ast scope parent))
+  (arithmetic-special :or :false nil ast scope parent))
 
 (fn SPECIALS.and [ast scope parent]
-  (arithmetic-special :and :true nil nil ast scope parent))
+  (arithmetic-special :and :true nil ast scope parent))
 
 (doc-special :and [:a :b "..."]
              "Boolean operator; works the same as Lua but accepts more arguments.")
@@ -1122,7 +1122,7 @@ modules in the compiler environment."
                      "expected each macro to be function" ast)
     (tset scope.macros k v)))
 
-(fn resolve-module-name [{: filename 2 second} scope parent opts]
+(fn resolve-module-name [{: filename 2 second} _scope _parent opts]
   ;; Compile module path to resolve real module name.  Allows using
   ;; (.. ... :.foo.bar) expressions and self-contained
   ;; statement-expressions in `require`, `include`, `require-macros`,
@@ -1208,7 +1208,7 @@ Consider using import-macros instead as it is more flexible.")
                   ;; compile relative requires into includes, but we can still
                   ;; emit a runtime relative require.
                   (true modname) (utils.expr (string.format "%q" modname) :literal)
-                  (_ err) (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))]
+                  _ (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))]
     (if (or (not= modexpr.type :literal) (not= (: (. modexpr 1) :byte) 34))
         (if opts.fallback
             (opts.fallback modexpr)

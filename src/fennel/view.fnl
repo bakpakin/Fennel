@@ -103,7 +103,7 @@
   (and options.detect-cycles? (detect-cycle t {}) (save-table t options.seen)
        (< 1 (or (. options.appearances t) 0))))
 
-(fn table-indent [t indent id]
+(fn table-indent [indent id]
   ;; When table contains cycles, it is printed with a prefix before opening
   ;; delimiter.  Prefix has a variable length, as it contains `id` of the table
   ;; and fixed part of `2` characters `@` and either `[` or `{` depending on
@@ -127,7 +127,7 @@
         (.. open (table.concat elements indent-str) close)
         oneline)))
 
-(fn pp-associative [t kv options indent key?]
+(fn pp-associative [t kv options indent]
   (var multiline? false)
   (let [id (. options.seen t)]
     (if (>= options.level options.depth) "{...}"
@@ -153,7 +153,7 @@
         (and id options.detect-cycles?) (.. "@" id "[...]")
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
-              indent (table-indent t indent id)
+              indent (table-indent indent id)
               prefix (if visible-cycle? (.. "@" id) "")
               items (icollect [_ [_ v] (pairs kv)]
                       (let [v (pp v options indent)]

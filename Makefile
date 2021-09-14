@@ -35,7 +35,10 @@ count: ; cloc $(LIB_SRC) ; cloc $(SRC)
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 
 # Avoid chicken/egg situation using the old Lua launcher.
-LAUNCHER=$(LUA) old/launcher.lua --no-compiler-sandbox --add-fennel-path src/?.fnl
+LAUNCHER=$(LUA) old/launcher.lua --no-compiler-sandbox --add-fennel-path src/?.fnl > /dev/null
+
+lint: ; $(LAUNCHER) --plugin src/linter.fnl --require-as-include \
+		--compile src/fennel.fnl
 
 # All-in-one pure-lua script:
 fennel: src/launcher.fnl $(SRC)
@@ -162,7 +165,7 @@ uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 release: uploadtar uploadrock
 
 .PHONY: build test testall count format ci clean coverage install \
-	uploadtar uploadrock release
+	uploadtar uploadrock release lint
 
 # TODO for 1.0.0 release
 

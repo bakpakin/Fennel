@@ -243,12 +243,15 @@ int main(int argc, char *argv[]) {
     (os.exit 0)))
 
 (fn native-path? [path]
-  (match (path:match "%.(%a+)$")
-    :a path
-    :o path
-    :so path
-    :dylib path
-    _ false))
+  (let [(extension version-extension) (path:match "%.(%a+)(%.?%d*)$")]
+    (if (and version-extension (not (= version-extension ""))
+             (not (version-extension:match "%.%d+"))) false
+        (match extension
+          :a path
+          :o path
+          :so path
+          :dylib path
+          _ false))))
 
 (fn extract-native-args [args]
   ;; all native libraries go in libraries; those with lua code go in modules too

@@ -107,6 +107,30 @@ If you install Fennel into `package.searchers` then you can use the
 3rd-party [lume.hotswap][1] function to reload modules that have been
 loaded with `require`.
 
+## Macro Searchers
+
+The compiler sandbox makes it so that the module system is also
+isolated from the rest of the system, so the above `require` calls
+will not work from inside macros. However, there is a separate
+`fennel.macro-searchers` table which can be used to allow different
+modules to be loaded inside macros. By default it includes a searcher
+to load sandboxed Fennel modules and a searcher to load sandboxed Lua
+modules, but if you disable the compiler sandbox you may want to
+replace these with searchers which can load arbitrary modules.
+
+The default `fennel.macro-searchers` table also cannot load C modules.
+Here's an example of some code which would allow that to work:
+
+```lua
+table.insert(fennel["macro-searchers"], function(module_name)
+   local filename = fennel["search-module"](module_name, package.cpath)
+   if filename then
+      local func = "luaopen_" .. module_name
+      return function() return package.loadlib(filename, func) end, filename
+   end
+end)
+```
+
 ## Get Fennel-aware stack traces.
 
 The `fennel.traceback` function works like Lua's `debug.traceback`

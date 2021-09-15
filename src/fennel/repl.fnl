@@ -8,6 +8,7 @@
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))
 (local specials (require :fennel.specials))
+(local view (require :fennel.view))
 (local unpack (or table.unpack _G.unpack))
 
 (fn default-read-chunk [parser-state]
@@ -281,7 +282,7 @@ For more information about the language, see https://fennel-lang.org/reference")
         read-chunk (or opts.readChunk default-read-chunk)
         on-values (or opts.onValues default-on-values)
         on-error (or opts.onError default-on-error)
-        pp (or opts.pp tostring) ;; make parser
+        pp (or opts.pp view)
         (byte-stream clear-stream) (parser.granulate read-chunk)
         chars []
         (read reset) (parser.parser (fn [parser-state]

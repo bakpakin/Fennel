@@ -197,7 +197,6 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
   (let [readline (and (not= "dumb" (os.getenv "TERM"))
                       (try-readline (pcall require :readline)))]
     (set searcher-opts.useMetadata (not= false options.useMetadata))
-    (set options.pp (require :fennel.view))
     (when (not= false options.fennelrc)
       (load-initfile))
     (print (.. "Welcome to Fennel " fennel.version " on " _VERSION "!"))

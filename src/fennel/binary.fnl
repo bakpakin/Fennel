@@ -317,6 +317,10 @@ machine code. You can set the CC environment variable to change the compiler
 used (default: cc) or set CC_OPTS to pass in compiler options. For example
 set CC_OPTS=-static to generate a binary with static linking.
 
+This method is currently limited to programs do not transitively require Lua
+modules. Requiring a Lua module directly will work, but requiring a Lua module
+which requires another will fail.
+
 To include C libraries that contain Lua modules, add --native-module path/to.so,
 and to include C libraries without modules, use --native-library path/to.so.
 These options are unstable, barely tested, and even more likely to break.
@@ -324,10 +328,26 @@ These options are unstable, barely tested, and even more likely to break.
 If you need to change the require name that a given native module is referenced
 as, you can use the --rename-native-module ORIGINAL NEW. ORIGINAL should be the
 suffix of the luaopen_* symbol in the native module. NEW should be the string
-you wish to pass to require to require the given native module.
+you wish to pass to require to require the given native module. This can be used
+to handle cases where the name of an object file does not match the name of the
+luaopen_* symbol(s) within it. For example, the Lua readline bindings include a
+readline.lua file which is usually required as \"readline\", and a C-readline.so
+file which is required in the Lua half of the bindings like so:
 
-This method is currently limited to programs do not transitively require Lua
-modules. Requiring a Lua module directly will work, but requiring a Lua module
-which requires another will fail." :format (. arg 0) (. arg 0)))
+    require 'C-readline'
+
+However, the symbol within the C-readline.so file is named luaopen_readline, so
+by default --compile-binary will make it so you can require it as \"readline\",
+which collides with the name of the readline.lua file and doesn't match the
+require call within readline.lua. In order to include the module within your
+compiled binary and have it get picked up by readline.lua correctly, you can
+specify the name used to refer to it in a require call by compiling it like
+so (this is assuming that program.fnl requires the Lua bindings):
+
+    $ %s --compile-binary program.fnl program \\
+        /usr/lib/x86_64-linux-gnu/liblua5.3.a /usr/include/lua5.3 \\
+        --native-module C-readline.so \\
+        --rename-native-module readline C-readline
+" :format (. arg 0) (. arg 0) (. arg 0)))
 
 {: compile : help}

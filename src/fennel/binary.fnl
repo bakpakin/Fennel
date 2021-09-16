@@ -179,12 +179,11 @@ int main(int argc, char *argv[]) {
                        "Did you mean to use --native-library instead of --native-module?")
                    :format path)))
         (each [_ open (ipairs opens)]
-          (let [maybe-rename (. rename open)
-                require-name (if maybe-rename
-                                 (do
-                                   (tset used-renames open true)
-                                   maybe-rename)
-                                 open)]
+          (let [require-name (match (. rename open)
+                               renamed (do
+                                         (tset used-renames open true)
+                                         renamed)
+                               _ open)]
             (table.insert out
                           (: "  int luaopen_%s(lua_State *L);" :format open))
             (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format

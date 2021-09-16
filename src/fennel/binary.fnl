@@ -4,7 +4,7 @@
 
 ;; based on https://github.com/ers35/luastatic/
 (local fennel (require :fennel))
-(local {: warn} (require :fennel.utils))
+(local {: warn : copy} (require :fennel.utils))
 
 (fn shellout [command]
   (let [f (io.popen command)
@@ -290,10 +290,9 @@ int main(int argc, char *argv[]) {
 (fn compile [filename executable-name static-lua lua-include-dir options args]
   (let [{: modules : libraries : rename-modules} (extract-native-args args)
         opts {: rename-modules}]
-    (each [key val (pairs options)]
-      (tset opts key val))
-    (compile-binary (write-c filename modules opts) executable-name
-                    static-lua lua-include-dir libraries)))
+    (copy options opts)
+    (compile-binary (write-c filename modules opts) executable-name static-lua
+                    lua-include-dir libraries)))
 
 (local help (: "
 Usage: %s --compile-binary FILE OUT STATIC_LUA_LIB LUA_INCLUDE_DIR

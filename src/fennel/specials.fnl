@@ -1025,12 +1025,12 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
                    :__newindex provided
                    :__pairs combined-mt-pairs})))
 
-;; have search-module use package.config to process package.path (windows compat)
-(local cfg (string.gmatch package.config "([^\n]+)"))
-(local (dirsep pathsep pathmark)
-       (values (or (cfg) "/") (or (cfg) ";") (or (cfg) "?")))
-
-(local pkg-config {: dirsep : pathmark : pathsep})
+;; search-module uses package.config to process package.path (windows compat)
+(local [dirsep pathsep pathmark]
+       (icollect [c (string.gmatch (or package.config "") "([^\n]+)")] c))
+(local pkg-config {:dirsep (or dirsep "/")
+                   :pathmark (or pathmark ";")
+                   :pathsep (or pathsep "?")})
 
 (fn escapepat [str]
   "Escape a string for safe use in a Lua pattern."

@@ -1069,12 +1069,6 @@ table.insert(package.loaders, fennel.searcher)"
         filename (values (partial utils.fennel-module.dofile filename opts)
                          filename)))))
 
-(fn macro-globals [env globals]
-  (let [allowed (current-global-names env)]
-    (each [_ k (pairs (or globals []))]
-      (table.insert allowed k))
-    allowed))
-
 (fn fennel-macro-searcher [module-name]
   (let [opts (doto (utils.copy utils.root.options)
                (tset :env :_COMPILER)
@@ -1238,7 +1232,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
   (let [env (make-compiler-env ast scope parent)
         opts (utils.copy utils.root.options)]
     (set opts.scope (compiler.make-scope compiler.scopes.compiler))
-    (set opts.allowedGlobals (macro-globals env (current-global-names)))
+    (set opts.allowedGlobals (current-global-names env))
     ((load-code (compiler.compile ast opts) (wrap-env env)) opts.module-name
                                                             ast.filename)))
 

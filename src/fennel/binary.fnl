@@ -4,7 +4,7 @@
 
 ;; based on https://github.com/ers35/luastatic/
 (local fennel (require :fennel))
-(local {: warn} (require :fennel.utils))
+(local {: warn : copy} (require :fennel.utils))
 
 (fn shellout [command]
   (let [f (io.popen command)
@@ -163,8 +163,11 @@ int main(int argc, char *argv[]) {
     (f:close)
     lua-code))
 
-(fn native-loader [native]
-  (let [nm (or (os.getenv :NM) :nm)
+(fn native-loader [native options]
+  (let [opts (or options {:rename-modules {}})
+        rename (or opts.rename-modules {})
+        used-renames {}
+        nm (or (os.getenv :NM) :nm)
         out ["  /* native libraries */"]]
     (each [_ path (ipairs native)]
       (let [opens []]
@@ -176,16 +179,22 @@ int main(int argc, char *argv[]) {
                        "Did you mean to use --native-library instead of --native-module?")
                    :format path)))
         (each [_ open (ipairs opens)]
-          (table.insert out (: "  int luaopen_%s(lua_State *L);" :format open))
-          (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format
-                               open))
-          (table.insert out
-                        (: "  lua_setfield(L, -2, \"%s\");\n"
-                           ;; changing initial underscore breaks luaossl
-                           :format
-                           (.. (open:sub 1 1)
-                               (-> (open:sub 2)
-                                   (: :gsub "_" "."))))))))
+          (let [require-name (match (. rename open)
+                               renamed (do
+                                         (tset used-renames open true)
+                                         renamed)
+                               _ open)]
+            (table.insert out
+                          (: "  int luaopen_%s(lua_State *L);" :format open))
+            (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format
+                                 open))
+            (table.insert out (: "  lua_setfield(L, -2, \"%s\");\n" :format
+                                 require-name))))))
+    (each [key val (pairs rename)]
+      (when (not (. used-renames key))
+        (warn (: (.. "unused --rename-native-module %s %s argument. "
+                     "Did you mean to include a native module?")
+                 :format key val))))
     (table.concat out "\n")))
 
 (fn fennel->c [filename native options]
@@ -196,10 +205,11 @@ int main(int argc, char *argv[]) {
                     (: :gsub "[\\/]" "."))
         dotpath-noextension (or (dotpath:match "(.+)%.") dotpath)
         fennel-loader (: (macrodebug (loader) :do) :format dotpath-noextension)
-        lua-loader (fennel.compile-string fennel-loader)]
+        lua-loader (fennel.compile-string fennel-loader)
+        {: rename-modules} options]
     (c-shim:format (string->c-hex-literal lua-loader) basename-noextension
                    (string->c-hex-literal (compile-fennel filename options))
-                   dotpath-noextension (native-loader native))))
+                   dotpath-noextension (native-loader native {: rename-modules}))))
 
 (fn write-c [filename native options]
   (let [out-filename (.. filename :_binary.c)
@@ -255,7 +265,7 @@ int main(int argc, char *argv[]) {
 
 (fn extract-native-args [args]
   ;; all native libraries go in libraries; those with lua code go in modules too
-  (let [native {:modules [] :libraries []}]
+  (let [native {:modules [] :libraries [] :rename-modules {}}]
     (for [i (length args) 1 -1]
       (when (= :--native-module (. args i))
         (let [path (assert (native-path? (table.remove args (+ i 1))))]
@@ -265,16 +275,23 @@ int main(int argc, char *argv[]) {
       (when (= :--native-library (. args i))
         (table.insert native.libraries 1
                       (assert (native-path? (table.remove args (+ i 1)))))
-        (table.remove args i)))
+        (table.remove args i))
+      (when (= :--rename-native-module (. args i))
+        (let [original (table.remove args (+ i 1))
+              new (table.remove args (+ i 1))]
+          (tset native.rename-modules original new)
+          (table.remove args i))))
     (when (< 0 (length args))
       (print (table.concat args " "))
       (error (.. "Unknown args: " (table.concat args " "))))
     native))
 
 (fn compile [filename executable-name static-lua lua-include-dir options args]
-  (let [{: modules : libraries} (extract-native-args args)]
-    (compile-binary (write-c filename modules options) executable-name
-                    static-lua lua-include-dir libraries)))
+  (let [{: modules : libraries : rename-modules} (extract-native-args args)
+        opts {: rename-modules}]
+    (copy options opts)
+    (compile-binary (write-c filename modules opts) executable-name static-lua
+                    lua-include-dir libraries)))
 
 (local help (: "
 Usage: %s --compile-binary FILE OUT STATIC_LUA_LIB LUA_INCLUDE_DIR
@@ -300,12 +317,37 @@ machine code. You can set the CC environment variable to change the compiler
 used (default: cc) or set CC_OPTS to pass in compiler options. For example
 set CC_OPTS=-static to generate a binary with static linking.
 
+This method is currently limited to programs do not transitively require Lua
+modules. Requiring a Lua module directly will work, but requiring a Lua module
+which requires another will fail.
+
 To include C libraries that contain Lua modules, add --native-module path/to.so,
 and to include C libraries without modules, use --native-library path/to.so.
 These options are unstable, barely tested, and even more likely to break.
 
-This method is currently limited to programs do not transitively require Lua
-modules. Requiring a Lua module directly will work, but requiring a Lua module
-which requires another will fail." :format (. arg 0) (. arg 0)))
+If you need to change the require name that a given native module is referenced
+as, you can use the --rename-native-module ORIGINAL NEW. ORIGINAL should be the
+suffix of the luaopen_* symbol in the native module. NEW should be the string
+you wish to pass to require to require the given native module. This can be used
+to handle cases where the name of an object file does not match the name of the
+luaopen_* symbol(s) within it. For example, the Lua readline bindings include a
+readline.lua file which is usually required as \"readline\", and a C-readline.so
+file which is required in the Lua half of the bindings like so:
+
+    require 'C-readline'
+
+However, the symbol within the C-readline.so file is named luaopen_readline, so
+by default --compile-binary will make it so you can require it as \"readline\",
+which collides with the name of the readline.lua file and doesn't match the
+require call within readline.lua. In order to include the module within your
+compiled binary and have it get picked up by readline.lua correctly, you can
+specify the name used to refer to it in a require call by compiling it like
+so (this is assuming that program.fnl requires the Lua bindings):
+
+    $ %s --compile-binary program.fnl program \\
+        /usr/lib/x86_64-linux-gnu/liblua5.3.a /usr/include/lua5.3 \\
+        --native-module C-readline.so \\
+        --rename-native-module readline C-readline
+" :format (. arg 0) (. arg 0) (. arg 0)))
 
 {: compile : help}

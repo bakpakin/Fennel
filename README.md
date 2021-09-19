@@ -4,7 +4,7 @@
 expressive, and has almost zero overhead compared to handwritten Lua.
 
 * *Full Lua compatibility* - You can use any function or library from Lua.
-* *Zero overhead* - Compiled code should be just as or more efficient than hand-written Lua.
+* *Zero overhead* - Compiled code should be just as efficient as hand-written Lua.
 * *Compile-time macros* - Ship compiled code with no runtime dependency on Fennel.
 * *Embeddable* - Fennel is a one-file library as well as an executable. Embed it in other programs to support runtime extensibility and interactive development.
 

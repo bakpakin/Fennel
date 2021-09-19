@@ -38,12 +38,19 @@ Example:
   (print (+ x y)))
 ```
 
-
 Giving it a name is optional; if one is provided it will be bound to
 it as a local. Even if you don't use it as an anonymous function,
 providing a name will cause your stack traces to be more readable, so
 it's recommended. Providing a name that's a table field will cause it
-to be inserted in a table instead of bound as a local.
+to be inserted in a table instead of bound as a local:
+
+```fennel
+(local functions {})
+
+(fn funtctions.p [x y z]
+  (print (* x (+ y z))))
+```
+
 
 ### `lambda`/`λ` nil-checked function
 

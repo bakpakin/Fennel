@@ -5,6 +5,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 ## 1.0.0 / ???
 
 ### New Features
+* Support `--rename-native-module` when compiling binaries
 * Add `:into` clause to `collect` and `icollect`
 * Add Macro guide
 * Improve consistency of table key ordering in compiled output

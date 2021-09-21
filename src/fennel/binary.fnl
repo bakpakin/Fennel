@@ -159,9 +159,11 @@ int main(int argc, char *argv[]) {
   (let [f (if (= filename "-")
               io.stdin
               (assert (io.open filename :rb)))
-        lua-code (fennel.compile-string (f:read :*a) options)]
+        lua-code (fennel.compile-stream #(f:read 1) options)]
     (f:close)
-    lua-code))
+    (if (and options.bytecode string.dump)
+        (string.dump ((or _G.loadstring _G.load) lua-code))
+        lua-code)))
 
 (fn native-loader [native options]
   (let [opts (or options {:rename-modules {}})
@@ -280,15 +282,17 @@ int main(int argc, char *argv[]) {
         (let [original (table.remove args (+ i 1))
               new (table.remove args (+ i 1))]
           (tset native.rename-modules original new)
-          (table.remove args i))))
+          (table.remove args i)))
+      (when (= :--bytecode (. args i))
+        (set native.bytecode true)
+        (table.remove args i)))
     (when (< 0 (length args))
       (print (table.concat args " "))
       (error (.. "Unknown args: " (table.concat args " "))))
     native))
 
 (fn compile [filename executable-name static-lua lua-include-dir options args]
-  (let [{: modules : libraries : rename-modules} (extract-native-args args)
-        opts {: rename-modules}]
+  (let [{: modules : libraries &as opts} (extract-native-args args)]
     (copy options opts)
     (compile-binary (write-c filename modules opts) executable-name static-lua
                     lua-include-dir libraries)))

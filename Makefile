@@ -70,7 +70,7 @@ $(LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(LUA_VERSION).tar.gz | tar xz
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
 	$(PATH_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
-		$< $@ $(NATIVE_LUA_LIB) $(LUA_INCLUDE_DIR)
+		$< $@ $(NATIVE_LUA_LIB) $(LUA_INCLUDE_DIR) --bytecode
 
 $(NATIVE_LUA_LIB): $(LUA_DIR)
 	$(MAKE) -C $(LUA_DIR)/src clean liblua.a

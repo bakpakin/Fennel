@@ -157,6 +157,14 @@
     (l.assertStrContains out ":byteend 7")
     (l.assertStrContains out3 "   (f [123])\n      ^^^^^")))
 
+(fn test-code []
+  (let [(send comp) (wrap-repl)]
+    (send "(local {: foo} (require :test.mod.foo7))")
+    (l.assertEquals (comp "fo") [:for :foo])
+    ;; repro case for https://todo.sr.ht/~technomancy/fennel/85
+    ;; (l.assertEquals (send "(foo)") [:foo])
+    ))
+
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -172,5 +180,6 @@
      : test-plugins
      : test-options
      : test-apropos
-     : test-byteoffset}
+     : test-byteoffset
+     : test-code}
     {})

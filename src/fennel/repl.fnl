@@ -76,9 +76,7 @@
     (fn descend [input tbl prefix add-matches method?]
       (let [splitter (if method? "^([^:]+):(.*)" "^([^.]+)%.(.*)")
             (head tail) (input:match splitter)
-            raw-head (if (or (= tbl env) (= tbl env.___replLocals___))
-                         (. scope.manglings head)
-                         head)]
+            raw-head (or (. scope.manglings head) head)]
         (when (= (type (. tbl raw-head)) :table)
           (set stop-looking? true)
           (if method?
@@ -236,17 +234,17 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.apropos-doc :fnl/docstring
                        "Print all functions that match the pattern in their docs")
 
-(fn apropos-show-docs [pattern]
+(fn apropos-show-docs [on-values pattern]
   "Print function documentations for a given function pattern."
   (each [_ path (ipairs (apropos pattern))]
     (let [tgt (apropos-follow-path path)]
       (when (and (= :function (type tgt))
                  (compiler.metadata:get tgt :fnl/docstring))
-        (print (specials.doc tgt path))
-        (print)))))
+        (on-values (specials.doc tgt path))
+        (on-values)))))
 
-(fn commands.apropos-show-docs [_env read _ on-error _scope]
-  (run-command read on-error #(apropos-show-docs (tostring $))))
+(fn commands.apropos-show-docs [_env read on-values on-error scope]
+  (run-command read on-error #(apropos-show-docs on-values (tostring $))))
 
 (compiler.metadata:set commands.apropos-show-docs :fnl/docstring
                        "Print all documentations matching a pattern in function name")
@@ -296,6 +294,7 @@ For more information about the language, see https://fennel-lang.org/reference")
       (set opts.allowedGlobals (specials.current-global-names opts.env)))
     (when opts.registerCompleter
       (opts.registerCompleter (partial completer env scope)))
+    (set (utils.root.options utils.root.scope) (values opts scope))
 
     (fn print-values [...]
       (let [vals [...]
@@ -312,7 +311,6 @@ For more information about the language, see https://fennel-lang.org/reference")
       (let [(ok parse-ok? x) (pcall read)
             src-string (string.char (unpack chars))]
         (reset)
-        (set utils.root.options opts)
         (if (not ok)
             (do
               (on-error :Parse parse-ok?)

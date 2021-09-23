@@ -17,6 +17,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Fix a bug where macro modules did not get compiler options propagated
 
 ### Changes and Removals
+* Improve performance of `icollect` by avoiding unnecessary length checks
 * **Enforce compiler sandbox** by default instead of warning
 * **Disallow &** in identifiers
 * Implicit else branches in `if` are treated as nil, **not zero values**

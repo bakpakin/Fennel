@@ -165,8 +165,14 @@ Supports early termination with an :until clause."
   (assert (= nil ...)
           "expected exactly one body expression. Wrap multiple expressions with do")
   `(let [tbl# ,(into-val iter-tbl)]
+     ;; believe it or not, using a var here has a pretty good performance boost:
+     ;; https://p.hagelb.org/icollect-performance.html
+     (var i# (length tbl#))
      (each ,iter-tbl
-       (tset tbl# (+ (length tbl#) 1) ,value-expr))
+       (let [val# ,value-expr]
+         (when (not= nil val#)
+           (set i# (+ i# 1))
+           (tset tbl# i# val#))))
      tbl#))
 
 (fn accumulate* [iter-tbl accum-expr ...]

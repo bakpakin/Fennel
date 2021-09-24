@@ -269,7 +269,7 @@ Main purpose to print function argument list in docstring."
           (compiler.assert false
                            (: "expected symbol for function parameter: %s"
                               :format (tostring arg))
-                           (. ast 2))))
+                           (. ast index))))
 
     (let [arg-name-list (utils.map arg-list get-arg-name)
           (index docstring) (if (and (= (type (. ast (+ index 1))) :string)
@@ -720,7 +720,7 @@ Method name doesn't have to be known at compile-time; if it is, use
   (let [els []]
     (for [i 2 (length ast)]
       (table.insert els (view (. ast i) {:one-line? true})))
-    (compiler.emit parent (.. "-- " (table.concat els " ")) ast)))
+    (compiler.emit parent (.. "--[[ " (table.concat els " ") " ]]--") ast)))
 
 (doc-special :comment ["..."] "Comment which will be emitted in Lua output." true)
 

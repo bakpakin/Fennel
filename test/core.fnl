@@ -447,7 +447,9 @@
                "((require :fennel.view) [1 2 3] {:preprocess (fn [x] (if (= (type x) :number) (+ x 1) x))})"
                "[2 3 4]"
                "((require :fennel.view) [[] [1] {:x [] [] [2]}] {:preprocess (fn [x] (if (and (= (type x) :table) (= (next x) nil)) :empty-table x))})"
-               "[\"empty-table\" [1] {:x \"empty-table\" :empty-table [2]}]"}]
+               "[\"empty-table\" [1] {:x \"empty-table\" :empty-table [2]}]"
+               ;; correct metamethods
+               "((require :fennel.view) (setmetatable {} {:__pairs #(values next {:a :b} nil)}))" "{:a \"b\"}"}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true :compiler-env _G})
                       expected code))

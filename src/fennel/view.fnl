@@ -8,6 +8,26 @@
                    :userdata 6
                    :thread 7})
 
+;; Pairs, ipairs and length functions that respect metamethods
+
+(local lua-pairs pairs)
+(local lua-ipairs ipairs)
+
+(fn pairs [t]
+  (match (getmetatable t)
+    {:__pairs p} (p t)
+    _ (lua-pairs t)))
+
+(fn ipairs [t]
+  (match (getmetatable t)
+    {:__ipairs i} (i t)
+    _ (lua-ipairs t)))
+
+(fn length* [t]
+  (match (getmetatable t)
+    {:__len l} (l t)
+    _ (length t)))
+
 (fn sort-keys [[a] [b]]
   ;; Sort keys depending on the `type-order`.
   (let [ta (type a)
@@ -24,7 +44,7 @@
 (fn max-index-gap [kv]
   ;; Find the largest gap between neighbor items
   (var gap 0)
-  (when (> (length kv) 0)
+  (when (> (length* kv) 0)
     (var i 0)
     (each [_ [k] (ipairs kv)]
       (when (> (- k i) gap)
@@ -65,7 +85,7 @@
         (if (> (max-index-gap kv) options.max-sparse-gap)
             (set assoc? true)
             (fill-gaps kv))))
-    (if (= (length kv) 0)
+    (if (= (length* kv) 0)
         (values kv :empty)
         (values kv (if assoc? :table :seq)))))
 
@@ -111,7 +131,7 @@
   ;; `t`type.  If `t` has visible cycles, we need to increase indent by the size
   ;; of the prefix.
   (let [opener-length (if id
-                          (+ (length (tostring id)) 2)
+                          (+ (length* (tostring id)) 2)
                           1)]
     (+ indent opener-length)))
 
@@ -124,7 +144,7 @@
         close (if (= :seq table-type) "]" "}")
         oneline (.. open (table.concat elements " ") close)]
     (if (and (not options.one-line?)
-             (or multiline? (> (+ indent (length oneline)) options.line-length)))
+             (or multiline? (> (+ indent (length* oneline)) options.line-length)))
         (.. open (table.concat elements indent-str) close)
         oneline)))
 
@@ -137,7 +157,7 @@
               id (and visible-cycle? (. options.seen t))
               indent (table-indent indent id)
               slength (or (and options.utf8? (-?> (rawget _G :utf8) (. :len)))
-                          #(length $))
+                          #(length* $))
               prefix (if visible-cycle? (.. "@" id) "")
               items (icollect [_ [k v] (pairs kv)]
                       (let [k (pp k options (+ indent 1) true)
@@ -163,14 +183,14 @@
           (concat-table-lines items options multiline? indent :seq prefix)))))
 
 (fn concat-lines [lines options indent force-multi-line?]
-  (if (= (length lines) 0)
+  (if (= (length* lines) 0)
       (if options.empty-as-sequence? "[]" "{}")
       (let [oneline (-> (icollect [_ line (ipairs lines)]
                           (line:gsub "^%s+" ""))
                         (table.concat " "))]
         (if (and (not options.one-line?)
                  (or force-multi-line? (oneline:find "\n")
-                     (> (+ indent (length oneline)) options.line-length)))
+                     (> (+ indent (length* oneline)) options.line-length)))
             (table.concat lines (.. "\n" (string.rep " " indent)))
             oneline))))
 
@@ -223,7 +243,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                             :\ "\\\\"
                             "\"" "\\\""
                             "\n" (if (and options.escape-newlines?
-                                          (< (length str)
+                                          (< (length* str)
                                              (- options.line-length indent)))
                                      "\\n" "\n")}
                            {:__index #(: "\\%03d" :format ($2:byte))})]

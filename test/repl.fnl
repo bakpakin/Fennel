@@ -160,10 +160,9 @@
 (fn test-code []
   (let [(send comp) (wrap-repl)]
     (send "(local {: foo} (require :test.mod.foo7))")
-    (l.assertEquals (comp "fo") [:for :foo])
     ;; repro case for https://todo.sr.ht/~technomancy/fennel/85
-    ;; (l.assertEquals (send "(foo)") [:foo])
-    ))
+    (l.assertEquals (send "(foo)") [:foo])
+    (l.assertEquals (comp "fo") [:for :foo])))
 
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in

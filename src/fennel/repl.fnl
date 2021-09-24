@@ -249,16 +249,14 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.apropos-show-docs :fnl/docstring
                        "Print all documentations matching a pattern in function name")
 
-(fn load-plugin-commands []
-  (when (and utils.root utils.root.options utils.root.options.plugins)
-    (each [_ plugin (ipairs utils.root.options.plugins)]
-      (each [name f (pairs plugin)]
-        ;; first function to provide a command should win
-        (match (name:match "^repl%-command%-(.*)")
-          cmd-name (tset commands cmd-name (or (. commands cmd-name) f)))))))
+(fn load-plugin-commands [plugins]
+  (each [_ plugin (ipairs (or plugins []))]
+    (each [name f (pairs plugin)]
+      ;; first function to provide a command should win
+      (match (name:match "^repl%-command%-(.*)")
+        cmd-name (tset commands cmd-name (or (. commands cmd-name) f))))))
 
-(fn run-command-loop [input read loop env on-values on-error scope chars]
-  (load-plugin-commands)
+(fn run-command-loop [input read loop env on-values on-error scope chars plugins]
   (let [command-name (input:match ",([^%s/]+)")]
     (match (. commands command-name)
       command (command env read on-values on-error scope chars)
@@ -286,15 +284,15 @@ For more information about the language, see https://fennel-lang.org/reference")
         (read reset) (parser.parser (fn [parser-state]
                                       (let [c (byte-stream parser-state)]
                                         (table.insert chars c)
-                                        c)))
-        scope (compiler.make-scope)]
+                                        c)))]
+    (set (opts.env opts.scope) (values env (compiler.make-scope)))
     ;; use metadata unless we've specifically disabled it
     (set opts.useMetadata (not= options.useMetadata false))
     (when (= opts.allowedGlobals nil)
       (set opts.allowedGlobals (specials.current-global-names opts.env)))
     (when opts.registerCompleter
-      (opts.registerCompleter (partial completer env scope)))
-    (set (utils.root.options utils.root.scope) (values opts scope))
+      (opts.registerCompleter (partial completer env opts.scope)))
+    (load-plugin-commands opts.plugins)
 
     (fn print-values [...]
       (let [vals [...]
@@ -318,12 +316,10 @@ For more information about the language, see https://fennel-lang.org/reference")
               (loop))
             (command? src-string)
             (run-command-loop src-string read loop env on-values on-error
-                              scope chars)
+                              opts.scope chars)
             (when parse-ok? ; if this is false, we got eof
               (match (pcall compiler.compile x (doto opts
-                                                 (tset :env env)
-                                                 (tset :source src-string)
-                                                 (tset :scope scope)))
+                                                 (tset :source src-string)))
                 (false msg) (do
                               (clear-stream)
                               (on-error :Compile msg))

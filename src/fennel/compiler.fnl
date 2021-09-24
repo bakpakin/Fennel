@@ -211,7 +211,7 @@ if they have already been declared via declare-local"
       ;; then we need to check for allowed globals
       (assert-compile (or (not reference?) local? (= :_ENV (. parts 1))
                           (global-allowed? (. parts 1)))
-                      (.. "unknown global in strict mode: "
+                      (.. "unknown identifier in strict mode: "
                           (tostring (. parts 1))) symbol)
       (when (and allowed-globals (not local?))
         (tset utils.root.scope.refedglobals (. parts 1) true))

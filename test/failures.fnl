@@ -12,22 +12,22 @@
 (fn test-global-fails []
   (test-failures
    {"(fn global [] 1)" "overshadowed"
-    "(fn global-caller [] (hey))" "unknown global"
+    "(fn global-caller [] (hey))" "unknown identifier"
     "(global + 1)" "overshadowed"
     "(global - 1)" "overshadowed"
     "(global // 1)" "overshadowed"
     "(global 48 :forty-eight)" "unable to bind number 48"
     "(global good (fn [] nil)) (good) (BAD)" "BAD"
     "(global let 1)" "overshadowed"
-    "(hey)" "unknown global"
-    "(let [bl 8 a bcd] nil)" "unknown global"
+    "(hey)" "unknown identifier"
+    "(let [bl 8 a bcd] nil)" "unknown identifier"
     "(let [global 1] 1)" "overshadowed"
     "(local a-b 1) (global [a_b] [2])" "global a_b conflicts with local"
     "(local a-b 1) (global a_b 2)" "global a_b conflicts with local"
     "((fn [] (require-macros \"test.macros\") (global x1 (->1 99 (+ 31)))))
-      (->1 23 (+ 1))" "unknown global in strict mode"
+      (->1 23 (+ 1))" "unknown identifier in strict mode"
     ;; strict mode applies to macro modules too
-    "(import-macros t :test.bad.unknown-global)" "unknown global in strict mode"}))
+    "(import-macros t :test.bad.unknown-global)" "unknown identifier in strict mode"}))
 
 (fn test-fn-fails []
   (test-failures

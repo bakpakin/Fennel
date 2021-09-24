@@ -19,10 +19,10 @@
                                               "avoid defining nested macro tables"]
         "macro not found in macro module" ["checking the keys of the imported macro module's returned table"]
         "macro tried to bind (.*) without gensym" ["changing to %s# when introducing identifiers inside macros"]
-        "unknown global in strict mode: (.*)" ["looking to see if there's a typo"
-                                               "using the _G table instead, eg. _G.%s if you really want a global"
-                                               "moving this code to somewhere that %s is in scope"
-                                               "binding %s as a local in the scope of this code"]
+        "unknown identifier in strict mode: (.*)" ["looking to see if there's a typo"
+                                                   "using the _G table instead, eg. _G.%s if you really want a global"
+                                                   "moving this code to somewhere that %s is in scope"
+                                                   "binding %s as a local in the scope of this code"]
         "expected a function.* to call" ["removing the empty parentheses"
                                          "using square brackets if you want an empty table"]
         "cannot call literal value" ["checking for typos"

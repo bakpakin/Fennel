@@ -1116,6 +1116,7 @@ modules in the compiler environment."
       (let [(loader filename) (search-macro-module modname 1)]
         (compiler.assert loader (.. modname " module not found.") ast)
         (tset macro-loaded modname (loader modname filename))))
+    (utils.hook :require-macros ast scope)
     ;; if we're called from import-macros, return the modname, else add them
     ;; to scope directly
     (if (= :import-macros (tostring (. ast 1)))

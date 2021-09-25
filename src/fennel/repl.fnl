@@ -42,7 +42,7 @@
                                  "\n"))
 
 (fn splice-save-locals [env lua-source]
-  (set env.___replLocals___ (or env.___replLocals___ {}))
+  (set env.___replLocals___ (or (rawget env :___replLocals___) {}))
   (let [spliced-source []
         bind "local %s = ___replLocals___['%s']"]
     (each [line (lua-source:gmatch "([^\n]+)\n?")]

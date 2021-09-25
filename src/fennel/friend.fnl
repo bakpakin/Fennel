@@ -30,8 +30,9 @@
         "unexpected vararg" ["putting \"...\" at the end of the fn parameters if the vararg was intended"]
         "multisym method calls may only be in call position" ["using a period instead of a colon to reference a table's fields"
                                                               "putting parens around this"]
-        "unused local (.*)" ["fixing a typo so %s is used"
-                             "renaming the local to _%s"]
+        "unused local (.*)" ["renaming the local to _%s if it is meant to be unused"
+                             "fixing a typo so %s is used"
+                             "disabling the linter which checks for unused locals"]
         "expected parameters" ["adding function parameters as a list of identifiers in brackets"]
         "unable to bind (.*)" ["replacing the %s with an identifier"]
         "expected rest argument before last parameter" ["moving & to right before the final identifier when destructuring"]

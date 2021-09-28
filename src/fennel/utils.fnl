@@ -332,12 +332,11 @@ returns non-nil it will be used as the value of the call and further plugin
 handlers will be skipped."
   (var result nil)
   (when (and root.options root.options.plugins)
-    (each [_ plugin (ipairs root.options.plugins)]
+    (each [_ plugin (ipairs root.options.plugins)
+           :until result]
       (match (. plugin event)
-        f (set result (f ...)))
-      (when (not= nil result)
-        ;; bootstrap compiler does not have :until support
-        (lua "return result")))))
+        f (set result (f ...)))))
+  result)
 
 {: warn
  : allpairs

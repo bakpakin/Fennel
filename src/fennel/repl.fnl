@@ -92,10 +92,9 @@
             (descend input tbl prefix add-matches false))))
 
     (each [_ source (ipairs [scope.specials scope.macros
-                             (or env.___replLocals___ []) env env._G])]
-      (add-matches input-fragment source)
-      ;; bootstrap compiler doesn't yet know how to :until
-      (when stop-looking? (lua :break)))
+                             (or env.___replLocals___ []) env env._G])
+           :until stop-looking?]
+      (add-matches input-fragment source))
     matches))
 
 (local commands {})
@@ -212,9 +211,9 @@ For more information about the language, see https://fennel-lang.org/reference")
   ;; Follow path to the target based on apropos path format
   (let [paths (icollect [p (path:gmatch "[^%.]+")] p)]
     (var tgt package.loaded)
-    (each [_ path (ipairs paths)]
-      (set tgt (. tgt (pick-values 1 (path:gsub "%/" "."))))
-      (if (= nil tgt) (lua :break)))
+    (each [_ path (ipairs paths)
+           :until (= nil tgt)]
+      (set tgt (. tgt (pick-values 1 (path:gsub "%/" ".")))))
     tgt))
 
 (fn apropos-doc [pattern]

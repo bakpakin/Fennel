@@ -66,9 +66,10 @@ compile the new version.
 * `old/fennel.lua`: older version of Fennel compiler from before self-hosting
 * `old/launcher.lua`: older version of the command line launcher
 
-This old version (based on 0.4.2) does not have all the newer language features
-of Fennel except in cases where we have explicitly backported certain
-things, such as `collect` and `icollect`.
+The file `src/fennel/macros.fnl` where the built-in macros are defined
+is evaluated by the compiler in `src/`, not by the bootstrap compiler.
+This means that you cannot use any macros here; for instance it's
+necessary to use `if` even in cases where `when` would make more sense.
 
 ## Deciding to make a Change
 

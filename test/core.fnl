@@ -454,7 +454,7 @@
       (l.assertEquals (fennel.eval code {:correlate true :compiler-env _G})
                       expected code))
     (let [mt (setmetatable [] {:__fennelview (fn [] "META")})]
-      (l.assertEquals ((require "fennelview") mt) "META"))))
+      (l.assertEquals (fennel.view mt) "META"))))
 
 (fn test-comment []
   (l.assertEquals "--[[ hello world ]]--\nreturn nil"
@@ -480,4 +480,5 @@
  : test-with-open
  : test-method-calls
  : test-comment
- : test-nest}
+ : test-nest
+}

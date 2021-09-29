@@ -514,11 +514,6 @@ if opts contains the nval option."
 
 (fn compile-table [ast scope parent opts compile1]
   (let [buffer []]
-    (for [i 1 (length ast)] ; write numeric keyed values
-      (let [nval (and (not= i (length ast)) 1)]
-        (table.insert buffer
-                      (exprs1 (compile1 (. ast i) scope parent {: nval})))))
-
     (fn write-other-values [k]
       (when (or (not= (type k) :number) (not= (math.floor k) k) (< k 1)
                 (> k (length ast)))
@@ -534,6 +529,12 @@ if opts contains the nval option."
                    (let [[v] (compile1 (. ast k2) scope parent {:nval 1})]
                      (string.format "%s = %s" k1 (tostring v))))
                  buffer))
+
+    (for [i 1 (length ast)] ; write numeric keyed values
+      (let [nval (and (not= i (length ast)) 1)]
+        (table.insert buffer
+                      (exprs1 (compile1 (. ast i) scope parent {: nval})))))
+
     (handle-compile-opts [(utils.expr (.. "{" (table.concat buffer ", ") "}")
                                       :expression)]
                          parent opts ast)))
@@ -747,7 +748,8 @@ which we have to do if we don't know."
 
 (fn require-include [ast scope parent opts]
   (fn opts.fallback [e]
-    (utils.warn (: "include module not found,- falling back to require: %s" :format (tostring e)))
+    (utils.warn (: "include module not found, falling back to require: %s"
+                   :format (tostring e)))
     (utils.expr (string.format "require(%s)" (tostring e)) :statement))
 
   (scopes.global.specials.include ast scope parent opts))

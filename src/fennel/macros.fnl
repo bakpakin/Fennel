@@ -78,8 +78,9 @@ a nil value in any of subsequent keys."
   (let [name (gensym)
         form `(let [,name ,val])]
     (each [_ elt (ipairs [...])]
-      (table.insert elt 2 name)
-      (table.insert form elt))
+      (let [elt (if (list? elt) elt (list elt))]
+        (table.insert elt 2 name)
+        (table.insert form elt)))
     (table.insert form name)
     form))
 

@@ -15,6 +15,11 @@
     (each [_ [code expected] (ipairs cases)]
       (l.assertEquals (fennel.eval code) expected code))))
 
+(fn test-doto []
+  (let [cases [["(doto [1 2 3] (table.sort #(> $1 $2)) table.sort)" [1 2 3]]]]
+    (each [_ [code expected] (ipairs cases)]
+      (l.assertEquals (fennel.eval code) expected code))))
+
 (fn test-?. []
   (let [cases [["(?. {:a 1})" {:a 1}]
                ["(?. {:a 1} :a)" 1]
@@ -259,6 +264,7 @@
     (l.assertEquals (fennel.eval code) "iftrue(do (fn {} \"x\"))")))
 
 {: test-arrows
+ : test-doto
  : test-?.
  : test-import-macros
  : test-require-macros

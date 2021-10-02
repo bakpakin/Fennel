@@ -103,6 +103,9 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
     :--add-fennel-path (let [entry (table.remove arg (+ i 1))]
                          (set fennel.path (.. entry ";" fennel.path))
                          (table.remove arg i))
+    :--add-macro-path (let [entry (table.remove arg (+ i 1))]
+                        (set fennel.macro-path (.. entry ";" fennel.macro-path))
+                        (table.remove arg i))
     :--load (handle-load i)
     :-l (handle-load i)
     :--no-fennelrc (do

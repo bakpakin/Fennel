@@ -12,6 +12,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Apply strict globals checking in the repl by default
 * Allow strict globals checking to be disabled with `--globals "*"`
 * Emit warning when `--require-as-include` fails to find a module to include
+* Support `--add-macro-path` for configuring macro path similarly to fennel module paths
 
 ### Bug Fixes
 * Fix a bug where macro modules did not get compiler options propagated

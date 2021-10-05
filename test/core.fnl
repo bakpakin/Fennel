@@ -239,7 +239,10 @@
                "(let [t {} _ (set t.field :let-side)] t.field)" :let-side
                "(local a_0_ (or (getmetatable {}) {:b-c {}}))
                 (tset (. a_0_ :b-c) :d 12) (. a_0_ :b-c :d)" 12
-               "(local x (lua \"y = 4\" \"6\")) (* _G.y x)" 24}]
+               "(local x (lua \"y = 4\" \"6\")) (* _G.y x)" 24
+               ;; ensure that the over-zealous workaround for the
+               ;; (let [pairs #(pairs $)] pairs) bug doesn't affect normal code
+               "(type _G) (let [type :string] type)" :string}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

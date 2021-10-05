@@ -20,7 +20,6 @@ implement nesting. "
     {:includes (setmetatable [] {:__index (and parent parent.includes)})
      :macros (setmetatable [] {:__index (and parent parent.macros)})
      :manglings (setmetatable [] {:__index (and parent parent.manglings)})
-     :refedglobals (setmetatable [] {:__index (and parent parent.refedglobals)})
      :specials (setmetatable [] {:__index (and parent parent.specials)})
      :symmeta (setmetatable [] {:__index (and parent parent.symmeta)})
      :unmanglings (setmetatable [] {:__index (and parent parent.unmanglings)})
@@ -29,6 +28,7 @@ implement nesting. "
      :vararg (and parent parent.vararg)
      :depth (if parent (+ (or parent.depth 0) 1) 0)
      :hashfn (and parent parent.hashfn)
+     :refedglobals {}
      : parent}))
 
 (fn assert-msg [ast msg]
@@ -213,8 +213,8 @@ if they have already been declared via declare-local"
                           (global-allowed? (. parts 1)))
                       (.. "unknown identifier in strict mode: "
                           (tostring (. parts 1))) symbol)
-      (when (and allowed-globals (not local?))
-        (tset utils.root.scope.refedglobals (. parts 1) true))
+      (when (and allowed-globals (not local?) scope.parent)
+        (tset scope.parent.refedglobals (. parts 1) true))
       (utils.expr (combine-parts parts scope) etype))))
 
 (fn emit [chunk out ast]

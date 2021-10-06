@@ -111,6 +111,7 @@ By default, start is 2."
                 (compiler.keep-side-effects subexprs parent nil (. ast i))))))
       (compiler.emit parent chunk ast)
       (compiler.emit parent :end ast)
+      (utils.hook :do ast sub-scope)
       (or outer-retexprs retexprs))
 
     ;; See if we need special handling to get the return values of the do block
@@ -134,7 +135,6 @@ By default, start is 2."
               fargs (if scope.vararg "..." "")]
           (compiler.emit parent
                          (string.format "local function %s(%s)" fname fargs) ast)
-          (utils.hook :do ast scope)
           (compile-body nil true
                         (utils.expr (.. fname "(" fargs ")") :statement))))))
 

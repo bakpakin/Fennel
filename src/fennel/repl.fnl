@@ -153,7 +153,7 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn run-command [read on-error f]
   (match (pcall read)
     (true true val) (f val)
-    (false ?parse-ok ?err) (on-error :Parse "Couldn't parse input.")))
+    false (on-error :Parse "Couldn't parse input.")))
 
 (fn commands.reload [env read on-values on-error]
   (run-command read on-error #(reload (tostring $) env on-values on-error)))
@@ -242,7 +242,7 @@ For more information about the language, see https://fennel-lang.org/reference")
         (on-values (specials.doc tgt path))
         (on-values)))))
 
-(fn commands.apropos-show-docs [_env read on-values on-error scope]
+(fn commands.apropos-show-docs [_env read on-values]
   (run-command read on-error #(apropos-show-docs on-values (tostring $))))
 
 (compiler.metadata:set commands.apropos-show-docs :fnl/docstring
@@ -255,7 +255,7 @@ For more information about the language, see https://fennel-lang.org/reference")
       (match (name:match "^repl%-command%-(.*)")
         cmd-name (tset commands cmd-name (or (. commands cmd-name) f))))))
 
-(fn run-command-loop [input read loop env on-values on-error scope chars plugins]
+(fn run-command-loop [input read loop env on-values on-error scope chars]
   (let [command-name (input:match ",([^%s/]+)")]
     (match (. commands command-name)
       command (command env read on-values on-error scope chars)

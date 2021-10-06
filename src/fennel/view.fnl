@@ -81,10 +81,9 @@
       (insert kv [k v]))
     (table.sort kv sort-keys)
     (when (not assoc?)
-      (let [gap (max-index-gap kv)]
-        (if (> (max-index-gap kv) options.max-sparse-gap)
-            (set assoc? true)
-            (fill-gaps kv))))
+      (if (> (max-index-gap kv) options.max-sparse-gap)
+          (set assoc? true)
+          (fill-gaps kv)))
     (if (= (length* kv) 0)
         (values kv :empty)
         (values kv (if assoc? :table :seq)))))

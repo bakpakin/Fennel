@@ -163,23 +163,22 @@ the number of expected arguments."
   "Tostring for literal tables created with {} or [].
 Recursively transforms tables into one-line string representation.
 Main purpose to print function argument list in docstring."
-  (let [elems []]
-    (if (utils.sequence? x)
-        (.. "[" (table.concat (icollect [_ v (ipairs x)]
-                                (deep-tostring v))
-                              " ") "]")
-        (utils.table? x)
-        (.. "{" (table.concat (icollect [k v (pairs x)]
-                                (.. (deep-tostring k true) " "
-                                    (deep-tostring v)))
-                              " ") "}")
-        (and key? (= (type x) :string) (x:find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
-        (.. ":" x)
-        (= (type x) :string)
-        (-> (string.format "%q" x)
-            (: :gsub "\\\"" "\\\\\"")
-            (: :gsub "\"" "\\\""))
-        (tostring x))))
+  (if (utils.sequence? x)
+      (.. "[" (table.concat (icollect [_ v (ipairs x)]
+                              (deep-tostring v))
+                            " ") "]")
+      (utils.table? x)
+      (.. "{" (table.concat (icollect [k v (pairs x)]
+                              (.. (deep-tostring k true) " "
+                                  (deep-tostring v)))
+                            " ") "}")
+      (and key? (= (type x) :string) (x:find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
+      (.. ":" x)
+      (= (type x) :string)
+      (-> (string.format "%q" x)
+          (: :gsub "\\\"" "\\\\\"")
+          (: :gsub "\"" "\\\""))
+      (tostring x)))
 
 (fn set-fn-metadata [arg-list docstring parent fn-name]
   (when utils.root.options.useMetadata

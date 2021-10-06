@@ -115,7 +115,7 @@ $(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
 	$(MAKE) -C $(LUA_DIR) clean liblua.a CC=arm-linux-gnueabihf-gcc
 	mv $(LUA_DIR)/src/liblua.a $@
 
-ci: testall fuzz
+ci: testall lint fuzz
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \

@@ -581,7 +581,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
             (compiler.declare-local raw [] sub-scope ast))))
 
     (let [bind-vars (utils.map binding destructure-binding)
-          vals (compiler.compile1 iter sub-scope parent)
+          vals (compiler.compile1 iter scope parent)
           val-names (utils.map vals tostring)
           chunk []]
       (compiler.emit parent
@@ -642,7 +642,7 @@ order, but can be used with any iterator." true)
     (compiler.assert (>= (length ast) 3) "expected body expression" (. ast 1))
     (compiler.assert (<= (length ranges) 3) "unexpected arguments" (. ranges 4))
     (for [i 1 (math.min (length ranges) 3)]
-      (tset range-args i (tostring (. (compiler.compile1 (. ranges i) sub-scope
+      (tset range-args i (tostring (. (compiler.compile1 (. ranges i) scope
                                                          parent {:nval 1}) 1))))
     (compiler.emit parent
                    (: "for %s = %s do" :format

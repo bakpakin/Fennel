@@ -41,7 +41,7 @@ Same as -> except will short-circuit with nil when it encounters a nil value."
             tmp (gensym)]
         (table.insert el 2 tmp)
         `(let [,tmp ,val]
-           (if ,tmp
+           (if (not= nil ,tmp)
                (-?> ,el ,(unpack els))
                ,tmp)))))
 
@@ -56,7 +56,7 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
             tmp (gensym)]
         (table.insert el tmp)
         `(let [,tmp ,val]
-           (if ,tmp
+           (if (not= ,tmp nil)
                (-?>> ,el ,(unpack els))
                ,tmp)))))
 

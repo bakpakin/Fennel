@@ -16,6 +16,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 
 ### Bug Fixes
 * Fix a bug where macro modules did not get compiler options propagated
+* Fix a bug where `-?>` and `-?>>` checked for falsy values, not nils
 
 ### Changes and Removals
 * Improve performance of `icollect` by avoiding unnecessary length checks

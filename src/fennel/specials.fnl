@@ -1083,7 +1083,7 @@ table.insert(package.loaders, fennel.searcher)"
                    chunk (load-code code (make-compiler-env) filename)]
                (values chunk filename))))
 
-(local macro-searchers [lua-macro-searcher fennel-macro-searcher])
+(local macro-searchers [fennel-macro-searcher lua-macro-searcher])
 
 (fn search-macro-module [modname n]
   (match (. macro-searchers n)

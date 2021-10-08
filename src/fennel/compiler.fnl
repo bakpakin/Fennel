@@ -46,11 +46,14 @@ implement nesting. "
 The ast arg should be unmodified so that its first element is the form called."
   (when (not condition)
     (let [{: source : unfriendly} (or utils.root.options {})]
-      (utils.root.reset)
-      (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
-          ;; if we use regular `assert' we can't set level to 0
-          (error (assert-msg ast msg) 0)
-          (friend.assert-compile condition msg ast source))))
+      ;; allow plugins to override assert-compile
+      (when (= nil (utils.hook :assert-compile condition msg ast
+                               utils.root.reset))
+        (utils.root.reset)
+        (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
+            ;; if we use regular `assert' we can't set level to 0
+            (error (assert-msg ast msg) 0)
+            (friend.assert-compile condition msg ast source)))))
   condition)
 
 (set scopes.global (make-scope))

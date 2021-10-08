@@ -96,13 +96,17 @@ stream is finished."
 
   (fn parse-error [msg byteindex-override]
     (let [{: source : unfriendly} (or options utils.root.options {})]
-      (utils.root.reset)
-      (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
-          (error (string.format "%s:%s: Parse error: %s"
-                                (or filename :unknown) (or line "?") msg)
-                 0)
-          (friend.parse-error msg (or filename :unknown) (or line "?")
-                              (or byteindex-override byteindex) source))))
+      ;; allow plugins to override parse-error
+      (when (= nil (utils.hook :parse-error msg (or filename :unknown)
+                               (or line "?") (or byteindex-override byteindex)
+                               source utils.root.reset))
+        (utils.root.reset)
+        (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
+            (error (string.format "%s:%s: Parse error: %s"
+                                  (or filename :unknown) (or line "?") msg)
+                   0)
+            (friend.parse-error msg (or filename :unknown) (or line "?")
+                                (or byteindex-override byteindex) source)))))
 
   (fn parse-stream []
     (var (whitespace-since-dispatch done? retval) true)

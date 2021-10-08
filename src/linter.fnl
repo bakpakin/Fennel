@@ -72,4 +72,5 @@ Doesn't do any linting on its own; just saves the data for other linters."
  ;; Note that this will only check unused args inside functions and let blocks,
  ;; not top-level locals of a chunk.
  :fn check-unused
- :do check-unused}
+ :do check-unused
+ :chunk check-unused}

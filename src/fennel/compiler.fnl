@@ -774,7 +774,9 @@ which we have to do if we don't know."
       (let [exprs (compile1 (. vals i) scope chunk
                             {:nval (or (and (< i (length vals)) 0) nil)
                              :tail (= i (length vals))})]
-        (keep-side-effects exprs chunk nil (. vals i))))
+        (keep-side-effects exprs chunk nil (. vals i))
+        (when (= i (length vals))
+          (utils.hook :chunk ast scope))))
     (set allowed-globals old-globals)
     (utils.root.reset)
     (flatten chunk opts)))
@@ -797,6 +799,7 @@ which we have to do if we don't know."
          (values chunk scope opts))
     (let [exprs (compile1 ast scope chunk {:tail true})]
       (keep-side-effects exprs chunk nil ast)
+      (utils.hook :chunk ast scope)
       (set allowed-globals old-globals)
       (utils.root.reset)
       (flatten chunk opts))))

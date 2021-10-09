@@ -1,5 +1,6 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
+(local friend (require :fennel.friend))
 
 (fn test-failures [failures]
   (each [code expected-msg (pairs failures)]
@@ -166,6 +167,16 @@
     (l.assertStrContains msg4 "msg4")
     (l.assertStrContains msg5 "msg5")))
 
+(fn doer [ast]
+  (friend.assert-compile false "bad news" ast))
+
+(fn test-macro-traces []
+  ;; we want to trigger an error from inside a built-in macro and make sure we
+  ;; don't get built-in macro trace info in the error messages.
+  (let [(_ err) (pcall fennel.eval "\n\n(match 5 b (print 5))"
+                       {:plugins [{:do doer}] :filename "matcher.fnl"})]
+    (l.assertStrContains err "matcher.fnl:3")))
+
 {: test-global-fails
  : test-fn-fails
  : test-binding-fails
@@ -173,4 +184,5 @@
  : test-core-fails
  : test-suggestions
  : test-macro
- : test-parse-fails}
+ : test-parse-fails
+ : test-macro-traces}

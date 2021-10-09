@@ -401,6 +401,14 @@ if opts contains the nval option."
           nested-macro)
         macro*)))
 
+(fn propagate-trace-info [{: filename : line : bytestart : byteend} _index node]
+  "The stack trace info should be based on the macro caller, not the macro AST."
+  (when (and (= :table (type node)) (not= filename node.filename))
+    (let [src (utils.ast-source node)]
+      (set (src.filename src.line) (values filename line))
+      (set (src.bytestart src.byteend) (values bytestart byteend))))
+  (= :table (type node)))
+
 (fn macroexpand* [ast scope once]
   "Expand macros in the ast. Only do one level if once is true."
   (match (if (utils.list? ast)
@@ -412,6 +420,7 @@ if opts contains the nval option."
                  ;; supports trimming the trace from the wrong direction.
                  (ok transformed) (xpcall #(macro* (unpack ast 2))
                                           debug.traceback)]
+             (utils.walk-tree transformed (partial propagate-trace-info ast))
              (set scopes.macro old-scope)
              (assert-compile ok transformed ast)
              (if (or once (not transformed))

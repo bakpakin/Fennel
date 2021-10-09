@@ -779,7 +779,7 @@ which we have to do if we don't know."
                              :tail (= i (length vals))})]
         (keep-side-effects exprs chunk nil (. vals i))
         (when (= i (length vals))
-          (utils.hook :chunk ast scope))))
+          (utils.hook :chunk (. vals i) scope))))
     (set allowed-globals old-globals)
     (utils.root.reset)
     (flatten chunk opts)))

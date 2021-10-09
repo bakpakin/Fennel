@@ -2,9 +2,7 @@
 ;; compilation and attempt to enrich them by suggesting fixes.
 ;; It can be disabled to fall back to the regular terse errors.
 
-(fn ast-source [ast]
-  (let [m (getmetatable ast)]
-    (or (and m m.line m) (and (= :table (type ast)) ast) {})))
+(local utils (require :fennel.utils))
 
 (local suggestions
        {"unexpected multi symbol (.*)" ["removing periods or colons from %s"]
@@ -139,12 +137,12 @@
 (fn assert-compile [condition msg ast source]
   "A drop-in replacement for the internal assert-compile with friendly messages."
   (when (not condition)
-    (let [{: filename : line} (ast-source ast)]
+    (let [{: filename : line} (utils.ast-source ast)]
       (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
                               ;; still need fallbacks because backtick erases
                               ;; source data, and vararg has no source data
                               (or filename :unknown) (or line "?") msg)
-                           (ast-source ast) source) 0)))
+                           (utils.ast-source ast) source) 0)))
   condition)
 
 (fn parse-error [msg filename line bytestart source]

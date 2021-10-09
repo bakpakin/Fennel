@@ -262,6 +262,13 @@ be declared local, and they may have side effects on invocation (metatables)."
 (fn quoted? [symbol]
   symbol.quoted)
 
+(fn ast-source [ast]
+  "Most AST nodes put file/line info in the table itself, but k/v tables
+store it on the metatable instead."
+  (if (table? ast) (or (getmetatable ast) {})
+      (= :table (type ast)) ast
+      {}))
+
 ;;; Other
 
 (fn walk-tree [root f custom-iterator]
@@ -367,6 +374,7 @@ handlers will be skipped."
  : propagate-options
  : root
  : debug-on?
+ : ast-source
  :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")
  :macro-path (table.concat [:./?.fnl :./?/init-macros.fnl :./?/init.fnl
                             (getenv :FENNEL_MACRO_PATH)] ";")}

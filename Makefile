@@ -13,7 +13,7 @@ SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
 build: fennel fennel.lua
 
-test: fennel.lua fennel
+test: fennel.lua
 	$(LUA) test/init.lua $(TESTS)
 
 testall: export FNL_TESTALL = 1
@@ -25,7 +25,7 @@ testall: fennel fennel.lua
 	@printf "\nTesting lua 5.4:\n"; lua5.4 test/init.lua
 	@printf "\nTesting luajit:\n" ; luajit test/init.lua
 
-fuzz: fennel fennel.lua
+fuzz: fennel.lua
 	$(LUA) test/init.lua fuzz
 
 # older versions of cloc might need --force-lang=lisp
@@ -115,7 +115,7 @@ $(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
 	$(MAKE) -C $(LUA_DIR) clean liblua.a CC=arm-linux-gnueabihf-gcc
 	mv $(LUA_DIR)/src/liblua.a $@
 
-ci: testall lint fuzz
+ci: testall lint fuzz fennel
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \

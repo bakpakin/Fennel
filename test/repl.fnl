@@ -164,6 +164,17 @@
     (l.assertEquals (send "(foo)") [:foo])
     (l.assertEquals (comp "fo") [:for :foo])))
 
+(fn test-source-offset []
+  (let [(send comp) (wrap-repl)]
+    ;; we get the source in the error message
+    (l.assertStrContains (. (send "(let a)") 1) "(let a)\n     ^")
+    ;; repeated errors still get it
+    (l.assertStrContains (. (send "(let b)") 1) "(let b)\n     ^")
+    (set _G.dbg true)
+    ;; repl commands don't mess it up
+    (send ",complete l")
+    (l.assertStrContains (. (send "(let c)") 1) "(let c)\n     ^")))
+
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -180,5 +191,6 @@
      : test-options
      : test-apropos
      : test-byteoffset
+     : test-source-offset
      : test-code}
     {})

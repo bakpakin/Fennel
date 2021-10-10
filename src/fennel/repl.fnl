@@ -305,9 +305,9 @@ For more information about the language, see https://fennel-lang.org/reference")
     (fn loop []
       (each [k (pairs chars)]
         (tset chars k nil))
+      (reset)
       (let [(ok parse-ok? x) (pcall read)
             src-string (string.char (unpack chars))]
-        (reset)
         (if (not ok)
             (do
               (on-error :Parse parse-ok?)

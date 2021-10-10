@@ -359,6 +359,6 @@ stream is finished."
 
     (parse-loop (skip-whitespace (getb))))
 
-  (values parse-stream #(set (stack line byteindex) (values [] 1 0))))
+  (values parse-stream #(set (stack line byteindex lastb) (values [] 1 0 nil))))
 
 {: granulate : parser : string-stream : sym-char?}

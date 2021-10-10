@@ -19,6 +19,8 @@
 
 ;; This file is provided as an example and is not part of Fennel's public API.
 
+(local fennel (require :fennel))
+
 (fn save-require-meta [from to scope]
   "When destructuring, save module name if local is bound to a `require' call.
 Doesn't do any linting on its own; just saves the data for other linters."
@@ -37,27 +39,47 @@ Doesn't do any linting on its own; just saves the data for other linters."
                     (string.format "Missing field %s in module %s"
                                    (or field :?) (or module-name :?)) symbol)))
 
-(fn arity-check? [module] (-?> module getmetatable (. :arity-check?)))
+(fn arity-check? [module module-name]
+  (or (-?> module getmetatable (. :arity-check?))
+      ;; I don't love this method of configuration but it gets the job done.
+      (match (and module-name os os.getenv (os.getenv "FENNEL_LINT_MODULES"))
+        module-pattern (module-name:find module-pattern))))
+
+(fn descend [target [part & parts]]
+  (if (= nil part) target
+      (= :table (type target)) (match (. target part)
+                                 new-target (descend new-target parts))
+      target))
+
+(fn expected-arity [target lua-params name]
+  (match (fennel.metadata:get target :fnl/arglist)
+    nil lua-params
+    arglist (let [args (icollect [_ a (ipairs arglist)] a)]
+              (while (string.find (tostring (. args (length args))) "^%?")
+                (table.remove args))
+              (length args))))
 
 (fn arity-check-call [[f & args] scope]
   "Perform static arity checks on static function calls in a module."
-  (let [arity (# args)
+  (let [arity (length args)
         last-arg (. args arity)
-        [f-local field] (or (multi-sym? f) [])
+        [f-local & parts] (or (multi-sym? f) [])
         module-name (-?> scope.symmeta (. (tostring f-local)) (. :required))
-        module (and module-name (require module-name))]
-    (when (and (arity-check? module) _G.debug _G.debug.getinfo
+        module (and module-name (require module-name))
+        field (table.concat parts ".")
+        target (descend module parts)]
+    (when (and (arity-check? module module-name) _G.debug _G.debug.getinfo
                (not (varg? last-arg)) (not (list? last-arg)))
-      (assert-compile (= (type (. module field)) :function)
+      (assert-compile (= (type target) :function)
                       (string.format "Missing function %s in module %s"
                                      (or field :?) module-name) f)
-      (match (_G.debug.getinfo (. module field))
+      (match (_G.debug.getinfo target)
         {: nparams :what "Lua" :isvararg true}
-        (assert-compile (<= nparams (# args))
-                        (: "Called %s.%s with %s arguments, expected %s+"
+        (assert-compile (<= (expected-arity target nparams f) (length args))
+                        (: "Called %s.%s with %s arguments, expected at least %s"
                            :format f-local field arity nparams) f)
         {: nparams :what "Lua" :isvararg false}
-        (assert-compile (= nparams (# args))
+        (assert-compile (= (expected-arity target nparams f) (length args))
                         (: "Called %s.%s with %s arguments, expected %s"
                            :format f-local field arity nparams) f)))))
 

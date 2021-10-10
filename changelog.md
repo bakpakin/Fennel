@@ -19,6 +19,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Fix a bug where `-?>` and `-?>>` checked for falsy values, not nils
 
 ### Changes and Removals
+* Backslash followed by a literal newline in a string is now parsed as newline
 * Improve performance of `icollect` by avoiding unnecessary length checks
 * **Enforce compiler sandbox** by default instead of warning
 * **Disallow &** in identifiers

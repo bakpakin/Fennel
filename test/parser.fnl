@@ -13,7 +13,9 @@
                :150_000 150000
                "\"\n5.2\"" "\n5.2"
                ;; leading underscores aren't numbers
-               "(let [_0 :zero] _0)" "zero"}
+               "(let [_0 :zero] _0)" "zero"
+               ;; backslash+newline becomes just a newline like Lua
+               "\"foo\\\nbar\"" "foo\nbar"}
         (amp-ok? amp) ((fennel.parser (fennel.string-stream "&abc ")))]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code) expected code))

@@ -275,6 +275,28 @@ Example:
   (table.concat c ",")) ; => "3,4,5,6"
 ```
 
+If a table implements `__fennelrest` metamethod it is used to capture the
+remainder of the table. It can be used with custom data structures
+implemented in terms of tables, which wish to provide custom rest
+destructuring. The metamethod receives the table as the first
+argument, and the amount of values it needs to drop from the beginning
+of the table, much like table.unpack
+
+Example:
+
+```fennel
+(local t [1 2 3 4 5 6])
+(setmetatable
+ t
+ {:__fennelrest (fn [t k]
+               (let [res {}]
+                 (for [i k (length t)]
+                   (tset res (tostring (. t i)) (. t i)))
+                 res))})
+(let [[a b & c] t]
+  c) ;; => {:3 3 :4 4 :5 5 :6 6}
+```
+
 When destructuring a non-sequential table, you can capture the
 original table along with the destructuring by using `&as`:
 

@@ -692,8 +692,8 @@ which we have to do if we don't know."
           (when (not (and (= :number (type k))
                           (: (tostring (. left (- k 1))) :find "^&")))
             (if (and (utils.sym? v) (= (tostring v) "&"))
-                (let [unpack-str "{(table.unpack or unpack)(%s, %s)}"
-                      formatted (string.format unpack-str s k)
+                (let [unpack-str "(getmetatable(%s) and getmetatable(%s).__fennelrest and getmetatable(%s).__fennelrest(%s, %s)) or {(table.unpack or unpack)(%s, %s)}"
+                      formatted (string.format unpack-str s s s s k s k)
                       subexpr (utils.expr formatted :expression)]
                   (assert-compile (and (utils.sequence? left)
                                        (= nil (. left (+ k 2))))

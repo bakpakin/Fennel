@@ -35,23 +35,22 @@ will see its values updated as expected, regardless of mangling rules."
 
                             (values next (utils.kvmap env putenv) nil))}))
 
-(fn current-global-names [env]
-  ;; if there's a metatable on env, we need to make sure it's one that has a
+(fn current-global-names [?env]
+  ;; if there's a metatable on ?env, we need to make sure it's one that has a
   ;; __pairs metamethod, otherwise we give up entirely on globals checking.
-  (let [mt (match (getmetatable env)
+  (let [mt (match (getmetatable ?env)
              ;; newer lua versions know about __pairs natively not 5.1
-             (where {: __pairs} __pairs) (collect [k v (__pairs env)] (values k v))
-             nil (or env _G))]
+             (where {: __pairs} __pairs) (collect [k v (__pairs ?env)] (values k v))
+             nil (or ?env _G))]
     (and mt (utils.kvmap mt compiler.global-unmangling))))
 
-(fn load-code [code environment filename]
+(fn load-code [code ?env ?filename]
   "Load Lua code with an environment in all recent Lua versions"
-  (let [environment (or environment (rawget _G :_ENV) _G)]
+  (let [env (or ?env (rawget _G :_ENV) _G)]
     (if (and (rawget _G :setfenv) (rawget _G :loadstring))
-        (let [f (assert (_G.loadstring code filename))]
-          (_G.setfenv f environment)
-          f)
-        (assert (load code filename :t environment)))))
+        (let [f (assert (_G.loadstring code ?filename))]
+          (doto f (setfenv env)))
+        (assert (load code ?filename :t env)))))
 
 (fn doc* [tgt name]
   "Return a docstring for tgt."
@@ -79,20 +78,20 @@ will see its values updated as expected, regardless of mangling rules."
   (tset compiler.metadata (. SPECIALS name)
         {:fnl/arglist arglist :fnl/docstring docstring :fnl/body-form? body-form?}))
 
-(fn compile-do [ast scope parent start]
+(fn compile-do [ast scope parent ?start]
   "Compile a list of forms for side effects."
-  (let [start (or start 2)
+  (let [start (or ?start 2)
         len (length ast)
         sub-scope (compiler.make-scope scope)]
     (for [i start len]
       (compiler.compile1 (. ast i) sub-scope parent {:nval 0}))))
 
-(fn SPECIALS.do [ast scope parent opts start chunk sub-scope pre-syms]
+(fn SPECIALS.do [ast scope parent opts ?start ?chunk ?sub-scope ?pre-syms]
   "Implements a do statement, starting at the 'start'-th element.
 By default, start is 2."
-  (let [start (or start 2)
-        sub-scope (or sub-scope (compiler.make-scope scope))
-        chunk (or chunk [])
+  (let [start (or ?start 2)
+        sub-scope (or ?sub-scope (compiler.make-scope scope))
+        chunk (or ?chunk [])
         len (length ast)
         retexprs {:returned true}]
     (fn compile-body [outer-target outer-tail outer-retexprs]
@@ -123,7 +122,7 @@ By default, start is 2."
         ;; generate a local target
         (let [syms []]
           (for [i 1 opts.nval]
-            (let [s (or (and pre-syms (. pre-syms i)) (compiler.gensym scope))]
+            (let [s (or (and ?pre-syms (. ?pre-syms i)) (compiler.gensym scope))]
               (tset syms i s)
               (tset retexprs i (utils.expr s :sym))))
           (let [outer-target (table.concat syms ", ")]
@@ -786,8 +785,8 @@ Method name doesn't have to be known at compile-time; if it is, use
             (. operands 1))
       _ (.. "(" (table.concat operands padded-op) ")"))))
 
-(fn define-arithmetic-special [name zero-arity unary-prefix lua-name]
-  (tset SPECIALS name (partial arithmetic-special (or lua-name name) zero-arity
+(fn define-arithmetic-special [name zero-arity unary-prefix ?lua-name]
+  (tset SPECIALS name (partial arithmetic-special (or ?lua-name name) zero-arity
                                unary-prefix))
   (doc-special name [:a :b "..."]
                "Arithmetic operator; works the same as Lua but accepts more arguments."))
@@ -892,13 +891,13 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
                    (table.concat arglist ",") (table.concat comparisons chain)
                    (table.concat vals ","))))
 
-(fn define-comparator-special [name lua-op chain-op]
-  (let [op (or lua-op name)]
+(fn define-comparator-special [name ?lua-op ?chain-op]
+  (let [op (or ?lua-op name)]
     (fn opfn [ast scope parent]
       (compiler.assert (< 2 (length ast)) "expected at least two arguments" ast)
       (if (= 3 (length ast))
           (native-comparator op ast scope parent)
-          (double-eval-protected-comparator op chain-op ast scope parent)))
+          (double-eval-protected-comparator op ?chain-op ast scope parent)))
 
     (tset SPECIALS name opfn))
   (doc-special name [:a :b "..."]
@@ -911,11 +910,11 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (define-comparator-special "=" "==")
 (define-comparator-special :not= "~=" :or)
 
-(fn define-unary-special [op realop]
+(fn define-unary-special [op ?realop]
   (fn opfn [ast scope parent]
     (compiler.assert (= (length ast) 2) "expected one argument" ast)
     (let [tail (compiler.compile1 (. ast 2) scope parent {:nval 1})]
-      (.. (or realop op) (tostring (. tail 1)))))
+      (.. (or ?realop op) (tostring (. tail 1)))))
 
   (tset SPECIALS op opfn))
 
@@ -931,7 +930,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (tset SPECIALS "#" (. SPECIALS :length))
 
 (fn SPECIALS.quote [ast scope parent]
-  (compiler.assert (= (length ast) 2) "expected one argument")
+  (compiler.assert (= (length ast) 2) "expected one argument" ast)
   (var (runtime this-scope) (values true scope))
   (while this-scope
     (set this-scope this-scope.parent)
@@ -1035,11 +1034,11 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
   "Escape a string for safe use in a Lua pattern."
   (string.gsub str "[^%w]" "%%%1"))
 
-(fn search-module [modulename pathstring]
+(fn search-module [modulename ?pathstring]
   (let [pathsepesc (escapepat pkg-config.pathsep)
         pattern (: "([^%s]*)%s" :format pathsepesc pathsepesc)
-        no-dot-module (: modulename :gsub "%." pkg-config.dirsep)
-        fullpath (.. (or pathstring utils.fennel-module.path)
+        no-dot-module (modulename:gsub "%." pkg-config.dirsep)
+        fullpath (.. (or ?pathstring utils.fennel-module.path)
                      pkg-config.pathsep)]
     (fn try-path [path]
       (let [filename (: path :gsub (escapepat pkg-config.pathmark)
@@ -1056,12 +1055,12 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
     (find-in-path 1)))
 
-(fn make-searcher [options]
+(fn make-searcher [?options]
   "This will allow regular `require` to work with Fennel:
 table.insert(package.loaders, fennel.searcher)"
   (fn [module-name]
     (let [opts (utils.copy utils.root.options)]
-      (each [k v (pairs (or options {}))]
+      (each [k v (pairs (or ?options {}))]
         (tset opts k v))
       (set opts.module-name module-name)
       (match (search-module module-name)
@@ -1127,12 +1126,12 @@ modules in the compiler environment."
         modname-chunk (load-code modexpr)]
     (modname-chunk module-name filename)))
 
-(fn SPECIALS.require-macros [ast scope parent real-ast]
+(fn SPECIALS.require-macros [ast scope parent ?real-ast]
   (compiler.assert (= (length ast) 2) "Expected one module name argument"
-                   (or real-ast ast)) ; real-ast comes from import-macros
+                   (or ?real-ast ast)) ; real-ast comes from import-macros
   (let [modname (resolve-module-name ast scope parent {})]
     (compiler.assert (= :string (type modname))
-                     "module name must compile to string" (or real-ast ast))
+                     "module name must compile to string" (or ?real-ast ast))
     (when (not (. macro-loaded modname))
       (let [(loader filename) (search-macro-module modname 1)]
         (compiler.assert loader (.. modname " module not found.") ast)

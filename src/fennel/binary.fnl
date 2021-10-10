@@ -163,8 +163,8 @@ int main(int argc, char *argv[]) {
     (f:close)
     lua-code))
 
-(fn native-loader [native options]
-  (let [opts (or options {:rename-modules {}})
+(fn native-loader [native ?options]
+  (let [opts (or ?options {:rename-modules {}})
         rename (or opts.rename-modules {})
         used-renames {}
         nm (or (os.getenv :NM) :nm)

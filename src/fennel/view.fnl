@@ -293,7 +293,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                 (tostring x)
                 (.. "#<" (tostring x) ">")))))
 
-(fn view [x options]
+(fn view [x ?options]
   "Return a string representation of x.
 
 Can take an options table with these keys:
@@ -404,4 +404,4 @@ When using the `:preprocess` option, avoid modifying any tables in-place in the
 passed function. Since Lua tables are mutable and provided to `:preprocess`
 without copying, any modification done in `:preprocess` will be visible outside
 of `fennel.view`."
-  (pp x (make-options x options) 0))
+  (pp x (make-options x ?options) 0))

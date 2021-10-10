@@ -10,13 +10,13 @@
 
 (local scopes [])
 
-(fn make-scope [parent]
+(fn make-scope [?parent]
   "Create a new Scope, optionally under a parent scope.
 Scopes are compile time constructs that are responsible for keeping track of
 local variables, name mangling, and macros.  They are accessible to user code
 via the 'eval-compiler' special form (may change). They use metatables to
 implement nesting. "
-  (let [parent (or parent scopes.global)]
+  (let [parent (or ?parent scopes.global)]
     {:includes (setmetatable [] {:__index (and parent parent.includes)})
      :macros (setmetatable [] {:__index (and parent parent.macros)})
      :manglings (setmetatable [] {:__index (and parent parent.manglings)})
@@ -103,7 +103,7 @@ and compile-stream."
       (unique-mangling original (.. original append) scope (+ append 1))
       mangling))
 
-(fn local-mangling [str scope ast temp-manglings]
+(fn local-mangling [str scope ast ?temp-manglings]
   "Creates a symbol from a string by mangling it. ensures that the generated
 symbol is unique if the input string is unique in the scope."
   (assert-compile (not (utils.multi-sym? str))
@@ -117,7 +117,7 @@ symbol is unique if the input string is unique in the scope."
                      (string.gsub "[^%w_]" #(string.format "_%02x" ($:byte))))
         unique (unique-mangling mangling mangling scope 0)]
     (tset scope.unmanglings unique str)
-    (let [manglings (or temp-manglings scope.manglings)]
+    (let [manglings (or ?temp-manglings scope.manglings)]
       (tset manglings str unique))
     unique))
 
@@ -144,12 +144,12 @@ these new manglings instead of the current manglings."
   (set utils.root.scope.gensym-append (+ (or utils.root.scope.gensym-append 0) 1))
   (.. "_" utils.root.scope.gensym-append "_"))
 
-(fn gensym [scope base ?suffix]
+(fn gensym [scope ?base ?suffix]
   "Generates a unique symbol in the scope."
-  (var mangling (.. (or base "") (next-append) (or ?suffix "")))
+  (var mangling (.. (or ?base "") (next-append) (or ?suffix "")))
   (while (. scope.unmanglings mangling)
-    (set mangling (.. (or base "") (next-append) (or ?suffix ""))))
-  (tset scope.unmanglings mangling (or base true))
+    (set mangling (.. (or ?base "") (next-append) (or ?suffix ""))))
+  (tset scope.unmanglings mangling (or ?base true))
   (tset scope.gensyms mangling true)
   mangling)
 
@@ -178,14 +178,14 @@ rather than generating new one."
                     (string.format "macro tried to bind %s without gensym" name)
                     symbol)))
 
-(fn declare-local [symbol meta scope ast temp-manglings]
+(fn declare-local [symbol meta scope ast ?temp-manglings]
   "Declare a local symbol"
   (check-binding-valid symbol scope ast)
   (let [name (tostring symbol)]
     (assert-compile (not (utils.multi-sym? name))
                     (.. "unexpected multi symbol " name) ast)
     (tset scope.symmeta name meta)
-    (local-mangling name scope ast temp-manglings)))
+    (local-mangling name scope ast ?temp-manglings)))
 
 (fn hashfn-arg-name [name multi-sym-parts scope]
   (if (not scope.hashfn) nil
@@ -196,10 +196,10 @@ rather than generating new one."
                           (tset multi-sym-parts 1 :$1))
                         (table.concat multi-sym-parts "."))))
 
-(fn symbol-to-expression [symbol scope reference?]
+(fn symbol-to-expression [symbol scope ?reference?]
   "Convert symbol to Lua code. Will only work for local symbols
 if they have already been declared via declare-local"
-  (utils.hook :symbol-to-expression symbol scope reference?)
+  (utils.hook :symbol-to-expression symbol scope ?reference?)
   (let [name (. symbol 1)
         multi-sym-parts (utils.multi-sym? name)
         name (or (hashfn-arg-name name multi-sym-parts scope) name)]
@@ -220,11 +220,11 @@ if they have already been declared via declare-local"
         (tset scope.parent.refedglobals (. parts 1) true))
       (utils.expr (combine-parts parts scope) etype))))
 
-(fn emit [chunk out ast]
+(fn emit [chunk out ?ast]
   "Emit Lua code."
   (if (= (type out) :table)
       (table.insert chunk out)
-      (table.insert chunk {: ast :leaf out})))
+      (table.insert chunk {:ast ?ast :leaf out})))
 
 (fn peephole [chunk]
   "Do some peephole optimization."
@@ -409,7 +409,7 @@ if opts contains the nval option."
       (set (src.bytestart src.byteend) (values bytestart byteend))))
   (= :table (type node)))
 
-(fn macroexpand* [ast scope once]
+(fn macroexpand* [ast scope ?once]
   "Expand macros in the ast. Only do one level if once is true."
   (match (if (utils.list? ast)
              (find-macro ast scope (utils.multi-sym? (. ast 1))))
@@ -423,7 +423,7 @@ if opts contains the nval option."
              (utils.walk-tree transformed (partial propagate-trace-info ast))
              (set scopes.macro old-scope)
              (assert-compile ok transformed ast)
-             (if (or once (not transformed))
+             (if (or ?once (not transformed))
                  transformed
                  (macroexpand* transformed scope)))
     _ ast))
@@ -545,7 +545,7 @@ if opts contains the nval option."
                                       :expression)]
                          parent opts ast)))
 
-(fn compile1 [ast scope parent opts]
+(fn compile1 [ast scope parent ?opts]
   "Compile an AST expression in the scope into parent, a tree of lines that is
 eventually compiled into Lua code. Also returns some information about the
 evaluation of the compiled expression, which can be used by the calling
@@ -574,7 +574,7 @@ generate better code, because if we know we are only going to use 1 or 2 values
 from an expression, we can create 1 or 2 locals to store intermediate results
 rather than turn the expression into a closure that is called immediately,
 which we have to do if we don't know."
-  (let [opts (or opts [])
+  (let [opts (or ?opts [])
         ast (macroexpand* ast scope)]
     (if (utils.list? ast)
         (compile-call ast scope parent opts compile1)

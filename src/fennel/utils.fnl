@@ -43,10 +43,10 @@
 
 ;; Note: the collect/icollect macros mostly make map/kvmap obsolete.
 
-(fn map [t f out]
+(fn map [t f ?out]
   "Map function f over sequential table t, removing values where f returns nil.
 Optionally takes a target table to insert the mapped values into."
-  (let [out (or out [])
+  (let [out (or ?out [])
         f (if (= (type f) :function)
               f
               #(. $ f))]
@@ -55,11 +55,11 @@ Optionally takes a target table to insert the mapped values into."
         v (table.insert out v)))
     out))
 
-(fn kvmap [t f out]
+(fn kvmap [t f ?out]
   "Map function f over key/value table t, similar to above, but it can return a
 sequential table if f returns a single value or a k/v table if f returns two.
 Optionally takes a target table to insert the mapped values into."
-  (let [out (or out [])
+  (let [out (or ?out [])
         f (if (= (type f) :function)
               f
               #(. $ f))]
@@ -69,18 +69,18 @@ Optionally takes a target table to insert the mapped values into."
         (value) (table.insert out value)))
     out))
 
-(fn copy [from to]
+(fn copy [from ?to]
   "Returns a shallow copy of its table argument. Returns an empty table on nil."
-  (let [to (or to [])]
+  (let [to (or ?to [])]
     (each [k v (pairs (or from []))]
       (tset to k v))
     to))
 
-(fn member? [x tbl n]
-  (match (. tbl (or n 1))
+(fn member? [x tbl ?n]
+  (match (. tbl (or ?n 1))
     x true
     nil nil
-    _ (member? x tbl (+ (or n 1) 1))))
+    _ (member? x tbl (+ (or ?n 1) 1))))
 
 (fn allpairs [tbl]
   "Like pairs, but if the table has an __index metamethod, it will recurisvely
@@ -123,14 +123,14 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 ;; the tostring2 argument is passed in by fennelview; this lets us use the same
 ;; function for regular tostring as for fennelview. when called from fennelview
 ;; the list's contents will also show as being fennelviewed.
-(fn list->string [self tostring2]
+(fn list->string [self ?tostring2]
   (var (safe max) (values [] 0))
   (each [k (pairs self)]
     (when (and (= (type k) :number) (> k max))
       (set max k)))
   (for [i 1 max]
     (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
-  (.. "(" (table.concat (map safe (or tostring2 view)) " " 1 max) ")"))
+  (.. "(" (table.concat (map safe (or ?tostring2 view)) " " 1 max) ")"))
 
 (fn comment-view [c]
   (values c true))
@@ -271,7 +271,7 @@ store it on the metatable instead."
 
 ;;; Other
 
-(fn walk-tree [root f custom-iterator]
+(fn walk-tree [root f ?custom-iterator]
   "Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
 When f returns a truthy value, recursively walks the children."
   (fn walk [iterfn parent idx node]
@@ -279,7 +279,7 @@ When f returns a truthy value, recursively walks the children."
       (each [k v (iterfn node)]
         (walk iterfn node k v))))
 
-  (walk (or custom-iterator pairs) nil nil root)
+  (walk (or ?custom-iterator pairs) nil nil root)
   root)
 
 (local lua-keywords [:and

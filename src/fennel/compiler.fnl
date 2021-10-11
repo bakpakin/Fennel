@@ -212,7 +212,7 @@ if they have already been declared via declare-local"
                       (.. "tried to reference a macro at runtime") symbol)
       ;; if it's a reference and not a symbol which introduces a new binding
       ;; then we need to check for allowed globals
-      (assert-compile (or (not reference?) local? (= :_ENV (. parts 1))
+      (assert-compile (or (not ?reference?) local? (= :_ENV (. parts 1))
                           (global-allowed? (. parts 1)))
                       (.. "unknown identifier in strict mode: "
                           (tostring (. parts 1))) symbol)

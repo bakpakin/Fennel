@@ -71,7 +71,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
         field (table.concat parts ".")
         target (descend module parts)]
     (when (and (arity-check? module module-name) _G.debug _G.debug.getinfo
-               (not (varg? last-arg)) (not (list? last-arg)))
+               module (not (varg? last-arg)) (not (list? last-arg)))
       (assert-compile (= (type target) :function)
                       (string.format "Missing function %s in module %s"
                                      (or field :?) module-name) f)

@@ -692,8 +692,15 @@ which we have to do if we don't know."
           (when (not (and (= :number (type k))
                           (: (tostring (. left (- k 1))) :find "^&")))
             (if (and (utils.sym? v) (= (tostring v) "&"))
-                (let [unpack-str "(getmetatable(%s) and getmetatable(%s).__fennelrest and getmetatable(%s).__fennelrest(%s, %s)) or {(table.unpack or unpack)(%s, %s)}"
-                      formatted (string.format unpack-str s s s s k s k)
+                (let [unpack-str "(function (t, k)
+                                      local mt = getmetatable(t)
+                                      if \"table\" == type(mt) and mt.__fennelrest then
+                                         return mt.__fennelrest(t, k)
+                                      else
+                                         return {(table.unpack or unpack)(t, k)}
+                                      end
+                                   end)(%s, %s)"
+                      formatted (string.format (string.gsub unpack-str "\n%s*" " ") s k)
                       subexpr (utils.expr formatted :expression)]
                   (assert-compile (and (utils.sequence? left)
                                        (= nil (. left (+ k 2))))

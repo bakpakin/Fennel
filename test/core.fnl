@@ -216,6 +216,7 @@
                "(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x" 14
                "(let [({: x} y) (values {:x 10} 20)] (+ x y))" 30
                "(let [[a & b] (setmetatable {} {:__fennelrest #42})] b)" 42
+               "(let [[a & b] (setmetatable {} {:__fennelrest #false})] b)" false
                "(let [[a & b] (setmetatable [1 2 3 4 5] {:__fennelrest (fn [t k] [((or table.unpack _G.unpack) t (+ k 1))])})] b)" [3 4 5]}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))

@@ -35,7 +35,7 @@ count: ; cloc $(LIB_SRC) ; cloc $(SRC)
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 
 # Avoid chicken/egg situation using the old Lua launcher.
-LAUNCHER=$(LUA) old/launcher.lua --no-compiler-sandbox --add-fennel-path src/?.fnl > /dev/null
+LAUNCHER=$(LUA) old/launcher.lua --no-compiler-sandbox --add-fennel-path src/?.fnl
 
 # All-in-one pure-lua script:
 fennel: src/launcher.fnl $(SRC)
@@ -53,12 +53,9 @@ minifennel.lua: $(SRC) fennel
 		--skip-include fennel.repl,fennel.view,fennel.friend \
 		--compile $< > $@
 
-lint: old/metafennel.lua
-	FENNEL_LINT_MODULES="^fennel%." $(LUA) old/metalauncher.lua --metadata \
-		--plugin src/linter.fnl --require-as-include --compile src/fennel.fnl
-
-old/metafennel.lua: $(SRC)
-	$(LAUNCHER) --metadata --require-as-include --compile $< > $@
+lint:
+	FENNEL_LINT_MODULES="^fennel%." $(LAUNCHER) --plugin src/linter.fnl \
+		--require-as-include --compile src/fennel.fnl > /dev/null
 
 ## Binaries
 

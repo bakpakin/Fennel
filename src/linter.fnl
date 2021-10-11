@@ -19,8 +19,6 @@
 
 ;; This file is provided as an example and is not part of Fennel's public API.
 
-(local fennel (require :fennel))
-
 (fn save-require-meta [from to scope]
   "When destructuring, save module name if local is bound to a `require' call.
 Doesn't do any linting on its own; just saves the data for other linters."
@@ -41,6 +39,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
 
 (fn arity-check? [module module-name]
   (or (-?> module getmetatable (. :arity-check?))
+      (pcall debug.getlocal #nil 1) ; PUC 5.1 can't use debug.getlocal for this
       ;; I don't love this method of configuration but it gets the job done.
       (match (and module-name os os.getenv (os.getenv "FENNEL_LINT_MODULES"))
         module-pattern (module-name:find module-pattern))))
@@ -51,13 +50,16 @@ Doesn't do any linting on its own; just saves the data for other linters."
                                  new-target (descend new-target parts))
       target))
 
-(fn expected-arity [target lua-params name]
-  (match (fennel.metadata:get target :fnl/arglist)
-    nil lua-params
-    arglist (let [args (icollect [_ a (ipairs arglist)] a)]
-              (while (string.find (tostring (. args (length args))) "^%?")
-                (table.remove args))
-              (length args))))
+(fn min-arity [target param-count vararg? method?]
+  (var min param-count)
+  (for [i param-count 0 -1]
+    (match (debug.getlocal target i)
+      localname (if (localname:match "^_3f")
+                    (set min (- i 1))
+                    (lua :break))))
+  (if method?
+      (- min 1)
+      min))
 
 (fn arity-check-call [[f & args] scope]
   "Perform static arity checks on static function calls in a module."
@@ -74,14 +76,11 @@ Doesn't do any linting on its own; just saves the data for other linters."
                       (string.format "Missing function %s in module %s"
                                      (or field :?) module-name) f)
       (match (_G.debug.getinfo target)
-        {: nparams :what "Lua" :isvararg true}
-        (assert-compile (<= (expected-arity target nparams f) (length args))
-                        (: "Called %s.%s with %s arguments, expected at least %s"
-                           :format f-local field arity nparams) f)
-        {: nparams :what "Lua" :isvararg false}
-        (assert-compile (= (expected-arity target nparams f) (length args))
-                        (: "Called %s.%s with %s arguments, expected %s"
-                           :format f-local field arity nparams) f)))))
+        {: nparams :what "Lua" : isvararg}
+        (let [min (min-arity target nparams isvararg (: (tostring f) :find ":"))]
+          (assert-compile (<= min (length args))
+                          (: "Called %s with %s arguments, expected at least %s"
+                             :format f arity min) f))))))
 
 (fn check-unused [ast scope]
   (each [symname (pairs scope.symmeta)]

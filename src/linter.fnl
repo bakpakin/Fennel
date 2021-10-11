@@ -50,21 +50,20 @@ Doesn't do any linting on its own; just saves the data for other linters."
                                  new-target (descend new-target parts))
       target))
 
-(fn min-arity [target param-count vararg? method?]
-  (var min param-count)
-  (for [i param-count 0 -1]
-    (match (debug.getlocal target i)
-      localname (if (localname:match "^_3f")
-                    (set min (- i 1))
-                    (lua :break))))
-  (if method?
-      (- min 1)
-      min))
+(fn min-arity [target last-required name]
+  (match (debug.getlocal target last-required)
+    localname (if (and (localname:match "^_3f") (< 0 last-required))
+                  (min-arity target (- last-required 1))
+                  last-required)
+    _ (do (print :couldnt-find name last-required)
+          last-required)))
 
 (fn arity-check-call [[f & args] scope]
   "Perform static arity checks on static function calls in a module."
-  (let [arity (length args)
-        last-arg (. args arity)
+  (let [last-arg (. args (length args))
+        arity (if (: (tostring f) :find ":") ; method
+                  (+ (length args) 1)
+                  (length args))
         [f-local & parts] (or (multi-sym? f) [])
         module-name (-?> scope.symmeta (. (tostring f-local)) (. :required))
         module (and module-name (require module-name))
@@ -76,9 +75,9 @@ Doesn't do any linting on its own; just saves the data for other linters."
                       (string.format "Missing function %s in module %s"
                                      (or field :?) module-name) f)
       (match (_G.debug.getinfo target)
-        {: nparams :what "Lua" : isvararg}
-        (let [min (min-arity target nparams isvararg (: (tostring f) :find ":"))]
-          (assert-compile (<= min (length args))
+        {: nparams :what "Lua"}
+        (let [min (min-arity target nparams f)]
+          (assert-compile (<= min arity)
                           (: "Called %s with %s arguments, expected at least %s"
                              :format f arity min) f))))))
 

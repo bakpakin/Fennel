@@ -175,6 +175,14 @@
     (send ",complete l")
     (l.assertStrContains (. (send "(let c)") 1) "(let c)\n     ^")))
 
+(fn test-locals-saving []
+  (let [(send comp) (wrap-repl)]
+    (send "(local x-y 5)")
+    (send "(let [x-y 55] nil)")
+    (send "(fn abc [] nil)")
+    (l.assertEquals (send "x-y") [:5])
+    (l.assertEquals (send "(type abc)") ["function"])))
+
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -192,5 +200,6 @@
      : test-apropos
      : test-byteoffset
      : test-source-offset
-     : test-code}
+     : test-code
+     : test-locals-saving}
     {})

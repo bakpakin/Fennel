@@ -41,8 +41,10 @@
                                   " else break end end"]
                                  "\n"))
 
-(fn splice-save-locals [env lua-source]
+(fn splice-save-locals [env lua-source {: unmanglings}]
   (set env.___replLocals___ (or (rawget env :___replLocals___) {}))
+  (setmetatable env.___replLocals___ {:__newindex #(when (. unmanglings $2)
+                                                     (rawset $1 $2 $3))})
   (let [spliced-source []
         bind "local %s = ___replLocals___['%s']"]
     (each [line (lua-source:gmatch "([^\n]+)\n?")]
@@ -271,9 +273,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                 (setmetatable {} {:__index (or (rawget _G :_ENV) _G)}))
         save-locals? (and (not= options.saveLocals false) env.debug
                           env.debug.getlocal)
-        opts {}
-        _ (each [k v (pairs options)]
-            (tset opts k v))
+        opts (utils.copy options)
         read-chunk (or opts.readChunk default-read-chunk)
         on-values (or opts.onValues default-on-values)
         on-error (or opts.onError default-on-error)
@@ -323,7 +323,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                               (clear-stream)
                               (on-error :Compile msg))
                 (true src) (let [src (if save-locals?
-                                         (splice-save-locals env src)
+                                         (splice-save-locals env src opts.scope)
                                          src)]
                              (match (pcall specials.load-code src env)
                                (false msg) (do

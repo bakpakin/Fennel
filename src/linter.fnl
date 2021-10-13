@@ -55,8 +55,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
     localname (if (and (localname:match "^_3f") (< 0 last-required))
                   (min-arity target (- last-required 1))
                   last-required)
-    _ (do (print :couldnt-find name last-required)
-          last-required)))
+    _ last-required))
 
 (fn arity-check-call [[f & args] scope]
   "Perform static arity checks on static function calls in a module."

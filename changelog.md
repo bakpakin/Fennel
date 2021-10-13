@@ -18,6 +18,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 ### Bug Fixes
 * Fix a bug where macro modules did not get compiler options propagated
 * Fix a bug where `-?>` and `-?>>` checked for falsy values, not nils
+* Fix a bug where `let` locals escaped their scope at the top level
 
 ### Changes and Removals
 * Backslash followed by a literal newline in a string is now parsed as newline

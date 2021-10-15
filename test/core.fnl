@@ -370,14 +370,10 @@
                "((require :fennel.view) \"ваыв\")"
                "\"ваыв\""
                "((require :fennel.view) {[1] [2 [3]] :ваыв {4 {:ваыв 5} 6 [0 1 2 3]}} {:line-length 15})"
-               (if _G.utf8
-                   "{\"ваыв\" [nil\n         nil\n         nil\n         {\"ваыв\" 5}\n         nil\n         [0\n          1\n          2\n          3]]\n [1] [2 [3]]}"
-                   "{\"ваыв\" [nil\n             nil\n             nil\n             {\"ваыв\" 5}\n             nil\n             [0\n              1\n              2\n              3]]\n [1] [2 [3]]}")
+               "{\"ваыв\" [nil\n         nil\n         nil\n         {\"ваыв\" 5}\n         nil\n         [0\n          1\n          2\n          3]]\n [1] [2 [3]]}"
                ;; the next one may look incorrect in some editors, but is actually correct
                "((require :fennel.view) {:ǍǍǍ {} :ƁƁƁ {:ǍǍǍ {} :ƁƁƁ {}}} {:line-length 1})"
-               (if _G.utf8 ; older versions of Lua can't indent this correctly
-                   "{\"ƁƁƁ\" {\"ƁƁƁ\" {}\n        \"ǍǍǍ\" {}}\n \"ǍǍǍ\" {}}"
-                   "{\"ƁƁƁ\" {\"ƁƁƁ\" {}\n           \"ǍǍǍ\" {}}\n \"ǍǍǍ\" {}}")
+               "{\"ƁƁƁ\" {\"ƁƁƁ\" {}\n        \"ǍǍǍ\" {}}\n \"ǍǍǍ\" {}}"
                ;; cycles
                "(local t1 {}) (tset t1 :t1 t1) ((require :fennel.view) t1)"
                "@1{:t1 @1{...}}"

@@ -74,9 +74,41 @@
 (fn test-gaps []
   (l.assertEquals (view {967216353 788}) "{967216353 788}"))
 
+(fn test-utf8 []
+  (when _G.utf8
+    ;; make sure everything produced is valid utf-8
+    (for [i 1 100]
+      (var x [])
+      (for [j 1 100]
+        (table.insert x (string.char (math.random 0 255))))
+      (set x (view (table.concat x)))
+      (l.assertNotIsNil (_G.utf8.len x)
+                        (.. "invalid utf-8: " x "\"")))
+    ;; make sure valid utf-8 doesn't get escaped
+    (for [i 1 100]
+      (var x [])
+      (for [j 1 100]
+        (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
+                                       (math.random 0x80 0xd7ff)
+                                       (math.random 0xe000 0x10ffff)))))
+      (l.assertNotStrContains (view (table.concat x)) "\\"))
+    ;; validate utf-8 length
+    ;; this one is a little weird. since the only place utf-8 length is
+    ;; exposed is within the indentation code, we have to generate some
+    ;; fixed-size string to put in an object, then verify the output's
+    ;; length to be another fixed size.
+    (for [i 1 100]
+      (var x ["æ"])
+      (for [j 1 100]
+        (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
+                                       (math.random 0x80 0xd7ff)
+                                       (math.random 0xe000 0x10ffff)))))
+      (l.assertEquals (_G.utf8.len (view {(table.concat x) [1 2]})) 217))))
+
 {: test-generated
  : test-newline
  : test-fennelview-userdata-handling
  : test-cycles
  : test-escapes
- : test-gaps}
+ : test-gaps
+ : test-utf8}

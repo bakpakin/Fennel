@@ -147,6 +147,12 @@
         (.. open (table.concat elements indent-str) close)
         oneline)))
 
+;; this will only produce valid answers for valid utf-8 data, since it just
+;; counts the amount of initial utf-8 bytes in a given string. we can do this
+;; because we only run this on validated and escaped strings.
+(fn utf8-len [x]
+  (accumulate [n 0 _ (string.gmatch x "[%z\x01-\x7f\xc0-\xf7]")] (+ n 1)))
+
 (fn pp-associative [t kv options indent]
   (var multiline? false)
   (let [id (. options.seen t)]
@@ -155,8 +161,7 @@
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
               indent (table-indent indent id)
-              slength (or (and options.utf8? (-?> (rawget _G :utf8) (. :len)))
-                          #(length* $))
+              slength (if options.utf8? utf8-len #(length $))
               prefix (if visible-cycle? (.. "@" id) "")
               items (icollect [_ [k v] (pairs kv)]
                       (let [k (pp k options (+ indent 1) true)
@@ -229,6 +234,62 @@
   ;; Test if given string is valid colon string.
   (s:find "^[-%w?^_!$%&*+./@|<=>]+$"))
 
+(local utf8-inits
+  [{:min-byte 0x00 :max-byte 0x7f
+    :min-code 0x00 :max-code 0x7f
+    :len 1}
+   {:min-byte 0xc0 :max-byte 0xdf
+    :min-code 0x80 :max-code 0x7ff
+    :len 2}
+   {:min-byte 0xe0 :max-byte 0xef
+    :min-code 0x800 :max-code 0xffff
+    :len 3}
+   {:min-byte 0xf0 :max-byte 0xf7
+    :min-code 0x10000 :max-code 0x10ffff
+    :len 4}])
+
+(fn utf8-escape [str]
+  ;; return nil if invalid utf8, if not return the length
+  ;; TODO: use native utf8 library if possible
+  (fn validate-utf8 [str index]
+    (let [inits utf8-inits
+          byte (string.byte str index)
+          ;; TODO: fix this up with accumulate when that's ported in
+          init (accumulate [ret nil
+                            _ init (ipairs inits)
+                            :until ret]
+                 (and byte
+                      (>= init.max-byte byte init.min-byte)
+                      init))
+          code (and init
+                    (do
+                      (var code (if init (- byte init.min-byte) nil))
+                      (for [i (+ index 1) (+ index init.len -1)]
+                        (let [byte (string.byte str i)]
+                          (set code (and byte
+                                         code
+                                         (>= 0xbf byte 0x80)
+                                         (+ (* code 64) (- byte 0x80))))))
+                      code))]
+      ;; this is ugly because the bootstrap compiler has a short-circuiting bug
+      (if (and code
+               (do (>= init.max-code code init.min-code))
+               ;; surrogate pairs disallowed
+               (not (>= 0xdfff code 0xd800)))
+          init.len
+          nil)))
+  (do
+    (var index 1)
+    (var output [])
+    (while (<= index (length str))
+      (let [nexti (or (string.find str "[\x80-\xff]" index) (+ (length str) 1))
+            len (validate-utf8 str nexti)]
+        (table.insert output (string.sub str index (+ nexti (or len 0) -1)))
+        (when (and (not len) (<= nexti (length str)))
+          (table.insert output (string.format "\\%03d" (string.byte str nexti))))
+        (set index (if len (+ nexti len) (+ nexti 1)))))
+    (table.concat output)))
+
 (fn pp-string [str options indent]
   "This is a more complicated version of string.format %q.
 However, we can't use that functionality because it always emits control codes
@@ -245,8 +306,11 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                                           (< (length* str)
                                              (- options.line-length indent)))
                                      "\\n" "\n")}
-                           {:__index #(: "\\%03d" :format ($2:byte))})]
-    (.. "\"" (str:gsub "[%c\\\"]" escs) "\"")))
+                           {:__index #(: "\\%03d" :format ($2:byte))})
+        str (.. "\"" (str:gsub "[%c\\\"]" escs) "\"")]
+    (if options.utf8?
+        (utf8-escape str)
+        str)))
 
 (fn make-options [t options]
   (let [;; defaults are used when options are not provided

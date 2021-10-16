@@ -40,11 +40,9 @@
       (l.assertEquals err marker (.. code "\n" (tostring err))))))
 
 (fn test-fuzz []
-  (let [seed (tonumber (or (os.getenv "FUZZ_SEED") (os.time)))
-        verbose? (os.getenv "VERBOSE")
+  (let [verbose? (os.getenv "VERBOSE")
         {: assert-compile : parse-error} friend]
-    (print (.. "Fuzz testing with FUZZ_SEED=" seed))
-    (math.randomseed seed)
+    (math.randomseed (os.time))
     (set friend.assert-compile #(error marker))
     (set friend.parse-error #(error marker))
     (for [_ 1 (tonumber (or (os.getenv "FUZZ_COUNT") 256))]

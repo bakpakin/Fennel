@@ -16,6 +16,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Support `__fennelrest` metamethod for changing `&` destructuring behavior
 
 ### Bug Fixes
+* The `fennel.view` function no longer outputs invalid UTF-8 when given invalid input
 * Fix a bug where macro modules did not get compiler options propagated
 * Fix a bug where `-?>` and `-?>>` checked for falsy values, not nils
 * Fix a bug where `let` locals escaped their scope at the top level

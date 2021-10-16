@@ -254,7 +254,6 @@
   (fn validate-utf8 [str index]
     (let [inits utf8-inits
           byte (string.byte str index)
-          ;; TODO: fix this up with accumulate when that's ported in
           init (accumulate [ret nil
                             _ init (ipairs inits)
                             :until ret]
@@ -271,24 +270,21 @@
                                          (>= 0xbf byte 0x80)
                                          (+ (* code 64) (- byte 0x80))))))
                       code))]
-      ;; this is ugly because the bootstrap compiler has a short-circuiting bug
       (if (and code
-               (do (>= init.max-code code init.min-code))
+               (>= init.max-code code init.min-code)
                ;; surrogate pairs disallowed
                (not (>= 0xdfff code 0xd800)))
-          init.len
-          nil)))
-  (do
-    (var index 1)
-    (var output [])
-    (while (<= index (length str))
-      (let [nexti (or (string.find str "[\x80-\xff]" index) (+ (length str) 1))
-            len (validate-utf8 str nexti)]
-        (table.insert output (string.sub str index (+ nexti (or len 0) -1)))
-        (when (and (not len) (<= nexti (length str)))
-          (table.insert output (string.format "\\%03d" (string.byte str nexti))))
-        (set index (if len (+ nexti len) (+ nexti 1)))))
-    (table.concat output)))
+          init.len)))
+  (var index 1)
+  (var output [])
+  (while (<= index (length str))
+    (let [nexti (or (string.find str "[\x80-\xff]" index) (+ (length str) 1))
+          len (validate-utf8 str nexti)]
+      (table.insert output (string.sub str index (+ nexti (or len 0) -1)))
+      (when (and (not len) (<= nexti (length str)))
+        (table.insert output (string.format "\\%03d" (string.byte str nexti))))
+      (set index (if len (+ nexti len) (+ nexti 1)))))
+  (table.concat output))
 
 (fn pp-string [str options indent]
   "This is a more complicated version of string.format %q.

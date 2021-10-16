@@ -32,11 +32,13 @@ local function testall(suites)
 end
 
 if(#arg == 0) then
-   local ok = pcall(testall, {"core", "mangling", "quoting", "bit", "docstring",
-                              "fennelview", "parser", "failures", "repl", "cli",
-                              "macro", "linter", "loops", "misc"})
+   local ok, err = pcall(testall, {"core", "mangling", "quoting", "bit",
+                                   "docstring", "fennelview", "parser",
+                                   "failures", "repl", "cli", "macro",
+                                   "linter", "loops", "misc"})
    if not ok then
-      require("old.fennel").dofile("test/irc.fnl", {}, 1)
+      print(err)
+      runner.result = {notSuccessCount = 1}
    end
 else
    testall(arg)

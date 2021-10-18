@@ -228,8 +228,9 @@ Introduces a new scope in which a given set of local bindings are used.
 Example:
 
 ```fennel
-(let [x 89]
-  (print (+ x 12)) ; => 101
+(let [x 89
+      y 198]
+  (print (+ x y 12)) ; => 101
 ```
 
 These locals cannot be changed with `set` but they can be shadowed by

@@ -211,7 +211,7 @@ Like `pick-values`, but takes an integer `n` and a function/operator
 
 Example, using the `add` function created above:
 
-```
+```fennel
 (pick-args 2 add) ; expands to `(fn [_0_ _1_] (add _0_ _1_))`
 (-> [1 2 3 4 5] (table.unpack) ((pick-args 3 add))) ; => 6
 
@@ -230,7 +230,7 @@ Example:
 ```fennel
 (let [x 89
       y 198]
-  (print (+ x y 12)) ; => 101
+  (print (+ x y 12))) ; => 299
 ```
 
 These locals cannot be changed with `set` but they can be shadowed by
@@ -940,6 +940,19 @@ Both of these examples are equivalent to the following:
 (let [f (assert (io.open "hello" "w"))]
   (f.write f "world")
   (f.close f))
+```
+
+Unlike Lua, there's nothing special about defining functions that get
+called this way; typically it is given an extra argument called `self`
+but this is just a convention; you can name it anything.
+
+```fennel
+(local t {})
+
+(fn t.enable [self]
+  (set self.enabled? true))
+
+(t:enable)
 ```
 
 ### `->`, `->>`, `-?>` and `-?>>` threading macros

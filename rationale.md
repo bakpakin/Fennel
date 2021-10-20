@@ -91,4 +91,4 @@ how powerful it is, it is relatively rare to encounter situations where such
 a powerful construct is justified.
 
 For a more detailed look at the guiding principles of Fennel from a
-design perspective see [the Values of Fennel](values).
+design perspective see [the Values of Fennel](values.md).

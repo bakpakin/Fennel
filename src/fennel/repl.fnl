@@ -42,9 +42,6 @@
                                  "\n"))
 
 (fn splice-save-locals [env lua-source {: unmanglings}]
-  (set env.___replLocals___ (or (rawget env :___replLocals___) {}))
-  (setmetatable env.___replLocals___ {:__newindex #(when (. unmanglings $2)
-                                                     (rawset $1 $2 $3))})
   (let [spliced-source []
         bind "local %s = ___replLocals___['%s']"]
     (each [line (lua-source:gmatch "([^\n]+)\n?")]
@@ -292,6 +289,10 @@ For more information about the language, see https://fennel-lang.org/reference")
     (when opts.registerCompleter
       (opts.registerCompleter (partial completer env opts.scope)))
     (load-plugin-commands opts.plugins)
+
+    (when save-locals?
+      (fn newindex [t k v] #(when (. opts.scope.unmanglings k) (rawset t k v)))
+      (set env.___replLocals___ (setmetatable {} {:__newindex newindex})))
 
     (fn print-values [...]
       (let [vals [...]

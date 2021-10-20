@@ -181,7 +181,11 @@
     (send "(let [x-y 55] nil)")
     (send "(fn abc [] nil)")
     (l.assertEquals (send "x-y") [:5])
-    (l.assertEquals (send "(type abc)") ["function"])))
+    (l.assertEquals (send "(type abc)") ["function"]))
+  ;; now let's try with an env
+  (let [(send comp) (wrap-repl {:env {: debug}})]
+    (send "(local xyz 55)")
+    (l.assertEquals (send "xyz") [:55])))
 
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in

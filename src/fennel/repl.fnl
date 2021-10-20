@@ -291,7 +291,7 @@ For more information about the language, see https://fennel-lang.org/reference")
     (load-plugin-commands opts.plugins)
 
     (when save-locals?
-      (fn newindex [t k v] #(when (. opts.scope.unmanglings k) (rawset t k v)))
+      (fn newindex [t k v] (when (. opts.scope.unmanglings k) (rawset t k v)))
       (set env.___replLocals___ (setmetatable {} {:__newindex newindex})))
 
     (fn print-values [...]

@@ -41,7 +41,7 @@
                                   " else break end end"]
                                  "\n"))
 
-(fn splice-save-locals [env lua-source {: unmanglings}]
+(fn splice-save-locals [env lua-source]
   (let [spliced-source []
         bind "local %s = ___replLocals___['%s']"]
     (each [line (lua-source:gmatch "([^\n]+)\n?")]

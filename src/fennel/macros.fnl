@@ -321,18 +321,18 @@ Example:
           ;; to bring in macro module. after that, we just copy the
           ;; macros from subscope to scope.
           scope (get-scope)
-          subscope (fennel.scope scope)]
-      (_SPECIALS.require-macros `(require-macros ,modname) subscope {} ast)
+          macros* (_SPECIALS.require-macros `(import-macros ,modname)
+                                            (fennel.scope scope) {} ast)]
       (if (sym? binding)
           ;; bind whole table of macros to table bound to symbol
-          (tset scope.macros (. binding 1) (. macro-loaded modname))
+          (tset scope.macros (. binding 1) macros*)
           ;; 1-level table destructuring for importing individual macros
           (table? binding)
           (each [macro-name [import-key] (pairs binding)]
-            (assert (= :function (type (. subscope.macros macro-name)))
+            (assert (= :function (type (. macros* macro-name)))
                     (.. "macro " macro-name " not found in module "
                         (tostring modname)))
-            (tset scope.macros import-key (. subscope.macros macro-name))))))
+            (tset scope.macros import-key (. macros* macro-name))))))
   nil)
 
 ;;; Pattern matching

@@ -1136,7 +1136,11 @@ modules in the compiler environment."
       (let [(loader filename) (search-macro-module modname 1)]
         (compiler.assert loader (.. modname " module not found.") ast)
         (tset macro-loaded modname (loader modname filename))))
-    (add-macros (. macro-loaded modname) ast scope parent)))
+    ;; if we're called from import-macros, return the modname, else add them
+    ;; to scope directly
+    (if (= :import-macros (tostring (. ast 1)))
+        (. macro-loaded modname)
+        (add-macros (. macro-loaded modname) ast scope parent))))
 
 (doc-special :require-macros [:macro-module-name]
              "Load given module and use its contents as macro definitions in current scope.

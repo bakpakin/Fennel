@@ -16,6 +16,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Support `__fennelrest` metamethod for changing `&` destructuring behavior
 
 ### Bug Fixes
+* Fix a bug where relative require didn't work with `import-macros`
 * The `fennel.view` function no longer outputs invalid UTF-8 when given invalid input
 * Fix a bug where macro modules did not get compiler options propagated
 * Fix a bug where `-?>` and `-?>>` checked for false values, not just nil

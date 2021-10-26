@@ -131,7 +131,7 @@
             : view
             : eval
             :dofile dofile*
-            :version :1.0.0-dev
+            :version utils.version
             : repl
             : syntax
             ;; backwards-compatibility aliases

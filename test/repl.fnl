@@ -107,9 +107,11 @@
 
 (fn test-plugins []
   (let [logged []
-        plugin1 {:repl-command-log #(table.insert logged (select 2 ($2)))}
+        plugin1 {:repl-command-log #(table.insert logged (select 2 ($2)))
+                 :versions [(fennel.version:gsub "-dev" "")]}
         plugin2 {:repl-command-log #(error "p1 should handle this!")
-                 :repl-command-set-boo set-boo}
+                 :repl-command-set-boo set-boo
+                 :versions [(fennel.version:gsub "-dev" "")]}
         send (wrap-repl {:plugins [plugin1 plugin2] :allowedGlobals false})]
     (send ",log :log-me")
     (l.assertEquals logged ["log-me"])

@@ -174,7 +174,9 @@
   ;; we want to trigger an error from inside a built-in macro and make sure we
   ;; don't get built-in macro trace info in the error messages.
   (let [(_ err) (pcall fennel.eval "\n\n(match 5 b (print 5))"
-                       {:plugins [{:do doer}] :filename "matcher.fnl"})]
+                       {:plugins [{:do doer
+                                   :versions [(fennel.version:gsub "-dev" "")]}]
+                        :filename "matcher.fnl"})]
     (l.assertStrContains err "matcher.fnl:3")))
 
 {: test-global-fails

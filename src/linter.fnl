@@ -92,4 +92,6 @@ Doesn't do any linting on its own; just saves the data for other linters."
  ;; not top-level locals of a chunk.
  :fn check-unused
  :do check-unused
- :chunk check-unused}
+ :chunk check-unused
+ :name "fennel/linter"
+ :versions ["1.0.0"]}

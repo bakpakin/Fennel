@@ -466,4 +466,8 @@ the functions listed above. If you're using the compiler programmatically,
 you can include a `:plugins` table in the `options` table to most compiler
 entry point functions.
 
+Your plugin should contain a `:versions` table which contains a list
+of strings indicating every version of Fennel which you have tested it
+with. You should also have a `:name` field with the plugin's name.
+
 [1]: https://github.com/rxi/lume#lumehotswapmodname

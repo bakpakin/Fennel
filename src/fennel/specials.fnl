@@ -962,7 +962,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
    : pairs : ipairs : select : tostring : tonumber :bit (rawget _G :bit)
    : pcall : xpcall : next : print : type : assert : error
    : setmetatable :getmetatable safe-getmetatable :require safe-require
-   :rawlen (rawget _G :rawlen) : rawget : rawset : rawequal})
+   :rawlen (rawget _G :rawlen) : rawget : rawset : rawequal : _VERSION})
 
 (fn combined-mt-pairs [env]
   (let [combined {}

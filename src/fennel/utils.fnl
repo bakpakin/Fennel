@@ -5,6 +5,8 @@
 
 (local view (require :fennel.view))
 
+(local version :1.0.0-dev)
+
 ;;; General-purpose helper functions
 
 (fn warn [message]
@@ -333,6 +335,15 @@ has options calls down into compile."
     (set (root.chunk root.scope root.options root.reset)
          (values chunk scope options reset))))
 
+(local warned {})
+
+(fn check-plugin-version [{: name : versions &as plugin}]
+  (when (and (not (member? (version:gsub "-dev" "") (or versions [])))
+             (not (. warned plugin)))
+    (tset warned plugin true)
+    (warn (string.format "plugin %s does not support Fennel version %s"
+                         (or name :unknown) version))))
+
 (fn hook [event ...]
   "Side-effecting plugins should return nil. In the event that a plugin handler
 returns non-nil it will be used as the value of the call and further plugin
@@ -341,6 +352,7 @@ handlers will be skipped."
   (when (and root.options root.options.plugins)
     (each [_ plugin (ipairs root.options.plugins)
            :until result]
+      (check-plugin-version plugin)
       (match (. plugin event)
         f (set result (f ...)))))
   result)
@@ -375,6 +387,7 @@ handlers will be skipped."
  : root
  : debug-on?
  : ast-source
+ : version
  :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")
  :macro-path (table.concat [:./?.fnl :./?/init-macros.fnl :./?/init.fnl
                             (getenv :FENNEL_MACRO_PATH)] ";")}

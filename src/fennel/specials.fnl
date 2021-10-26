@@ -773,9 +773,11 @@ Method name doesn't have to be known at compile-time; if it is, use
   (let [len (length ast) operands []
         padded-op (.. " " name " ")]
     (for [i 2 len]
-      (let [subexprs (compiler.compile1 (. ast i) scope parent
-                                        {:nval (if (< i len) 1)})]
-        (utils.map subexprs tostring operands)))
+      (let [subexprs (compiler.compile1 (. ast i) scope parent)]
+        (if (= i len)
+            ;; last arg gets all its exprs but everyone else only gets one
+            (utils.map subexprs tostring operands)
+            (table.insert operands (tostring (. subexprs 1))))))
     (match (length operands)
       0 (utils.expr (doto zero-arity
                       (compiler.assert "Expected more than 0 arguments" ast))

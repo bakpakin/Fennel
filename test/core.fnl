@@ -30,7 +30,8 @@
                "(and (values))" true
                "(and true true (values))" true
                "(and true (values true false) true)" true
-               "(and true (values true false))" false}]
+               "(and true (values true false))" false
+               "(tostring (and _G.xyz (do _G.xyz.y) _G.xyz))" :nil}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

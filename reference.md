@@ -1318,12 +1318,14 @@ can use `tostring` to get the name of a symbol.
 * `sym?` - is the argument a symbol? Returns the argument or `false`.
 * `table?` - is the argument a non-list table? Returns the argument or `false`.
 * `sequence?` - is the argument a non-list _sequential_ table (created
-                with `[]`, as opposed to `{}`)? Returns the argument or `false`.
+                  with `[]`, as opposed to `{}`)? Returns the argument or `false`.
 * `varg?` - is this a `...` symbol which indicates var args? Returns a special
-            table describing the type or `false`.
+             table describing the type or `false`.
 * `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's
-                 field. Returns a table containing each separate symbol, or
-                 `false`.
+                   field. Returns a table containing each separate symbol, or
+                   `false`.
+* `comment?` - is the argument a comment? Comments are only included
+                 when `opts.comments` is truthy.
 * `view` - `fennel.view` table serializer.
 
 * `assert-compile` - works like `assert` but takes a list/symbol as its third

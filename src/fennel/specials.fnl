@@ -991,17 +991,14 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              : macro-loaded
              : unpack
              :assert-compile compiler.assert
-             ;; AST functions
-             :list utils.list
-             :list? utils.list?
-             :multi-sym? utils.multi-sym?
-             :sequence utils.sequence
-             :sequence? utils.sequence?
-             :sym utils.sym
-             :sym? utils.sym?
-             :table? utils.table?
-             :varg? utils.varg?
              : view
+             :version utils.version
+             :metadata compiler.metadata
+             ;; AST functions
+             :list utils.list :list? utils.list? :table? utils.table?
+             :sequence utils.sequence :sequence? utils.sequence?
+             :sym utils.sym :sym? utils.sym? :multi-sym? utils.multi-sym?
+             :comment utils.comment :comment? utils.comment? :varg? utils.varg?
              ;; scoping functions
              :gensym (fn [base]
                        (utils.sym (compiler.gensym (or compiler.scopes.macro

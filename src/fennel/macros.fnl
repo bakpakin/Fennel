@@ -92,14 +92,6 @@ a nil value in any of subsequent keys."
          ,body1
          ,...)))
 
-(fn unless* [condition body1 ...]
-  "Evaluate body for side-effects only when condition is falsy."
-  (assert body1 "expected body")
-  `(if (not ,condition)
-       (do
-         ,body1
-         ,...)))
-
 (fn with-open* [closable-bindings ...]
   "Like `let`, but invokes (v:close) on each binding after evaluating the body.
 The body is evaluated inside `xpcall` so that bound values will be closed upon
@@ -540,7 +532,6 @@ Syntax:
  :?. ?dot
  :doto doto*
  :when when*
- :unless unless*
  :with-open with-open*
  :collect collect*
  :icollect icollect*

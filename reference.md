@@ -1,13 +1,23 @@
 # Fennel Reference
 
-These are all the special forms recognized by the Fennel compiler. It
-does not include built-in Lua functions; see the
+These are all the built-in macros and special forms recognized by the
+Fennel compiler. It does not include built-in Lua functions; see the
 [Lua reference manual][1] or the [Lua primer][3] for that.
+
+A macro is a function which runs at compile time and transforms some
+Fennel code into different Fennel. A special form (or special) is a
+primitive construct which emits Lua code directly. When you are
+coding, you don't need to care about the difference between built-in
+macros and special forms; it is an implementation detail.
 
 Remember that Fennel relies completely on Lua for its runtime.
 Everything Fennel does happens at compile-time, so you will need to
 familiarize yourself with Lua's standard library functions. Thankfully
 it's much smaller than almost any other language.
+
+The one exception to this compile-time rule is the `fennel.view`
+function which returns a string representation of any Fennel data
+suitable for printing.
 
 Fennel source code should be UTF-8-encoded text, although currently
 only ASCII forms of whitespace and numerals are supported.
@@ -28,14 +38,21 @@ Example:
   (print (+ x y)))
 ```
 
-
 Giving it a name is optional; if one is provided it will be bound to
 it as a local. Even if you don't use it as an anonymous function,
 providing a name will cause your stack traces to be more readable, so
 it's recommended. Providing a name that's a table field will cause it
-to be inserted in a table instead of bound as a local.
+to be inserted in a table instead of bound as a local:
 
-### `lambda`/`λ` arity-checked function
+```fennel
+(local functions {})
+
+(fn funtctions.p [x y z]
+  (print (* x (+ y z))))
+```
+
+
+### `lambda`/`λ` nil-checked function
 
 Creates a function like `fn` does, but throws an error at runtime if
 any of the listed arguments are nil, unless its identifier begins with `?`.
@@ -150,7 +167,7 @@ greater than the argument it is passed.
 
 *(Since 0.4.0)*
 
-Discard all values after the first n when dealing with multi-values (`...`)
+Discards all values after the first n when dealing with multi-values (`...`)
 and multiple returns. Useful for composing functions that return multiple values
 with variadic functions. Expands to a `let` expression that binds and re-emits
 exactly n values, e.g.
@@ -187,14 +204,14 @@ ignore trailing nils:
 
 ### `pick-args` create a function of fixed arity
 
-*(Since 0.4.0)*
+*(Since 0.4.0, deprecated 0.10.0)*
 
 Like `pick-values`, but takes an integer `n` and a function/operator
 `f`, and creates a new function that applies exactly `n` arguments to `f`.
 
 Example, using the `add` function created above:
 
-```
+```fennel
 (pick-args 2 add) ; expands to `(fn [_0_ _1_] (add _0_ _1_))`
 (-> [1 2 3 4 5] (table.unpack) ((pick-args 3 add))) ; => 6
 
@@ -211,8 +228,9 @@ Introduces a new scope in which a given set of local bindings are used.
 Example:
 
 ```fennel
-(let [x 89]
-  (print (+ x 12)) ; => 101
+(let [x 89
+      y 198]
+  (print (+ x y 12))) ; => 299
 ```
 
 These locals cannot be changed with `set` but they can be shadowed by
@@ -256,6 +274,28 @@ Example:
 ```fennel
 (let [[a b & c] [1 2 3 4 5 6]]
   (table.concat c ",")) ; => "3,4,5,6"
+```
+
+If a table implements `__fennelrest` metamethod it is used to capture the
+remainder of the table. It can be used with custom data structures
+implemented in terms of tables, which wish to provide custom rest
+destructuring. The metamethod receives the table as the first
+argument, and the amount of values it needs to drop from the beginning
+of the table, much like table.unpack
+
+Example:
+
+```fennel
+(local t [1 2 3 4 5 6])
+(setmetatable
+ t
+ {:__fennelrest (fn [t k]
+               (let [res {}]
+                 (for [i k (length t)]
+                   (tset res (tostring (. t i)) (. t i)))
+                 res))})
+(let [[a b & c] t]
+  c) ;; => {:3 3 :4 4 :5 5 :6 6}
 ```
 
 When destructuring a non-sequential table, you can capture the
@@ -442,11 +482,11 @@ variables are missing:
   :body)
 ```
 
-**Note:**: The `match` macro can be used in place of the `if-let` macro
+**Note:** The `match` macro can be used in place of the `if-let` macro
 from Clojure. The reason Fennel doesn't have `if-let` is that `match`
 makes it redundant.
 
-**Note 2:**: Prior to Fennel 0.8.2 the `match` macro used infix `?`
+**Note 2:** Prior to Fennel 0.8.2 the `match` macro used infix `?`
 operator to test patterns against the guards. While this syntax is
 still supported, `where` should be preferred instead:
 
@@ -512,7 +552,7 @@ Supports destructuring and multiple-value binding.
 
 ### `tset` set table field
 
-Set the field of a given table to a new value. The field name does not
+Sets the field of a given table to a new value. The field name does not
 need to be known at compile-time. Works on any table, even those bound
 with `local` and `let`.
 
@@ -596,7 +636,7 @@ Example:
 
 ### `each` general iteration
 
-Run the body once for each value provided by the iterator. Commonly
+Runs the body once for each value provided by the iterator. Commonly
 used with `ipairs` (for sequential tables) or `pairs` (for any table
 in undefined order) but can be used with any iterator.
 
@@ -772,6 +812,8 @@ Example:
 
 ### `collect`, `icollect` table comprehension macros
 
+*(Since 0.8.0)*
+
 The `collect` macro takes a "iterator binding table" in the format
 that `each` takes, and an expression that produces key-value pairs,
 and runs through the iterator, filling a new table with the key-value
@@ -811,6 +853,40 @@ value into a table is a no-op.
 
 Like `each` and `for`, the table comprehensions support an `:until`
 clause for early termination.
+
+Both `collect` and `icollect` take an `:into` clause which allows you
+put your results into an existing table instead of starting with an
+empty one:
+
+```fennel
+(icollect [_ x (ipairs [2 3]) :into [9]]
+  (* x 11))
+;; -> [9 22 33]
+```
+
+### `accumulate` iterator accumulation
+
+*(Since 0.10.0)*
+
+Runs through an iterator and performs accumulation, similar to `fold`
+and `reduce` commonly used in functional programming languages.
+Like `collect` and `icollect`, it takes an iterator binding table
+and an expression as its arguments. The difference is that in
+`accumulate`, the first two items in the binding table are used as
+an "accumulator" variable and its initial value.
+For each iteration step, it evaluates the given expression and
+the returned value becomes the next accumulator variable.
+`accumulate` returns the final value of the accumulator variable.
+
+Example:
+
+```fennel
+(accumulate [sum 0
+             i n (ipairs [10 20 30 40])]
+    (+ sum n)) ; -> 100
+```
+
+The `:until` clause is also supported here for early termination.
 
 ### `values` multi-valued return
 
@@ -864,6 +940,19 @@ Both of these examples are equivalent to the following:
 (let [f (assert (io.open "hello" "w"))]
   (f.write f "world")
   (f.close f))
+```
+
+Unlike Lua, there's nothing special about defining functions that get
+called this way; typically it is given an extra argument called `self`
+but this is just a convention; you can name it anything.
+
+```fennel
+(local t {})
+
+(fn t.enable [self]
+  (set self.enabled? true))
+
+(t:enable)
 ```
 
 ### `->`, `->>`, `-?>` and `-?>>` threading macros
@@ -943,10 +1032,10 @@ subsequent forms are evaluated solely for side-effects.
 (include :my.embedded.module)
 ```
 
-Load Fennel/Lua module code at compile time and embed in the compiled
-output. The module name must be a string literal that can resolve to
-a module during compilation.  The bundled code will be wrapped in a
-function invocation in the emitted Lua and set on
+Loads Fennel/Lua module code at compile time and embeds it in the
+compiled output. The module name must resolve to a string literal
+during compilation.  The bundled code will be wrapped in a function
+invocation in the emitted Lua and set on
 `package.preload[modulename]`; a normal `require` is then emitted
 where `include` was used to load it on demand as a normal module.
 
@@ -955,9 +1044,15 @@ In most cases it's better to use `require` in your code and use the
 `--require-as-include` CLI flag (`fennel --help`) to accomplish this.
 
 The `require` function is not part of Fennel; it comes from
-Lua. However, it works to load Fennel code. See the end of
-[the tutorial](tutorial.md) and [Programming in Lua][5] for details
-about `require`.
+Lua. However, it works to load Fennel code. See the [Modules and
+multiple files](tutorial#modules-and-multiple-files) section in the
+tutorial and [Programming in Lua][5] for details about `require`.
+
+Starting from version 0.10.0 `include` and hence
+`--require-as-include` support semi-dynamic compile-time resolution of
+module paths similarly to `import-macros`.  See the [relative
+require](tutorial#relative-require) section in the tutorial for more
+information.
 
 ## Macros
 
@@ -965,7 +1060,7 @@ All forms which introduce macros do so inside the current scope. This
 is usually the top level for a given file, but you can introduce
 macros into smaller scopes as well. Note that macros are a
 compile-time construct; they do not exist at runtime. As such macros
-cannot be exported at the bottom of a module.
+cannot be exported at the bottom of a module like functions and other values.
 
 ### `import-macros` load macros from a separate module
 
@@ -988,11 +1083,12 @@ macro module which implements `when2` in terms of `if` and `do`:
 {:when2 when2}
 ```
 
-A full explanation of how macros work is out of scope for this document,
-but you can think of it as a compile-time template function. The backtick
-on the third line creates a template for the code emitted by the macro. The
-`,` serves as "unquote" which splices values into the template. *(Changed
-in 0.3.0: `@` was used instead of `,` before.)*
+For a full explanation of how this works see [the macro guide](macros.md).
+All forms in Fennel are normal tables you can use `table.insert`,
+`ipairs`, destructuring, etc on. The backtick on the third line
+creates a template list for the code emitted by the macro, and the
+comma serves as "unquote" which splices values into the
+template. *(Changed in 0.3.0: `@` was used instead of `,` before.)*
 
 Assuming the code above is in the file "my-macros.fnl" then it turns this input:
 
@@ -1145,7 +1241,7 @@ they are passed a form which has side-effects, the result will be unexpected:
 (print (my-max (f) 2)) ; -> 3 since (f) is called twice in the macro body above
 ```
 
-*(Since 0.3.0)* In order to prevent accidental symbol capture[2], you may not bind a
+*(Since 0.3.0)* In order to prevent [accidental symbol capture][2], you may not bind a
 bare symbol inside a backtick as an identifier. Appending a `#` on
 the end of the identifier name as above invokes "auto gensym" which
 guarantees the local name is unique.
@@ -1215,18 +1311,22 @@ from regular tables defined with square or curly brackets. Similarly symbols
 are tables with a string entry for their name and a marker metatable. You
 can use `tostring` to get the name of a symbol.
 
-* `list` - return a list, which is a special kind of table used for code
-* `sym` - turn a string into a symbol
-* `list?` - is the argument a list?
-* `sym?` - is the argument a symbol?
-* `table?` - is the argument a non-list table?
+* `list` - return a list, which is a special kind of table used for code.
+* `sym` - turn a string into a symbol.
+* `gensym` - generates a unique symbol for use in macros, accepts an optional prefix string.
+* `list?` - is the argument a list? Returns the argument or `false`.
+* `sym?` - is the argument a symbol? Returns the argument or `false`.
+* `table?` - is the argument a non-list table? Returns the argument or `false`.
 * `sequence?` - is the argument a non-list _sequential_ table (created
-  with `[]`, as opposed to `{}`)?
-* `gensym` - generates a unique symbol for use in macros.
-* `varg?` - is this a `...` symbol which indicates var args?
-* `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's field
-* `gensym` - generate a guaranteed-unique symbol
-* `view` - `fennel.view` table serializer
+                  with `[]`, as opposed to `{}`)? Returns the argument or `false`.
+* `varg?` - is this a `...` symbol which indicates var args? Returns a special
+             table describing the type or `false`.
+* `multi-sym?` - a multi-sym is a dotted symbol which refers to a table's
+                   field. Returns a table containing each separate symbol, or
+                   `false`.
+* `comment?` - is the argument a comment? Comments are only included
+                 when `opts.comments` is truthy.
+* `view` - `fennel.view` table serializer.
 
 * `assert-compile` - works like `assert` but takes a list/symbol as its third
   argument in order to provide pinpointed error messages.
@@ -1234,8 +1334,8 @@ can use `tostring` to get the name of a symbol.
 These functions can be used from within macros only, not from any
 `eval-compiler` call:
 
-* `in-scope?` - does this symbol refer to an in-scope local?
-* `macroexpand` - performs macroexpansion on its argument form; returns an AST
+* `in-scope?` - does the symbol refer to an in-scope local? Returns the symbol or `nil`.
+* `macroexpand` - performs macroexpansion on its argument form; returns an AST.
 
 Note that other internals of the compiler exposed in compiler scope are
 subject to change.

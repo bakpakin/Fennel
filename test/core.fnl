@@ -26,7 +26,12 @@
                "(or 11 true false)" 11
                "(or 5)" 5
                "(or false nil true 12 false)" true
-               "(or)" false}]
+               "(or)" false
+               "(and (values))" true
+               "(and true true (values))" true
+               "(and true (values true false) true)" true
+               "(and true (values true false))" false
+               "(tostring (and _G.xyz (do _G.xyz.y) _G.xyz))" :nil}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
@@ -59,6 +64,10 @@
                "((lambda [x ...] (+ x 2)) 4)" 6
                ;; underscore lambda
                "((lambda [x _ y] (+ x y)) 4 5 6)" 10
+               ;; &as lambda
+               "((lambda [[x &as t]] t) [10])" [10]
+               ;; lambda doesn't symbol capture
+               "(pcall (lambda [string] nil) 1)" true
                ;; lambdas perform arity checks
                "(let [(ok e) (pcall (lambda [x] (+ x 2)))]
                   (string.match e \"Missing argument x\"))" "Missing argument x"
@@ -74,10 +83,6 @@
                      f3 (fn [f] (fn [x] (f 5 x)))]
                   (f 9 5 (f3 f2)))" 44
 
-               ;; pick-args
-               "((pick-args 5 (partial select :#)))" 5
-               "(let [f (fn [...] [...]) f-0 (pick-args 0 f)] (f-0 :foo))" []
-               "(let [f (fn [...] [...]) f-2 (pick-args 2 f)] (f-2 1 2 3))" [1 2]
                ;; pick-values
                "(select :# (pick-values 3))" 3
                "(let [f #(values :a :b :c)] [(pick-values 0 (f))])" []
@@ -97,6 +102,8 @@
                "(fn func [] {:map #$1})
                 (macro foo [] `(let [a# (func)] ((. a# :map) 123)))
                 (foo) :yeah " :yeah
+               ;; method calls work with varg
+               "((fn [...] (: ... :gsub :foo :bar)) :foofoo)" :barbar
 
 
                ;; functions with empty bodies return nil
@@ -106,6 +113,10 @@
                "(let [add (fn [x y z] (+ x y z)) f2 (partial add 1 2)] (f2 6))" 9
                "(let [add (fn [x y] (+ x y)) add2 (partial add)] (add2 99 2))" 101
                "(let [add (fn [x y] (+ x y)) inc (partial add 1)] (inc 99))" 100
+               ;; partial evaluates args only once
+               "(let [t {:x 1} f (partial + t.x)] [(f 1) (do (set t.x 2) (f 1))])" [2 2]
+               "(let [f (partial + (math.random 10))] (= (f 1) (f 1) (f 1)))" true
+               "(let [f (partial #(doto $1 (table.insert $2)) [])] (f 1) (f 2) (f 3))" [1 2 3]
 
                ;; many args
                "((fn f [a sin cos radC cx cy x y limit dis] sin) 8 529)" 529
@@ -134,7 +145,8 @@
                ["(var x 12) (if true (set x 22) 0) x" 22]
                ["(when (= 12 88) (os.exit 1)) false" false]
                ["(while (let [f false] f) (lua :break))" nil]
-               ["(if _G.abc :abc true 55 :else)" 55]]]
+               ["(if _G.abc :abc true 55 :else)" 55]
+               ["(select :# (if false 3))" 1]]]
     (each [_ [code expected] (ipairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
@@ -143,7 +155,7 @@
                "(: {:foo (fn [self] (.. self.bar 2)) :bar :baz} :foo)" "baz2"
                "(do (tset {} :a 1) 1)" 1
                "(do (var a nil) (var b nil) (local ret (fn [] a)) (set (a b) (values 4 5)) (ret))" 4
-               "(fn b [] (each [e {}] (e))) (let [(_ e) (pcall b)] (e:match \":[1]: .*\"))" ":1: attempt to call a table value"
+               "(pcall #(each [e {}] nil))" false
                "(global a_b :global) (local a-b :local) a_b" "global"
                "(global x 1) (global x 284) x" 284
                "(let [k 5 t {: k}] t.k)" 5
@@ -203,7 +215,10 @@
                "(local (-a -b) ((fn [] (values 4 29)))) (+ -a -b)" 33
                "(var [a [b c]] [1 [2 3]]) (set a 2) (set c 8) (+ a b c)" 12
                "(var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])] (set x (+ x (* a b)))) x" 14
-               "(let [({: x} y) (values {:x 10} 20)] (+ x y))" 30}]
+               "(let [({: x} y) (values {:x 10} 20)] (+ x y))" 30
+               "(let [[a & b] (setmetatable {} {:__fennelrest #42})] b)" 42
+               "(let [[a & b] (setmetatable {} {:__fennelrest #false})] b)" false
+               "(let [[a & b] (setmetatable [1 2 3 4 5] {:__fennelrest (fn [t k] [((or table.unpack _G.unpack) t (+ k 1))])})] b)" [3 4 5]}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
@@ -227,7 +242,11 @@
                    "(xyz (if (and c1 c2) true false) 52))") 52
                "(let [t {} _ (set t.field :let-side)] t.field)" :let-side
                "(local a_0_ (or (getmetatable {}) {:b-c {}}))
-                (tset (. a_0_ :b-c) :d 12) (. a_0_ :b-c :d)" 12}]
+                (tset (. a_0_ :b-c) :d 12) (. a_0_ :b-c :d)" 12
+               "(local x (lua \"y = 4\" \"6\")) (* _G.y x)" 24
+               ;; ensure that the over-zealous workaround for the
+               ;; (let [pairs #(pairs $)] pairs) bug doesn't affect normal code
+               "(type _G) (let [type :string] type)" :string}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
@@ -310,7 +329,7 @@
                "((require :fennel.view) [1 2 [3 4]] {:line-length 7})"
                "[1\n 2\n [3 4]]"
                "((require :fennel.view) {[1] [2 [3]] :data {4 {:data 5} 6 [0 1 2 3]}} {:line-length 15})"
-               "{:data {4 {:data 5}\n        6 [0\n           1\n           2\n           3]}\n [1] [2 [3]]}"
+               "{:data [nil\n        nil\n        nil\n        {:data 5}\n        nil\n        [0\n         1\n         2\n         3]]\n [1] [2 [3]]}"
                "((require :fennel.view) {{:a 1} {:b 2 :c 3}})"
                "{{:a 1} {:b 2 :c 3}}"
                "((require :fennel.view) [{:aaa [1 2 3]}] {:line-length 0})"
@@ -321,18 +340,41 @@
                "{:a [1\n     2]\n :b [1\n     2]\n :c [1\n     2]\n :d [1\n     2]}"
                "((require :fennel.view)  {:a [1 2 3 4 5 6 7 8] :b [1 2 3 4 5 6 7 8] :c [1 2 3 4 5 6 7 8] :d [1 2 3 4 5 6 7 8]})"
                "{:a [1 2 3 4 5 6 7 8]\n :b [1 2 3 4 5 6 7 8]\n :c [1 2 3 4 5 6 7 8]\n :d [1 2 3 4 5 6 7 8]}"
+               ;; sparse tables
+               "((require :fennel.view) {0 1})"
+               "{0 1}"
+               "((require :fennel.view) {-2 1})"
+               "{-2 1}"
+               "((require :fennel.view) {-2 1 1 -2})"
+               "{-2 1 1 -2}"
+               "((require :fennel.view) {1 1 5 5})"
+               "[1 nil nil nil 5]"
+               "((require :fennel.view) {1 1 15 5})"
+               "{1 1 15 5}"
+               "((require :fennel.view) {1 1 15 15} {:one-line? true :max-sparse-gap 1000})"
+               "[1 nil nil nil nil nil nil nil nil nil nil nil nil nil 15]"
+               "((require :fennel.view) {1 1 3 3} {:max-sparse-gap 1})"
+               "{1 1 3 3}"
+               "((require :fennel.view) {1 1 3 3} {:max-sparse-gap 0})"
+               "{1 1 3 3}"
+               "((require :fennel.view) {1 1 5 5 :n 5})"
+               "{1 1 5 5 :n 5}"
+               "((require :fennel.view) [1 nil 2 nil nil 3 nil nil nil])"
+               "[1 nil 2 nil nil 3]"
+               "((require :fennel.view) [nil nil nil nil nil 1])"
+               "[nil nil nil nil nil 1]"
+               "((require :fennel.view) {10 1})"
+               "[nil nil nil nil nil nil nil nil nil 1]"
+               "((require :fennel.view) {11 1})"
+               "{11 1}"
                ;; Unicode
                "((require :fennel.view) \"ваыв\")"
                "\"ваыв\""
                "((require :fennel.view) {[1] [2 [3]] :ваыв {4 {:ваыв 5} 6 [0 1 2 3]}} {:line-length 15})"
-               (if _G.utf8
-                   "{\"ваыв\" {4 {\"ваыв\" 5}\n         6 [0\n            1\n            2\n            3]}\n [1] [2 [3]]}"
-                   "{\"ваыв\" {4 {\"ваыв\" 5}\n             6 [0\n                1\n                2\n                3]}\n [1] [2 [3]]}")
+               "{\"ваыв\" [nil\n         nil\n         nil\n         {\"ваыв\" 5}\n         nil\n         [0\n          1\n          2\n          3]]\n [1] [2 [3]]}"
                ;; the next one may look incorrect in some editors, but is actually correct
                "((require :fennel.view) {:ǍǍǍ {} :ƁƁƁ {:ǍǍǍ {} :ƁƁƁ {}}} {:line-length 1})"
-               (if _G.utf8 ; older versions of Lua can't indent this correctly
-                   "{\"ƁƁƁ\" {\"ƁƁƁ\" {}\n        \"ǍǍǍ\" {}}\n \"ǍǍǍ\" {}}"
-                   "{\"ƁƁƁ\" {\"ƁƁƁ\" {}\n           \"ǍǍǍ\" {}}\n \"ǍǍǍ\" {}}")
+               "{\"ƁƁƁ\" {\"ƁƁƁ\" {}\n        \"ǍǍǍ\" {}}\n \"ǍǍǍ\" {}}"
                ;; cycles
                "(local t1 {}) (tset t1 :t1 t1) ((require :fennel.view) t1)"
                "@1{:t1 @1{...}}"
@@ -401,16 +443,27 @@
                               (fennel.view styles {:prefer-colon? true})
                               (fennel.view styles {:prefer-colon? false})]
                              {:one-line? true})"
-               "[\":colon \\\"quote\\\" \\\"depends\\\"\" \":colon \\\"quote\\\" :depends\" \":colon \\\"quote\\\" \\\"depends\\\"\"]"}]
+               "[\":colon \\\"quote\\\" \\\"depends\\\"\" \":colon \\\"quote\\\" :depends\" \":colon \\\"quote\\\" \\\"depends\\\"\"]"
+               ;; :preprocess
+               "((require :fennel.view) [1 2 3] {:preprocess (fn [x] x)})"
+               "[1 2 3]"
+               "((require :fennel.view) [1 2 3] {:preprocess (fn [x] (if (= (type x) :number) (+ x 1) x))})"
+               "[2 3 4]"
+               "((require :fennel.view) [[] [1] {:x [] [] [2]}] {:preprocess (fn [x] (if (and (= (type x) :table) (= (next x) nil)) :empty-table x))})"
+               "[\"empty-table\" [1] {:x \"empty-table\" :empty-table [2]}]"
+               ;; correct metamethods
+               "((require :fennel.view) (setmetatable {} {:__pairs #(values next {:a :b} nil)}))" "{:a \"b\"}"}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true :compiler-env _G})
                       expected code))
     (let [mt (setmetatable [] {:__fennelview (fn [] "META")})]
-      (l.assertEquals ((require "fennelview") mt) "META"))))
+      (l.assertEquals (fennel.view mt) "META"))))
 
 (fn test-comment []
-  (l.assertEquals "-- hello world\nreturn nil"
-                  (fennel.compile-string "(comment hello world)")))
+  (l.assertEquals "--[[ hello world ]]--\nreturn nil"
+                  (fennel.compile-string "(comment hello world)"))
+  (l.assertEquals "--[[ \"hello\nworld\" ]]--\nreturn nil"
+                  (fennel.compile-string "(comment \"hello\nworld\")")))
 
 (fn test-nest []
   (let [nested (fennel.dofile "src/fennel.fnl" {:compilerEnv _G})]
@@ -430,4 +483,5 @@
  : test-with-open
  : test-method-calls
  : test-comment
- : test-nest}
+ : test-nest
+}

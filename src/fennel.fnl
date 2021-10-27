@@ -27,7 +27,7 @@
 
 (fn eval-env [env opts]
   (if (= env :_COMPILER)
-      (let [env (specials.make-compiler-env nil compiler.scopes.compiler {})]
+      (let [env (specials.make-compiler-env nil compiler.scopes.compiler {} opts)]
         ;; re-enable globals-checking; previous globals-checking below doesn't
         ;; work on the compiler env because of the sandbox.
         (when (= opts.allowedGlobals nil)
@@ -70,8 +70,9 @@
 
 (fn syntax []
   "Return a table describing the callable forms known by Fennel."
-  (let [body? [:when :with-open :collect :icollect :lambda :λ :macro :match]
-        binding? [:collect :icollect :each :for :let :with-open]
+  (let [body? [:when :with-open :collect :icollect :lambda :λ
+               :macro :match :accumulate]
+        binding? [:collect :icollect :each :for :let :with-open :accumulate]
         define? [:fn :lambda :λ :var :local :macro :macros :global]
         out {}]
     (each [k v (pairs compiler.scopes.global.specials)]
@@ -85,7 +86,7 @@
                    :define? (utils.member? k define?)}))
     (each [k v (pairs _G)]
       (match (type v)
-        :function (tset out k {:global? true})
+        :function (tset out k {:global? true :function? true})
         :table (do
                  (each [k2 v2 (pairs v)]
                    (when (and (= :function (type v2)) (not= k :_G))
@@ -130,7 +131,7 @@
             : view
             : eval
             :dofile dofile*
-            :version :0.9.3-dev
+            :version utils.version
             : repl
             : syntax
             ;; backwards-compatibility aliases
@@ -148,9 +149,13 @@
 (set utils.fennel-module mod)
 
 ;; Load the built-in macros from macros.fnl.
-(let [builtin-macros (eval-compiler
-                       (with-open [f (assert (io.open :src/fennel/macros.fnl))]
-                         (.. "[===[" (f:read :*all) "]===]")))
+(let [builtin-macros
+      (eval-compiler
+        (let [FENNEL_SRC (and os os.getenv (= :table (type os)) (= :function (type os.getenv))
+                              (os.getenv :FENNEL_SRC))
+              fennel-src (if FENNEL_SRC (.. FENNEL_SRC :/) "")]
+          (with-open [f (assert (io.open (.. fennel-src :src/fennel/macros.fnl)))]
+            (.. "[===[" (f:read :*all) "]===]"))))
       module-name :fennel.macros
       _ (tset package.preload module-name #mod)
       env (doto (specials.make-compiler-env nil compiler.scopes.compiler {})

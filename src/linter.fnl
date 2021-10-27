@@ -37,29 +37,48 @@ Doesn't do any linting on its own; just saves the data for other linters."
                     (string.format "Missing field %s in module %s"
                                    (or field :?) (or module-name :?)) symbol)))
 
-(fn arity-check? [module] (-?> module getmetatable (. :arity-check?)))
+(fn arity-check? [module module-name]
+  (or (-?> module getmetatable (. :arity-check?))
+      (pcall debug.getlocal #nil 1) ; PUC 5.1 can't use debug.getlocal for this
+      ;; I don't love this method of configuration but it gets the job done.
+      (match (and module-name os os.getenv (os.getenv "FENNEL_LINT_MODULES"))
+        module-pattern (module-name:find module-pattern))))
+
+(fn descend [target [part & parts]]
+  (if (= nil part) target
+      (= :table (type target)) (match (. target part)
+                                 new-target (descend new-target parts))
+      target))
+
+(fn min-arity [target last-required name]
+  (match (debug.getlocal target last-required)
+    localname (if (and (localname:match "^_3f") (< 0 last-required))
+                  (min-arity target (- last-required 1))
+                  last-required)
+    _ last-required))
 
 (fn arity-check-call [[f & args] scope]
   "Perform static arity checks on static function calls in a module."
-  (let [arity (# args)
-        last-arg (. args arity)
-        [f-local field] (or (multi-sym? f) [])
+  (let [last-arg (. args (length args))
+        arity (if (: (tostring f) :find ":") ; method
+                  (+ (length args) 1)
+                  (length args))
+        [f-local & parts] (or (multi-sym? f) [])
         module-name (-?> scope.symmeta (. (tostring f-local)) (. :required))
-        module (and module-name (require module-name))]
-    (when (and (arity-check? module) _G.debug _G.debug.getinfo
-               (not (varg? last-arg)) (not (list? last-arg)))
-      (assert-compile (= (type (. module field)) :function)
+        module (and module-name (require module-name))
+        field (table.concat parts ".")
+        target (descend module parts)]
+    (when (and (arity-check? module module-name) _G.debug _G.debug.getinfo
+               module (not (varg? last-arg)) (not (list? last-arg)))
+      (assert-compile (= (type target) :function)
                       (string.format "Missing function %s in module %s"
                                      (or field :?) module-name) f)
-      (match (_G.debug.getinfo (. module field))
-        {: nparams :what "Lua" :isvararg true}
-        (assert-compile (<= nparams (# args))
-                        (: "Called %s.%s with %s arguments, expected %s+"
-                           :format f-local field arity nparams) f)
-        {: nparams :what "Lua" :isvararg false}
-        (assert-compile (= nparams (# args))
-                        (: "Called %s.%s with %s arguments, expected %s"
-                           :format f-local field arity nparams) f)))))
+      (match (_G.debug.getinfo target)
+        {: nparams :what "Lua"}
+        (let [min (min-arity target nparams f)]
+          (assert-compile (<= min arity)
+                          (: "Called %s with %s arguments, expected at least %s"
+                             :format f arity min) f))))))
 
 (fn check-unused [ast scope]
   (each [symname (pairs scope.symmeta)]
@@ -72,4 +91,7 @@ Doesn't do any linting on its own; just saves the data for other linters."
  ;; Note that this will only check unused args inside functions and let blocks,
  ;; not top-level locals of a chunk.
  :fn check-unused
- :do check-unused}
+ :do check-unused
+ :chunk check-unused
+ :name "fennel/linter"
+ :versions ["1.0.0"]}

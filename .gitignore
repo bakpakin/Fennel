@@ -1,10 +1,11 @@
 /fennel
 /fennel.lua
+/minifennel.lua
 /downloads
 /scratch.fnl
+/chroot
 
-/lua-5.3.5
-/lua-5.4.2
+/lua-5.*
 
 /rockspecs/*asc
 
@@ -54,7 +55,7 @@ luac.out
 *.out
 *.app
 *.i*86
-*.x86_64
+*x86_64
 *.hex
 
 # Tooling + transient metadata

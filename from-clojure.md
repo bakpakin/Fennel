@@ -33,7 +33,7 @@ there are no functions whatsoever provided by the language; it only
 provides macros and special forms. Since the Lua standard library is
 quite minimal, it's common to pull in 3rd-party things like [Lume][1],
 [LuaFun][2], or [Penlight][8] for things you might expect to be
-built-in to the language, like `reduce` or `keys`. There's also an
+built-in to the language, like `merge` or `keys`. There's also an
 experimental [Cljlib][12] library, that implements a lot of functions
 from `clojure.core` namespace, and has a set of macros to make writing
 code more familiar to Clojure programmers, like adding syntax for
@@ -71,9 +71,9 @@ remaining chunk instead of just for the body of the `let`.
 Like Clojure, Fennel uses the `fn` form to create functions. However,
 giving it a name will also declare it as a local rather than having
 the name be purely internal. Functions declared with `fn` have no
-arity checking; you can call them with any number of arguments. To
-have arity checking, declare with `lambda` instead, and it will throw
-an exception if you provide too few arguments.
+arity checking; you can call them with any number of arguments. If you
+declare with `lambda` instead, it will throw an exception when you
+provide too few arguments.
 
 Fennel supports destructuring similarly to Clojure. The main
 difference is that rather than using `:keys` Fennel has a notation

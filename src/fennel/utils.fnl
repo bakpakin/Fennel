@@ -3,16 +3,36 @@
 ;; the definitions of several core compiler types. It could be split into two
 ;; distinct modules along those lines.
 
+(local view (require :fennel.view))
+
+(local version :1.0.0-dev)
+
 ;;; General-purpose helper functions
+
+(fn warn [message]
+  (when (and _G.io _G.io.stderr)
+    (_G.io.stderr:write (: "--WARNING: %s\n" :format (tostring message)))))
 
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
-  pairs is already stable, but on 5.3+ every run gives different ordering."
+  pairs is already stable, but on 5.3+ every run gives different ordering. Gives
+  the same order as parsed in the AST when present in the metatable."
   (let [keys []
-        succ []]
-    (each [k (pairs t)]
-      (table.insert keys k))
-    (table.sort keys #(< (tostring $1) (tostring $2)))
+        used-keys {} ;; if a key has already shown up, we want to remove it
+        succ {}]
+    (if (and (getmetatable t) (. (getmetatable t) :keys))
+        (do
+          (each [_ k (ipairs (. (getmetatable t) :keys))]
+            (when (. used-keys k)
+              (for [i (length keys) 1 -1]
+                (when (= (. keys i) k)
+                  (table.remove keys i))))
+            (tset used-keys k true)
+            (table.insert keys k)))
+        (do
+          (each [k (pairs t)]
+            (table.insert keys k))
+          (table.sort keys #(< (tostring $1) (tostring $2)))))
     (each [i k (ipairs keys)]
       (tset succ k (. keys (+ i 1))))
 
@@ -25,10 +45,10 @@
 
 ;; Note: the collect/icollect macros mostly make map/kvmap obsolete.
 
-(fn map [t f out]
+(fn map [t f ?out]
   "Map function f over sequential table t, removing values where f returns nil.
 Optionally takes a target table to insert the mapped values into."
-  (let [out (or out [])
+  (let [out (or ?out [])
         f (if (= (type f) :function)
               f
               #(. $ f))]
@@ -37,11 +57,11 @@ Optionally takes a target table to insert the mapped values into."
         v (table.insert out v)))
     out))
 
-(fn kvmap [t f out]
+(fn kvmap [t f ?out]
   "Map function f over key/value table t, similar to above, but it can return a
 sequential table if f returns a single value or a k/v table if f returns two.
 Optionally takes a target table to insert the mapped values into."
-  (let [out (or out [])
+  (let [out (or ?out [])
         f (if (= (type f) :function)
               f
               #(. $ f))]
@@ -51,18 +71,18 @@ Optionally takes a target table to insert the mapped values into."
         (value) (table.insert out value)))
     out))
 
-(fn copy [from to]
+(fn copy [from ?to]
   "Returns a shallow copy of its table argument. Returns an empty table on nil."
-  (let [to (or to [])]
+  (let [to (or ?to [])]
     (each [k v (pairs (or from []))]
       (tset to k v))
     to))
 
-(fn member? [x tbl n]
-  (match (. tbl (or n 1))
+(fn member? [x tbl ?n]
+  (match (. tbl (or ?n 1))
     x true
     nil nil
-    _ (member? x tbl (+ (or n 1) 1))))
+    _ (member? x tbl (+ (or ?n 1) 1))))
 
 (fn allpairs [tbl]
   "Like pairs, but if the table has an __index metamethod, it will recurisvely
@@ -105,14 +125,14 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 ;; the tostring2 argument is passed in by fennelview; this lets us use the same
 ;; function for regular tostring as for fennelview. when called from fennelview
 ;; the list's contents will also show as being fennelviewed.
-(fn list->string [self tostring2]
+(fn list->string [self ?tostring2]
   (var (safe max) (values [] 0))
   (each [k (pairs self)]
     (when (and (= (type k) :number) (> k max))
       (set max k)))
   (for [i 1 max]
     (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
-  (.. "(" (table.concat (map safe (or tostring2 tostring)) " " 1 max) ")"))
+  (.. "(" (table.concat (map safe (or ?tostring2 view)) " " 1 max) ")"))
 
 (fn comment-view [c]
   (values c true))
@@ -129,7 +149,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
                   :__eq sym=
                   :__lt sym<})
 
-(local expr-mt {1 :EXPR :__tostring deref})
+(local expr-mt {1 :EXPR :__tostring (fn [x] (tostring (deref x)))})
 (local list-mt {1 :LIST :__fennelview list->string :__tostring list->string})
 (local comment-mt {1 :COMMENT
                    :__fennelview comment-view
@@ -244,9 +264,16 @@ be declared local, and they may have side effects on invocation (metatables)."
 (fn quoted? [symbol]
   symbol.quoted)
 
+(fn ast-source [ast]
+  "Most AST nodes put file/line info in the table itself, but k/v tables
+store it on the metatable instead."
+  (if (table? ast) (or (getmetatable ast) {})
+      (= :table (type ast)) ast
+      {}))
+
 ;;; Other
 
-(fn walk-tree [root f custom-iterator]
+(fn walk-tree [root f ?custom-iterator]
   "Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
 When f returns a truthy value, recursively walks the children."
   (fn walk [iterfn parent idx node]
@@ -254,7 +281,7 @@ When f returns a truthy value, recursively walks the children."
       (each [k v (iterfn node)]
         (walk iterfn node k v))))
 
-  (walk (or custom-iterator pairs) nil nil root)
+  (walk (or ?custom-iterator pairs) nil nil root)
   root)
 
 (local lua-keywords [:and
@@ -308,13 +335,30 @@ has options calls down into compile."
     (set (root.chunk root.scope root.options root.reset)
          (values chunk scope options reset))))
 
-(fn hook [event ...]
-  (when (and root.options root.options.plugins)
-    (each [_ plugin (ipairs root.options.plugins)]
-      (match (. plugin event)
-        f (f ...)))))
+(local warned {})
 
-{: allpairs
+(fn check-plugin-version [{: name : versions &as plugin}]
+  (when (and (not (member? (version:gsub "-dev" "") (or versions [])))
+             (not (. warned plugin)))
+    (tset warned plugin true)
+    (warn (string.format "plugin %s does not support Fennel version %s"
+                         (or name :unknown) version))))
+
+(fn hook [event ...]
+  "Side-effecting plugins should return nil. In the event that a plugin handler
+returns non-nil it will be used as the value of the call and further plugin
+handlers will be skipped."
+  (var result nil)
+  (when (and root.options root.options.plugins)
+    (each [_ plugin (ipairs root.options.plugins)
+           :until result]
+      (check-plugin-version plugin)
+      (match (. plugin event)
+        f (set result (f ...)))))
+  result)
+
+{: warn
+ : allpairs
  : stablepairs
  : copy
  : kvmap
@@ -325,7 +369,6 @@ has options calls down into compile."
  : sequence
  : sym
  : varg
- : deref
  : expr
  :comment comment*
  : comment?
@@ -343,6 +386,8 @@ has options calls down into compile."
  : propagate-options
  : root
  : debug-on?
+ : ast-source
+ : version
  :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")
  :macro-path (table.concat [:./?.fnl :./?/init-macros.fnl :./?/init.fnl
                             (getenv :FENNEL_MACRO_PATH)] ";")}

@@ -4,7 +4,7 @@
 expressive, and has almost zero overhead compared to handwritten Lua.
 
 * *Full Lua compatibility* - You can use any function or library from Lua.
-* *Zero overhead* - Compiled code should be just as or more efficient than hand-written Lua.
+* *Zero overhead* - Compiled code should be just as efficient as hand-written Lua.
 * *Compile-time macros* - Ship compiled code with no runtime dependency on Fennel.
 * *Embeddable* - Fennel is a one-file library as well as an executable. Embed it in other programs to support runtime extensibility and interactive development.
 
@@ -17,6 +17,7 @@ use without installing anything.
 * The [tutorial](tutorial.md) teaches the basics of the language
 * The [rationale](rationale.md) explains the reasoning of why Fennel was created
 * The [reference](reference.md) describes all Fennel special forms
+* The [macro guide](macros.md) explains how to write macros
 * The [API listing](api.md) shows how to integrate Fennel into your codebase
 * The [Lua primer](lua-primer.md) gives a very brief intro to Lua with
   pointers to further details
@@ -29,16 +30,16 @@ each release.
 ## Example
 
 #### Hello World
-```
+```Fennel
 (print "hello, world!")
 ```
 
 #### Fibonacci sequence
-```
+```Fennel
 (fn fib [n]
- (if (< n 2)
-  n
-  (+ (fib (- n 1)) (fib (- n 2)))))
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
 
 (print (fib 10))
 ```
@@ -69,7 +70,7 @@ run a Fennel file anywhere on your system.
 * Clearer syntactic distinction between sequential tables and key/value tables
 * Separate looping constructs for numeric loops vs iterators instead of overloading `for`
 * Opt-in mutability for local variables
-* Opt-in arity checks for `lambda` functions
+* Opt-in nil checks for `lambda` functions
 * Pattern matching
 * Ability to extend the syntax with your own macros and special forms
 
@@ -105,6 +106,7 @@ Lua is much more readily-available than it is for Fennel.
 * The [mailing list][5] has slower-paced discussion and announcements
 * You can browse and edit [the Wiki][7]
 * [Continuous integration][8]
+* Community interactions are subject to the [code of conduct](CODE-OF-CONDUCT.md).
 
 ## License
 

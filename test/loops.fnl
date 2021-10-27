@@ -28,12 +28,46 @@
   (== "(collect [k v (pairs {:foo 3 :bar 4 :baz 5 :qux 6})]
          (when (> v 4) (values k (+ v 1))))"
       {:baz 6 :qux 7})
+  (== "(collect [k v (pairs {:neon :lights}) :into {:shimmering-neon :lights}]
+         (values k (v:upper)))"
+      {:neon "LIGHTS" :shimmering-neon "lights"})
   (== "(icollect [_ v (ipairs [1 2 3 4 5 6])]
          (when (= 0 (% v 2)) (* v v)))"
       [4 16 36])
   (== "(icollect [num (string.gmatch \"24,58,1999\" \"%d+\")]
          (tonumber num))"
-      [24 58 1999]))
+      [24 58 1999])
+  (== "(icollect [_ x (ipairs [2 3]) :into [11]] (* x 11))"
+      [11 22 33])
+  (== "(let [xs [11]] (icollect [_ x (ipairs [2 3]) :into xs] (* x 11)))"
+      [11 22 33])
+  (let [(ok? msg) (pcall fennel.compileString "(icollect [_ x (ipairs [2 3]) :into \"oops\"] x)")]
+    (l.assertFalse ok?)
+    (l.assertStrContains msg ":into clause"))
+  (let [(ok? msg) (pcall fennel.compileString "(icollect [_ x (ipairs [2 3]) :into 2] x)")]
+    (l.assertFalse ok?)
+    (l.assertStrContains msg ":into clause")))
+
+(fn test-accumulate []
+  (== "(var x true)
+       (let [y (accumulate [state :init
+                            _ _ (pairs {})]
+                 (do (set x false)
+                     :update))]
+         [x y])"
+      [true :init])
+  (== "(accumulate [s :fen
+                    _ c (ipairs [:n :e :l :o]) :until (>= c :o)]
+         (.. s c))"
+      "fennel")
+  (== "(accumulate [n 0
+                    _ _ (pairs {:one 1 :two nil :three 3})]
+         (+ n 1))"
+      2)
+  (== "(accumulate [yes? true
+                    _ s (ipairs [:yes :no :yes])]
+         (and yes? (string.match s :yes)))"
+      nil))
 
 (fn test-conditions []
   (== "(var x 0) (for [i 1 10 :until (= i 5)] (set x i)) x" 4)
@@ -44,4 +78,5 @@
 {: test-each
  : test-for
  : test-comprehensions
+ : test-accumulate
  : test-conditions}

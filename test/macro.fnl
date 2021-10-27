@@ -15,6 +15,11 @@
     (each [_ [code expected] (ipairs cases)]
       (l.assertEquals (fennel.eval code) expected code))))
 
+(fn test-doto []
+  (let [cases [["(doto [1 2 3] (table.sort #(> $1 $2)) table.sort)" [1 2 3]]]]
+    (each [_ [code expected] (ipairs cases)]
+      (l.assertEquals (fennel.eval code) expected code))))
+
 (fn test-?. []
   (let [cases [["(?. {:a 1})" {:a 1}]
                ["(?. {:a 1} :a)" 1]
@@ -52,7 +57,9 @@
     (l.assertEquals (fennel.eval reverse) 1)
     (l.assertEquals (fennel.eval nest-quote {:compiler-env env :env env})
                     "(quote nest)")
-    (fennel.eval "(eval-compiler (set _SPECIALS.reverse-it nil))")))
+    (fennel.eval "(eval-compiler (set _SPECIALS.reverse-it nil))")
+    (l.assertEquals (fennel.eval "(eval-compiler 99)") 99)
+    (l.assertEquals (fennel.eval "(eval-compiler true)") true)))
 
 (fn test-import-macros []
   (let [multigensym "(import-macros m :test.macros) (m.multigensym)"
@@ -125,7 +132,7 @@
                "(match (values 5 9) 9 :no (a b) (+ a b))" 14
                "(match (values nil :nonnil) (true _) :no (nil b) b)" "nonnil"
                "(match [1 2 1] [x y x] :yes)" "yes"
-               "(match [1 2 3] [3 2 1] :no [2 9 1] :NO :default)" "default"
+               "(match [1 2 3] [3 2 1] :no [2 9 1] :NO _ :default)" "default"
                "(match [1 2 3] [a & b] (+ a (. b 1) (. b 2)))" 6
                "(match [1 2 3] [x y x] :no [x y z] :yes)" "yes"
                "(match [1 2 [[1]]] [x y [z]] (. z 1))" 1
@@ -160,7 +167,7 @@
                   (where [a 1 2] (> a 0)) :nope5
                   (where [a b c] (> a 2) (> b 0) (> c 0)) :nope6
                   (where (or [a 1] [a -2 -3] [a 2 3 4]) (> a 0)) :success
-                  :nope7)" :success
+                  _ :nope7)" :success
                ;; Booleans are OR'ed as patterns
                "(match false
                   (where (or false true)) :false
@@ -192,21 +199,21 @@
                   {:a 1} :nope9
                   [[1 2] [3 4]] :nope10
                   nil :success
-                  :nope11)" :success
+                  _ :nope11)" :success
                ;; nil matching with where
                "(match nil
                   (where (1 2 3 4) true) :nope1
                   (where {:a 1 :b 2} true) :nope2
                   (where [a b c d] (= 100 (* a b c d))) :nope3
                   ([a b c d] ? (= 100 (* a b c d))) :nope4
-                  :success)" :success
+                  _ :success)" :success
                ;; no match
                "(match [1 2 3 4]
                   (1 2 3 4) :nope1
                   {:a 1 :b 2} :nope2
                   (where [a b c d] (= 100 (* a b c d))) :nope3
                   ([a b c d] ? (= 100 (* a b c d))) :nope4
-                  :success)" :success
+                  _ :success)" :success
                ;; destructure multiple values with where
                "(match (values 1 2 3 4 :ok)
                   (where (a b c d e) (= 1 a)) e
@@ -221,11 +228,11 @@
                "(match {:sieze :him}
                   (where tbl tbl.sieze tbl.no) :no
                   (where tbl tbl.sieze (= tbl.sieze :him)) :siezed2)" :siezed2
-               "(match false false false true)" false
-               "(match nil false false true)" true
-               "(match true (where (or nil false true)) :ok :not-ok)" :ok
-               "(match false (where (or nil false true)) :ok :not-ok)" :ok
-               "(match nil (where (or nil false true)) :ok :not-ok)" :ok
+               "(match false false false _ true)" false
+               "(match nil false false _ true)" true
+               "(match true (where (or nil false true)) :ok _ :not-ok)" :ok
+               "(match false (where (or nil false true)) :ok _ :not-ok)" :ok
+               "(match nil (where (or nil false true)) :ok _ :not-ok)" :ok
                "(match {:a 1 :b 2} {: a &as t} (+ a t.b))" 3
                "(match [1 2 3] [a b &as t] (+ a b (. t 3)))" 6}]
     (each [code expected (pairs cases)]
@@ -233,11 +240,31 @@
 
 (fn test-lua-module []
   (let [ok-code "(macro abc [] (let [l (require :test.luamod)] (l.abc))) (abc)"
-        bad-code "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"]
+        bad-code "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"
+        reversed "(import-macros {: reverse} :test.mod.reverse) (reverse (29 2 +))"]
     (l.assertEquals (fennel.eval ok-code) "abc")
-    (l.assertFalse (pcall fennel.eval bad-code {:compiler-env :strict}))))
+    (l.assertFalse (pcall fennel.eval bad-code {:compiler-env :strict}))
+    (l.assertEquals 31 (fennel.eval reversed))))
+
+(fn test-disabled-sandbox-searcher []
+  (let [opts {:env :_COMPILER :compiler-env _G}
+        code "{:path (fn [] (os.getenv \"PATH\"))}"
+        searcher #(match $
+                    :dummy (fn [] (fennel.eval code opts)))]
+    (table.insert fennel.macro-searchers 1 searcher)
+    (let [(ok msg) (pcall fennel.eval "(import-macros {: path} :dummy) (path)")]
+      (l.assertTrue ok msg))
+    (table.remove fennel.macro-searchers 1)))
+
+(fn test-expand []
+  (let [code "(macro expand-string [f]
+                (list (sym :table.concat)
+                      (icollect [_ x (ipairs (macroexpand f))] (tostring x))))
+              (expand-string (when true (fn [] :x)))"]
+    (l.assertEquals (fennel.eval code) "iftrue(do (fn {} \"x\"))")))
 
 {: test-arrows
+ : test-doto
  : test-?.
  : test-import-macros
  : test-require-macros
@@ -247,4 +274,6 @@
  : test-macrodebug
  : test-macro-path
  : test-match
- : test-lua-module}
+ : test-lua-module
+ : test-disabled-sandbox-searcher
+ : test-expand}

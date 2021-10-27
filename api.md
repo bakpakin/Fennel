@@ -48,16 +48,12 @@ Takes these additional options:
 
 * `readChunk()`: a function that when called, returns a string of source code.
   The empty is string is used as the end of source marker.
-* `pp`: a pretty-printer function to apply on values.
+* `pp`: a pretty-printer function to apply on values (default: `fennel.view`).
 * `onValues(values)`: a function that will be called on all returned top level values.
 * `onError(errType, err, luaSource)`: a function that will be called on each error.
   `errType` is a string with the type of error, can be either, 'parse',
   'compile', 'runtime',  or 'lua'. `err` is the error message, and `luaSource`
   is the source of the generated lua code.
-
-`src/fennel/view.fnl` will produce output that can be fed back into Fennel
-(other than functions, coroutines, etc) but you can use a 3rd-party
-pretty-printer that produces output in Lua format if you prefer.
 
 If you don't provide `allowedGlobals` then it defaults to being all
 the globals in the environment under which the code will run. Passing
@@ -111,6 +107,30 @@ If you install Fennel into `package.searchers` then you can use the
 3rd-party [lume.hotswap][1] function to reload modules that have been
 loaded with `require`.
 
+## Macro Searchers
+
+The compiler sandbox makes it so that the module system is also
+isolated from the rest of the system, so the above `require` calls
+will not work from inside macros. However, there is a separate
+`fennel.macro-searchers` table which can be used to allow different
+modules to be loaded inside macros. By default it includes a searcher
+to load sandboxed Fennel modules and a searcher to load sandboxed Lua
+modules, but if you disable the compiler sandbox you may want to
+replace these with searchers which can load arbitrary modules.
+
+The default `fennel.macro-searchers` table also cannot load C modules.
+Here's an example of some code which would allow that to work:
+
+```lua
+table.insert(fennel["macro-searchers"], function(module_name)
+   local filename = fennel["search-module"](module_name, package.cpath)
+   if filename then
+      local func = "luaopen_" .. module_name
+      return function() return package.loadlib(filename, func) end, filename
+   end
+end)
+```
+
 ## Get Fennel-aware stack traces.
 
 The `fennel.traceback` function works like Lua's `debug.traceback`
@@ -148,13 +168,15 @@ provided. Unlike the other functions, the `compile` functions default
 to performing no global checks, though you can pass in an `allowedGlobals`
 table in `options` to enable it.
 
+Accepts `filename` in `options` as in `fennel.eval`.
+
 ## Compile an iterator of bytes into a string of Lua (can throw errors)
 
 ```lua
 local lua = fennel.compileStream(strm[, options])
 ```
 
-Accepts `indent` in `options` as per above.
+Accepts `indent` and `filename` in `options` as per above.
 
 ## Compile a data structure (AST) into Lua source code (can throw errors)
 
@@ -164,7 +186,7 @@ The code can be loaded via dostring or other methods. Will error on bad input.
 local lua = fennel.compile(ast[, options])
 ```
 
-Accepts `indent` in `options` as per above.
+Accepts `indent` and `filename` in `options` as per above.
 
 ## Get an iterator over the bytes in a string
 
@@ -290,6 +312,19 @@ inline would imbalance these or cause keys to be considered as values
 and vice versa. So the comments are stored on the `comments` field of
 metatable instead, keyed by the key or value they were attached to.
 
+## Serialization
+
+The `fennel.view` function takes any Fennel data and turns it into a
+representation suitable for feeding back to Fennel's parser. In
+addition to tables, strings, numbers, and booleans, it can produce
+reasonable output from ASTs that come from the parser. It will emit an
+unreadable placeholder for coroutines, functions, and userdata though.
+
+```lua
+print(fennel.view({abc=123}[, options])
+{:abc 123}
+```
+
 ## Work with docstrings and metadata
 
 *(Since 0.3.0)*
@@ -369,7 +404,9 @@ various ways. A plugin is a module containing various functions in fields
 named after different compiler extension points. When the compiler hits an
 extension point, it will call each plugin's function for that extension
 point, if provided, with various arguments; usually the AST in question and
-the scope table.
+the scope table. Each plugin function should normally do side effects and
+return nil or error out. If a function returns non-nil, it will cause
+the rest of the plugins for a given event to be skipped.
 
 * `symbol-to-expression`
 * `call`
@@ -428,5 +465,9 @@ which should be a path to a Fennel file containing a module that has some of
 the functions listed above. If you're using the compiler programmatically,
 you can include a `:plugins` table in the `options` table to most compiler
 entry point functions.
+
+Your plugin should contain a `:versions` table which contains a list
+of strings indicating every version of Fennel which you have tested it
+with. You should also have a `:name` field with the plugin's name.
 
 [1]: https://github.com/rxi/lume#lumehotswapmodname

@@ -8,6 +8,26 @@
                    :userdata 6
                    :thread 7})
 
+;; Pairs, ipairs and length functions that respect metamethods
+
+(local lua-pairs pairs)
+(local lua-ipairs ipairs)
+
+(fn pairs [t]
+  (match (getmetatable t)
+    {:__pairs p} (p t)
+    _ (lua-pairs t)))
+
+(fn ipairs [t]
+  (match (getmetatable t)
+    {:__ipairs i} (i t)
+    _ (lua-ipairs t)))
+
+(fn length* [t]
+  (match (getmetatable t)
+    {:__len l} (l t)
+    _ (length t)))
+
 (fn sort-keys [[a] [b]]
   ;; Sort keys depending on the `type-order`.
   (let [ta (type a)
@@ -21,23 +41,50 @@
               dtb false
               (< ta tb))))))
 
-(fn table-kv-pairs [t]
+(fn max-index-gap [kv]
+  ;; Find the largest gap between neighbor items
+  (var gap 0)
+  (when (> (length* kv) 0)
+    (var i 0)
+    (each [_ [k] (ipairs kv)]
+      (when (> (- k i) gap)
+        (set gap (- k i)))
+      (set i k)))
+  gap)
+
+(fn fill-gaps [kv]
+  ;; Fill gaps in sequential kv-table
+  ;; [[1 "a"] [4 "d"]] => [[1 "a"] [2] [3] [4 "d"]]
+  (let [missing-indexes []]
+    (var i 0)
+    (each [_ [j] (ipairs kv)]
+      (set i (+ i 1))
+      (while (< i j)
+        (table.insert missing-indexes i)
+        (set i (+ i 1))))
+    (each [_ k (ipairs missing-indexes)]
+      (table.insert kv k [k]))))
+
+(fn table-kv-pairs [t options]
   ;; Return table of tables with first element representing key and second
   ;; element representing value.  Second value indicates table type, which is
   ;; either sequential or associative.
   ;; [:a :b :c] => [[1 :a] [2 :b] [3 :c]]
   ;; {:a 1 :b 2} => [[:a 1] [:b 2]]
   (var assoc? false)
-  (var i 1)
   (let [kv []
         insert table.insert]
     (each [k v (pairs t)]
-      (when (or (not= (type k) :number) (not= k i))
+      (when (or (not= (type k) :number)
+                (< k 1))
         (set assoc? true))
-      (set i (+ i 1))
       (insert kv [k v]))
     (table.sort kv sort-keys)
-    (if (= (length kv) 0)
+    (when (not assoc?)
+      (if (> (max-index-gap kv) options.max-sparse-gap)
+          (set assoc? true)
+          (fill-gaps kv)))
+    (if (= (length* kv) 0)
         (values kv :empty)
         (values kv (if assoc? :table :seq)))))
 
@@ -76,14 +123,14 @@
   (and options.detect-cycles? (detect-cycle t {}) (save-table t options.seen)
        (< 1 (or (. options.appearances t) 0))))
 
-(fn table-indent [t indent id]
+(fn table-indent [indent id]
   ;; When table contains cycles, it is printed with a prefix before opening
   ;; delimiter.  Prefix has a variable length, as it contains `id` of the table
   ;; and fixed part of `2` characters `@` and either `[` or `{` depending on
   ;; `t`type.  If `t` has visible cycles, we need to increase indent by the size
   ;; of the prefix.
   (let [opener-length (if id
-                          (+ (length (tostring id)) 2)
+                          (+ (length* (tostring id)) 2)
                           1)]
     (+ indent opener-length)))
 
@@ -96,20 +143,25 @@
         close (if (= :seq table-type) "]" "}")
         oneline (.. open (table.concat elements " ") close)]
     (if (and (not options.one-line?)
-             (or multiline? (> (+ indent (length oneline)) options.line-length)))
+             (or multiline? (> (+ indent (length* oneline)) options.line-length)))
         (.. open (table.concat elements indent-str) close)
         oneline)))
 
-(fn pp-associative [t kv options indent key?]
+;; this will only produce valid answers for valid utf-8 data, since it just
+;; counts the amount of initial utf-8 bytes in a given string. we can do this
+;; because we only run this on validated and escaped strings.
+(fn utf8-len [x]
+  (accumulate [n 0 _ (string.gmatch x "[%z\x01-\x7f\xc0-\xf7]")] (+ n 1)))
+
+(fn pp-associative [t kv options indent]
   (var multiline? false)
   (let [id (. options.seen t)]
     (if (>= options.level options.depth) "{...}"
         (and id options.detect-cycles?) (.. "@" id "{...}")
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
-              indent (table-indent t indent id)
-              slength (or (and options.utf8? (-?> (rawget _G :utf8) (. :len)))
-                          #(length $))
+              indent (table-indent indent id)
+              slength (if options.utf8? utf8-len #(length $))
               prefix (if visible-cycle? (.. "@" id) "")
               items (icollect [_ [k v] (pairs kv)]
                       (let [k (pp k options (+ indent 1) true)
@@ -126,7 +178,7 @@
         (and id options.detect-cycles?) (.. "@" id "[...]")
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
-              indent (table-indent t indent id)
+              indent (table-indent indent id)
               prefix (if visible-cycle? (.. "@" id) "")
               items (icollect [_ [_ v] (pairs kv)]
                       (let [v (pp v options indent)]
@@ -135,14 +187,14 @@
           (concat-table-lines items options multiline? indent :seq prefix)))))
 
 (fn concat-lines [lines options indent force-multi-line?]
-  (if (= (length lines) 0)
+  (if (= (length* lines) 0)
       (if options.empty-as-sequence? "[]" "{}")
       (let [oneline (-> (icollect [_ line (ipairs lines)]
                           (line:gsub "^%s+" ""))
                         (table.concat " "))]
         (if (and (not options.one-line?)
                  (or force-multi-line? (oneline:find "\n")
-                     (> (+ indent (length oneline)) options.line-length)))
+                     (> (+ indent (length* oneline)) options.line-length)))
             (table.concat lines (.. "\n" (string.rep " " indent)))
             oneline))))
 
@@ -165,7 +217,7 @@
   (set options.level (+ options.level 1))
   (let [x (match (if options.metamethod? (-?> x getmetatable (. :__fennelview)))
             metamethod (pp-metamethod x metamethod options indent)
-            _ (match (table-kv-pairs x)
+            _ (match (table-kv-pairs x options)
                 (_ :empty) (if options.empty-as-sequence? "[]" "{}")
                 (kv :table) (pp-associative x kv options indent)
                 (kv :seq) (pp-sequence x kv options indent)))]
@@ -182,6 +234,58 @@
   ;; Test if given string is valid colon string.
   (s:find "^[-%w?^_!$%&*+./@|<=>]+$"))
 
+(local utf8-inits
+  [{:min-byte 0x00 :max-byte 0x7f
+    :min-code 0x00 :max-code 0x7f
+    :len 1}
+   {:min-byte 0xc0 :max-byte 0xdf
+    :min-code 0x80 :max-code 0x7ff
+    :len 2}
+   {:min-byte 0xe0 :max-byte 0xef
+    :min-code 0x800 :max-code 0xffff
+    :len 3}
+   {:min-byte 0xf0 :max-byte 0xf7
+    :min-code 0x10000 :max-code 0x10ffff
+    :len 4}])
+
+(fn utf8-escape [str]
+  ;; return nil if invalid utf8, if not return the length
+  ;; TODO: use native utf8 library if possible
+  (fn validate-utf8 [str index]
+    (let [inits utf8-inits
+          byte (string.byte str index)
+          init (accumulate [ret nil
+                            _ init (ipairs inits)
+                            :until ret]
+                 (and byte
+                      (>= init.max-byte byte init.min-byte)
+                      init))
+          code (and init
+                    (do
+                      (var code (if init (- byte init.min-byte) nil))
+                      (for [i (+ index 1) (+ index init.len -1)]
+                        (let [byte (string.byte str i)]
+                          (set code (and byte
+                                         code
+                                         (>= 0xbf byte 0x80)
+                                         (+ (* code 64) (- byte 0x80))))))
+                      code))]
+      (if (and code
+               (>= init.max-code code init.min-code)
+               ;; surrogate pairs disallowed
+               (not (>= 0xdfff code 0xd800)))
+          init.len)))
+  (var index 1)
+  (var output [])
+  (while (<= index (length str))
+    (let [nexti (or (string.find str "[\x80-\xff]" index) (+ (length str) 1))
+          len (validate-utf8 str nexti)]
+      (table.insert output (string.sub str index (+ nexti (or len 0) -1)))
+      (when (and (not len) (<= nexti (length str)))
+        (table.insert output (string.format "\\%03d" (string.byte str nexti))))
+      (set index (if len (+ nexti len) (+ nexti 1)))))
+  (table.concat output))
+
 (fn pp-string [str options indent]
   "This is a more complicated version of string.format %q.
 However, we can't use that functionality because it always emits control codes
@@ -195,11 +299,14 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                             :\ "\\\\"
                             "\"" "\\\""
                             "\n" (if (and options.escape-newlines?
-                                          (< (length str)
+                                          (< (length* str)
                                              (- options.line-length indent)))
                                      "\\n" "\n")}
-                           {:__index #(: "\\%03d" :format ($2:byte))})]
-    (.. "\"" (str:gsub "[%c\\\"]" escs) "\"")))
+                           {:__index #(: "\\%03d" :format ($2:byte))})
+        str (.. "\"" (str:gsub "[%c\\\"]" escs) "\"")]
+    (if options.utf8?
+        (utf8-escape str)
+        str)))
 
 (fn make-options [t options]
   (let [;; defaults are used when options are not provided
@@ -211,7 +318,8 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                   :metamethod? true
                   :prefer-colon? false
                   :escape-newlines? false
-                  :utf8? true}
+                  :utf8? true
+                  :max-sparse-gap 10}
         ;; overrides can't be accessed via options
         overrides {:level 0
                    :appearances (count-table-appearances t {})
@@ -226,6 +334,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
           ;; main serialization loop, entry point is defined below
           (let [indent (or indent 0)
                 options (or options (make-options x))
+                x (if options.preprocess (options.preprocess x options) x)
                 tv (type x)]
             (if (or (= tv :table)
                     (and (= tv :userdata)
@@ -244,7 +353,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                 (tostring x)
                 (.. "#<" (tostring x) ">")))))
 
-(fn view [x options]
+(fn view [x ?options]
   "Return a string representation of x.
 
 Can take an options table with these keys:
@@ -259,6 +368,11 @@ Can take an options table with these keys:
 * :prefer-colon? (default: false) emit strings in colon notation when possible
 * :utf8? (boolean, default true) whether to use utf8 module to compute string
   lengths
+* :max-sparse-gap (integer, default 10) maximum gap to fill in with nils in
+  sparse sequential tables.
+* :preprocess (function) if present, called on x (and recursively on each value
+  in x), and the result is used for pretty printing; takes the same arguments as
+  `fennel.view`
 
 The `__fennelview` metamethod should take the table being serialized as its
 first argument, a function as its second argument, options table as third
@@ -344,5 +458,10 @@ results regardless of nesting:
 
 Note that even though we've only indented inner elements of our table
 with 10 spaces, the result is correctly indented in terms of outer
-table, and inner tables also remain indented correctly."
-  (pp x (make-options x options) 0))
+table, and inner tables also remain indented correctly.
+
+When using the `:preprocess` option, avoid modifying any tables in-place in the
+passed function. Since Lua tables are mutable and provided to `:preprocess`
+without copying, any modification done in `:preprocess` will be visible outside
+of `fennel.view`."
+  (pp x (make-options x ?options) 0))

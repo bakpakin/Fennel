@@ -317,8 +317,8 @@ of side-effects and has no else clause:
 
 ## Back to tables just for a bit
 
-Strings that don't have spaces in them can use the `:shorthand` syntax
-instead, which is often used for table keys:
+Strings that don't have spaces or reserved characters in them can use
+the `:shorthand` syntax instead, which is often used for table keys:
 
 ```fennel
 {:key value :number 531}
@@ -525,7 +525,7 @@ value.
 ```
 
 Unless you are doing ahead-of-time compilation, Fennel will track all
-known globals and prevent you from refering to unknown globals, which
+known globals and prevent you from referring to unknown globals, which
 prevents a common source of bugs in Lua where typos go undetected.
 
 ### Strict global checking
@@ -538,11 +538,11 @@ use `_G.myglobal` to refer to it in a way that works around this check.
 
 Another possible cause for this error is a modified [function environment][16].
 The solution depends on how you're using Fennel:
-* Embedded Fennel can have its searcher modified to ignore certain (or all) 
+* Embedded Fennel can have its searcher modified to ignore certain (or all)
   globals via the `allowedGlobals` parameter. See the [Lua API][17] page for
   instructions.
 * Fennel's CLI has the `--globals` parameter, which accepts a comma-separated
-  list of globals to ignore. For example, to disable strict mode for globals 
+  list of globals to ignore. For example, to disable strict mode for globals
   x, y, and z:
   ```shell
   fennel --globals x,y,z yourfennelscript.fnl
@@ -626,6 +626,156 @@ does with Lua; for instance `(require :mylib.parser)` will look in
 which is distinct from `package.path` used to find Lua modules). The
 path usually includes an entry to let you load things relative to the
 current directory by default.
+
+## Relative require
+
+There are several ways to write a library which uses modules.  One of
+these is to rely on something like LuaRocks, to manage library
+installation and availability of it and its modules.  Another way is
+to use the relative require style for loading nested modules.  With
+relative require, libraries don't depend on the root directory name or
+its location when resolving inner module paths.
+
+For example, here's a small `example` library, which contains an
+`init.fnl` file, and a module at the root directory:
+
+```fennel
+;; file example/init.fnl:
+(local a (require :example.module-a))
+
+{:hello-a a.hello}
+```
+
+Here, the main module requires additional `example.module-a` module,
+which holds the implementation:
+
+```fennel
+;; file example/module-a.fnl
+(fn hello [] (print "hello from a"))
+{:hello hello}
+```
+
+The main issue here is that the path to the library must be exactly
+`example`, e.g. library must be required as `(require :example)` for
+it to work, which can't be enforced on the library user.  For example,
+if the library were moved into `libs` directory of the project to
+avoid cluttering, and required as `(require :libs.example)`, there
+will be a runtime error.  This happens because library itself will try
+to require `:example.module-a` and not `:libs.example.module-a`, which
+is now the correct module path:
+
+    runtime error: module 'example.module-a' not found:
+            no field package.preload['example.module-a']
+            ...
+            no file './example/module-a.lua'
+            ...
+    stack traceback:
+      [C]: in function 'require'
+      ./libs/example/init.fnl:2: in main chunk
+
+LuaRocks addresses this problem by enforcing both the directory name
+and installation path, populating the `LUA_PATH` environment variable
+to make the library available.  This, of course, can be done manually
+by setting `LUA_PATH` per project in the build pipeline, pointing it
+to the right directory.  But this is not very transparent, and when
+requiring a project local library it's better to see the full path,
+that directly maps to the project's file structure, rather than
+looking up where the `LUA_PATH` is modified.
+
+In the Fennel ecosystem we encourage a simpler way of managing project
+dependencies.  Simply dropping a library into your project's tree or
+using git submodule is usually enough, and the require paths should be
+handled by the library itself.
+
+Here's how a relative require path can be specified in the
+`libs/example/init.fnl` to make it name/path agnostic, assuming that
+we've moved our `example` library there:
+
+```fennel
+;; file libs/example/init.fnl:
+(local a (require (.. ... :.module-a)))
+
+{:hello-a a.hello}
+```
+
+Now, it doesn't matter how library is named or where we put it - we
+can require it from anywhere.  It works because when requiring the
+library with `(require :lib.example)`, the first value in `...` will
+hold the `"lib.example"` string.  This string is then concatenated
+with the `".module-a"`, and `require` will properly find and load the
+nested module at runtime under the `"lib.example.module-a"` path.
+It's a Lua feature, and not something Fennel specific, and it will
+work the same when the library is AOT compiled to Lua.
+
+### Compile-time relative include
+
+Since Fennel v0.10.0 this also works at compile-time, when using the
+`include` special or the `--require-as-include` flag, with the
+constraint that the expression can be computed at compile time.  This
+means that the expression must be self-contained, i.e. doesn't refer
+to locals or globals, but embeds all values directly.  In other words,
+the following code will only work at runtime, but not with `include`
+or `--require-as-include` because `current-module` is not known at
+compile time:
+
+```fennel
+(local current-module ...)
+(require (.. current-module :.other-module))
+```
+
+This, on the other hand, will work both at runtime and at compile
+time:
+
+```fennel
+(require (.. ... :.other-module))
+```
+
+The `...` module args are propagated during compilation, so when the
+application, which uses this library is compiled, all library code is
+correctly included into the self-contained Lua file.
+
+Compiling a project, that uses this `example` library with the
+`--require-as-include` will include the following section in the
+resulting Lua code:
+
+```lua
+package.preload["libs.example.module-a"] = package.preload["libs.example.module-a"] or function(...)
+  local function hello()
+    return print("hello from a")
+  end
+  return {hello = hello}
+end
+```
+
+Note that `package.preload` entry contain a fully qualified path
+`"libs.example.module-a"`, which was resolved at compile time.
+
+### Requiring modules from modules other than `init.fnl`
+
+To require a module from a module other than `init` module, we must
+keep the path up to current module, but remove the module name.  For
+example, let's add `greet` module to `libs/example/utils/greet.fnl`,
+and require it from `libs/example/module-a.fnl`:
+
+```fennel
+;; file libs/example/utils/greet.fnl:
+(fn greet [who] (print (.. "hello " who)))
+```
+
+This module can be required as follows:
+
+```fennel
+;; file libs/example/module-a.fnl
+(local greet (require (: ... :gsub "(.*)%.module%-a$" "%1.utils.greet")))
+(fn hello [] (print "hello from a"))
+
+{:hello hello :greet greet}
+```
+
+The resulting module name is constructed via `gsub` call, on the
+module name string.  All other modules need to use a similar way to
+require other modules, with the only difference being their name in
+the pattern.
 
 [1]: https://stopa.io/post/265
 [2]: http://danmidwood.com/content/2014/11/21/animated-paredit.html

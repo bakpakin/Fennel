@@ -89,3 +89,6 @@ language to include new syntactic forms. This feature is intentionally listed
 last because while lisp programmers have historically made a big deal about
 how powerful it is, it is relatively rare to encounter situations where such
 a powerful construct is justified.
+
+For a more detailed look at the guiding principles of Fennel from a
+design perspective see [the Values of Fennel](values).

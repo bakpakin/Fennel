@@ -134,7 +134,7 @@ multiple values. Note that `table.unpack` is just `unpack` in Lua 5.1.
 You can explore a module by evaluating it in the REPL to display all
 the functions and values it contains.
 
-* `math`: all your standard math functions including trig and `random`
+* `math`: all your standard math functions, trig, pseudorandom generator, etc
 * `string`: all common string operations (except `split` which is absent)
 * `os`: operating system functions like `exit`, `time`, `getenv`, etc
 

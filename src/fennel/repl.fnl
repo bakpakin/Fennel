@@ -8,6 +8,8 @@
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))
 (local specials (require :fennel.specials))
+(local view (require :fennel.view))
+(local unpack (or table.unpack _G.unpack))
 
 (fn default-read-chunk [parser-state]
   (io.write (if (< 0 parser-state.stack-size) ".." ">> "))
@@ -40,7 +42,6 @@
                                  "\n"))
 
 (fn splice-save-locals [env lua-source]
-  (set env.___replLocals___ (or env.___replLocals___ {}))
   (let [spliced-source []
         bind "local %s = ___replLocals___['%s']"]
     (each [line (lua-source:gmatch "([^\n]+)\n?")]
@@ -58,33 +59,41 @@
         input-fragment (text:gsub ".*[%s)(]+" "")]
     (var stop-looking? false)
 
-    (fn add-partials [input tbl prefix] ; add partial key matches in tbl
+    (fn add-partials [input tbl prefix method?] ; add partial key matches in tbl
       (each [k (utils.allpairs tbl)]
         (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
                     (. scope.unmanglings k)
                     k)]
           (when (and (< (length matches) 2000)
                      ; stop explosion on too many items
-                     (= (type k) :string) (= input (k:sub 0 (length input))))
-            (table.insert matches (.. prefix k))))))
+                     (= (type k) :string) (= input (k:sub 0 (length input)))
+                     (or (not method?) (= :function (type (. tbl k)))))
+            (table.insert matches (if method?
+                                      (.. prefix ":" k)
+                                      (.. prefix k)))))))
 
-    (fn add-matches [input tbl prefix] ; add matches, descending into tbl fields
+    (fn descend [input tbl prefix add-matches method?]
+      (let [splitter (if method? "^([^:]+):(.*)" "^([^.]+)%.(.*)")
+            (head tail) (input:match splitter)
+            raw-head (or (. scope.manglings head) head)]
+        (when (= (type (. tbl raw-head)) :table)
+          (set stop-looking? true)
+          (if method?
+              (add-partials tail (. tbl raw-head) (.. prefix head) true)
+              (add-matches tail (. tbl raw-head) (.. prefix head))))))
+
+    (fn add-matches [input tbl prefix]
       (let [prefix (if prefix (.. prefix ".") "")]
-        (if (not (input:find "%.")) ; no more dots, so add matches
+        (if (and (not (input:find "%.")) (input:find ":")) ; found a method call
+            (descend input tbl prefix add-matches true)
+            (not (input:find "%.")) ; done descending; add matches
             (add-partials input tbl prefix)
-            (let [(head tail) (input:match "^([^.]+)%.(.*)")
-                  raw-head (if (or (= tbl env) (= tbl env.___replLocals___))
-                               (. scope.manglings head)
-                               head)]
-              (when (= (type (. tbl raw-head)) :table)
-                (set stop-looking? true)
-                (add-matches tail (. tbl raw-head) (.. prefix head)))))))
+            (descend input tbl prefix add-matches false))))
 
     (each [_ source (ipairs [scope.specials scope.macros
-                             (or env.___replLocals___ []) env env._G])]
-      (add-matches input-fragment source)
-      ;; bootstrap compiler doesn't yet know how to :until
-      (when stop-looking? (lua :break)))
+                             (or env.___replLocals___ []) env env._G])
+           :until stop-looking?]
+      (add-matches input-fragment source))
     matches))
 
 (local commands {})
@@ -140,10 +149,13 @@ For more information about the language, see https://fennel-lang.org/reference")
                  (on-values [:ok]))
     (false msg) (on-error :Runtime (pick-values 1 (msg:gsub "\n.*" "")))))
 
-(fn commands.reload [env read on-values on-error]
+(fn run-command [read on-error f]
   (match (pcall read)
-    (true true module-sym) (reload (tostring module-sym) env on-values on-error)
-    (false ?parse-ok ?msg) (on-error :Parse (or ?msg ?parse-ok))))
+    (true true val) (f val)
+    false (on-error :Parse "Couldn't parse input.")))
+
+(fn commands.reload [env read on-values on-error]
+  (run-command read on-error #(reload (tostring $) env on-values on-error)))
 
 (compiler.metadata:set commands.reload :fnl/docstring
                        "Reload the specified module.")
@@ -155,27 +167,97 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.reset :fnl/docstring
                        "Erase all repl-local scope.")
 
-(fn commands.complete [env read on-values on-error scope]
-  (match (pcall read)
-    (true true input) (on-values (completer env scope (tostring input)))
-    (_ _ ?msg) (on-error :Parse (or ?msg "Couldn't parse completion input."))))
+(fn commands.complete [env read on-values on-error scope chars]
+  (run-command read on-error
+               #(on-values (completer env scope (-> (string.char (unpack chars))
+                                                    (: :gsub ",complete +" "")
+                                                    (: :sub 1 -2))))))
 
 (compiler.metadata:set commands.complete :fnl/docstring
-                       "Print all possible completions for a given input.")
+                       "Print all possible completions for a given input symbol.")
 
-(fn load-plugin-commands []
-  (when (and utils.root utils.root.options utils.root.options.plugins)
-    (each [_ plugin (ipairs utils.root.options.plugins)]
-      (each [name f (pairs plugin)]
-        ;; first function to provide a command should win
-        (match (name:match "^repl%-command%-(.*)")
-          cmd-name (tset commands cmd-name (or (. commands cmd-name) f)))))))
+(fn apropos* [pattern tbl prefix seen names]
+  ;; package.loaded can contain modules with dots in the names.  Such
+  ;; names are renamed to contain / instead of a dot.
+  (each [name subtbl (pairs tbl)]
+    (when (and (= :string (type name))
+               (not= package subtbl))
+      (match (type subtbl)
+        :function (when (: (.. prefix name) :match pattern)
+                    (table.insert names (.. prefix name)))
+        :table (when (not (. seen subtbl))
+                 (apropos* pattern subtbl
+                           (.. prefix (name:gsub "%." "/") ".")
+                           (doto seen (tset subtbl true))
+                           names)))))
+  names)
 
-(fn run-command [input read loop env on-values on-error scope]
-  (load-plugin-commands)
+(fn apropos [pattern]
+  ;; _G. part is stripped from patterns to provide more stable output.
+  ;; The order we traverse package.loaded is arbitrary, so we may see
+  ;; top level functions either as is or under the _G module.
+  (let [names (apropos* pattern package.loaded "" {} [])]
+    (icollect [_ name (ipairs names)]
+      (name:gsub "^_G%." ""))))
+
+(fn commands.apropos [_env read on-values on-error _scope]
+  (run-command read on-error #(on-values (apropos (tostring $)))))
+
+(compiler.metadata:set commands.apropos :fnl/docstring
+                       "Print all functions matching a pattern in all loaded modules.")
+
+(fn apropos-follow-path [path]
+  ;; Follow path to the target based on apropos path format
+  (let [paths (icollect [p (path:gmatch "[^%.]+")] p)]
+    (var tgt package.loaded)
+    (each [_ path (ipairs paths)
+           :until (= nil tgt)]
+      (set tgt (. tgt (pick-values 1 (path:gsub "%/" ".")))))
+    tgt))
+
+(fn apropos-doc [pattern]
+  "Search function documentations for a given pattern."
+  (let [names []]
+    (each [_ path (ipairs (apropos ".*"))]
+      (let [tgt (apropos-follow-path path)]
+        (if (= :function (type tgt))
+            (match (compiler.metadata:get tgt :fnl/docstring)
+              docstr (when (docstr:match pattern)
+                       (table.insert names path))))))
+    names))
+
+(fn commands.apropos-doc [_env read on-values on-error _scope]
+  (run-command read on-error #(on-values (apropos-doc (tostring $)))))
+
+(compiler.metadata:set commands.apropos-doc :fnl/docstring
+                       "Print all functions that match the pattern in their docs")
+
+(fn apropos-show-docs [on-values pattern]
+  "Print function documentations for a given function pattern."
+  (each [_ path (ipairs (apropos pattern))]
+    (let [tgt (apropos-follow-path path)]
+      (when (and (= :function (type tgt))
+                 (compiler.metadata:get tgt :fnl/docstring))
+        (on-values (specials.doc tgt path))
+        (on-values)))))
+
+(fn commands.apropos-show-docs [_env read on-values]
+  (run-command read on-error #(apropos-show-docs on-values (tostring $))))
+
+(compiler.metadata:set commands.apropos-show-docs :fnl/docstring
+                       "Print all documentations matching a pattern in function name")
+
+(fn load-plugin-commands [plugins]
+  (each [_ plugin (ipairs (or plugins []))]
+    (each [name f (pairs plugin)]
+      ;; first function to provide a command should win
+      (match (name:match "^repl%-command%-(.*)")
+        cmd-name (tset commands cmd-name (or (. commands cmd-name) f))))))
+
+(fn run-command-loop [input read loop env on-values on-error scope chars]
   (let [command-name (input:match ",([^%s/]+)")]
     (match (. commands command-name)
-      command (command env read on-values on-error scope)
+      command (command env read on-values on-error scope chars)
       _ (when (not= :exit command-name)
           (on-values ["Unknown command" command-name])))
     (when (not= :exit command-name)
@@ -188,26 +270,29 @@ For more information about the language, see https://fennel-lang.org/reference")
                 (setmetatable {} {:__index (or (rawget _G :_ENV) _G)}))
         save-locals? (and (not= options.saveLocals false) env.debug
                           env.debug.getlocal)
-        opts {}
-        _ (each [k v (pairs options)]
-            (tset opts k v))
+        opts (utils.copy options)
         read-chunk (or opts.readChunk default-read-chunk)
         on-values (or opts.onValues default-on-values)
         on-error (or opts.onError default-on-error)
-        pp (or opts.pp tostring) ;; make parser
+        pp (or opts.pp view)
         (byte-stream clear-stream) (parser.granulate read-chunk)
         chars []
         (read reset) (parser.parser (fn [parser-state]
                                       (let [c (byte-stream parser-state)]
                                         (table.insert chars c)
-                                        c)))
-        scope (compiler.make-scope)]
+                                        c)))]
+    (set (opts.env opts.scope) (values env (compiler.make-scope)))
     ;; use metadata unless we've specifically disabled it
     (set opts.useMetadata (not= options.useMetadata false))
     (when (= opts.allowedGlobals nil)
       (set opts.allowedGlobals (specials.current-global-names opts.env)))
     (when opts.registerCompleter
-      (opts.registerCompleter (partial completer env scope)))
+      (opts.registerCompleter (partial completer env opts.scope)))
+    (load-plugin-commands opts.plugins)
+
+    (when save-locals?
+      (fn newindex [t k v] (when (. opts.scope.unmanglings k) (rawset t k v)))
+      (set env.___replLocals___ (setmetatable {} {:__newindex newindex})))
 
     (fn print-values [...]
       (let [vals [...]
@@ -221,32 +306,25 @@ For more information about the language, see https://fennel-lang.org/reference")
     (fn loop []
       (each [k (pairs chars)]
         (tset chars k nil))
+      (reset)
       (let [(ok parse-ok? x) (pcall read)
-            src-string (string.char ((or table.unpack _G.unpack) chars))]
-        (set utils.root.options opts)
+            src-string (string.char (unpack chars))]
         (if (not ok)
             (do
               (on-error :Parse parse-ok?)
               (clear-stream)
-              (reset)
               (loop))
             (command? src-string)
-            (run-command src-string read loop env on-values on-error scope)
+            (run-command-loop src-string read loop env on-values on-error
+                              opts.scope chars)
             (when parse-ok? ; if this is false, we got eof
-              (match (pcall compiler.compile x
-                            {:correlate opts.correlate
-                             :source src-string
-                             : scope
-                             :useMetadata opts.useMetadata
-                             :moduleName opts.moduleName
-                             :assert-compile opts.assert-compile
-                             :parse-error opts.parse-error
-                             :useBitLib opts.useBitLib})
+              (match (pcall compiler.compile x (doto opts
+                                                 (tset :source src-string)))
                 (false msg) (do
                               (clear-stream)
                               (on-error :Compile msg))
                 (true src) (let [src (if save-locals?
-                                         (splice-save-locals env src)
+                                         (splice-save-locals env src opts.scope)
                                          src)]
                              (match (pcall specials.load-code src env)
                                (false msg) (do

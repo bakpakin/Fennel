@@ -9,20 +9,8 @@
 (table.insert generate.order 4 :sym)
 (table.insert generate.order 1 :list)
 
-(local keywords (let [kws []
-                      scope (compiler.make-scope)]
-                  (each [k (pairs scope.parent.specials)]
-                    (table.insert kws (fennel.sym k)))
-                  (each [k (pairs scope.parent.macros)]
-                    (table.insert kws (fennel.sym k)))
-                  (each [k v (pairs _G)]
-                    (when (= :function (type v))
-                      (table.insert kws (fennel.sym k)))
-                    (when (= :table (type v))
-                      (each [k2 v2 (pairs v)]
-                        (when (= :function (type v2))
-                          (table.insert kws (fennel.sym (.. k "." k2)))))))
-                  kws))
+(local keywords (icollect [k (pairs (doto (fennel.syntax)
+                                      (tset :eval-compiler nil)))] k))
 
 (fn generate.generators.sym []
   (fennel.sym (generate.generators.string)))
@@ -52,14 +40,12 @@
       (l.assertEquals err marker (.. code "\n" (tostring err))))))
 
 (fn test-fuzz []
-  (let [seed (tonumber (or (os.getenv "FUZZ_SEED") (os.time)))
-        verbose? (os.getenv "VERBOSE")
+  (let [verbose? (os.getenv "VERBOSE")
         {: assert-compile : parse-error} friend]
-    (print (.. "Fuzz testing with FUZZ_SEED=" seed))
-    (math.randomseed seed)
+    (math.randomseed (os.time))
     (set friend.assert-compile #(error marker))
     (set friend.parse-error #(error marker))
-    (for [_ 1 (tonumber (or (os.getenv "FUZZ_COUNT") 16))]
+    (for [_ 1 (tonumber (or (os.getenv "FUZZ_COUNT") 256))]
       (fuzz verbose?))
     (print)
     (set friend.assert-compile assert-compile)

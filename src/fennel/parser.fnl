@@ -60,7 +60,7 @@ Also returns a second function to clear the buffer in the byte stream"
                  44 :unquote
                  96 :quote})
 
-(fn parser [getbyte filename options]
+(fn parser [getbyte ?filename ?options]
   "Parse one value given a function that returns sequential bytes.
 Will throw an error as soon as possible without getting more bytes on bad input.
 Returns if a value was read, and then the value read. Will return nil when input
@@ -89,20 +89,24 @@ stream is finished."
 
   ;; it's really easy to accidentally pass an options table here because all the
   ;; other fennel functions take the options table as the second arg!
-  (assert (or (= nil filename) (= :string (type filename)))
+  (assert (or (= nil ?filename) (= :string (type ?filename)))
           "expected filename as second argument to parser")
   ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!
 
   (fn parse-error [msg byteindex-override]
-    (let [{: source : unfriendly} (or options utils.root.options {})]
-      (utils.root.reset)
-      (if unfriendly
-          (error (string.format "Parse error in %s:%s: %s"
-                                (or filename :unknown) (or line "?") msg)
-                 0)
-          (friend.parse-error msg (or filename :unknown) (or line "?")
-                              (or byteindex-override byteindex) source))))
+    (let [{: source : unfriendly} (or ?options utils.root.options {})]
+      ;; allow plugins to override parse-error
+      (when (= nil (utils.hook :parse-error msg (or ?filename :unknown)
+                               (or line "?") (or byteindex-override byteindex)
+                               source utils.root.reset))
+        (utils.root.reset)
+        (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
+            (error (string.format "%s:%s: Parse error: %s"
+                                  (or ?filename :unknown) (or line "?") msg)
+                   0)
+            (friend.parse-error msg (or ?filename :unknown) (or line "?")
+                                (or byteindex-override byteindex) source)))))
 
   (fn parse-stream []
     (var (whitespace-since-dispatch done? retval) true)
@@ -140,9 +144,9 @@ stream is finished."
     (fn parse-comment [b contents]
       (if (and b (not= 10 b))
           (parse-comment (getb) (doto contents (table.insert (string.char b))))
-          (and options options.comments)
+          (and ?options ?options.comments)
           (dispatch (utils.comment (table.concat contents)
-                                   {:line (- line 1) : filename}))
+                                   {:line (- line 1) :filename ?filename}))
           b))
 
     (fn open-table [b]
@@ -151,7 +155,7 @@ stream is finished."
                          (string.char b))))
       (table.insert stack {:bytestart byteindex
                            :closer (. delims b)
-                           : filename
+                           :filename ?filename
                            : line}))
 
     (fn close-list [list]
@@ -235,6 +239,8 @@ stream is finished."
       (let [state (match [state b]
                     [:base 92] :backslash
                     [:base 34] :done
+                    [:backslash 10] (do (table.remove chars (- (length chars) 1))
+                                        :base)
                     _ :base)]
         (if (and b (not= state :done))
             (parse-string-loop chars (getb) state)
@@ -258,7 +264,7 @@ stream is finished."
     (fn parse-prefix [b]
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"
       (table.insert stack {:prefix (. prefixes b)
-                           : filename
+                           :filename ?filename
                            : line
                            :bytestart byteindex})
       (let [nextb (getb)]
@@ -310,6 +316,9 @@ stream is finished."
           (parse-error (.. "malformed multisym: " rawstr)
                        (+ (- byteindex (length rawstr)) 1
                           (rawstr:find "[%.:][%.:]")))
+          (and (not= rawstr ":") (rawstr:match ":$"))
+          (parse-error (.. "malformed multisym: " rawstr)
+                       (+ (- byteindex (length rawstr)) 1 (rawstr:find ":$")))
           (rawstr:match ":.+[%.:]")
           (parse-error (.. "method must be last component of multisym: " rawstr)
                        (+ (- byteindex (length rawstr))
@@ -331,7 +340,7 @@ stream is finished."
             (dispatch (utils.sym (check-malformed-sym rawstr)
                                  {:byteend byteindex
                                   : bytestart
-                                  : filename
+                                  :filename ?filename
                                   : line})))))
 
     (fn parse-loop [b]
@@ -342,6 +351,7 @@ stream is finished."
           (= b 34) (parse-string b)
           (. prefixes b) (parse-prefix b)
           (or (sym-char? b) (= b (string.byte "~"))) (parse-sym b)
+          (not (utils.hook :illegal-char b getb ungetb dispatch))
           (parse-error (.. "illegal character: " (string.char b))))
       (if (not b) nil ; EOF
           done? (values true retval)
@@ -349,6 +359,6 @@ stream is finished."
 
     (parse-loop (skip-whitespace (getb))))
 
-  (values parse-stream #(set stack [])))
+  (values parse-stream #(set (stack line byteindex lastb) (values [] 1 0 nil))))
 
 {: granulate : parser : string-stream : sym-char?}

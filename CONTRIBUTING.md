@@ -1,20 +1,20 @@
 # Guidelines for contributing to Fennel
 
-> True leaders
-> are hardly known to their followers.
-> Next after them are the leaders
-> the people know and admire;
-> after them, those they fear;
-> after them, those they despise.
->
-> To give no trust
-> is to get no trust.
->
-> When the work's done right,
-> with no fuss or boasting,
-> ordinary people say,
-> Oh, we did it.
->
+> True leaders  
+> are hardly known to their followers.  
+> Next after them are the leaders  
+> the people know and admire;  
+> after them, those they fear;  
+> after them, those they despise.  
+>  
+> To give no trust  
+> is to get no trust.  
+>  
+> When the work's done right,  
+> with no fuss or boasting,  
+> ordinary people say,  
+> Oh, we did it.  
+>  
 > - Tao Te Ching chapter 17, translated by Ursula K. Le Guin
 
 ## Reporting bugs
@@ -66,17 +66,74 @@ compile the new version.
 * `old/fennel.lua`: older version of Fennel compiler from before self-hosting
 * `old/launcher.lua`: older version of the command line launcher
 
-This old version (based on 0.4.2) does not have all the newer language features
-of Fennel except in cases where we have explicitly backported certain
-things, such as `collect` and `icollect`.
+The file `src/fennel/macros.fnl` where the built-in macros are defined
+is evaluated by the compiler in `src/`, not by the bootstrap compiler.
+This means that you cannot use any macros here; for instance it's
+necessary to use `if` even in cases where `when` would make more sense.
+
+## Deciding to make a Change
+
+Before considering making a change to Fennel, please familiarize yourself
+with [the Values of Fennel](values).
+
+Fennel has made incompatible changes in the past, but at this point in its
+evolution we are committed to backwards compatibility. A change which breaks
+existing programs will only be considered if it fixes a security vulnerability.
+
+Fennel follows Lua's lead in being a language with a very small conceptual
+footprint. Being built on Lua, Fennel is necessarily larger than Lua, but not
+by a lot. We have a high bar for adding new features to the language. Once you
+have identified a problem and have sketched out a potential solution there are
+four main questions to consider:
+
+* How common is the problem?
+* How bad is the workaround you must employ without the proposed solution?
+* How much code does the proposed solution involve?
+* How much mental overhead does the proposed solution introduce?
+
+Let's look at some examples.
+
+The `match` macro is quite large, both in terms of its implementation and its
+meaning; it is by far the biggest addition to the semantics of Fennel for
+which a comparative construct does not exist in Lua. Pattern matching in
+general can be thought of as a composition of conditions and destructuring,
+so its addition is not as big in Fennel (where conditions and destructuring
+both already exist a la carte) as it would be in a language which did not
+already have destructuring.  But weighing this cost against the benefits we note
+that `match` is applicable to a multitude of situations and that rewriting
+the code to avoid it results in ugly code.
+
+Adding `icollect` was thoroughly merited in that it is needed very frequently,
+and the alternative is tedious. When considering the conceptual footprint, we
+note that `icollect` parallels the existing `each` construct closely; the
+only difference being that the body of the macro is used to construct a
+sequential table instead of being discarded. So the cost/benefit ratio is
+great. The `collect` macro, on the other hand, is used much more
+infrequently. But it's also an even smaller change; given that `icollect`
+exists, it's fairly obvious how a parallel key/value-based variant would
+work.
+
+Note that the above only describes the process for language-level features.
+There are other changes which affect (say) the compiler or the repl but do not
+affect the language itself; the dynamic for making those changes is different
+and the bar (other than that of backwards-compatibility) is not quite so high.
+An addition to the language is a cost that everyone reading and writing Fennel
+code from here on out will have to pay; an addition to the API is not.
 
 ## Contributing Changes
 
 If you want to contribute code to the project, please [send patches][1] to the
 [mailing list][2]. (Note that you do not need to subscribe to the mailing list
-in order to post to it.) We also accept code contributions on the
-[GitHub mirror](https://github.com/bakpakin/Fennel) if you prefer not
-to use email.
+in order to post to it.) We also accept code contributions on the [GitHub
+mirror](https://github.com/bakpakin/Fennel) if you prefer not to use email. For
+smaller changes, you can also push your changes to a branch on a public git
+remote hosted anywhere you like and ask someone on IRC or the mailing list to
+take a look.
+
+In order to get CI to automatically run your patches, they will need to have
+`[PATCH fennel]` in the subject. You can configure git to do this automatically:
+
+    git config format.subjectPrefix 'PATCH fennel'
 
 For large changes, please discuss it first either on the mailing list,
 IRC/Matrix channel, or in the issue tracker before sinking time and effort into
@@ -85,9 +142,10 @@ something that may not be able to get merged.
 * Branch off the `main` branch. The contents of this branch should be
   the same on Sourcehut as they are on the Github mirror. But make
   sure that `main` on your copy of the repo matches upstream.
-* Include a description of the changes.
-* If there are changes to the compiler or the language, please include
-  tests. You can run tests with `make test`.
+* Write a detailed description of the changes in the commit message, including
+  motivation for the change and alternatives which were considered but decided
+  against. One-line commit messages are only appropriate for trivial changes.
+* Please include tests if at all possible. You can run tests with `make test`.
 * Make sure that your changes will work on Lua versions 5.1, 5.2, 5.3, 5.4, and
   LuaJIT. Making fennel require LuaJIT or 5.2+ specific features is a
   non-goal of the project. In general, this means target Lua 5.1, but provide
@@ -101,20 +159,6 @@ something that may not be able to get merged.
   `changelog.md`. Changes that affect the compiler API should update `api.md`
   while changes to the built-in forms will usually need to update
   `reference.md` to reflect the new behavior.
-
-If all goes well, we should merge your changes fairly quickly.
-
-## Suggesting Changes
-
-Informal discussion of changes is easiest on the IRC/Matrix channel, but the
-mailing list can also be good for this. More serious proposals should go on the
-mailing list or issue tracker. There is a possibility that there is already a
-solution for your problems so be sure that there is a good use case for your
-changes before opening an issue.
-
-* Include a good description of the problem that is being solved.
-* Include descriptions of potential solutions if you have some in mind.
-* Add the appropriate labels to the issue. For new features, add `enhancement`.
 
 [1]: https://man.sr.ht/git.sr.ht/send-email.md
 [2]: https://lists.sr.ht/%7Etechnomancy/fennel

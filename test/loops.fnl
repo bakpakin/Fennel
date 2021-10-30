@@ -22,6 +22,8 @@
   (== "(var x 0) (for [y 1 5] (set x (+ x 1))) x" 5))
 
 (fn test-comprehensions []
+  (== "(collect [k v (pairs {:a 1 :b 2 :c 3})] v k)"
+      [:a :b :c])
   (== "(collect [k v (pairs {:apple :red :orange :orange})]
          (values (.. :color- v) (.. :fruit- k)))"
       {:color-red :fruit-apple :color-orange :fruit-orange})

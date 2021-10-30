@@ -818,12 +818,13 @@ Example:
 The `collect` macro takes a "iterator binding table" in the format
 that `each` takes, and an expression that produces key-value pairs,
 and runs through the iterator, filling a new table with the key-value
-pairs produced by the expression. The expression must produce 2
-values, or nil.
+pairs produced by the expression. The body should have two
+arguments; the first is used as the key and the second is the
+value. If the key is nil, it is omitted from the returned table.
 
 ```fennel
 (collect [k v (pairs {:apple "red" :orange "orange"})]
-  (values (.. "color-" v) k))
+  (.. "color-" v) k)
 ;; -> {:color-orange "orange" :color-red "apple"}
 
 ;; equivalent to:
@@ -833,6 +834,9 @@ values, or nil.
       (key value) (tset tbl key value)))
   tbl)
 ```
+
+For backwards compatibility it also supports a single `(values k v)`
+in the body.
 
 The `icollect` macro is almost identical, except that the
 expression returns one value and the new table is filled sequentially

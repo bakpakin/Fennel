@@ -123,15 +123,16 @@ encountering an error before propagating it."
           "expected table, function call, or symbol in :into clause")
   (or into []))
 
-(fn collect* [iter-tbl key-value-expr ...]
-  "Returns a table made by running an iterator and evaluating an expression
-that returns key-value pairs to be inserted sequentially into the table.
-This can be thought of as a \"table comprehension\". The provided key-value
-expression must return either 2 values, or nil.
+(fn collect* [iter-tbl key-expr value-expr ...]
+  "Returns a table made by running an iterator and evaluating an expression that
+returns key-value pairs to be inserted sequentially into the table.  This can
+be thought of as a table comprehension. The body should provide two
+expressions (used as key and value) or nil, which causes it to be omitted from
+the resulting table.
 
 For example,
   (collect [k v (pairs {:apple \"red\" :orange \"orange\"})]
-    (values v k))
+    v k)
 returns
   {:red \"apple\" :orange \"orange\"}
 
@@ -139,24 +140,26 @@ Supports an :into clause after the iterator to put results in an existing table.
 Supports early termination with an :until clause."
   (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
           "expected iterator binding table")
-  (assert (not= nil key-value-expr) "expected key-value expression")
+  (assert (not= nil key-expr) "expected key and value expression")
   (assert (= nil ...)
-          "expected exactly one body expression. Wrap multiple expressions with do")
-  `(let [tbl# ,(into-val iter-tbl)]
-     (each ,iter-tbl
-       (match ,key-value-expr
-         (k# v#) (tset tbl# k# v#)))
-     tbl#))
+          "expected 1 or 2 body expressions; wrap multiple expressions with do")
+  (let [kv-expr (if (= nil value-expr) key-expr `(values ,key-expr ,value-expr))]
+    `(let [tbl# ,(into-val iter-tbl)]
+       (each ,iter-tbl
+         (match ,kv-expr
+           (k# v#) (tset tbl# k# v#)))
+       tbl#)))
 
 (fn icollect* [iter-tbl value-expr ...]
   "Returns a sequential table made by running an iterator and evaluating an
 expression that returns values to be inserted sequentially into the table.
-This can be thought of as a \"list comprehension\".
+This can be thought of as a \"list comprehension\". If the body returns nil
+that element is omitted from the resulting table.
 
 For example,
-  (icollect [_ v (ipairs [1 2 3 4 5])] (when (> v 2) (* v v)))
+  (icollect [_ v (ipairs [1 2 3 4 5])] (when (not= v 3) (* v v)))
 returns
-  [9 16 25]
+  [1 4 16 25]
 
 Supports an :into clause after the iterator to put results in an existing table.
 Supports early termination with an :until clause."

@@ -260,7 +260,22 @@ common. Here's an example that walks through [matches in a string][7]:
   (set sum (+ sum (tonumber digits))))
 ```
 
-The other iteration construct is `for` which iterates numerically from
+If you want to get a table back, try `icollect` to get a sequential
+table or `collect` to get a key/value one. A body which returns nil
+will cause that to be omitted from the resulting table.
+
+```fennel
+(icollect [_ s (ipairs [:greetings :my :darling])]
+  (if (not= :my s)
+      (s:upper)))
+;; -> ["GREETINGS" "DARLING"]
+
+(collect [_ s (ipairs [:greetings :my :darling])]
+  s (length s))
+;; -> {:darling 7 :greetings 9 :my 2}
+```
+
+A lower-level iteration construct is `for` which iterates numerically from
 the provided start value to the inclusive finish value:
 
 ```fennel

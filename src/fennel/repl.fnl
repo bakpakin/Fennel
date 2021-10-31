@@ -241,11 +241,28 @@ For more information about the language, see https://fennel-lang.org/reference")
         (on-values (specials.doc tgt path))
         (on-values)))))
 
-(fn commands.apropos-show-docs [_env read on-values]
+(fn commands.apropos-show-docs [_env read on-values on-error]
   (run-command read on-error #(apropos-show-docs on-values (tostring $))))
 
 (compiler.metadata:set commands.apropos-show-docs :fnl/docstring
                        "Print all documentations matching a pattern in function name")
+
+(fn resolve [identifier {: ___replLocals___ &as env} scope]
+  (let [e (setmetatable {} {:__index #(or (. ___replLocals___ $2) (. env $2))})
+        code (compiler.compile-string (tostring identifier) {: scope})]
+    ((specials.load-code code e))))
+
+(fn commands.find [env read on-values on-error scope]
+  (run-command read on-error
+               #(match (-?> (utils.sym? $) (resolve env scope) (debug.getinfo))
+                  {:what "Lua" : source : linedefined : short_src}
+                  (on-values [short_src (or (?. compiler.sourcemap source linedefined 2)
+                                            linedefined)])
+                   nil (on-error :Repl "Unknown value")
+                   _ (on-error :Repl "No source info"))))
+
+(compiler.metadata:set commands.find :fnl/docstring
+                       "Print the filename and line number for a given function")
 
 (fn load-plugin-commands [plugins]
   (each [_ plugin (ipairs (or plugins []))]

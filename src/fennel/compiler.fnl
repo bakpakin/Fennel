@@ -291,7 +291,7 @@ Tab is what is used to indent a block."
 ;; being mapped as the key, prepended with '@' if it is a filename (like
 ;; debug.getinfo returns for source).  The value is an array of mappings for
 ;; each line.
-(local fennel-sourcemap [])
+(local sourcemap [])
 
 (fn make-short-src [source]
   (let [source (source:gsub "\n" " ")]
@@ -310,7 +310,7 @@ Tab is what is used to indent a block."
             (set sm.short_src
                  (or options.filename (make-short-src (or options.source ret))))
             (set sm.key (if options.filename (.. "@" options.filename) ret))
-            (tset fennel-sourcemap sm.key sm))
+            (tset sourcemap sm.key sm))
           (values ret sm)))))
 
 (fn make-metadata []
@@ -822,12 +822,12 @@ which we have to do if we don't know."
       (string.format "  [C]: in function '%s'" info.name)
       (= info.what :C)
       "  [C]: in ?"
-      (let [remap (. fennel-sourcemap info.source)]
+      (let [remap (. sourcemap info.source)]
         (when (and remap (. remap info.currentline))
           ;; And some global info
           (set info.short_src
                (if (. remap info.currentline 1)
-                   (. fennel-sourcemap (.. "@" (. remap info.currentline 1))
+                   (. sourcemap (.. "@" (. remap info.currentline 1))
                       :short_src)
                    remap.short_src))
           ;; Overwrite info with values from the mapping
@@ -973,4 +973,5 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
  :assert assert-compile
  : scopes
  : traceback
- :metadata (make-metadata)}
+ :metadata (make-metadata)
+ : sourcemap}

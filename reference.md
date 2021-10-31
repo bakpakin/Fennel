@@ -1327,6 +1327,7 @@ can use `tostring` to get the name of a symbol.
 * `comment?` - is the argument a comment? Comments are only included
                  when `opts.comments` is truthy.
 * `view` - `fennel.view` table serializer.
+* `get-scope` - return the scope table for the current macro call site.
 
 * `assert-compile` - works like `assert` but takes a list/symbol as its third
   argument in order to provide pinpointed error messages.

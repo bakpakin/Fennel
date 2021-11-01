@@ -16,7 +16,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --indent VAL            : Indent compiler output with VAL
   --add-package-path PATH : Add PATH to package.path for finding Lua modules
   --add-fennel-path  PATH : Add PATH to fennel.path for finding Fennel modules
-  --add-fennel-path  PATH : Add PATH to fennel.macro-path for finding Fennel macro modules
+  --add-macro-path   PATH : Add PATH to fennel.macro-path for finding Fennel macro modules
   --globals G1[,G2...]    : Allow these globals in addition to standard ones
   --globals-only G1[,G2]  : Same as above, but exclude standard ones
   --require-as-include    : Inline required modules in the output

@@ -31,11 +31,11 @@ local function testall(suites)
     return runner:runSuiteByInstances(instances)
 end
 
+local suites = {"core", "mangling", "quoting", "bit", "fennelview", "parser",
+                "failures", "repl", "cli", "macro", "linter", "loops", "misc"}
+
 if(#arg == 0) then
-   local ok, err = pcall(testall, {"core", "mangling", "quoting", "bit",
-                                   "docstring", "fennelview", "parser",
-                                   "failures", "repl", "cli", "macro",
-                                   "linter", "loops", "misc"})
+   local ok, err = pcall(testall, suites)
    if not ok then
       print(err)
       runner.result = {notSuccessCount = 1}

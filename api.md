@@ -348,15 +348,14 @@ In addition to direct access to the metadata tables, you can use the following m
   the function.
 
 ```lua
-greet = fennel.eval([[
+local greet = fennel.eval([[
 (λ greet [name] "Say hello" (print (string.format "Hello, %s!" name)))
 ]], {useMetadata = true})
 
 -- fennel.metadata[greet]
 -- > {"fnl/docstring" = "Say hello", "fnl/arglist" = ["name"]}
 
--- works because greet was set globally above for example purposes only
-fennel.eval("(doc greet)", { useMetadata = true })
+fennel.doc(greet, "greet")
 -- > (greet name)
 -- >   Say hello
 

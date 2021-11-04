@@ -298,25 +298,6 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
   (when (not= :nil (-?> (utils.sym? (. ast 3)) tostring))
     (tostring (. ast 3))))
 
-(fn SPECIALS.doc [ast scope parent]
-  (assert utils.root.options.useMetadata
-          "can't look up doc with metadata disabled.")
-  (compiler.assert (= (length ast) 2) "expected one argument" ast)
-  (let [target (tostring (. ast 2))
-        special-or-macro (or (. scope.specials target) (. scope.macros target))]
-    (if special-or-macro
-        (: "print(%q)" :format (doc* special-or-macro target))
-        (let [[value] (compiler.compile1 (. ast 2) scope parent {:nval 1})]
-          ;; need to require here since the metadata is stored in the module
-          ;; and we need to make sure we look it up in the same module it was
-          ;; declared from.
-          (: "print(require('%s').doc(%s, '%s'))" :format
-             (or utils.root.options.moduleName :fennel) (tostring value)
-             (tostring (. ast 2)))))))
-
-(doc-special :doc [:x]
-             "Print the docstring and arglist for a function, macro, or special form.")
-
 (fn dot [ast scope parent]
   "Table lookup; equivalent to tbl[] in Lua."
   (compiler.assert (< 1 (length ast)) "expected table argument" ast)

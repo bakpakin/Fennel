@@ -117,7 +117,7 @@ You can also run these repl commands:
 " (command-docs) "
   ,exit - Leave the repl.
 
-Use (doc something) to see descriptions for individual macros and special forms.
+Use ,doc something to see descriptions for individual macros and special forms.
 
 For more information about the language, see https://fennel-lang.org/reference")]))
 
@@ -255,14 +255,24 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn commands.find [env read on-values on-error scope]
   (run-command read on-error
                #(match (-?> (utils.sym? $) (resolve env scope) (debug.getinfo))
-                  {:what "Lua" : source : linedefined : short_src}
-                  (on-values [short_src (or (?. compiler.sourcemap source linedefined 2)
-                                            linedefined)])
+                  {:what "Lua" : source :linedefined line :short_src src}
+                  (let [fnlsrc (?. compiler.sourcemap source line 2)]
+                    (on-values [(string.format "%s:%s" src (or fnlsrc line))]))
                    nil (on-error :Repl "Unknown value")
                    _ (on-error :Repl "No source info"))))
 
 (compiler.metadata:set commands.find :fnl/docstring
                        "Print the filename and line number for a given function")
+
+(fn commands.doc [env read on-values on-error scope]
+  (run-command read on-error
+               #(let [name (tostring $)
+                      target (or (. scope.specials name) (. scope.macros name)
+                                 (resolve name env scope))]
+                  (on-values [(specials.doc target name)]))))
+
+(compiler.metadata:set commands.doc :fnl/docstring
+                       "Print the docstring and arglist for a function, macro, or special form.")
 
 (fn load-plugin-commands [plugins]
   (each [_ plugin (ipairs (or plugins []))]

@@ -23,6 +23,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Fix a bug where `let` locals escaped their scope at the top level of the repl
 
 ### Changes and Removals
+* **Remove `doc`** special form; replace with `,doc` repl command
 * Compiler plugins will warn when run on a version they do not support
 * Backslash followed by a literal newline in a string is now parsed as newline
 * Improve performance of `icollect` by avoiding unnecessary length checks

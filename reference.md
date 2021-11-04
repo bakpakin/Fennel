@@ -93,14 +93,15 @@ in which case they are stored in a metadata table along with the arglist,
 enabling viewing function docs via the `doc` macro.
 
 ```
->> (doc pxy)
+;; this only works in the repl
+>> ,doc pxy
 (pxy x y)
   Print the sum of x and y
 ```
 
 All function metadata will be garbage collected along with the function itself.
 Docstrings and other metadata can also be accessed via functions on the fennel
-API with `fennel.metadata`.
+API with `fennel.doc` and `fennel.metadata`.
 
 ### Hash function literal shorthand
 

@@ -29,7 +29,7 @@ flag.
 A summary of options is included below.
 .TP
 .B \-\-repl
-Start an interactive repl session.
+Start an interactive repl session. This is the default when given no arguments.
 .TP
 .B \-\-compile \fIfilename\fP
 Perform ahead-of-time compilation on the provided file and write the
@@ -64,7 +64,8 @@ modules.
 .B \-\-globals \fIVAR1[,VAR2...]\fP
 Allow VAR1, VAR2, etc as globals in addition to the standard set of
 globals. This enables strict global checking even in ahead-of-time
-compilation where it otherwise would be disabled.
+compilation where it otherwise would be disabled. Use "*" to disable
+globals checking.
 .TP
 .B \-\-globals-only \fIVAR1[,VAR2...]\fP
 Same as above, but without the addition of the standard set of globals.
@@ -88,7 +89,7 @@ header files in LUA_DIR. See
 for details.
 .TP
 .B \-\-no\-compiler\-sandbox
-Do not limit compiler environment to minimal sandbox.
+Do not limit compiler environment (used in macros) to minimal sandbox.
 .TP
 .B \-h, \-\-help
 Print a help message and exit
@@ -98,18 +99,20 @@ Print the version number and exit
 
 .SH DOCUMENTATION
 
-See https://fennel-lang.org for documentation on Fennel. The syntax is
-based on the lisp family of languages while the semantics are very
-close to Lua, so Lua's reference manual is helpful.
+See https://fennel-lang.org/tutorial and https://fennel-lang.org/reference
+for documentation on Fennel. The syntax is based on the lisp family of
+languages while the semantics are very close to Lua, so Lua's reference
+manual is also helpful.
 
 .SH COMMUNITY
 
 The mailing list is at https://lists.sr.ht/~technomancy/fennel while
-the issue tracker is at https://todo.sr.ht/~technomancy/fennel.
+the issue tracker is at https://todo.sr.ht/~technomancy/fennel. Most
+discussion happens on the #fennel channel of Libera chat.
 
-.SH AUTHOR
-Calvin Rose and contributors:
-https://git.sr.ht/~technomancy/fennel/contributors
+.SH AUTHORS
+Calvin Rose and Phil Hagelberg and contributors:
+https://github.com/bakpakin/Fennel/graphs/contributors
 
 .SH LICENSE
 Copyright © 2016-2021, Released under the MIT/X11 license

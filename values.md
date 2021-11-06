@@ -1,7 +1,7 @@
 # Values of Fennel
 
 This document is an outline of the guiding design principles of Fennel.
-Fennel's community values are covered in the [code of conduct](coc).
+Fennel's community values are covered in the [code of conduct](https://fennel-lang.org/coc).
 
 ## Compile-time
 

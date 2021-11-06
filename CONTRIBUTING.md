@@ -74,7 +74,7 @@ necessary to use `if` even in cases where `when` would make more sense.
 ## Deciding to make a Change
 
 Before considering making a change to Fennel, please familiarize yourself
-with [the Values of Fennel](values).
+with [the Values of Fennel](values.md).
 
 Fennel has made incompatible changes in the past, but at this point in its
 evolution we are committed to backwards compatibility. A change which breaks

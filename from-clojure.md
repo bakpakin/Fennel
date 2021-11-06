@@ -77,7 +77,8 @@ provide too few arguments.
 
 Fennel supports destructuring similarly to Clojure. The main
 difference is that rather than using `:keys` Fennel has a notation
-where a bare `:` is followed by a symbol naming the key.
+where a bare `:` is followed by a symbol naming the key. One notable
+advantage of this notation is that unlike `:keys` it can be nested.
 
 ```clojure
 ;; clojure

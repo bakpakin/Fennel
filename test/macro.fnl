@@ -236,7 +236,8 @@
                "(match false (where (or nil false true)) :ok _ :not-ok)" :ok
                "(match nil (where (or nil false true)) :ok _ :not-ok)" :ok
                "(match {:a 1 :b 2} {: a &as t} (+ a t.b))" 3
-               "(match [1 2 3] [a b &as t] (+ a b (. t 3)))" 6}]
+               "(match [1 2 3] [a b &as t] (+ a b (. t 3)))" 6
+               "(match [1 2] [a & [b c]] (+ a b c) _ :subrest)" :subrest}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

@@ -356,12 +356,16 @@ Example:
         bindings []]
     (each [k pat (pairs pattern)]
       (if (= pat `&)
-          (do
+          (let [rest-pat (. pattern (+ k 1))
+                rest-val `(select ,k ((or table.unpack _G.unpack) ,val))
+                subcondition (match-table `(pick-values 1 ,rest-val)
+                                          rest-pat unifications match-pattern)]
+            (if (not (sym? rest-pat))
+                (table.insert condition subcondition))
             (assert (= nil (. pattern (+ k 2)))
                     "expected & rest argument before last parameter")
-            (table.insert bindings (. pattern (+ k 1)))
-            (table.insert bindings
-                          [`(select ,k ((or table.unpack _G.unpack) ,val))]))
+            (table.insert bindings rest-pat)
+            (table.insert bindings [rest-val]))
           (= k `&as)
           (do
             (table.insert bindings pat)

@@ -70,13 +70,15 @@
                 (defn join [sep ...] (table.concat [...] sep))
                 (join :: :num (->1 5 (* 2) (+ 8)))"
         unsandboxed "(import-macros {: unsandboxed} :test.macros)
-                     (unsandboxed)"]
+                     (unsandboxed)"
+        not-unqualified "(import-macros hi :test.macros) (print (inc 1))"]
     (l.assertEquals (fennel.eval multigensym) 519)
     (l.assertEquals (fennel.eval inc) 4)
     (l.assertEquals (fennel.eval inc2) 7)
     (l.assertEquals (fennel.eval rename) "num:18")
     (l.assertEquals (fennel.eval unsandboxed {:compiler-env _G})
-                    "[\"no\" \"sandbox\"]") ))
+                    "[\"no\" \"sandbox\"]")
+    (l.assertFalse (pcall fennel.eval not-unqualified))))
 
 (fn test-macro-path []
   (l.assertEquals (fennel.eval "(import-macros m :test.other-macros) (m.m)")

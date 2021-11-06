@@ -319,13 +319,13 @@ Example:
   (assert (and binding1 module-name1 (= 0 (% (select "#" ...) 2)))
           "expected even number of binding/modulename pairs")
   (for [i 1 (select "#" binding1 module-name1 ...) 2]
+    ;; delegate the actual loading of the macros to the require-macros
+    ;; special which already knows how to set up the compiler env and stuff.
+    ;; this is weird because require-macros is deprecated but it works.
     (let [(binding modname) (select i binding1 module-name1 ...)
-          ;; generate a subscope of current scope, use require-macros
-          ;; to bring in macro module. after that, we just copy the
-          ;; macros from subscope to scope.
           scope (get-scope)
           macros* (_SPECIALS.require-macros `(import-macros ,modname)
-                                            (fennel.scope scope) {} ast)]
+                                            scope {} binding1)]
       (if (sym? binding)
           ;; bind whole table of macros to table bound to symbol
           (tset scope.macros (. binding 1) macros*)

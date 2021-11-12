@@ -17,7 +17,7 @@ local function testall(suites)
     loadfennel()
     -- We have to load the tests with the old version of Fennel; otherwise
     -- bugs in the current implementation will prevent the tests from loading!
-    local oldfennel = require("old.fennel")
+    local oldfennel = require("bootstrap.fennel")
 
     local instances = {}
     for _, test in ipairs(suites) do
@@ -44,6 +44,6 @@ else
    testall(arg)
 end
 
-require("old.fennel").dofile("test/irc.fnl", {}, runner.result.notSuccessCount)
+require("bootstrap.fennel").dofile("test/irc.fnl", {}, runner.result.notSuccessCount)
 
 os.exit(runner.result.notSuccessCount == 0 and 0 or 1)

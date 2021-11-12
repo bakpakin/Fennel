@@ -60,11 +60,11 @@ Finally there are a few miscellaneous modules:
 ### Bootstrapping
 
 Fennel is written in Fennel. In order to get around the chicken-and-egg
-problem, we include an old version of the compiler that's used to
-compile the new version.
+problem, we include an old precompiled version of the compiler (in Lua)
+that's used to compile the new version (in Fennel).
 
-* `old/fennel.lua`: older version of Fennel compiler from before self-hosting
-* `old/launcher.lua`: older version of the command line launcher
+* `bootstrap/fennel.lua`: precompiled version of the Fennel compiler
+* `bootstrap/launcher.lua`: older version of the command line launcher
 
 The file `src/fennel/macros.fnl` where the built-in macros are defined
 is evaluated by the compiler in `src/`, not by the bootstrap compiler.

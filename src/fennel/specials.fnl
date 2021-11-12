@@ -39,8 +39,8 @@ will see its values updated as expected, regardless of mangling rules."
   ;; if there's a metatable on ?env, we need to make sure it's one that has a
   ;; __pairs metamethod, otherwise we give up entirely on globals checking.
   (let [mt (match (getmetatable ?env)
-             ;; newer lua versions know about __pairs natively not 5.1
-             (where {: __pairs} __pairs) (collect [k v (__pairs ?env)] (values k v))
+             ;; newer lua versions know about __pairs natively but not 5.1
+             {:__pairs mtpairs} (collect [k v (mtpairs ?env)] (values k v))
              nil (or ?env _G))]
     (and mt (utils.kvmap mt compiler.global-unmangling))))
 

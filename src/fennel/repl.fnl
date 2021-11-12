@@ -292,9 +292,7 @@ For more information about the language, see https://fennel-lang.org/reference")
 
 (fn repl [options]
   (let [old-root-options utils.root.options
-        env (if options.env
-                (specials.wrap-env options.env)
-                (setmetatable {} {:__index (or (rawget _G :_ENV) _G)}))
+        env (specials.wrap-env (or options.env (or (rawget _G :_ENV) _G)))
         save-locals? (and (not= options.saveLocals false) env.debug
                           env.debug.getlocal)
         opts (utils.copy options)
@@ -312,7 +310,7 @@ For more information about the language, see https://fennel-lang.org/reference")
     ;; use metadata unless we've specifically disabled it
     (set opts.useMetadata (not= options.useMetadata false))
     (when (= opts.allowedGlobals nil)
-      (set opts.allowedGlobals (specials.current-global-names opts.env)))
+      (set opts.allowedGlobals (specials.current-global-names env)))
     (when opts.registerCompleter
       (opts.registerCompleter (partial completer env opts.scope)))
     (load-plugin-commands opts.plugins)

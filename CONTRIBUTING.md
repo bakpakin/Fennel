@@ -146,13 +146,14 @@ something that may not be able to get merged.
   motivation for the change and alternatives which were considered but decided
   against. One-line commit messages are only appropriate for trivial changes.
 * Please include tests if at all possible. You can run tests with `make test`.
-* Make sure that your changes will work on Lua versions 5.1, 5.2, 5.3, 5.4, and
-  LuaJIT. Making fennel require LuaJIT or 5.2+ specific features is a
-  non-goal of the project. In general, this means target Lua 5.1, but provide
-  shims for where functionality is different in newer Lua versions. Running
-  `make testall` will test against all supported versions, assuming they're
-  installed. If you don't want to install every supported version of
-  Lua, you can rely on the CI suite to test your patches.
+* For smaller changes you can just test against a single version of Lua (with
+  `make test`) and rely on the CI suite to run the rest, but for larger
+  changes please make sure that your changes will work on Lua versions 5.1, 5.2,
+  5.3, 5.4, and LuaJIT. Making fennel require LuaJIT or 5.2+ specific
+  features is a non-goal of the project. In general, this means target Lua
+  5.1, but provide shims for where functionality is different in newer Lua
+  versions. Running `make testall` will test against all supported versions,
+  assuming they're installed.
 * Be consistent with the style of the project. Please try to code moderately
   tersely; code is a liability, so the less of it there is, the better.
 * For user-visible changes, include a description of the change in

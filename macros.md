@@ -13,7 +13,7 @@ There are really only three things you need to understand in order to
 write effective macros:
 
 * Code is Data
-* Manipulating Data
+* How to Manipulate Data
 * Details
 
 ## Code is data
@@ -58,7 +58,7 @@ just normal sequential tables. When destructuring you can see that
 both sequential tables and key/value tables can be used, for the
 return value of `get-elements` and `pipe-for` respectively.
 
-## Manipulating Data
+## How to Manipulate Data
 
 Manipulating data is just regular programming! If you know Fennel, you
 know how to write a function which takes a table and returns a table
@@ -76,7 +76,7 @@ which prints with parens instead of square brackets.
 
 That's all! Everything else is details.
 
-OK, so ... that's not quite fair. There are a few things you still
+OK, so ... that's a slight exaggeration. There are a few things you still
 need to understand. Let's start with the tiniest of examples just to kick
 things off:
 
@@ -92,6 +92,11 @@ elements and returns a list with the elements in the opposite
 order. From this example you can see that macros look like functions
 which take arguments. But you can't write a function that takes
 `("world" "hello" print)` as an argument! What's going on here?
+
+Argument to macros get passed *before* they get evaluated. If you
+tried to evaluate `("world" "hello" print)` it would fail trying to
+call `"world"` as a function. But the macro operates at compile time
+before that.
 
 Let's walk thru a bigger example.
 
@@ -240,7 +245,7 @@ any assumptions about the code. For example:
 (let [overloaded? (engines.overloaded?)]
   (when-weapons-safe (if overloaded?
                          (print "Engines overloaded")
-                         (print "Engines OK."))))
+                         (go-to-warp!))))
 ```
 
 This program will not behave as expected, because the outer
@@ -286,7 +291,8 @@ almost always a mistake.
 ### Macro Modules
 
 In the example above we used `macro` to write an inline macro. This is
-great when you only need it used in one file. But the `import-macros`
+great when you only need it used in one file. These macros cannot be
+exported as part of the module, but the `import-macros`
 form lets you write a macro module containing macros which can be
 re-used anywhere.
 
@@ -312,7 +318,7 @@ The `import-macros` form allows you to use macros from a macro
 module. The first argument is a destructuring form which lets you pull
 individual macros out, but you can bind the entire module to a single
 table if you prefer. The second argument is the name of the macro
-module. Again, see [the reference][3] for details.
+module. Again, see [the reference][4] for details.
 
 ```fennel
 (import-macros {: thrice-if} :thrice)
@@ -327,8 +333,8 @@ You can use `assert` in your macros to defensively ensure the inputs
 passed in make sense. However, it's preferable to use the
 `assert-compile` form instead. It works exactly the same as `assert`
 except it takes an optional third argument, which should be
-a list or symbol passed in as an argument to the macro. Lists and
-symbols have file and line number metadata attached to them, which
+a table or symbol passed in as an argument to the macro. Lists, other
+table types, and symbols have file and line number metadata attached to them, which
 means the compiler can pinpoint the source of the problem in the error message.
 
 ```fennel
@@ -362,4 +368,5 @@ But ... don't go overboard.
 
 [1]: https://en.wikipedia.org/wiki/Turing_tarpit
 [2]: https://git.sr.ht/~technomancy/fnlfmt
-[3]: reference.md
+[3]: https://fennel-lang.org/reference#compiler-environment
+[4]: https://fennel-lang.org/reference#import-macros-load-macros-from-a-separate-module

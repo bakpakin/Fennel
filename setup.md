@@ -82,6 +82,9 @@ you can only embed one Lua file into the application and it cannot
 load further files) then compiling Fennel code to Lua during the build
 process and including the Lua output in the application may be easier.
 
+There are so many ways to distribute your code that we can't cover
+them all here; please [see the wiki page on distribution for details](https://github.com/bakpakin/Fennel/wiki/Distribution).
+
 
 ### Embedding the Fennel compiler in a Lua application
 

@@ -1298,23 +1298,8 @@ This prints all the functions available in compiler scope.
 ### Compiler Environment
 
 Inside `eval-compiler`, `macros`, or `macro` blocks, as well as
-`import-macros` modules, these functions are visible to your code.
-
-As of 0.6.0 the compiler will warn you if you try to use globals outside a
-certain predetermined safe list in a macro; this will turn into an error in a
-future version of Fennel. You can disable this warning by providing the
-command-line argument `--no-compiler-sandbox` or by passing `{:compiler-env
-_G}` in the options table when invoking the compiler programmatically.
-
-Please note that the sandbox is not suitable to be used as a robust
-security mechanism.  It has not been audited and should not be relied
-upon to protect you from running untrusted code.
-
-Note that lists are compile-time concepts that don't exist at runtime; they
-are implemented as tables which have a special metatable to distinguish them
-from regular tables defined with square or curly brackets. Similarly symbols
-are tables with a string entry for their name and a marker metatable. You
-can use `tostring` to get the name of a symbol.
+`import-macros` modules, the functions listed below are visible to
+your code.
 
 * `list` - return a list, which is a special kind of table used for code.
 * `sym` - turn a string into a symbol.
@@ -1343,8 +1328,25 @@ These functions can be used from within macros only, not from any
 * `in-scope?` - does the symbol refer to an in-scope local? Returns the symbol or `nil`.
 * `macroexpand` - performs macroexpansion on its argument form; returns an AST.
 
-Note that other internals of the compiler exposed in compiler scope are
-subject to change.
+Note that lists are compile-time concepts that don't exist at runtime; they
+are implemented as tables which have a special metatable to distinguish them
+from regular tables defined with square or curly brackets. Similarly symbols
+are tables with a string entry for their name and a marker metatable. You
+can use `tostring` to get the name of a symbol.
+
+As of 1.0.0 the compiler will not allow access to the outside world
+(`os`, `io`, etc) from macros. The one exception is `print` which is
+included for debugging purposes. You can disable this by providing the
+command-line argument `--no-compiler-sandbox` or by passing
+`{:compiler-env _G}` in the options table when using the compiler
+API to get full access.
+
+Please note that the sandbox is not suitable to be used as a robust
+security mechanism.  It has not been audited and should not be relied
+upon to protect you from running untrusted code.
+
+Note that other internals of the compiler exposed in compiler scope
+but not listed above are subject to change.
 
 ## `lua` Escape Hatch
 

@@ -16,8 +16,11 @@ This document is intended for Fennel maintainers.
 
 ## Uploading
 
-1. Run `git push && git push --tags`.
-2. Run `make release VERSION=$VERSION`.
+The `make release` command should be run on a system with the lowest
+available glibc for maximum compatibility.
+
+1. Run `make release VERSION=$VERSION`.
+2. Run `git push && git push --tags`.
 3. Update the submodule in the fennel-lang.org repository.
 
 Announce it on the mailing list. Fennel is now released!

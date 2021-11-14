@@ -2,6 +2,10 @@
 
 Changes are **marked in bold** which could result in backwards-incompatibility.
 
+## 1.0.1 / ???
+
+* ???
+
 ## 1.0.0 / 2021-11-14
 
 ### New Features

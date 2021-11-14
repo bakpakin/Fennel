@@ -115,7 +115,7 @@ $(LUA_DIR)/src/liblua-mingw.a: $(LUA_DIR)
 	mv $(LUA_DIR)/src/liblua.a $@
 
 $(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR) clean liblua.a CC=arm-linux-gnueabihf-gcc
+	$(MAKE) -C $(LUA_DIR)/src clean liblua.a CC=arm-linux-gnueabihf-gcc
 	mv $(LUA_DIR)/src/liblua.a $@
 
 ci: testall lint fuzz fennel
@@ -143,7 +143,7 @@ fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua \
 	cp -r $^ fennel-$(VERSION)
 	tar czf $@ fennel-$(VERSION)
 
-uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec uploadtar
+uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
 	luarocks --local build $<
 	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
 	luarocks --local remove fennel

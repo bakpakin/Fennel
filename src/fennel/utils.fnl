@@ -5,7 +5,7 @@
 
 (local view (require :fennel.view))
 
-(local version :1.0.0)
+(local version :1.0.1-dev)
 
 ;;; General-purpose helper functions
 

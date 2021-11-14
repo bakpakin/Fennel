@@ -2,10 +2,10 @@
 
 Changes are **marked in bold** which could result in backwards-incompatibility.
 
-## 1.0.0 / ???
+## 1.0.0 / 2021-11-14
 
 ### New Features
-* Support implicit `values` in `collect` when given two body arguments
+* Allow `collect` to take two body arguments instead of requiring `values`
 * Support `--rename-native-module` when compiling binaries
 * Add `:into` clause to `collect` and `icollect`
 * Add Macro guide
@@ -25,6 +25,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Fix a bug where `let` locals escaped their scope at the top level of the repl
 
 ### Changes and Removals
+* **Remove** `fennelview.lua` from the repo as it is part of the main API now
 * **Remove `doc`** special form; replace with `,doc` repl command
 * Compiler plugins will warn when run on a version they do not support
 * Backslash followed by a literal newline in a string is now parsed as newline

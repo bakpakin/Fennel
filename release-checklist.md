@@ -6,7 +6,7 @@ This document is intended for Fennel maintainers.
 
 1. Make sure tests pass for all versions of Lua using `make ci`.
 2. Update and date the changelog.
-3. Update version number in `src/fennel.fnl`.
+3. Update version number in `src/fennel/utils.fnl`.
 4. Check for changes which need to be mentioned in help text or man page.
 5. Create rockspec by copying an old rockspec. Make sure luarocks version
    matches the file name exactly and the tarball URL is updated.

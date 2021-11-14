@@ -6,9 +6,10 @@ BIN_DIR ?= $(PREFIX)/bin
 LUA_LIB_DIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 MAN_DIR ?= $(PREFIX)/man/man1
 
-LIB_SRC=src/fennel.fnl src/fennel/friend.fnl src/fennel/parser.fnl \
-		src/fennel/specials.fnl src/fennel/utils.fnl src/fennel/view.fnl \
-		src/fennel/compiler.fnl  src/fennel/macros.fnl  src/fennel/repl.fnl
+MINI_SRC=src/fennel.fnl src/fennel/parser.fnl src/fennel/specials.fnl \
+		src/fennel/utils.fnl src/fennel/compiler.fnl  src/fennel/macros.fnl
+
+LIB_SRC=$(MINI_SRC) src/fennel/friend.fnl src/fennel/view.fnl src/fennel/repl.fnl
 
 SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
@@ -30,7 +31,7 @@ fuzz: fennel.lua
 	$(LUA) test/init.lua fuzz
 
 # older versions of cloc might need --force-lang=lisp
-count: ; cloc $(LIB_SRC) ; cloc $(SRC)
+count: ; cloc $(MINI_SRC); cloc $(LIB_SRC) ; cloc $(SRC)
 
 # install https://git.sr.ht/~technomancy/fnlfmt manually for this:
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
@@ -49,9 +50,9 @@ fennel.lua: $(SRC)
 	$(LAUNCHER) --no-metadata --require-as-include --compile $< > $@
 
 # A lighter version of the compiler that excludes some features; experimental.
-minifennel.lua: $(SRC) fennel
+minifennel.lua: $(MINI_SRC) fennel
 	./fennel --no-metadata --require-as-include --add-fennel-path src/?.fnl \
-		--skip-include fennel.repl,fennel.view,fennel.friend \
+		--skip-include fennel.repl,fennel.view,fennel.friend --no-compiler-sandbox \
 		--compile $< > $@
 
 lint:
@@ -151,6 +152,8 @@ uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec uploadtar
 	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
 	luarocks --local remove fennel
 
+SSH_KEY ?= ~/.ssh/id_rsa
+
 uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
@@ -163,6 +166,11 @@ uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
 	gpg -ab downloads/fennel-$(VERSION)-arm32
 	gpg -ab downloads/fennel-$(VERSION).tar.gz
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-x86_64
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows32.exe
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-arm32
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).tar.gz
 	rsync -rtAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
 release: uploadtar uploadrock

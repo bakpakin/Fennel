@@ -174,12 +174,12 @@ the parser, and they represent code which comes from reading a paren form;
 they are specifically not cons cells."
   (setmetatable [...] list-mt))
 
-(fn sym [str ?source ?scope]
+(fn sym [str ?source]
   "Create a new symbol. Symbols are a compile-time construct in Fennel and are
 not exposed outside the compiler. Second optional argument is a table describing
 where the symbol came from; should be a table with filename, line, bytestart,
 and byteend fields."
-  (let [s {: ?scope 1 str}]
+  (let [s {1 str}]
     (each [k v (pairs (or ?source []))]
       (when (= (type k) :string)
         (tset s k v)))

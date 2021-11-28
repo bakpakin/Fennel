@@ -94,4 +94,4 @@ Doesn't do any linting on its own; just saves the data for other linters."
  :do check-unused
  :chunk check-unused
  :name "fennel/linter"
- :versions ["1.0.0"]}
+ :versions ["1.0.0" "1.0.1"]}

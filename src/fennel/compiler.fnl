@@ -481,8 +481,8 @@ if opts contains the nval option."
                                                           1))]
                                               ".")
               method-to-call (. multi-sym-parts (length multi-sym-parts))
-              new-ast (utils.list (utils.sym ":" nil scope)
-                                  (utils.sym table-with-method nil scope)
+              new-ast (utils.list (utils.sym ":" ast)
+                                  (utils.sym table-with-method ast)
                                   method-to-call (select 2 (unpack ast)))]
           (compile1 new-ast scope parent opts))
         (compile-function-call ast scope parent opts compile1 len))))

@@ -179,33 +179,35 @@ Supports early termination with an :until clause."
            (tset tbl# i# val#))))
      tbl#))
 
-(fn accumulate* [iter-tbl accum-expr ...]
+(fn accumulate* [iter-tbl body ...]
   "Accumulation macro.
-It takes a binding table and an expression as its arguments.
-In the binding table, the first symbol is bound to the second value, being an
-initial accumulator variable. The rest are an iterator binding table in the
-format `each` takes.
+
+It takes a binding table and an expression as its arguments.  In the binding
+table, the first form starts out bound to the second value, which is an initial
+accumulator. The rest are an iterator binding table in the format `each` takes.
+
 It runs through the iterator in each step of which the given expression is
-evaluated, and its returned value updates the accumulator variable.
-It eventually returns the final value of the accumulator variable.
+evaluated, and the accumulator is set to the value of the expression. It
+eventually returns the final value of the accumulator.
 
 For example,
   (accumulate [total 0
                _ n (pairs {:apple 2 :orange 3})]
     (+ total n))
-returns
-  5"
+returns 5"
   (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 4))
           "expected initial value and iterator binding table")
-  (assert (not= nil accum-expr) "expected accumulating expression")
+  (assert (not= nil body) "expected body expression")
   (assert (= nil ...)
           "expected exactly one body expression. Wrap multiple expressions with do")
   (let [accum-var (table.remove iter-tbl 1)
         accum-init (table.remove iter-tbl 1)]
     `(do (var ,accum-var ,accum-init)
          (each ,iter-tbl
-           (set ,accum-var ,accum-expr))
-         ,accum-var)))
+           (set ,accum-var ,body))
+         ,(if (list? accum-var)
+              (list (sym :values) (unpack accum-var))
+              accum-var))))
 
 (fn partial* [f ...]
   "Returns a function with all arguments partially applied to f."

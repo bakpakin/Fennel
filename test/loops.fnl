@@ -69,7 +69,9 @@
   (== "(accumulate [yes? true
                     _ s (ipairs [:yes :no :yes])]
          (and yes? (string.match s :yes)))"
-      nil))
+      nil)
+  (== "(let [(a b) (accumulate [(x y) (values 8 2) _ (ipairs [1])] (values y x))]
+         (+ a b))" 10))
 
 (fn test-conditions []
   (== "(var x 0) (for [i 1 10 :until (= i 5)] (set x i)) x" 4)

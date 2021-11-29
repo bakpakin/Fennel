@@ -47,7 +47,7 @@ to be inserted in a table instead of bound as a local:
 ```fennel
 (local functions {})
 
-(fn funtctions.p [x y z]
+(fn functions.p [x y z]
   (print (* x (+ y z))))
 ```
 

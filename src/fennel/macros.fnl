@@ -461,8 +461,6 @@ introduce for the duration of the body if it does match."
   ;; which simply generates old syntax and feeds it to `match*'.
   (let [clauses [...]
         vals (match-val-syms clauses)]
-    (assert (= 0 (math.fmod (length clauses) 2))
-            "expected even number of pattern/body pairs")
     ;; protect against multiple evaluation of the value, bind against as
     ;; many values as we ever match against in the clauses.
     (list `let [vals val] (match-condition vals clauses))))
@@ -522,16 +520,14 @@ Syntax:
   pattern body
   (where pattern guard guards*) body
   (where (or pattern patterns*) guard guards*) body)"
+  (assert (= 0 (math.fmod (select :# ...) 2))
+          "expected even number of pattern/body pairs")
   (let [conds-bodies (partition-2 [...])
-        else-branch (if (not= 0 (% (select "#" ...) 2))
-                        (select (select "#" ...) ...))
         match-body []]
     (each [_ [cond body] (ipairs conds-bodies)]
       (each [_ cond (ipairs (transform-cond cond))]
         (table.insert match-body cond)
         (table.insert match-body body)))
-    (if else-branch
-        (table.insert match-body else-branch))
     (match* val (unpack match-body))))
 
 {:-> ->*

@@ -122,7 +122,7 @@
     "(#)" "expected one argument"
     ;; PUC is ridiculous in what it accepts in a string
     "\"\\!\"" (if (or (not= _VERSION "Lua 5.1") _G.jit) "Invalid string")
-    "(match abc true false def)" "even number of pattern/body pairs"
+    "(match :hey true false def)" "even number of pattern/body pairs"
     ;; validity check on iterator clauses
     "(each [k (do-iter) :igloo 33] nil)" "unexpected iterator clause igloo"
     "(for [i 1 3 2 other-stuff] nil)" "unexpected arguments"

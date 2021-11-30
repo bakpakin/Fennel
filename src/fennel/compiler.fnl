@@ -422,6 +422,7 @@ if opts contains the nval option."
                                           debug.traceback)]
              (utils.walk-tree transformed (partial propagate-trace-info ast))
              (set scopes.macro old-scope)
+             ;; TODO: omit stack trace when it comes from a built-in macro
              (assert-compile ok transformed ast)
              (if (or ?once (not transformed))
                  transformed

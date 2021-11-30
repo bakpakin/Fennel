@@ -66,13 +66,13 @@ LUA_DIR ?= $(PWD)/lua-$(LUA_VERSION)
 NATIVE_LUA_LIB ?= $(LUA_DIR)/src/liblua-native.a
 LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
 
-PATH_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
+COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
 
 $(LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(LUA_VERSION).tar.gz | tar xz
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
-	$(PATH_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
+	$(COMPILE_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
 		$< $@ $(NATIVE_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 $(NATIVE_LUA_LIB): $(LUA_DIR)
@@ -87,18 +87,18 @@ xc-deps:
 		gcc-mingw-w64-i686 curl lua5.3
 
 fennel-x86_64: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-x86_64.a
-	$(PATH_ARGS) CC=x86_64-linux-gnu-gcc ./fennel --no-compiler-sandbox \
+	$(COMPILE_ARGS) CC=x86_64-linux-gnu-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< $@ \
 		$(LUA_INCLUDE_DIR)/liblua-x86_64.a $(LUA_INCLUDE_DIR)
 
 fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
-	$(PATH_ARGS) CC=i686-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
+	$(COMPILE_ARGS) CC=i686-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 	mv fennel-bin.exe $@
 
 fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
-	$(PATH_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --no-compiler-sandbox \
+	$(COMPILE_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< $@  $(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
 $(LUA_DIR)/src/liblua-x86_64.a: $(LUA_DIR)
@@ -177,8 +177,3 @@ release: uploadtar uploadrock
 
 .PHONY: build test testall count format ci clean coverage install \
 	uploadtar uploadrock release lint
-
-# TODO for 1.0.0 release
-
-# * fix cross-compiling on arm64
-

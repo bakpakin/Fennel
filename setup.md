@@ -290,7 +290,7 @@ if you would like certain settings to only apply to Fennel.
 ## Making games with Fennel
 
 The two main platforms for making games with Fennel are
-[TIC-80](https://tic.computer) and [LÖVE](https://love2d.org/).
+[TIC-80](https://tic80.com) and [LÖVE](https://love2d.org/).
 
 TIC-80 is software that acts as a simulated computer in which you can write
 code, design art, compose music, and lay out maps for games. TIC-80
@@ -323,7 +323,7 @@ The [TIC-80 wiki](https://github.com/nesbox/TIC-80/wiki) documents
 the functions to use and important concepts.
 
 All TIC-80 games allow you to view and edit the source and assets. Try
-loading this [Conway's Life](https://tic.computer/play?cart=656) game
+loading this [Conway's Life](https://tic80.com/play?cart=656) game
 to see how it's made:
 
   * Click "start" to begin

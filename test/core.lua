@@ -202,8 +202,8 @@ local function test_core()
         -- : works on literal tables
         ["(: {:foo (fn [self] (.. self.bar 2)) :bar :baz} :foo)"]="baz2",
         -- line numbers correlated with input
-        ["(fn b [] (each [e {}] (e))) (let [(_ e) (pcall b)] (e:match \":1.*\"))"]=
-            ":1: attempt to call a table value",
+        ["(fn b [] (error \"bad news\")) (let [(_ e) (pcall b)] (e:match \":1.*\"))"]=
+            ":1: bad news",
         -- mangling avoids global names
         ["(global a_b :global) (local a-b :local) a_b"]="global",
         -- global definition doesn't count as local
@@ -270,6 +270,9 @@ local function test_destructuring()
         ["(let [{:a [x y z]} {:a [1 2 4]}] (+ x y z))"]=7,
         -- Local shadowing in let form
         ["(let [x 1 x (if (= x 1) 2 3)] x)"]=2,
+        -- &as
+        ["(let [{: a &as t} {:a 1 :b 229}] t.b)"]=229,
+        ["(let [[_ &as t] [8 5 621]] (. t 3))"]=621,
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)
@@ -406,6 +409,11 @@ local function test_macros()
         ["(macro seq? [expr] (sequence? expr)) (seq? [65])"]={65},
         -- Multisyms and gensyms work together
         ["(import-macros m :test.macros) (m.multigensym)"]=519,
+        -- accumulate
+        ["(accumulate [sum 0 _ x (ipairs [4 9 31 5 39 11])] (+ sum x))"]=99,
+        -- ?.
+        ["(?. {:a 1 :b {:c 9}} :b :c)"]=9,
+        ["(tostring (?. {:a 1 :b {:c 9}} :b :d))"]="nil",
     }
     for code,expected in pairs(cases) do
         l.assertEquals(fennel.eval(code, {correlate=true}), expected, code)

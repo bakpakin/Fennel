@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2016-2020 Calvin Rose and contributors
+Copyright (c) 2016-2021 Calvin Rose and contributors
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
@@ -805,8 +805,9 @@ local compiler = (function()
     -- instead of the current manglings.
     local function applyManglings(scope, newManglings, ast)
         for raw, mangled in pairs(newManglings) do
-            assertCompile(not scope.refedglobals[mangled],
-            "use of global " .. raw .. " is aliased by a local", ast)
+            -- Disabled because of some unknown bug in the old compiler
+            -- assertCompile(not scope.refedglobals[mangled],
+            -- "use of global " .. raw .. " is aliased by a local", ast)
             scope.manglings[raw] = mangled
         end
     end
@@ -828,13 +829,17 @@ local compiler = (function()
         return ret
     end
 
+    local function next_append()
+        utils.root.scope.gensym_append = (utils.root.scope.gensym_append or 0) + 1
+        return "_" .. utils.root.scope.gensym_append .. "_"
+    end
+
     -- Generates a unique symbol in the scope.
     local function gensym(scope, base)
         local mangling
         local append = 0
         repeat
-            mangling = (base or '') .. '_' .. append .. '_'
-            append = append + 1
+            mangling = (base or '') .. next_append()
         until not scope.unmanglings[mangling]
         scope.unmanglings[mangling] = true
         return mangling
@@ -1400,11 +1405,16 @@ local compiler = (function()
                                 :format(s, k), 'expression')
                         destructure1(left[k+1], {subexpr}, left)
                         return
+                    elseif (utils.isSym(k) and (tostring(k) == "&as")) then
+                        destructure1(v, {utils.expr(tostring(s))}, left)
+                    elseif (utils.isSequence(left) and (tostring(v) == "&as")) then
+                        destructure1(left[k+1], {utils.expr(tostring(s))}, left)
+                        return
                     else
                         if utils.isSym(k) and tostring(k) == ":" and utils.isSym(v) then
                             k = tostring(v)
                         end
-                        if type(k) ~= "number" then k = serializeString(k) end
+                        if type(k) ~= "number" then k = serializeString(tostring(k)) end
                         local subexpr = utils.expr(('%s[%s]'):format(s, k), 'expression')
                         destructure1(v, {subexpr}, left)
                     end
@@ -1866,9 +1876,10 @@ local specials = (function()
         local argList = compiler.assert(utils.isTable(ast[index]),
                                       "expected parameters",
                                       type(ast[index]) == "table" and ast[index] or ast)
-        local function getArgName(i, name)
+        local function getArgName(name)
             if utils.isVarg(name) then
-                compiler.assert(i == #argList, "expected vararg as last parameter", ast[2])
+                compiler.assert(name == argList[#argList],
+                                "expected vararg as last parameter", ast[2])
                 fScope.vararg = true
                 return "..."
             elseif(utils.isSym(name) and utils.deref(name) ~= "nil"
@@ -1885,7 +1896,7 @@ local specials = (function()
                                   format(tostring(name)), ast[2])
             end
         end
-        local argNameList = utils.kvmap(argList, getArgName)
+        local argNameList = utils.map(argList, getArgName)
         if type(ast[index + 1]) == 'string' and index + 1 < #ast then
             index = index + 1
             docstring = ast[index]
@@ -2208,10 +2219,26 @@ local specials = (function()
                    "Takes any number of condition/body pairs and evaluates the first body where"
                    .. "\nthe condition evaluates to truthy. Similar to cond in other lisps.")
 
+    local function remove_until_condition(bindings)
+       if ("until" == bindings[(#bindings - 1)]) then
+          table.remove(bindings, (#bindings - 1))
+          return table.remove(bindings)
+       end
+    end
+
+    local function compile_until(condition, scope, chunk)
+       if condition then
+          local condition_lua = compiler.compile1(condition, scope, chunk, {nval = 1})[1]
+          return compiler.emit(chunk, ("if %s then break end"):format(tostring(condition_lua)),
+                               utils.expr(condition, "expression"))
+       end
+    end
+
     -- (each [k v (pairs t)] body...) => []
     SPECIALS["each"] = function(ast, scope, parent)
         local binding = compiler.assert(utils.isTable(ast[2]), "expected binding table", ast)
         compiler.assert(#ast >= 3, "expected body expression", ast[1])
+        local until_condition = remove_until_condition(binding)
         local iter = table.remove(binding, #binding) -- last item is iterator call
         local destructures = {}
         local newManglings = {}
@@ -2237,6 +2264,7 @@ local specials = (function()
                                  { declaration = true, nomulti = true })
         end
         compiler.applyManglings(subScope, newManglings, ast)
+        compile_until(until_condition, subScope, chunk)
         compileDo(ast, subScope, chunk, 3)
         compiler.emit(parent, chunk, ast)
         compiler.emit(parent, 'end', ast)
@@ -2461,31 +2489,41 @@ local specials = (function()
     docSpecial("..", {"a", "b", "..."},
                "String concatenation operator; works the same as Lua but accepts more arguments.")
 
-    local function defineComparatorSpecial(name, realop, chainOp)
-        local op = realop or name
-        SPECIALS[name] = function(ast, scope, parent)
-            local len = #ast
-            compiler.assert(len > 2, "expected at least two arguments", ast)
-            local lhs = compiler.compile1(ast[2], scope, parent, {nval = 1})[1]
-            local lastval = compiler.compile1(ast[3], scope, parent, {nval = 1})[1]
-            -- avoid double-eval by introducing locals for possible side-effects
-            if len > 3 then lastval = once(lastval, ast[3], scope, parent) end
-            local out = ('(%s %s %s)'):
-                format(tostring(lhs), op, tostring(lastval))
-            if len > 3 then
-                for i = 4, len do -- variadic comparison
-                    local nextval = once(compiler.compile1(ast[i], scope, parent, {nval = 1})[1],
-                                         ast[i], scope, parent)
-                    out = (out .. " %s (%s %s %s)"):
-                        format(chainOp or 'and', tostring(lastval), op, tostring(nextval))
-                    lastval = nextval
-                end
-                out = '(' .. out .. ')'
-            end
-            return out
+    local function native_comparator(op, lhs_ast, rhs_ast, scope, parent)
+        local lhs = compiler.compile1(lhs_ast, scope, parent, {nval = 1})[1]
+        local rhs = compiler.compile1(rhs_ast, scope, parent, {nval = 1})[1]
+        return string.format("(%s %s %s)", tostring(lhs), op, tostring(rhs))
+    end
+
+    local function double_eval_protected_comparator(op, chain_op, ast, scope, parent)
+        local arglist, comparisons, vals = {}, {}, {}
+        local chain = string.format(" %s ", (chain_op or "and"))
+        for i = 2, #ast do
+            table.insert(arglist, tostring(compiler.gensym(scope)))
+            table.insert(vals, tostring(compiler.compile1(ast[i], scope,
+                                                          parent, {nval = 1})[1]))
         end
-        docSpecial(name, {"a", "b", "..."},
-                   "Comparison operator; works the same as Lua but accepts more arguments.")
+        for i = 1, (#arglist - 1) do
+            table.insert(comparisons, string.format("(%s %s %s)", arglist[i],
+                                                    op, arglist[(i + 1)]))
+        end
+        return string.format("(function(%s) return %s end)(%s)",
+                             table.concat(arglist, ","),
+                             table.concat(comparisons, chain),
+                             table.concat(vals, ","))
+    end
+
+    local function defineComparatorSpecial(name, lua_op, chain_op)
+        local op = (lua_op or name)
+        local function opfn(ast, scope, parent)
+            compiler.assert((2 < #ast), "expected at least two arguments", ast)
+            if (3 == #ast) then
+                return native_comparator(op, ast[2], ast[3], scope, parent)
+            else
+                return double_eval_protected_comparator(op, chain_op, ast, scope, parent)
+            end
+        end
+        SPECIALS[name] = opfn
     end
 
     defineComparatorSpecial('>')
@@ -2693,7 +2731,7 @@ local specials = (function()
             -- Compile the forms into subChunk; compiler.compile1 is necessary for all nested
             -- includes to be emitted in the same root chunk in the top-level module
             for i = 1, #forms do
-                local subopts = i == #forms and {nval=1, tail=true} or {}
+                local subopts = i == #forms and {nval=1, tail=true} or {nval=0}
                 utils.propagateOptions(opts, subopts)
                 compiler.compile1(forms[i], subscope, subChunk, subopts)
             end
@@ -2810,7 +2848,7 @@ local module = {
 
     eval = eval,
     dofile = compiler.dofileFennel,
-    version = "0.4.2",
+    version = "0.4.3-dev",
 }
 
 utils.fennelModule = module -- yet another circular dependency =(
@@ -2990,6 +3028,8 @@ end
 -- table.insert(package.loaders, fennel.searcher)
 module.searcher = module.makeSearcher()
 module.make_searcher = module.makeSearcher -- oops backwards compatibility
+module["make-searcher"] = module.makeSearcher
+module["compile-string"] = module.compileString
 
 -- Load standard macros
 local stdmacros = [===[
@@ -3068,6 +3108,38 @@ encountering an error before propagating it."
                   (table.insert closer 4 `(: ,(. closable-bindings i) :close)))
                 `(let ,closable-bindings ,closer
                    (close-handlers# (xpcall ,bodyfn ,traceback)))))
+
+:collect (fn collect [iter-tbl key-value-expr ...]
+  "Iterates through an iterator and populates an empty table with the key-value
+pairs produced by an expression. This can be thought of as a \"table
+comprehension\"."
+  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
+          "expected iterator binding table")
+  (assert (not= nil key-value-expr)
+          "expected key-value expression")
+  (assert (= nil ...)
+          "expected exactly one body expression. Wrap multiple expressions with do")
+  `(let [tbl# {}]
+     (each ,iter-tbl
+       (match ,key-value-expr
+         (k# v#) (tset tbl# k# v#)))
+     tbl#))
+
+:icollect (fn icollect [iter-tbl value-expr ...]
+  "Iterates through an iterator and populates an empty table with the values
+produced by an expression, making a sequential list. This can be thought of as
+a \"list comprehension\"."
+  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
+          "expected iterator binding table")
+  (assert (not= nil value-expr)
+          "expected table value expression")
+  (assert (= nil ...)
+          "expected exactly one body expression. Wrap multiple expressions with do")
+  `(let [tbl# []]
+     (each ,iter-tbl
+       (tset tbl# (+ (length tbl#) 1) ,value-expr))
+     tbl#))
+
  :partial (fn [f ...]
             "Returns a function with all arguments partially applied to f."
             (let [body (list f ...)]
@@ -3160,6 +3232,30 @@ Example:\n  (import-macros mymacros                 :my-macros    ; bind to symb
                         (tset scope.macros import-key (. subscope.macros macro-name)))))
                   ;; TODO: replace with `nil` once we fix macros being able to return nil
                   `(do nil))
+
+:accumulate (fn [iter-tbl body ...]
+  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 4))
+          "expected initial value and iterator binding table")
+  (assert (not= nil body) "expected body expression")
+  (assert (= nil ...)
+          "expected exactly one body expression. Wrap multiple expressions with do")
+  (let [accum-var (table.remove iter-tbl 1)
+        accum-init (table.remove iter-tbl 1)]
+    `(do (var ,accum-var ,accum-init)
+         (each ,iter-tbl
+           (set ,accum-var ,body))
+         ,(if (list? accum-var)
+              (list (sym :values) (unpack accum-var))
+              accum-var))))
+
+:?. (fn [tbl ...]
+  (let [head (gensym :t)
+        lookups `(do (var ,head ,tbl) ,head)]
+    (each [_ k (ipairs [...])]
+      (table.insert lookups (# lookups) `(if (not= nil ,head)
+                                           (set ,head (. ,head ,k)))))
+    lookups))
+
  :match
 (fn match [val ...]
   "Perform pattern matching on val. See reference for details."
@@ -3279,7 +3375,7 @@ do
                             -- metamethod. (openresty)
                             allowedGlobals = false,
                             useMetadata = true,
-                            filename = "built-ins",
+                            filename = "src/fennel/macros.fnl",
                             moduleName = moduleName })
     for k,v in pairs(macros) do compiler.scopes.global.macros[k] = v end
     package.preload[moduleName] = nil

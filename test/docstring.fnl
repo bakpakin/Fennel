@@ -25,14 +25,4 @@
   (each [_ [code expected msg] (ipairs cases)]
     (l.assertEquals (eval code) expected msg)))
 
-(fn test-no-undocumented []
-  (let [undocumented-ok {:lua true :set-forcibly! true :include true "#" true}]
-    (fennel.eval "(eval-compiler (set fennel._SPECIALS _SPECIALS))")
-    (each [name (pairs fennel._SPECIALS)]
-      (when (not (. undocumented-ok name))
-        (let [docstring (eval (: "(doc %s)" :format name))]
-          (l.assertNil (docstring:find "undocumented")
-                       (.. "Missing docstring for " name)))))))
-
-{: test-docstrings
- : test-no-undocumented}
+{: test-docstrings}

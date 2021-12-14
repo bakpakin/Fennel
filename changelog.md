@@ -1,5 +1,16 @@
 # Summary of user-visible changes
 
+## 0.4.3 / ???
+
+* Backport `&as` destructuring
+* Backport `accumulate` macro
+* Backport `?.` macro
+* Backport `collect` and `icollect` macros
+* Backport `:until` support in `each` and other loops.
+* Backport a bug fix where comparison operators could double-eval args
+* Backport a bug fix where expressions would not get evaluated
+* Backport a bug fix where long arglists would get reordered
+
 ## 0.4.2 / 2020-07-11
 
 * Fix a bug where multiple `include` calls would splice locals incorrectly

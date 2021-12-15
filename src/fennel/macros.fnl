@@ -209,16 +209,17 @@ returns 5"
               (list (sym :values) (unpack accum-var))
               accum-var))))
 
+(fn double-eval-safe? [x type]
+  (or (= :number type) (= :string type) (= :boolean type)
+      (and (sym? x) (not (multi-sym? x)))))
+
 (fn partial* [f ...]
   "Returns a function with all arguments partially applied to f."
   (assert f "expected a function to partially apply")
   (let [bindings []
         args []]
     (each [_ arg (ipairs [...])]
-      (if (or (= :number (type arg))
-              (= :string (type arg))
-              (= :boolean (type arg))
-              (= `nil arg))
+      (if (double-eval-safe? arg (type arg))
         (table.insert args arg)
         (let [name (gensym)]
           (table.insert bindings name)
@@ -226,9 +227,11 @@ returns 5"
           (table.insert args name))))
     (let [body (list f (unpack args))]
       (table.insert body _VARARG)
-      `(let ,bindings
-         (fn [,_VARARG]
-           ,body)))))
+      ;; only use the extra let if we need double-eval protection
+      (if (= 0 (length bindings))
+          `(fn [,_VARARG] ,body)
+          `(let ,bindings
+             (fn [,_VARARG] ,body))))))
 
 (fn pick-args* [n f]
   "Creates a function of arity n that applies its arguments to f.

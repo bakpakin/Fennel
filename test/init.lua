@@ -32,7 +32,7 @@ local function testall(suites)
 end
 
 local suites = {"core", "mangling", "quoting", "bit", "fennelview", "parser",
-                "failures", "repl", "cli", "macro", "linter", "loops", "misc"}
+                "failures", "repl", "cli", "macro", "linter", "loops", "misc", "plugin"}
 
 if(#arg == 0) then
    local ok, err = pcall(testall, suites)

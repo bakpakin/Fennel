@@ -1027,17 +1027,29 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
         (match (or (io.open filename) (io.open filename2))
           file (do
                  (file:close)
-                 filename))))
+                 filename)
+          _ (values nil (.. "no file '" filename "'")))))
 
-    (fn find-in-path [start]
+    (fn find-in-path [start ?tried-paths]
       (match (fullpath:match pattern start)
-        path (or (try-path path) (find-in-path (+ start (length path) 1)))))
+        path (match (try-path path)
+          filename filename
+          (nil error) (find-in-path (+ start (length path) 1)
+                                    (doto (or ?tried-paths []) (table.insert error))))
+        _ (values nil
+                  ;; Before Lua 5.4 it was necessary to prepend a \n\t to the
+                  ;; error message. In newer versions doing so causes an empty
+                  ;; line before Fennel's error message.
+                  (let [tried-paths (table.concat (or ?tried-paths []) "\n\t")]
+                    (if (< _VERSION "Lua 5.4")
+                      (.. "\n\t" tried-paths)
+                      tried-paths)))))
 
     (find-in-path 1)))
 
 (fn make-searcher [?options]
   "This will allow regular `require` to work with Fennel:
-table.insert(package.loaders, fennel.searcher)"
+table.insert(package.loaders or package.searchers, fennel.searcher)"
   (fn [module-name]
     (let [opts (utils.copy utils.root.options)]
       (each [k v (pairs (or ?options {}))]
@@ -1045,7 +1057,8 @@ table.insert(package.loaders, fennel.searcher)"
       (set opts.module-name module-name)
       (match (search-module module-name)
         filename (values (partial utils.fennel-module.dofile filename opts)
-                         filename)))))
+                         filename)
+        (nil error) error))))
 
 (fn fennel-macro-searcher [module-name]
   (let [opts (doto (utils.copy utils.root.options)

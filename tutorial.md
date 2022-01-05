@@ -417,13 +417,12 @@ failure message string. You can interact with this style of function
 in Fennel by destructuring with parens instead of square brackets:
 
 ```fennel
-(let [(f msg) (io.open "file" "rb")]
-  ;; when io.open succeeds, f will be a file, but if it fails f will be
-  ;; nil and msg will be the failure string
-  (if f
-      (do (use-file-contents (f.read f "*all"))
-          (f.close f))
-      (print (.. "Could not open file: " msg))))
+(match (io.open "file")
+  ;; when io.open succeeds, it will return a file, but if it fails it will
+  ;; return nil and an err-msg string describing why
+  f (do (use-file-contents (f:read :*all))
+        (f:close))
+  (nil err-msg) (print "Could not open file:" err-msg))
 ```
 
 You can write your own function which returns multiple values with `values`.
@@ -438,7 +437,7 @@ You can write your own function which returns multiple values with `values`.
 **Note**: while errors are the most reason to return multiple values
 from a function, it can be used in other cases as well. This is
 the most complex thing about Lua, and a full discussion is out of
-scope for this tutorial, but it's [covered well elsewhere](https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/).
+scope for this tutorial, but it's [covered well elsewhere][18].
 
 The problem with this type of error is that it does not compose well;
 the error status must be propagated all the way along the call chain
@@ -462,10 +461,6 @@ function. You can see that `pcall` returns a boolean (`ok?` here) to
 let you know if the call succeeded or not, and a second value
 (`val-or-msg`) which is the actual value if it succeeded or an error
 message if it didn't.
-
-**Note**: In real-world code it's better to use `match` when handling
-  errors; these snippets are intended as examples to specifically
-  illustrate how multiple values work.
 
 The `assert` function takes a value and an error message; it calls
 `error` if the value is `nil` and returns it otherwise. This can be
@@ -523,7 +518,7 @@ scope.
   (print ...)))
 ```
 
-You can read [more detailed coverage of some of the problems with `...` and multiple values](https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/)
+You can read [more detailed coverage of some of the problems with `...` and multiple values][18]
 here.
 
 ## Globals
@@ -809,3 +804,4 @@ the pattern.
 [15]: https://www.lua.org/manual/5.3/manual.html#6.5
 [16]: https://www.lua.org/pil/14.3.html
 [17]: https://fennel-lang.org/api
+[18]: https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/

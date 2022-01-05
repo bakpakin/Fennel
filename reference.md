@@ -110,7 +110,8 @@ API with `fennel.doc` and `fennel.metadata`.
 It's pretty easy to create function literals, but Fennel provides
 an even shorter form of functions. Hash functions are anonymous
 functions of one form, with implicitly named arguments. All
-of the below functions are functionally equivalent.
+of the below functions are functionally equivalent, but the second one
+only works as an implementation detail and should not be written directly.
 
 ```fennel
 (fn [a b] (+ a b))

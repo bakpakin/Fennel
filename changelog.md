@@ -38,6 +38,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * **Enforce compiler sandbox** by default instead of warning
 * **Disallow &** in identifiers
 * Implicit else branches in `if` are treated as nil, **not zero values**
+* Require explicit `_` for else clause in `match`
 
 
 ## 0.10.0 / 2021-08-07

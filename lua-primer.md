@@ -135,11 +135,34 @@ You can explore a module by evaluating it in the REPL to display all
 the functions and values it contains.
 
 * `math`: all your standard math functions, trig, pseudorandom generator, etc
-* `string`: all common string operations (except `split` which is absent)
+* `string`: common string operations
 * `os`: operating system functions like `exit`, `time`, `getenv`, etc
 
-Note that Lua does not implement regular expressions but its own more
-limited [pattern][2] language for `string.find`, `string.match`, etc.
+## What's missing
+
+Most programming languages have a much larger standard library than
+Lua. You may be surprised to find that things you take for granted
+require third-party libraries in Lua.
+
+Lua does not implement regular expressions but its own more limited
+[pattern][2] language for `string.find`, `string.match`, etc.
+
+The lack of a `string.split` function surprises many people. However,
+the `string.gmatch` function used with `icollect` can serve to split
+strings into a table. Or if you just need an iterator to loop over,
+you can use `string.gmatch` directly and skip `icollect`.
+
+```fennel
+(let [str "hello there, world"]
+  (icollect [s (string.gmatch str "[^ ]+")] s))
+;; -> ["hello" "there," "world"]
+```
+
+You can launch subprocesses with [io.popen][15] but note that you can
+only write to its input or read from its output; [doing both][16]
+cannot be done safely without some form of concurrency.
+
+Networking requires a 3rd-party library like [luasocket][17].
 
 ## Advanced
 
@@ -204,3 +227,6 @@ These are used for loading Lua code. The `load*` functions return a
 [12]: https://www.lua.org/pil/9.1.html
 [13]: https://www.lua.org/pil/28.html
 [14]: https://keplerproject.github.io/luafilesystem/
+[15]: https://www.lua.org/manual/5.4/manual.html#pdf-io.popen
+[16]: http://lua-users.org/lists/lua-l/2007-10/msg00189.html
+[17]: https://aiq0.github.io/luasocket/index.html

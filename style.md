@@ -14,7 +14,8 @@ Fennel is also a language whose semantics follow Lua, which means closures
 and tables are *everything*. Understanding how to do a lot with very simple
 semantics is key to writing effective Fennel.
 
-TODO: more examples throughout the guide.
+In general if you are unsure of how something should be formatted you can
+defer to [fnlfmt][1].
 
 ## Parentheses
 
@@ -74,8 +75,7 @@ Absolutely do not place closing delimiters on their own lines.
       (* x (factorial (- x 1)))))
 ```
 
-The parentheses grow lonely if their closing delimiters are all kept
-separated and segregated.
+The parentheses grow lonely if their closing delimiters are all kept separated.
 
 #### Exceptions to the Above Rule Concerning Line Separation
 
@@ -162,13 +162,6 @@ all remaining arguments.
 Indentation should dictate structure; confusing indentation is a burden on the
 reader who wishes to derive structure without matching parentheses manually.
 
-In general if you are unsure of how something should be indented you can
-defer to [fnlfmt][1]. The exception is
-that fnlfmt cannot know when you are writing your own macros which take a
-body; it only knows about the ones built-in to Fennel.
-
-TODO: come up with a convention for naming body-having macros.
-
 ## Line Length
 
 Try to avoid writing lines that exceed eighty columns. Multiple studies have
@@ -181,11 +174,36 @@ for whom smaller font sizes cause eye strain.
 
 ## Blank Lines
 
-Separate each adjacent top-level form with a single blank line (i.e.  two
-line breaks). Avoid blank lines in the middle of a function except for cases
-where a function contains another function definition or for cases where an
-`if` or `match` has several test/body pairs that would otherwise be difficult
-to distinguish from each other.
+Most top-level forms should be separated with a single blank line (i.e. two
+line breaks), unless it's a series of top-level `local` calls which can be
+grouped together without separation. Avoid blank lines in the middle of a
+function except for cases where a function contains another function
+definition or for cases where an `if` or `match` has several test/body pairs
+that would otherwise be difficult to distinguish from each other.
+
+```fennel
+(local box (require :box))
+(local line (require :line))
+
+(fn draw-boxes [scene]
+  (match (get-box scene.boxes)
+    [first-box second-box third-box & _]
+    (draw-first-boxes first-box second-box third-box)
+
+    [first-box second-box]
+    (draw-two-boxes first-box second-box)
+
+    [box] nil ; single box does not get drawn
+
+    nil (draw-empty-room)))
+
+(fn draw [scene]
+  (draw-boxes scene)
+  (lines.draw-lines scene.lines)
+  (box.draw-overlay scene))
+
+{: draw}
+```
 
 ## Names
 
@@ -278,17 +296,18 @@ be interpreted as "I couldn't come up with a descriptive name here, sorry."
 
 Functions which convert one thing to another should be named with a `->` in
 the middle, such as `bytes->table`. Don't put `->` at the end of an
-identifier unless it's a macro that works like `->`.
+identifier unless it's a threading macro that works like `->`.
 
 Pronounce the arrow as "to". For example, `bytes->table` would be read
 as "bytes to table".
 
 ## Comments
 
-Write heading comments with at least four semicolons; write top-level
-comments with three semicolons. Write comments on a particular fragment of
-code before that fragment and aligned with it, using two semicolons. Write
-margin comments with one semicolon.
+Write heading comments with at least four semicolons. Write top-level
+comments with at least two semicolons. Write comments on a particular
+fragment of code before that fragment and aligned with it, using two
+semicolons. Use one semicolon only for comments that go on the same line as
+some code.
 
 Examples:
 
@@ -321,7 +340,7 @@ The first line of the docstring should be a concise summary of the function's
 purpose; successive lines can go into greater detail. Do not indent the prose
 contents of the docstring. Code examples in docstrings should be
 indented. It's a good idea to mention the types of any arguments you accept
-as well as the type of the return value.
+as well as the type of the return value if any.
 
 Do not extract docstrings from your library and publish them as "The
 Documentation". If docstring exports are published, they should be clearly
@@ -352,7 +371,7 @@ Avoid sequential tables which have gaps in them; these frequently cause bugs.
 
 If you can separate out side-effecting functions from value-returning
 functions, do so. Counter-example: the `setmetatable` function in Lua
-performs a side-effect on the table, but also returns it. This is good style
+performs a side-effect on the table but also returns it. This is good style
 for Lua because there is no `doto` in Lua; it is not good style in Fennel.
 
 When designing APIs, remember that it's always easier to loosen restrictions
@@ -396,7 +415,7 @@ in certain contexts:
     (values {} remaining?)))
 
 (table.insert boxes (get-box))
-runtime error: bad argument #2 to 'insert' (number expected, got table)
+;; bad argument #2 to 'insert' (number expected, got table)
 ```
 
 Prefer destructuring to `.` for field access.
@@ -421,7 +440,7 @@ as "greater than" and "less than", especially since in infix languages people
 are used to making the big end point to the larger value, which doesn't work
 in prefix notation. But in Fennel, the `<` operator can take any number of
 arguments, so it's really asking whether the arguments are in increasing
-order. The `>` operator asks whether the numbers are in decreasing order,
+order. The `>` operator asks whether the arguments are sorted in reverse order,
 which is less intuitive.
 
 Do not use `#(this-style)` syntax for functions longer than a single
@@ -436,7 +455,9 @@ style; it should never be used except as a temporary hack.
 
 ### Modules
 
-Avoid plurals in module names.
+Avoid plurals in module names. Rationale: if modules can be plural or
+singular, that's one more thing to have to remember and one more thing you
+could get wrong. If they are always singular, it's easier to be consistent.
 
 Gather all your top-level `require` calls to the top of your file so
 dependencies can be seen at a glance.
@@ -447,8 +468,9 @@ to make it clearer that a given local is only used in a very limited scope
 rather than available for the whole file.
 
 Prefer constructing the module table at the bottom of the file rather than
-defining it at the top and adding to it as you go. Being able to look at one
-place and see everything that a module exports is great for readability.
+defining it at the top and adding to it as you go. Rationale: being able to
+look at one place and see everything that a module exports is great for
+readability.
 
 If you export the bare minimum possible from your module, it will be easier
 to change implementation details in the future without breaking consumers of
@@ -539,10 +561,23 @@ separate module, the macroexpansion should include a call to `require` so
 that the macro can be used in a module where there's not already a top-level
 `require` for said functionality.
 
+```fennel
+;; In a macro module:
+(fn macro2 [x f]
+  `(let [{:munge munge# :process process#} (require :mylib)
+         val# (munge# ,x)]
+     (print "Processing:" val#)
+     (process# (,f val#))))
+
+{: macro2}
+```
+
 Do not write macros which introduce identifiers "out of thin air". If a macro
 needs to bind a new local, accept the name of the local as an argument.
 Ideally new locals should be accepted in a binding table similar to
-`let` or `with-open`. Use quoting to build lists instead of calling `list`.
+`let` or `with-open`.
+
+Use quoting to build up code instead of calling `list` and `sym`.
 
 # Attribution
 

@@ -1,5 +1,6 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
+(local utils (require :fennel.utils))
 
 (fn test-arrows []
   (let [cases [["(-> (+ 85 21) (+ 1) (- 99))" 8]
@@ -107,10 +108,11 @@
                "(macros {:x (fn [] `(fn [...] (+ 1 1)))}) ((x))" 2
                "(macros {:yes (fn [] true) :no (fn [] false)}) [(yes) (no)]"
                [true false]}
+        g2 (utils.copy _G)
         g-using "(macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided"]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code) expected code))
-    (l.assertEquals (fennel.eval g-using {:compiler-env _G}) 952)))
+    (l.assertEquals (fennel.eval g-using {:compiler-env g2 :env g2}) 952)))
 
 (fn test-macrodebug []
   (let [eval-normalize #(-> (pick-values 1 (fennel.eval $1 $2))

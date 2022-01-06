@@ -1,9 +1,13 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
 (local view (require :fennel.view))
+(local utils (require :fennel.utils))
 
-(fn c [code]
-  (fennel.compileString code {:allowedGlobals false :compiler-env _G}))
+(fn c [code ?env]
+  (let [env (or ?env _G)]
+    (fennel.compileString code {:allowedGlobals false
+                                :compiler-env env
+                                :env env})))
 
 (fn v [code]
   (view ((fennel.loadCode (c code) (setmetatable {:sequence fennel.sequence}
@@ -25,14 +29,15 @@
                 (.. "quoted keyed table: " viewed)))
 
 (fn test-quoted-source []
-  (c "\n\n(eval-compiler (set _G.source-line (. `abc :line)))")
-  (l.assertEquals (. _G "source-line") 3 "syms have source data")
-  (c "\n(eval-compiler (set _G.source-line (. `abc# :line)))")
-  (l.assertEquals (. _G "source-line") 2 "autogensyms have source data")
-  (c "\n\n\n(eval-compiler (set _G.source-line (. `(abc) :line)))")
-  (l.assertEquals (. _G "source-line") 4 "lists have source data")
-  (local (_ msg) (pcall c "\n\n\n\n(macro abc [] `(fn [... a#] 1)) (abc)"))
-  (l.assertStrContains msg "unknown:5" "quoted tables have source data"))
+  (let [env (utils.copy _G)]
+    (c "\n\n(eval-compiler (set _G.source-line (. `abc :line)))" env)
+    (l.assertEquals (. env "source-line") 3 "syms have source data")
+    (c "\n(eval-compiler (set _G.source-line (. `abc# :line)))" env)
+    (l.assertEquals (. env "source-line") 2 "autogensyms have source data")
+    (c "\n\n\n(eval-compiler (set _G.source-line (. `(abc) :line)))" env)
+    (l.assertEquals (. env "source-line") 4 "lists have source data")
+    (local (_ msg) (pcall c "\n\n\n\n(macro abc [] `(fn [... a#] 1)) (abc)"))
+    (l.assertStrContains msg "unknown:5" "quoted tables have source data")))
 
 (macro not-equal-gensym []
   (let [s (gensym :sym)]

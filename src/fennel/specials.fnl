@@ -938,7 +938,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 ;; Circularity
 (var safe-require nil)
 
-(fn safe-compiler-env []
+(fn safe-env []
   {:table (utils.copy table)
    :math (utils.copy math)
    :string (utils.copy string)
@@ -947,61 +947,48 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
    : setmetatable :getmetatable safe-getmetatable :require safe-require
    :rawlen (rawget _G :rawlen) : rawget : rawset : rawequal : _VERSION})
 
-(fn combined-mt-pairs [env]
-  (let [combined {}
-        {: __index} (getmetatable env)]
-    (when (= :table (type __index))
-      (each [k v (pairs __index)]
-        (tset combined k v)))
-    (each [k v (values next env nil)]
-      (tset combined k v))
-    (values next combined nil)))
-
 (fn make-compiler-env [ast scope parent ?opts]
-  (let [provided (match (or ?opts utils.root.options)
-                   {:compiler-env :strict} (safe-compiler-env)
-                   {: compilerEnv} compilerEnv
-                   {: compiler-env} compiler-env
-                   _ (safe-compiler-env false))
-        env {:_AST ast
-             :_CHUNK parent
-             :_IS_COMPILER true
-             :_SCOPE scope
-             :_SPECIALS compiler.scopes.global.specials
-             :_VARARG (utils.varg)
-             : macro-loaded
-             : unpack
-             :assert-compile compiler.assert
-             : view
-             :version utils.version
-             :metadata compiler.metadata
-             ;; AST functions
-             :list utils.list :list? utils.list? :table? utils.table?
-             :sequence utils.sequence :sequence? utils.sequence?
-             :sym utils.sym :sym? utils.sym? :multi-sym? utils.multi-sym?
-             :comment utils.comment :comment? utils.comment? :varg? utils.varg?
-             ;; scoping functions
-             :gensym (fn [base]
-                       (utils.sym (compiler.gensym (or compiler.scopes.macro
-                                                       scope)
-                                                   base)))
-             :get-scope (fn []
-                          compiler.scopes.macro)
-             :in-scope? (fn [symbol]
-                          (compiler.assert compiler.scopes.macro
-                                           "must call from macro" ast)
-                          (. compiler.scopes.macro.manglings
-                             (tostring symbol)))
-             :macroexpand (fn [form]
-                            (compiler.assert compiler.scopes.macro
-                                             "must call from macro" ast)
-                            (compiler.macroexpand form
-                                                  compiler.scopes.macro))}]
-    (set env._G env)
-    (setmetatable env
-                  {:__index provided
-                   :__newindex provided
-                   :__pairs combined-mt-pairs})))
+  (let [globals _G ; can't unify globals!
+        env (match (or ?opts utils.root.options)
+              {:compiler-env :strict} (safe-env)
+              ;; special-case having _G handled in; we don't want to pollute the
+              ;; actual globals table!
+              {:compiler-env globals} (utils.copy _G)
+              {:compilerEnv globals} (utils.copy _G)
+              {: compilerEnv} compilerEnv
+              {: compiler-env} compiler-env
+              _ (safe-env))]
+    (fn env.gensym [base]
+      (utils.sym (compiler.gensym (or compiler.scopes.macro scope) base)))
+    (fn env.in-scope? [symbol]
+      (compiler.assert compiler.scopes.macro "must call from macro" ast)
+      (. compiler.scopes.macro.manglings (tostring symbol)))
+    (fn env.macroexpand [form]
+      (compiler.assert compiler.scopes.macro "must call from macro" ast)
+      (compiler.macroexpand form compiler.scopes.macro))
+    (fn env.get-scope [] compiler.scopes.macro)
+
+    (each [k v (pairs {:_G env
+                       :_AST ast
+                       :_CHUNK parent
+                       :_IS_COMPILER true
+                       :_SCOPE scope
+                       :_SPECIALS compiler.scopes.global.specials
+                       :_VARARG (utils.varg)
+                       : macro-loaded
+                       : unpack
+                       : view
+                       :assert-compile compiler.assert
+                       :version utils.version
+                       :metadata compiler.metadata
+                       ;; AST functions
+                       :list utils.list :list? utils.list? :table? utils.table?
+                       :sequence utils.sequence :sequence? utils.sequence?
+                       :sym utils.sym :sym? utils.sym?
+                       :multi-sym? utils.multi-sym? :varg? utils.varg?
+                       :comment utils.comment :comment? utils.comment?})]
+      (tset env k v))
+    env))
 
 ;; search-module uses package.config to process package.path (windows compat)
 (local [dirsep pathsep pathmark]

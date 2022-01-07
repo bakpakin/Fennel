@@ -1370,7 +1370,20 @@ however note that it must refer to the names after mangling has been
 done, because the identifiers must be valid Lua. The Fennel compiler
 will emit `foo-bar` as `foo_bar` in the Lua output in order for it to
 be valid. When in doubt, inspect the compiler output to see what it
-looks like.
+looks like. For example the following Fennel code:
+
+```fennel
+(let [foo-bar :hello]
+  (lua "print(foo_bar .. \" world\")"))
+```
+
+will produce this Lua code:
+
+```lua
+local foo_bar = "hello"
+print(foo_bar .. " world")
+return nil
+```
 
 Normally in these cases you would want to emit a statement, in which
 case you would pass a string of Lua code as the first argument. But

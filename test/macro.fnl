@@ -241,6 +241,20 @@
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
+(fn test-match-> []
+  (let [code (macrodebug (match-> (values [1 2 3] "whatever")
+                           [1 a b] [b a]
+                           [1 & rest] rest) true)
+        code2 (macrodebug (match-> (values [1 2 1] "whatever")
+                            [1 a b] [b a]
+                            [1 & rest] rest) true)
+        code3 (macrodebug (match-> (values nil "whatever")
+                            [1 a b] [b a]
+                            [1 & rest] rest) true)]
+    (l.assertEquals (fennel.eval code) [3 2])
+    (l.assertEquals (fennel.eval code2) [2])
+    (l.assertEquals [(fennel.eval code3)] [nil :whatever])))
+
 (fn test-lua-module []
   (let [ok-code "(macro abc [] (let [l (require :test.luamod)] (l.abc))) (abc)"
         bad-code "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"
@@ -279,4 +293,5 @@
  : test-match
  : test-lua-module
  : test-disabled-sandbox-searcher
- : test-expand}
+ : test-expand
+ : test-match->}

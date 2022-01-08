@@ -1,5 +1,7 @@
 local server_port = (os.getenv("IRC_HOST_PORT") or "irc.libera.chat 6667")
 local channel = os.getenv("IRC_CHANNEL")
+local url = os.getenv("JOB_URL") or "???"
+
 local failure_count = ...
 
 if ((0 ~= tonumber(failure_count)) and channel) then
@@ -12,6 +14,7 @@ if ((0 ~= tonumber(failure_count)) and channel) then
   nc:write(string.format("NICK fennel-build\n"))
   nc:write(string.format("USER fennel-build 8 x : fennel-build\n"))
   nc:write(string.format("JOIN %s\n", channel))
-  nc:write(string.format("PRIVMSG %s :Build failure! %s", channel, log))
+  nc:write(string.format("PRIVMSG %s :Build failure! %s | %s",
+                         channel, log, url))
   nc:write("QUIT\n")
 end

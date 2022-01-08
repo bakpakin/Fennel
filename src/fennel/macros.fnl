@@ -533,6 +533,24 @@ Syntax:
         (table.insert match-body body)))
     (match* val (unpack match-body))))
 
+(fn match->* [val pattern body ...]
+  "Perform chained pattern matching for a sequence of steps which might fail.
+
+The value from the first expression is matched against the first pattern. If
+it matches, the first body is evaluated and its value is matched against the
+second pattern, etc. If at any point it does not match, the mismatched value
+is returned as the value of the entire expression."
+  (assert (or (= nil pattern body) (and (not= nil pattern) (not= nil body)))
+          "expected every pattern to have a body")
+  (if (= nil pattern body)
+      val
+      ;; unlike regular match, we can't know how many values the value
+      ;; might evaluate to, so we have to capture them all in a table
+      ;; which adds some unfortunate overhead.
+      `(match [,val]
+         [,pattern] ,(match->* body ...)
+         ?other# ((or table.unpack _G.unpack) ?other#))))
+
 {:-> ->*
  :->> ->>*
  :-?> -?>*
@@ -551,4 +569,5 @@ Syntax:
  :macro macro*
  :macrodebug macrodebug*
  :import-macros import-macros*
- :match match-where}
+ :match match-where
+ :match-> match->*}

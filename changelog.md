@@ -4,7 +4,10 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 
 ## 1.0.1 / ???
 
-## New Features
+### New Forms
+* Add `match->` macro for chained pattern matching for steps which might fail
+
+### New Features
 * The `accumulate` macro can now accumulate over multiple values
 
 ## 1.0.0 / 2021-11-14

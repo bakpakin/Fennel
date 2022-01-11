@@ -250,10 +250,18 @@
                             [1 & rest] rest) true)
         code3 (macrodebug (match-> (values nil "whatever")
                             [1 a b] [b a]
-                            [1 & rest] rest) true)]
+                            [1 & rest] rest) true)
+        code4 (macrodebug (select 2 (match-> "hey"
+                                      x (values nil "error")
+                                      y nil)) true)
+        code5 (macrodebug (select :# (match-> "hey"
+                                       x (values nil "error" nil nil)
+                                       y nil)) true)]
     (l.assertEquals (fennel.eval code) [3 2])
     (l.assertEquals (fennel.eval code2) [2])
-    (l.assertEquals [(fennel.eval code3)] [nil :whatever])))
+    (l.assertEquals [(fennel.eval code3)] [nil :whatever])
+    (l.assertEquals (fennel.eval code4) "error")
+    (l.assertEquals (fennel.eval code5) 4)))
 
 (fn test-lua-module []
   (let [ok-code "(macro abc [] (let [l (require :test.luamod)] (l.abc))) (abc)"

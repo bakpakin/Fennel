@@ -545,11 +545,13 @@ is returned as the value of the entire expression."
   (if (= nil pattern body)
       val
       ;; unlike regular match, we can't know how many values the value
-      ;; might evaluate to, so we have to capture them all in a table
-      ;; which adds some unfortunate overhead.
-      `(match [,val]
-         [,pattern] ,(match->* body ...)
-         ?other# ((or table.unpack _G.unpack) ?other#))))
+      ;; might evaluate to, so we have to capture them all in ... via IIFE
+      ;; to avoid double-evaluation.
+      `((fn [...]
+          (match ...
+            ,pattern ,(match->* body ...)
+             _# ...))
+        ,val)))
 
 {:-> ->*
  :->> ->>*

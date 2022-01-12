@@ -412,11 +412,20 @@ the rest of the plugins for a given event to be skipped.
 * `do`
 * `fn`
 * `destructure`
+* `parse-error`
+* `assert-compile`
 
 The `destructure` extension point is different because instead of just
 taking `ast` and `scope` it takes a `from` which is the AST for the value
 being destructured and a `to` AST which is the AST for the form being
 destructured to. This is most commonly a symbol but can be a list or a table.
+
+The `parse-error` and `assert-compile` hooks can be used to override how fennel
+behaves down to the parser and compiler levels. Possible use-cases
+include building atop `fennel.view` to serialize data with
+[EDN](https://clojure.github.io/clojure/clojure.edn-api.html)-style tagging,
+or manipulating external s-expression-based syntax, such as
+[tree-sitter queries](https://tree-sitter.github.io/tree-sitter/using-parsers#query-syntax).
 
 The `scope` argument is a table containing all the compiler's information
 about the current scope. Most of the tables here look up values in their

@@ -533,15 +533,7 @@ Syntax:
         (table.insert match-body body)))
     (match* val (unpack match-body))))
 
-(fn match->* [val pattern body ...]
-  "Perform chained pattern matching for a sequence of steps which might fail.
-
-The value from the first expression is matched against the first pattern. If
-it matches, the first body is evaluated and its value is matched against the
-second pattern, etc. If at any point it does not match, the mismatched value
-is returned as the value of the entire expression."
-  (assert (or (= nil pattern body) (and (not= nil pattern) (not= nil body)))
-          "expected every pattern to have a body")
+(fn match-arrow [val else pattern body ...]
   (if (= nil pattern body)
       val
       ;; unlike regular match, we can't know how many values the value
@@ -549,9 +541,32 @@ is returned as the value of the entire expression."
       ;; to avoid double-evaluation.
       `((fn [...]
           (match ...
-            ,pattern ,(match->* body ...)
-             _# ...))
+            ,pattern ,(match-arrow body else ...)
+            ,(unpack else)))
         ,val)))
+
+(fn match->* [val pattern body ...]
+  "Perform chained pattern matching for a sequence of steps which might fail.
+
+The value from the first expression is matched against the first pattern. If
+it matches, the first body is evaluated and its value is matched against the
+second pattern, etc. If at any point it does not match, the mismatched value
+is returned as the value of the entire expression.
+
+Optionally you can add an (else pat1 body1 pat2 body2 ...) form at the end
+which can contain fallback patterns; if any of the main patterns mismatch, the
+result will be matched against these sequentially without chaining to allow
+for handling errors in one place."
+  (let [clauses [pattern body ...]
+        last (. clauses (length clauses))
+        else (if (= `else (and (= :table (type last)) (. last 1)))
+                 (let [[_ & e] (table.remove clauses)] e) ; remove `else sym
+                 [`_# `...])]
+    (assert (= 0 (math.fmod (length clauses) 2))
+            "expected every pattern to have a body")
+    (assert (= 0 (math.fmod (length else) 2))
+            "expected every else pattern to have a body")
+    (match-arrow val else (unpack clauses))))
 
 {:-> ->*
  :->> ->>*

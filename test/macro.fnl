@@ -241,35 +241,61 @@
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 
+(macro == [code expected ?msg]
+  `(l.assertEquals (fennel.eval (macrodebug ,code true)) ,expected ,?msg))
+
 (fn test-match-> []
-  (let [code (macrodebug (match-> (values [1 2 3] "whatever")
-                           [1 a b] [b a]
-                           [1 & rest] rest) true)
-        code2 (macrodebug (match-> (values [1 2 1] "whatever")
-                            [1 a b] [b a]
-                            [1 & rest] rest) true)
-        code3 (macrodebug (match-> (values nil "whatever")
-                            [1 a b] [b a]
-                            [1 & rest] rest) true)
-        code4 (macrodebug (select 2 (match-> "hey"
-                                      x (values nil "error")
-                                      y nil)) true)
-        code5 (macrodebug (select :# (match-> "hey"
-                                       x (values nil "error" nil nil)
-                                       y nil)) true)]
-    (l.assertEquals (fennel.eval code) [3 2])
-    (l.assertEquals (fennel.eval code2) [2])
-    (l.assertEquals [(fennel.eval code3)] [nil :whatever])
-    (l.assertEquals (fennel.eval code4) "error")
-    (l.assertEquals (fennel.eval code5) 4)))
+  (== (match-> [1 2 1]
+        [1 a b] [b a]
+        [1 & rest] rest)
+      [2]
+      "matching all the way thru")
+  (== (match-> [1 2 3]
+        [1 a b] [b a]
+        [1 & rest] rest)
+      [3 2]
+      "stopping on the second clause")
+  (== [(match-> (values nil "whatever")
+         [1 a b] [b a]
+         [1 & rest] rest)]
+      [nil :whatever]
+      "nil, msg failure representation stops immediately")
+  (== (select 2 (match-> "hey"
+                  x (values nil "error")
+                  y nil))
+      "error"
+      "all values are in fact propagated even on a mid-chain mismatch")
+  (== (select :# (match-> "hey"
+                   x (values nil "error" nil nil)
+                   y nil))
+      4
+      "trailing nils are preserved")
+  (== (match-> {:a "abc" :x "xyz"}
+        {: b} :son-of-a-b!
+        (else
+         {: a : x} (.. a x)))
+      "abcxyz"
+      "else clause works")
+  (== (match-> {:a "abc" :x "xyz"}
+        {: a} {:abc "whatever"}
+        {: b} :son-of-a-b!
+        (else
+         [hey] :idunno
+         {: abc} (.. abc "yo")))
+      "whateveryo"
+      "multiple else clauses works")
+  (let [(_ msg1) (pcall fennel.eval "(match-> abc def)")
+        (_ msg2) (pcall fennel.eval "(match-> abc {} :def _ :wat (else 55))")]
+    (l.assertStrMatches msg1 ".*expected every pattern to have a body.*")
+    (l.assertStrMatches msg2 ".*expected every else pattern to have a body.*")))
 
 (fn test-lua-module []
-  (let [ok-code "(macro abc [] (let [l (require :test.luamod)] (l.abc))) (abc)"
-        bad-code "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"
-        reversed "(import-macros {: reverse} :test.mod.reverse) (reverse (29 2 +))"]
-    (l.assertEquals (fennel.eval ok-code) "abc")
-    (l.assertFalse (pcall fennel.eval bad-code {:compiler-env :strict}))
-    (l.assertEquals 31 (fennel.eval reversed))))
+  (let [bad "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"]
+    (l.assertFalse (pcall fennel.eval bad {:compiler-env :strict}))
+    (== (do (macro abc [] (let [l (require :test.luamod)] (l.abc))) (abc))
+        "abc")
+    (== (do (import-macros {: reverse} :test.mod.reverse) (reverse (29 2 +)))
+        31)))
 
 (fn test-disabled-sandbox-searcher []
   (let [opts {:env :_COMPILER :compiler-env _G}

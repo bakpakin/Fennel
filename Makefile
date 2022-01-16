@@ -61,23 +61,23 @@ lint:
 
 ## Binaries
 
-LUA_VERSION=5.4.3
-LUA_DIR ?= $(PWD)/lua-$(LUA_VERSION)
-NATIVE_LUA_LIB ?= $(LUA_DIR)/src/liblua-native.a
-LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
+BIN_LUA_VERSION=5.4.3
+BIN_LUA_DIR ?= $(PWD)/lua-$(BIN_LUA_VERSION)
+NATIVE_LUA_LIB ?= $(BIN_LUA_DIR)/src/liblua-native.a
+LUA_INCLUDE_DIR ?= $(BIN_LUA_DIR)/src
 
 COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
 
-$(LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(LUA_VERSION).tar.gz | tar xz
+$(BIN_LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(BIN_LUA_VERSION).tar.gz | tar xz
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
 	$(COMPILE_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
 		$< $@ $(NATIVE_LUA_LIB) $(LUA_INCLUDE_DIR)
 
-$(NATIVE_LUA_LIB): $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR)/src clean liblua.a
-	mv $(LUA_DIR)/src/liblua.a $@
+$(NATIVE_LUA_LIB): $(BIN_LUA_DIR)
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a
+	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
 ## Cross compiling
 
@@ -101,29 +101,29 @@ fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
 	$(COMPILE_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< $@  $(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
-$(LUA_DIR)/src/liblua-x86_64.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR)/src clean liblua.a CC=x86_64-linux-gnu-gcc
-	mv $(LUA_DIR)/src/liblua.a $@
+$(BIN_LUA_DIR)/src/liblua-x86_64.a: $(BIN_LUA_DIR)
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a CC=x86_64-linux-gnu-gcc
+	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
 # There's a bug in the Lua makefile that doesn't let you override RANLIB so it
 # tries to call system strip(1) which only knows how to strip arm64 binaries.
 # To work around it, rather than call `make mingw' we expand the call.
-$(LUA_DIR)/src/liblua-mingw.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR)/src CC=i686-w64-mingw32-gcc \
+$(BIN_LUA_DIR)/src/liblua-mingw.a: $(BIN_LUA_DIR)
+	$(MAKE) -C $(BIN_LUA_DIR)/src CC=i686-w64-mingw32-gcc \
 		"AR=i686-w64-mingw32-gcc -shared -o" \
 		"RANLIB=i686-w64-mingw32-strip --strip-unneeded" clean liblua.a
-	mv $(LUA_DIR)/src/liblua.a $@
+	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
-$(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR)/src clean liblua.a CC=arm-linux-gnueabihf-gcc
-	mv $(LUA_DIR)/src/liblua.a $@
+$(BIN_LUA_DIR)/src/liblua-arm32.a: $(BIN_LUA_DIR)
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a CC=arm-linux-gnueabihf-gcc
+	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
 ci: testall lint fuzz fennel
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \
 		*_binary.c luacov.*
-	$(MAKE) -C $(LUA_DIR) clean || true # this dir might not exist
+	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
 
 coverage: fennel
 	$(LUA) -lluacov test/init.lua

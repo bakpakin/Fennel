@@ -160,7 +160,7 @@ all remaining arguments.
 ```
 
 Indentation should dictate structure; confusing indentation is a burden on the
-reader who wishes to derive structure without matching parentheses manually.
+reader who wishes to derive structure without matching parentheses one-by-one.
 
 ## Line Length
 
@@ -213,7 +213,7 @@ independent of and unaffected by the many names by which we refer to it, and
 also of supreme importance, because it is what programming -- and, indeed,
 almost everything that we humans deal with -- is all about.  A full
 discussion of the concept of name lies far outside the scope of this
-document, and could surely fill not even a book but a library.
+document, and could surely fill not merely a book but a library.
 
 Don't use short names for things unless they are only in scope briefly. The
 greater the distance between the introduction of an identifier and its use,
@@ -255,7 +255,7 @@ is still useful to convey to a human reader in other contexts.
 ### Funny Characters
 
 There are several different conventions for the use of punctuation characters
-in names.
+in function names.
 
 #### Question Marks: Predicates
 
@@ -268,7 +268,8 @@ Pronounce the question mark as "huh".  For example, to read the fragment
 
 Do not name functions `is-foo`; the use of the `is` prefix comes from
 languages which are not allowed to use question marks in identifier names and
-has no place in Fennel.
+has no place in Fennel. Exception: the `is` prefix can be used when
+naming functions that are intended to be called from Lua code.
 
 #### Exclamation Marks: Destructive Operations
 
@@ -303,21 +304,19 @@ as "bytes to table".
 
 ## Comments
 
-Write heading comments with at least four semicolons. Write top-level
-comments with at least two semicolons. Write comments on a particular
-fragment of code before that fragment and aligned with it, using two
-semicolons. Use one semicolon only for comments that go on the same line as
-some code.
+Write section heading comments with at least three semicolons. Use two
+semicolons for non-section comments which take a whole line. Use one
+semicolon for comments that go on the same line as some code.
 
 Examples:
 
 ```fennel
-;;;; Frob Grobl
+;;; Frob Grobl
 
-;;; This section of code has some important implications:
-;;;   1. Foo.
-;;;   2. Bar.
-;;;   3. Baz.
+;; This section of code has some important implications:
+;;   1. Foo.
+;;   2. Bar.
+;;   3. Baz.
 
 (fn fnord [zarquon]
   ;; If zob, then veeblefitz.
@@ -343,8 +342,8 @@ indented. It's a good idea to mention the types of any arguments you accept
 as well as the type of the return value if any.
 
 Do not extract docstrings from your library and publish them as "The
-Documentation". If docstring exports are published, they should be clearly
-labeled as supplemental to the actual documentation, which should be
+Documentation". If docstring exports are published, they should be
+supplemental to the actual documentation, which should be
 [hand-written by a human][3] and not an automated tool.
 
 Docstrings should be written with the assumption that they are primarily for
@@ -355,9 +354,9 @@ consumption within the repl or editor, and not for export to a browser.
 The above sections consist mostly of rules which apply to lisps in general,
 but the sections below apply to Fennel-specific features.
 
-You can write object-oriented code with Fennel, but avoid carrying over
-habits from object-oriented languages.  Consider the different aspects of
-"OOP" independently and use only the ones that make sense for the
+You can write object-oriented code with Fennel, but avoid uncritically
+carrying over habits from object-oriented languages.  Consider the different
+aspects of "OOP" independently and use only the ones that make sense for the
 context. For instance, encapsulation is great and should be used everywhere,
 while inheritance is usually a mistake--at the very least inheritance should
 not be inseparably linked to classes. Polymorphism can be useful at times but
@@ -433,15 +432,15 @@ Prefer destructuring to `.` for field access.
   ...)
 ```
 
-Use `<` and `<=` but avoid `>` and `>=`. Interpret `<` as "are the numbers
-in increasing order?" not "is the second number greater than the first number?"
-Rationale: it's easy to get mixed up between `<` and `>` if you think of them
-as "greater than" and "less than", especially since in infix languages people
-are used to making the big end point to the larger value, which doesn't work
-in prefix notation. But in Fennel, the `<` operator can take any number of
-arguments, so it's really asking whether the arguments are in increasing
-order. The `>` operator asks whether the arguments are sorted in reverse order,
-which is less intuitive.
+Use `<` and `<=` but avoid `>` and `>=`. Interpret `<` as "are the numbers in
+increasing order?" not "is the second number greater than the first number?"
+Rationale: it's easy to get mixed up between prefix-form `<` and `>` if you
+think of them as "greater than" and "less than", especially since in infix
+languages people are used to making the big end point to the larger value,
+which doesn't work in prefix notation. But in Fennel, the `<` operator can
+take any number of arguments, so it's really asking whether the arguments are
+in increasing order. The `>` operator asks whether the arguments are sorted
+in reverse order, which is less intuitive.
 
 Do not use `#(this-style)` syntax for functions longer than a single
 line. Never use long-form `(hashfn)` directly; only use the shorthand. Prefer
@@ -462,10 +461,12 @@ could get wrong. If they are always singular, it's easier to be consistent.
 Gather all your top-level `require` calls to the top of your file so
 dependencies can be seen at a glance.
 
-Use `local` only at the top level of a module. Use `let` instead inside
-functions. In some cases it can be better to even use `let` at the top level
-to make it clearer that a given local is only used in a very limited scope
-rather than available for the whole file.
+Use `local` only at the top level of a module to avoid indenting the entire
+module. Use `let` instead inside functions. In some cases it can be better to
+even use `let` at the top level to make it clearer that a given local is only
+used in a very limited scope rather than available for the whole file. If you
+are tempted to use `local` inside a function in order to avoid increasing the
+amount of indentation, it means your function is too long.
 
 Prefer constructing the module table at the bottom of the file rather than
 defining it at the top and adding to it as you go. Rationale: being able to
@@ -474,7 +475,7 @@ readability.
 
 If you export the bare minimum possible from your module, it will be easier
 to change implementation details in the future without breaking consumers of
-your module. Every module in your library should be assumed to be part of its
+your module. In a library, every module should be assumed to be part of its
 public API unless the module name contains "internal" or "private". This is
 one case where Fennel's own codebase breaks the rules; sorry!
 
@@ -490,7 +491,9 @@ called, it will be as `(input.get)` rather than the redundant
 Always return a table from a module. Even if you think today that returning a
 bare function is fine, you will regret it later.
 
-Loading a module should have no side effects.
+Loading a module should have no side effects. Since modules are tables, their
+contents can be changed. Avoid this temptation, except in the case of
+reloading the entire module.
 
 When requiring modules, note that destructuring fields at the top level will
 interfere with reloading.
@@ -508,9 +511,6 @@ It is often a good idea to set a global in order to expose some data to the
 repl for interactive development, but your program should never use that
 global except in order to preserve state during reloads. Avoid the `global`
 special form, preferring table access on `_G` instead.
-
-Since modules are tables, their contents can be changed. Avoid this
-temptation, except in the case of reloading the entire module.
 
 If you have more than a few files of code, place your module files in a
 `src/` directory. If you have scripts meant to be launched from a shell,

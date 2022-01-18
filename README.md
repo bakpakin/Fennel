@@ -1,7 +1,7 @@
 # Fennel
 
 [Fennel][1] is a lisp that compiles to Lua. It aims to be easy to use,
-expressive, and has almost zero overhead compared to handwritten Lua.
+expressive, and has almost zero overhead compared to writing Lua directly.
 
 * *Full Lua compatibility* - You can use any function or library from Lua.
 * *Zero overhead* - Compiled code should be just as efficient as hand-written Lua.
@@ -9,7 +9,9 @@ expressive, and has almost zero overhead compared to handwritten Lua.
 * *Embeddable* - Fennel is a one-file library as well as an executable. Embed it in other programs to support runtime extensibility and interactive development.
 
 At [https://fennel-lang.org][1] there's a live in-browser repl you can
-use without installing anything.
+use without installing anything. At [https://fennel-lang.org/see][3]
+you can see what Lua output a given piece of Fennel compiles to, or
+what the equivalent Fennel for a given piece of Lua would be.
 
 ## Documentation
 
@@ -48,7 +50,7 @@ each release.
 ## Building Fennel from source
 
 Building Fennel from source allows you to use versions of Fennel that
-haven't been released, and makes contributing to Fennel easier.
+haven't been released, and it makes contributing to Fennel easier.
 
 ### To build Fennel from source
 
@@ -71,7 +73,7 @@ run a Fennel file anywhere on your system.
 * Clearer syntactic distinction between sequential tables and key/value tables
 * Separate looping constructs for numeric loops vs iterators instead of overloading `for`
 * Opt-in mutability for local variables
-* Opt-in nil checks for `lambda` functions
+* Opt-in nil checks for function arguments
 * Pattern matching
 * Ability to extend the syntax with your own macros and special forms
 
@@ -84,8 +86,6 @@ run a Fennel file anywhere on your system.
 * Lua VM is already embedded in databases, window managers, games, etc
 * Low memory usage
 * Readable compiler output resembles input
-
-(Obviously not all these apply to every lisp you could compare Fennel to.)
 
 ## Why not Fennel?
 
@@ -106,17 +106,18 @@ Lua is much more readily-available than it is for Fennel.
 * Join the `#fennel` chat [thru IRC on Libera.Chat][9] or [on Matrix][10]
 * The [mailing list][5] has slower-paced discussion and announcements
 * You can browse and edit [the Wiki][7]
-* [Continuous integration][8]
+* View builds in Fennel's [continuous integration][8]
 * Community interactions are subject to the [code of conduct](CODE-OF-CONDUCT.md).
 
 ## License
 
-Copyright © 2016-2021 Calvin Rose and contributors
+Copyright © 2016-2022 Calvin Rose and contributors
 
 Released under the [MIT license](LICENSE).
 
 [1]: https://fennel-lang.org
 [2]: https://github.com/bakpakin/Fennel/wiki/Cookbook
+[3]: https://fennel-lang.org/see
 [4]: http://luajit.org/ext_ffi_tutorial.html
 [5]: https://lists.sr.ht/%7Etechnomancy/fennel
 [7]: https://github.com/bakpakin/Fennel/wiki

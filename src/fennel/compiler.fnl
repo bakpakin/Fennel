@@ -761,8 +761,8 @@ which we have to do if we don't know."
       ret)))
 
 (fn require-include [ast scope parent opts]
-  (fn opts.fallback [e]
-    (when (= :literal e.type)
+  (fn opts.fallback [e no-warn]
+    (when (and (not no-warn) (= :literal e.type))
       (utils.warn (: "include module not found, falling back to require: %s"
                      :format (tostring e))))
     (utils.expr (string.format "require(%s)" (tostring e)) :statement))

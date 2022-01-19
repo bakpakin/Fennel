@@ -64,19 +64,23 @@
       (l.assertTrue spliceOk "Expected splice to run")
       (l.assertNil _G.q "Expected include to actually be local"))
     (set io.stderr stderr))
-  (let [code "(local bar (require :test.mod.bar))
+  (let [stderr io.stderr
+        stderr-fail false
+        _ (set io.stderr {:write #(do (set-forcibly! stderr-fail $2) nil)})
+        code "(local (bar-ok bar) (pcall #(require :test.mod.bar)))
               (local baz (require :test.mod.baz))
-              (local quux (require :test.mod.quux))
-              [bar baz quux]"
-        opts {:requireAsInclude true :skipInclude [:test.mod.bar :test.mod.quux]}
+              (local (quux-ok quux) (pcall #(require :test.mod.quuuuuuux)))
+              [(when bar-ok bar) baz (when quux-ok quux)]"
+        opts {:requireAsInclude true :skipInclude [:test.mod.bar :test.mod.quuuuuuux]}
         out (fennel.compile-string code opts)
         value (fennel.eval code opts)]
-    (l.assertStrContains out "bar = nil")
+    (l.assertStrContains out "baz = require(\"test.mod.baz\")")
+    (l.assertStrContains out "bar = pcall")
+    (l.assertStrContains out "quux = pcall")
     (l.assertNotStrContains out "baz = nil")
-    (l.assertStrContains out "quux = nil")
-    (l.assertNotStrContains out "test.mod.bar")
-    (l.assertNotStrContains out "test.mod.quux")
-    (l.assertEquals [nil [:BAZ 3] nil] value)))
+    (l.assertEquals stderr-fail false)
+    (l.assertEquals value [[:BAR 2 :BAZ 3] [:BAZ 3] nil])
+    (set io.stderr stderr)))
 
 (fn test-env-iteration []
   (local tbl [])

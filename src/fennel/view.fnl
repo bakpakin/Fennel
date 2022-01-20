@@ -151,7 +151,7 @@
 ;; counts the amount of initial utf-8 bytes in a given string. we can do this
 ;; because we only run this on validated and escaped strings.
 (fn utf8-len [x]
-  (accumulate [n 0 _ (string.gmatch x "[%z\x01-\x7f\xc0-\xf7]")] (+ n 1)))
+  (accumulate [n 0 _ (string.gmatch x "[%z\001-\127\192-\247]")] (+ n 1)))
 
 (fn pp-associative [t kv options indent]
   (var multiline? false)
@@ -278,7 +278,7 @@
   (var index 1)
   (var output [])
   (while (<= index (length str))
-    (let [nexti (or (string.find str "[\x80-\xff]" index) (+ (length str) 1))
+    (let [nexti (or (string.find str "[\128-\255]" index) (+ (length str) 1))
           len (validate-utf8 str nexti)]
       (table.insert output (string.sub str index (+ nexti (or len 0) -1)))
       (when (and (not len) (<= nexti (length str)))

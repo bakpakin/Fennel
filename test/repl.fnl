@@ -27,8 +27,10 @@
 (fn assert-equal-unordered [a b msg]
   (l.assertEquals (table.sort a) (table.sort b) msg))
 
-(fn test-local-completion []
-  (let [(send comp) (wrap-repl)]
+(fn test-sym-completion []
+  (let [(send comp) (wrap-repl {:env (collect [k v (pairs _G)] (values k v))})]
+    ;; if not deduped, causes a duplication error completing foo
+    (send "(global foo :DUPE)")
     (send "(local [foo foo-ba* moe-larry] [1 2 {:*curly* \"Why soitenly\"}])")
     (send "(local [!x-y !x_y] [1 2])")
     (assert-equal-unordered (comp "foo") ["foo" "foo-ba*"]
@@ -43,6 +45,15 @@
     (send "(local dynamic-index (setmetatable {:a 1 :b 2} {:__index #($2:upper)}))")
     (assert-equal-unordered (comp "dynamic-index.") [:dynamic-index.a :dynamic-index.b]
                             "completion doesn't error on table with a fn on mt.__index")
+    (send "(global global-is-nil nil) (tset _G :global-is-not-nil-unscoped :NOT-NIL)")
+    (assert-equal-unordered (comp :global-is-n) [:global-is-nil :global-not-nil-unscoped]
+                            "completion includes repl-scoped nil globals & unscoped non-nil globals")
+    (send "(local val-is-nil nil) (lua \"local val-is-nil-unscoped = nil\")")
+    (l.assertEquals (comp :val-is-ni) [:val-is-nil]
+                    "completion includes repl-scoped locals with nil values")
+    (send "(global shadowed-is-nil nil) (local shadowed-nil nil)")
+    (l.assertEquals (comp :shadowed-is-n) [:shadowed-is-nil]
+                    "completion includes repl-scoped shadowed variables only once")
     (let [(ok msg) (pcall send ",complete ]")]
       (l.assertTrue ok "shouldn't kill the repl on a parse error"))))
 
@@ -231,7 +242,7 @@
 ;; this case the feature will work fine; we just can't use this method of
 ;; testing it on PUC 5.1, so skip it.
 (if (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
-    {: test-local-completion
+    {: test-sym-completion
      : test-macro-completion
      : test-method-completion
      : test-help

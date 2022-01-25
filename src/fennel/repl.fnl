@@ -55,22 +55,25 @@
     (table.concat spliced-source "\n")))
 
 (fn completer [env scope text]
-  (let [matches []
+  (let [max-items 2000 ; to stop explosion on too mny items
+        seen {}
+        matches []
         input-fragment (text:gsub ".*[%s)(]+" "")]
     (var stop-looking? false)
 
-    (fn add-partials [input tbl prefix method?] ; add partial key matches in tbl
-      (each [k (utils.allpairs tbl)]
-        (let [k (if (or (= tbl env) (= tbl env.___replLocals___))
-                    (. scope.unmanglings k)
-                    k)]
-          (when (and (< (length matches) 2000)
-                     ; stop explosion on too many items
-                     (= (type k) :string) (= input (k:sub 0 (length input)))
-                     (or (not method?) (= :function (type (. tbl k)))))
-            (table.insert matches (if method?
-                                      (.. prefix ":" k)
-                                      (.. prefix k)))))))
+    (fn add-partials [input tbl prefix] ; add partial key matches in tbl
+      ;; When matching on global env or repl locals, iterate *manglings* to include nils
+      (local scope-first? (or (= tbl env) (= tbl env.___replLocals___)))
+      (icollect [k is-mangled (utils.allpairs (if scope-first? scope.manglings tbl))
+                :into matches :until (<= max-items (length matches))]
+        (let [lookup-k (if scope-first? is-mangled k)]
+          (when (and (= (type k) :string) (= input (k:sub 0 (length input)))
+                     ;; manglings iterated for globals & locals, but should only match once
+                     (not (. seen k))
+                     ;; only match known  functions when we encounter a method call
+                     (or (not= ":" (prefix:sub -1)) (= :function (type (. tbl lookup-k)))))
+            (tset seen k true)
+            (.. prefix k)))))
 
     (fn descend [input tbl prefix add-matches method?]
       (let [splitter (if method? "^([^:]+):(.*)" "^([^.]+)%.(.*)")
@@ -79,7 +82,7 @@
         (when (= (type (. tbl raw-head)) :table)
           (set stop-looking? true)
           (if method?
-              (add-partials tail (. tbl raw-head) (.. prefix head) true)
+              (add-partials tail (. tbl raw-head) (.. prefix head ":"))
               (add-matches tail (. tbl raw-head) (.. prefix head))))))
 
     (fn add-matches [input tbl prefix]

@@ -73,10 +73,8 @@ Optionally takes a target table to insert the mapped values into."
 
 (fn copy [from ?to]
   "Returns a shallow copy of its table argument. Returns an empty table on nil."
-  (let [to (or ?to [])]
-    (each [k v (pairs (or from []))]
-      (tset to k v))
-    to))
+  (collect [k v (pairs (or from [])) :into (or ?to {})]
+    (values k v)))
 
 (fn member? [x tbl ?n]
   (match (. tbl (or ?n 1))

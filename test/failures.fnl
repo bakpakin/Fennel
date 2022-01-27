@@ -2,6 +2,16 @@
 (local fennel (require :fennel))
 (local friend (require :fennel.friend))
 
+(macro assert-fail-msg [form expected]
+  `(let [(ok# msg#) (pcall fennel.compile-string (macrodebug ,form true)
+                           {:allowedGlobals (icollect [k# (pairs _G)] k#)})]
+     (l.assertFalse ok#)
+     (l.assertStrContains msg# ,expected)))
+
+(fn test-names []
+  (assert-fail-msg (local + 6) "overshadowed by a special form")
+  (assert-fail-msg (print each) "tried to reference a special form"))
+
 (fn test-failures [failures]
   (each [code expected-msg (pairs failures)]
     (let [(ok? msg) (pcall fennel.compileString code
@@ -14,12 +24,9 @@
   (test-failures
    {"(fn global [] 1)" "overshadowed"
     "(fn global-caller [] (hey))" "unknown identifier"
-    "(global + 1)" "overshadowed"
-    "(global - 1)" "overshadowed"
-    "(global // 1)" "overshadowed"
     "(global 48 :forty-eight)" "unable to bind number 48"
     "(global good (fn [] nil)) (good) (BAD)" "BAD"
-    "(global let 1)" "overshadowed"
+    "(global let 1)" "tried to reference a special form"
     "(hey)" "unknown identifier"
     "(let [bl 8 a bcd] nil)" "unknown identifier"
     "(let [global 1] 1)" "overshadowed"
@@ -187,4 +194,5 @@
  : test-suggestions
  : test-macro
  : test-parse-fails
- : test-macro-traces}
+ : test-macro-traces
+ : test-names}

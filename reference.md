@@ -204,23 +204,6 @@ ignore trailing nils:
 [(pick-values 5 "one" "two")]           ; => ["one" "two"]
 ```
 
-### `pick-args` create a function of fixed arity
-
-*(Since 0.4.0, deprecated 0.10.0)*
-
-Like `pick-values`, but takes an integer `n` and a function/operator
-`f`, and creates a new function that applies exactly `n` arguments to `f`.
-
-Example, using the `add` function created above:
-
-```fennel
-(pick-args 2 add) ; expands to `(fn [_0_ _1_] (add _0_ _1_))`
-(-> [1 2 3 4 5] (table.unpack) ((pick-args 3 add))) ; => 6
-
-(local count-args (partial select "#"))
-((pick-args 3 count-args) "still three args, but 2nd and 3rd are nil") ; => 3
-```
-
 ## Binding
 
 ### `let` scoped locals
@@ -497,21 +480,6 @@ still supported, `where` should be preferred instead:
   (where [a 2 3] (> a 0)) "new guard syntax"
   ([a 2 3] ? (> a 0)) "obsolete guard syntax")
 ```
-
-### `global` set global variable
-
-Sets a global variable to a new value. Note that there is no
-distinction between introducing a new global and changing the value of
-an existing one. This supports destructuring and multiple-value binding.
-
-Example:
-
-```fennel
-(global prettyprint (fn [x] (print (fennel.view x))))
-```
-
-Note that every global is also exposed on the `_G` table, which can
-often be a better choice than using `global`.
 
 ### `var` declare local variable
 
@@ -1147,12 +1115,6 @@ However, this code will work, provided the module in question exists:
 See "Compiler API" below for details about additional functions visible
 inside compiler scope which macros run in.
 
-### `require-macros` load macros with less flexibility
-
-The `require-macros` form is like `import-macros`, except it does not
-give you any control over the naming of the macros being
-imported. It is strongly recommended to use `import-macros` instead.
-
 ### Macro module searching
 
 By default, Fennel will search for macro modules similarly to how it
@@ -1392,6 +1354,48 @@ the second argument.
 
 Note that this should only be used in exceptional circumstances, and
 if you are able to avoid it, you should.
+
+## Deprecated Forms
+
+### `require-macros` load macros with less flexibility
+
+The `require-macros` form is like `import-macros`, except it does not
+give you any control over the naming of the macros being
+imported. It is strongly recommended to use `import-macros` instead.
+
+### `pick-args` create a function of fixed arity
+
+*(Since 0.4.0, deprecated 0.10.0)*
+
+Like `pick-values`, but takes an integer `n` and a function/operator
+`f`, and creates a new function that applies exactly `n` arguments to `f`.
+
+Example, using the `add` function created above:
+
+```fennel
+(pick-args 2 add) ; expands to `(fn [_0_ _1_] (add _0_ _1_))`
+(-> [1 2 3 4 5] (table.unpack) ((pick-args 3 add))) ; => 6
+
+(local count-args (partial select "#"))
+((pick-args 3 count-args) "still three args, but 2nd and 3rd are nil") ; => 3
+```
+
+### `global` set global variable
+
+Sets a global variable to a new value. Note that there is no
+distinction between introducing a new global and changing the value of
+an existing one. This supports destructuring and multiple-value binding.
+
+Example:
+
+```fennel
+(global prettyprint (fn [x] (print (fennel.view x))))
+```
+
+Using `global` adds the identifier in question to the list of allowed
+globals so that referring to it later on will not cause a compiler error.
+However, globals are also available in the `_G` table, and accessing
+them thru that instead is recommended for clarity.
 
 [1]: https://www.lua.org/manual/5.1/
 [2]: https://gist.github.com/nimaai/2f98cc421c9a51930e16#variable-capture

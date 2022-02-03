@@ -559,7 +559,7 @@ result will be matched against these sequentially without chaining to allow
 for handling errors in one place."
   (let [clauses [pattern body ...]
         last (. clauses (length clauses))
-        else (if (= `else (and (= :table (type last)) (. last 1)))
+        else (if (= `catch (and (= :table (type last)) (. last 1)))
                  (let [[_ & e] (table.remove clauses)] e) ; remove `else sym
                  [`_# `...])]
     (assert (= 0 (math.fmod (length clauses) 2))
@@ -587,4 +587,4 @@ for handling errors in one place."
  :macrodebug macrodebug*
  :import-macros import-macros*
  :match match-where
- :match-> match->*}
+ :match-try match->*}

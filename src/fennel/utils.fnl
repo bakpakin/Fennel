@@ -7,6 +7,34 @@
 
 (local version :1.0.1-dev)
 
+;;; Lua VM detection helper functions
+
+(fn luajit-vm? []
+  ;; Heuristic for detecting jit module from LuaJIT VM
+  (and (not= nil jit) (= (type jit) :table) (not= nil jit.on)
+       (not= nil jit.off) (= (type jit.version_num) :number)))
+
+(fn luajit-vm-version []
+  ;; Use more recent Apple naming scheme
+  (let [jit-os (if (= jit.os :OSX) :macOS jit.os)]
+    (.. jit.version " " jit-os "/" jit.arch)))
+
+(fn fengari-vm? []
+  ;; Heuristic for detecting fengari module from Fengari VM
+  (and (not= nil fengari) (= (type fengari) :table) (not= nil fengari.VERSION)
+       (= (type fengari.VERSION_NUM) :number)))
+
+(fn fengari-vm-version []
+  (.. fengari.RELEASE " (" _VERSION ")"))
+
+(fn lua-vm-version []
+  (if (luajit-vm?) (luajit-vm-version)
+      (fengari-vm?) (fengari-vm-version)
+      (.. "PUC " _VERSION)))
+
+(fn runtime-version []
+  (.. "Fennel " version " on " (lua-vm-version)))
+
 ;;; General-purpose helper functions
 
 (fn warn [message]
@@ -386,6 +414,7 @@ handlers will be skipped."
  : debug-on?
  : ast-source
  : version
+ : runtime-version
  :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")
  :macro-path (table.concat [:./?.fnl :./?/init-macros.fnl :./?/init.fnl
                             (getenv :FENNEL_MACRO_PATH)] ";")}

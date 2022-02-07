@@ -132,6 +132,7 @@
             : eval
             :dofile dofile*
             :version utils.version
+            :runtime-version utils.runtime-version
             : repl
             : syntax
             ;; backwards-compatibility aliases
@@ -141,7 +142,8 @@
             :macroLoaded specials.macro-loaded
             :compileStream compiler.compile-stream
             :compileString compiler.compile-string
-            :stringStream parser.string-stream})
+            :stringStream parser.string-stream
+            :runtimeVersion utils.runtime-version})
 
 ;; This is bad; we have a circular dependency between the specials section and
 ;; the evaluation section due to require-macros/import-macros, etc. For now

@@ -5,6 +5,9 @@ embedding Fennel in a Lua program. If you're writing a pure Fennel
 program or working on a system that already has Fennel support, you
 probably don't need this.
 
+Only the `fennel` module is part of the public API. The other modules
+are implementation details subject to change.
+
 Any time a function takes an `options` table argument, that table will
 usually accept these fields:
 

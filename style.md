@@ -454,10 +454,6 @@ style; it should never be used except as a temporary hack.
 
 ### Modules
 
-Avoid plurals in module names. Rationale: if modules can be plural or
-singular, that's one more thing to have to remember and one more thing you
-could get wrong. If they are always singular, it's easier to be consistent.
-
 Gather all your top-level `require` calls to the top of your file so
 dependencies can be seen at a glance.
 

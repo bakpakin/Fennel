@@ -105,6 +105,7 @@ Lua is much more readily-available than it is for Fennel.
 
 * Join the `#fennel` chat [thru IRC on Libera.Chat][9] or [on Matrix][10]
 * The [mailing list][5] has slower-paced discussion and announcements
+* Report issues on the mailing list, [Sourcehut todo][11] or [Github issues][12]
 * You can browse and edit [the Wiki][7]
 * View builds in Fennel's [continuous integration][8]
 * Community interactions are subject to the [code of conduct](CODE-OF-CONDUCT.md).
@@ -124,3 +125,5 @@ Released under the [MIT license](LICENSE).
 [8]: https://builds.sr.ht/~technomancy/fennel
 [9]: https://libera.chat
 [10]: https://matrix.to/#/!rnpLWzzTijEUDhhtjW:matrix.org?via=matrix.org
+[11]: https://todo.sr.ht/~technomancy/fennel
+[12]: https://github.com/bakpakin/Fennel/issues

@@ -55,8 +55,9 @@ minifennel.lua: $(MINI_SRC) fennel
 		--skip-include fennel.repl,fennel.view,fennel.friend --no-compiler-sandbox \
 		--compile $< > $@
 
-lint:
-	FENNEL_LINT_MODULES="^fennel%." $(LAUNCHER) --plugin src/linter.fnl \
+lint: fennel
+	FENNEL_LINT_MODULES="^fennel%." ./fennel --no-compiler-sandbox \
+		--add-fennel-path src/?.fnl --plugin src/linter.fnl \
 		--require-as-include --compile src/fennel.fnl > /dev/null
 
 ## Binaries

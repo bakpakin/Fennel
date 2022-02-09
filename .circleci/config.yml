@@ -31,4 +31,4 @@ workflows:
       - build
 # Something wrong with make on Windows currently:
 # https://app.circleci.com/pipelines/github/bakpakin/Fennel/320/workflows/75550128-9cdc-4afe-b2c4-9aa66d379eba/jobs/1032/steps
-#      - windows
+      - windows

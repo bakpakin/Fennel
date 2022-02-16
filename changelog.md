@@ -7,9 +7,16 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 ### New Features
 * The `accumulate` macro can now accumulate over multiple values
 
+### Bug Fixes
+* Correct `--skip-include`/`skipInclude` to correctly emit `require` without
+the `include` fallback warning instead of `nil`
+* Remove hex string escapes to preserve PUC Lua 5.1 compatibility
+* Prevent errors resolving the target of the `,doc` command from crashing the REPL
+
 ### Changes and Removals
 
 * Deprecate the `global` form in favor of using the `_G` table
+
 
 ## 1.0.0 / 2021-11-14
 

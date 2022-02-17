@@ -146,48 +146,8 @@ Other editors support advanced features like an integrated REPL, live
 reloading while you edit the program, documentation lookups, and
 jumping to source definitions.
 
-If your favorite editor isn't listed here, that's OK; stick with what
-you're most comfortable. You can usually get decent results by telling
-your editor to treat Fennel files as if they were Clojure or Scheme
-files.
-
-
-### Adding Fennel support to Emacs
-
-Installing [fennel-mode](https://gitlab.com/technomancy/fennel-mode/)
-gives you syntax highlighting, indentation, paren-matching, a repl,
-reloading, documentation lookup, and jumping to source definitions.
-
-For more information, see [the fennel-mode
-readme](https://gitlab.com/technomancy/fennel-mode/-/blob/master/Readme.md).
-
-
-### Adding Fennel support to Vim
-
-The [fennel.vim](https://github.com/bakpakin/fennel.vim) plugin offers
-syntax highlighting and indentation support.
-
-
-### Adding Fennel support to Neovim
-
-  * For syntax highlighting and indentation, install
-    [fennel.vim](https://github.com/bakpakin/fennel.vim)
-  * To spin up a REPL in the terminal buffer, you can install a REPL plugin
-    like [conjure](https://conjure.fun/).
-
-
-### Adding Fennel support to Visual Studio Code
-
-Search in the built-in extension manager for "Fennel" to install
-[the vsc-fennel extension](https://github.com/kongeor/vsc-fennel). At
-the time of this writing it only provides syntax highlighting.
-
-
-### Adding Fennel support to [Vis](https://github.com/martanne/vis), [Textadept](https://github.com/orbitalquark/textadept), and [Howl](https://github.com/howl-editor/howl)
-
-  * The plugins based on [lisp-parkour](https://repo.or.cz/lisp-parkour) offer
-    structured editing/navigation, automatic indentation, and (very) basic REPL integration.
-  * Vis and Textadept come with syntax highlighting for Fennel built in.
+See [the wiki](https://github.com/bakpakin/Fennel/wiki/Editors)
+for a list of editors that have Fennel support.
 
 
 ## Adding readline support to Fennel

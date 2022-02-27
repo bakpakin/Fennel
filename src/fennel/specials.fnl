@@ -1061,13 +1061,25 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
                          filename)
         (nil error) error))))
 
+;; If the compiler sandbox is disabled, we need to splice in the searcher
+;; so macro modules can load other macro modules in compiler env.
+(fn dofile-with-searcher [fennel-macro-searcher filename opts ...]
+  (let [searchers (or package.loaders package.searchers {})
+        _ (table.insert searchers 1 fennel-macro-searcher)
+        m (utils.fennel-module.dofile filename opts ...)]
+    (table.remove searchers 1)
+    m))
+
 (fn fennel-macro-searcher [module-name]
   (let [opts (doto (utils.copy utils.root.options)
                (tset :env :_COMPILER)
                (tset :requireAsInclude false)
                (tset :allowedGlobals nil))]
     (match (search-module module-name utils.fennel-module.macro-path)
-      filename (values (partial utils.fennel-module.dofile filename opts)
+      filename (values (if (= opts.compiler-env _G)
+                           (partial dofile-with-searcher fennel-macro-searcher
+                                    filename opts)
+                           (partial utils.fennel-module.dofile filename opts))
                        filename))))
 
 (fn lua-macro-searcher [module-name]

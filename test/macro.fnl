@@ -257,7 +257,9 @@
     (table.insert fennel.macro-searchers 1 searcher)
     (let [(ok msg) (pcall fennel.eval "(import-macros {: path} :dummy) (path)")]
       (l.assertTrue ok msg))
-    (table.remove fennel.macro-searchers 1)))
+    (table.remove fennel.macro-searchers 1)
+    (l.assertTrue (pcall fennel.eval "(import-macros i :test.indirect-macro)"
+                         {:compiler-env _G}))))
 
 (fn test-expand []
   (let [code "(macro expand-string [f]

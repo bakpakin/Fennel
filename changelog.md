@@ -300,7 +300,7 @@ This release mostly contains small bug fixes.
 * Fix a bug causing `else` to emit twice in some contexts
 
 ### Changes and Removals
-* Dissallow naming a local the same as global in some contexts
+* Disallow naming a local the same as global in some contexts
 
 
 ## 0.3.1 / 2019-12-17

@@ -74,7 +74,7 @@ a nil value in any of subsequent keys."
     lookups))
 
 (fn doto* [val ...]
-  "Evaluates val and splices it into the first argument of subsequent forms."
+  "Evaluate val and splice it into the first argument of subsequent forms."
   (let [name (gensym)
         form `(let [,name ,val])]
     (each [_ elt (ipairs [...])]
@@ -124,11 +124,10 @@ encountering an error before propagating it."
   (or into []))
 
 (fn collect* [iter-tbl key-expr value-expr ...]
-  "Returns a table made by running an iterator and evaluating an expression that
+  "Return a table made by running an iterator and evaluating an expression that
 returns key-value pairs to be inserted sequentially into the table.  This can
-be thought of as a table comprehension. The body should provide two
-expressions (used as key and value) or nil, which causes it to be omitted from
-the resulting table.
+be thought of as a table comprehension. The body should provide two expressions
+(used as key and value) or nil, which causes it to be omitted.
 
 For example,
   (collect [k v (pairs {:apple \"red\" :orange \"orange\"})]
@@ -151,13 +150,15 @@ Supports early termination with an :until clause."
        tbl#)))
 
 (fn icollect* [iter-tbl value-expr ...]
-  "Returns a sequential table made by running an iterator and evaluating an
+  "Return a sequential table made by running an iterator and evaluating an
 expression that returns values to be inserted sequentially into the table.
-This can be thought of as a \"list comprehension\". If the body returns nil
-that element is omitted from the resulting table.
+This can be thought of as a table comprehension. If the body evaluates to nil
+that element is omitted.
 
 For example,
-  (icollect [_ v (ipairs [1 2 3 4 5])] (when (not= v 3) (* v v)))
+  (icollect [_ v (ipairs [1 2 3 4 5])]
+    (when (not= v 3)
+      (* v v)))
 returns
   [1 4 16 25]
 
@@ -214,7 +215,7 @@ returns 5"
       (and (sym? x) (not (multi-sym? x)))))
 
 (fn partial* [f ...]
-  "Returns a function with all arguments partially applied to f."
+  "Return a function with all arguments partially applied to f."
   (assert f "expected a function to partially apply")
   (let [bindings []
         args []]
@@ -234,7 +235,7 @@ returns 5"
              (fn [,_VARARG] ,body))))))
 
 (fn pick-args* [n f]
-  "Creates a function of arity n that applies its arguments to f.
+  "Create a function of arity n that applies its arguments to f.
 
 For example,
   (pick-args 2 func)
@@ -252,7 +253,7 @@ expands to
        (,f ,(unpack bindings)))))
 
 (fn pick-values* [n ...]
-  "Like the `values` special, but emits exactly n values.
+  "Evaluate to exactly n values.
 
 For example,
   (pick-values 2 ...)
@@ -316,7 +317,7 @@ With a second argument, returns expanded form as a string instead of printing."
     `(,handle ,(view (macroexpand form _SCOPE)))))
 
 (fn import-macros* [binding1 module-name1 ...]
-  "Binds a table of macros from each macro module according to a binding form.
+  "Bind a table of macros from each macro module according to a binding form.
 Each binding form can be either a symbol or a k/v destructuring table.
 Example:
   (import-macros mymacros                 :my-macros    ; bind to symbol
@@ -393,7 +394,7 @@ Example:
     (values condition bindings)))
 
 (fn match-pattern [vals pattern unifications]
-  "Takes the AST of values and a single pattern and returns a condition
+  "Take the AST of values and a single pattern and returns a condition
 to determine if it matches as well as a list of bindings to
 introduce for the duration of the body if it does match."
   ;; we have to assume we're matching against multiple values here until we

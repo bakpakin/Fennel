@@ -753,11 +753,11 @@ Method name doesn't have to be known at compile-time; if it is, use
 ;; Spice in a do to trigger an IIFE to ensure we short-circuit certain
 ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
 ;; https://todo.sr.ht/~technomancy/fennel/111
-(fn maybe-short-circuit-protect [ast i name {: specials :macros m}]
+(fn maybe-short-circuit-protect [ast i name {:macros mac}]
   (let [call (and (utils.list? ast) (tostring (. ast 1)))]
     (if (and (or (= :or name) (= :and name)) (< 1 i)
              ;; dangerous specials (or a macro which could be anything)
-             (or (. m call) (= :set call) (= :tset call) (= :global call)))
+             (or (. mac call) (= :set call) (= :tset call) (= :global call)))
         (utils.list (utils.sym :do) ast)
         ast)))
 

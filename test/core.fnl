@@ -31,7 +31,12 @@
                "(and true true (values))" true
                "(and true (values true false) true)" true
                "(and true (values true false))" false
-               "(tostring (and _G.xyz (do _G.xyz.y) _G.xyz))" :nil}]
+               "(tostring (and _G.xyz (do _G.xyz.y) _G.xyz))" :nil
+               ;; short-circuit special forms
+               "(let [t {:a 85}] (or true (tset t :a 1)) t.a)" 85
+               ;; short-circuit macros too
+               "(macro ts [t k v] `(tset ,t ,k ,v))
+                (let [t {:a 521}] (or true (ts t :a 1)) t.a)" 521}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

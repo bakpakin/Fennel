@@ -750,11 +750,23 @@ Method name doesn't have to be known at compile-time; if it is, use
 (doc-special :hashfn ["..."]
              "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
+;; Spice in a do to trigger an IIFE to ensure we short-circuit certain
+;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
+;; https://todo.sr.ht/~technomancy/fennel/111
+(fn maybe-short-circuit-protect [ast i name {: specials :macros m}]
+  (let [call (and (utils.list? ast) (tostring (. ast 1)))]
+    (if (and (or (= :or name) (= :and name)) (< 1 i)
+             ;; dangerous specials (or a macro which could be anything)
+             (or (. m call) (= :set call) (= :tset call) (= :global call)))
+        (utils.list (utils.sym :do) ast)
+        ast)))
+
 (fn arithmetic-special [name zero-arity unary-prefix ast scope parent]
   (let [len (length ast) operands []
         padded-op (.. " " name " ")]
     (for [i 2 len]
-      (let [subexprs (compiler.compile1 (. ast i) scope parent)]
+      (let [subast (maybe-short-circuit-protect (. ast i) i name scope)
+            subexprs (compiler.compile1 subast scope parent)]
         (if (= i len)
             ;; last arg gets all its exprs but everyone else only gets one
             (utils.map subexprs tostring operands)
@@ -784,7 +796,6 @@ Method name doesn't have to be known at compile-time; if it is, use
 (define-arithmetic-special "//" nil :1)
 
 (fn SPECIALS.or [ast scope parent]
-  ;; and/or have nval=nil in order to trigger IIFE so they can short-circuit
   (arithmetic-special :or :false nil ast scope parent))
 
 (fn SPECIALS.and [ast scope parent]

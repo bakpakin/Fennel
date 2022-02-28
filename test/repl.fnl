@@ -192,7 +192,7 @@
     (l.assertEquals (send "xyz") [:55])))
 
 (local doc-cases
-       [[",doc doto" "(doto val ...)\n  Evaluates val and splices it into the first argument of subsequent forms." "docstrings for built-in macros" ]
+       [[",doc doto" "(doto val ...)\n  Evaluate val and splice it into the first argument of subsequent forms." "docstrings for built-in macros" ]
         [",doc table.concat"  "(table.concat #<unknown-arguments>)\n  #<undocumented>" "docstrings for built-in Lua functions" ]
         [",doc foo.bar" "error: Could not resolve value for docstring lookup"]
         [",doc (bork)" "error: Could not resolve value for docstring lookup"]

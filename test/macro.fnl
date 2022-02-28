@@ -244,50 +244,50 @@
 (macro == [code expected ?msg]
   `(l.assertEquals (fennel.eval (macrodebug ,code true)) ,expected ,?msg))
 
-(fn test-match-> []
-  (== (match-> [1 2 1]
+(fn test-match-try []
+  (== (match-try [1 2 1]
         [1 a b] [b a]
         [1 & rest] rest)
       [2]
       "matching all the way thru")
-  (== (match-> [1 2 3]
+  (== (match-try [1 2 3]
         [1 a b] [b a]
         [1 & rest] rest)
       [3 2]
       "stopping on the second clause")
-  (== [(match-> (values nil "whatever")
+  (== [(match-try (values nil "whatever")
          [1 a b] [b a]
          [1 & rest] rest)]
       [nil :whatever]
       "nil, msg failure representation stops immediately")
-  (== (select 2 (match-> "hey"
+  (== (select 2 (match-try "hey"
                   x (values nil "error")
                   y nil))
       "error"
       "all values are in fact propagated even on a mid-chain mismatch")
-  (== (select :# (match-> "hey"
+  (== (select :# (match-try "hey"
                    x (values nil "error" nil nil)
                    y nil))
       4
       "trailing nils are preserved")
-  (== (match-> {:a "abc" :x "xyz"}
+  (== (match-try {:a "abc" :x "xyz"}
         {: b} :son-of-a-b!
-        (else
+        (catch
          {: a : x} (.. a x)))
       "abcxyz"
-      "else clause works")
-  (== (match-> {:a "abc" :x "xyz"}
+      "catch clause works")
+  (== (match-try {:a "abc" :x "xyz"}
         {: a} {:abc "whatever"}
         {: b} :son-of-a-b!
-        (else
+        (catch
          [hey] :idunno
          {: abc} (.. abc "yo")))
       "whateveryo"
-      "multiple else clauses works")
-  (let [(_ msg1) (pcall fennel.eval "(match-> abc def)")
-        (_ msg2) (pcall fennel.eval "(match-> abc {} :def _ :wat (else 55))")]
+      "multiple catch clauses works")
+  (let [(_ msg1) (pcall fennel.eval "(match-try abc def)")
+        (_ msg2) (pcall fennel.eval "(match-try abc {} :def _ :wat (catch 55))")]
     (l.assertStrMatches msg1 ".*expected every pattern to have a body.*")
-    (l.assertStrMatches msg2 ".*expected every else pattern to have a body.*")))
+    (l.assertStrMatches msg2 ".*expected every catch pattern to have a body.*")))
 
 (fn test-lua-module []
   (let [bad "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"]
@@ -328,4 +328,4 @@
  : test-lua-module
  : test-disabled-sandbox-searcher
  : test-expand
- : test-match->}
+ : test-match-try}

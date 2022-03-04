@@ -1185,7 +1185,7 @@ Consider using import-macros instead as it is more flexible.")
   "Helper function for include once we have determined the path to use."
   (tset utils.root.scope.includes mod :fnl/loading)
   (let [src (with-open [f (assert (io.open path))]
-              (: (f:read :*all) :gsub "[\r\n]*$" ""))
+              (: (assert (f:read :*all)) :gsub "[\r\n]*$" ""))
         ;; splice in source and memoize it in compiler AND package.preload
         ;; so we can include it again without duplication, even in runtime
         ret (utils.expr (.. "require(\"" mod "\")") :statement)

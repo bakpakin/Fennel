@@ -6,6 +6,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 
 ### New Features
 * The `accumulate` macro can now accumulate over multiple values
+* The `fn` special now accepts metadata table in-place of a docstring
 
 ### Bug Fixes
 * Fix a bug where  `--skip-include` would mistakenly emit a warning

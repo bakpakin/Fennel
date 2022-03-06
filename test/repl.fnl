@@ -207,7 +207,8 @@
         ["(local fennel (require :fennel)) (local {: generate} (fennel.dofile \"test/generate.fnl\" {:useMetadata true})) ,doc generate"  "(generate depth ?choice)\n  Generate a random piece of data." "docstrings from required module." ]
         ["(macro abc [x y z] \"this is a macro.\" :123) ,doc abc"  "(abc x y z)\n  this is a macro." "docstrings for user-defined macros" ]
         ["(macro ten [] \"[ten]\" 10) ,doc ten" "(ten)\n  [ten]" "macro docstrings with brackets"]
-        ["(λ foo [] :D 1) ,doc foo"  "(foo)\n  D" ",doc fnname for named lambdas appear like named functions" ]])
+        ["(λ foo [] :D 1) ,doc foo"  "(foo)\n  D" ",doc fnname for named lambdas appear like named functions" ]
+        ["(fn foo [...] {:fnl/arglist [a b c] :fnl/docstring \"D\"} 1) ,doc foo"  "(foo a b c)\n  D" ",doc arglist should be taken from function metadata table" ]])
 
 (fn test-docstrings []
   (let [send (wrap-repl)]

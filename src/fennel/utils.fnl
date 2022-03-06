@@ -269,6 +269,10 @@ except when certain macros need to look for binding forms, etc specifically."
   (and (= (type x) :table) (not= x vararg) (not= (getmetatable x) list-mt)
        (not= (getmetatable x) symbol-mt) (not (comment? x)) x))
 
+(fn string? [x]
+  "Convenience function to check if object is a string."
+  (= (type x) :string))
+
 (fn multi-sym? [str]
   "A multi symbol is a symbol that is actually composed of two or more symbols
 using dot syntax. The main differences from normal symbols is that they can't
@@ -406,6 +410,7 @@ handlers will be skipped."
  : table?
  : varg?
  : quoted?
+ : string?
  : valid-lua-identifier?
  : lua-keywords
  : hook

@@ -70,11 +70,11 @@ different than omitting an argument.
 
 The `λ` form is an alias for `lambda` and behaves identically.
 
-### Docstrings
+### Docstrings and metadata
 
 *(Since 0.3.0)*
 
-Both the `fn` and `lambda`/`λ` forms of function definition accept an optional
+The `fn`, `lambda`, `λ` and `macro` forms accept an optional
 docstring.
 
 ```fennel
@@ -102,6 +102,33 @@ enabling viewing function docs via the `doc` macro.
 All function metadata will be garbage collected along with the function itself.
 Docstrings and other metadata can also be accessed via functions on the fennel
 API with `fennel.doc` and `fennel.metadata`.
+
+*(Since 1.0.1)*
+
+All forms from above now also accept a metadata table in-place of the
+docstring:
+
+```fennel
+(fn add [...]
+  {:fnl/docstring "Add arbitrary amount of numbers."
+   :fnl/arglist [a b & more]}
+  (match (values (select :# ...) ...)
+    (0) 0
+    (1 a) a
+    (2 a b) (+ a b)
+    (_ a b) (add (+ a b) (select 3 ...))))
+```
+
+Here, the arglist is overridden by that in the metadata table (note that symbols are provided in the raw form).
+Calling `,doc` command in the REPL prints specified argument list:
+
+```
+>> ,doc add
+(add a b & more)
+  Add arbitrary amount of numbers.
+```
+
+Supported metadata keys are `fnl/docstring` and `fnl/arglist`.
 
 ### Hash function literal shorthand
 
@@ -137,7 +164,7 @@ function is treated as an alias for `$1`.
 Hash functions are defined with the `hashfn` macro or special character `#`,
 which wraps its single argument in a function literal. For example,
 
-```clojure
+```fennel
 #$3               ; same as (fn [x y z] z)
 #[$1 $2 $3]       ; same as (fn [a b c] [a b c])
 #$                ; same as (fn [x] x) (aka the identity function)

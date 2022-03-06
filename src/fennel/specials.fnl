@@ -17,18 +17,18 @@ and mangling values when setting a value. This means the original env
 will see its values updated as expected, regardless of mangling rules."
   (setmetatable []
                 {:__index (fn [_ key]
-                            (if (= (type key) :string)
+                            (if (utils.string? key)
                                 (. env (compiler.global-unmangling key))
                                 (. env key)))
                  :__newindex (fn [_ key value]
-                               (if (= (type key) :string)
+                               (if (utils.string? key)
                                    (tset env (compiler.global-unmangling key)
                                          value)
                                    (tset env key value)))
                  ;; manually in 5.1
                  :__pairs (fn []
                             (fn putenv [k v]
-                              (values (if (= (type k) :string)
+                              (values (if (utils.string? k)
                                           (compiler.global-unmangling k)
                                           k)
                                       v))
@@ -171,9 +171,9 @@ Main purpose to print function argument list in docstring."
                               (.. (deep-tostring k true) " "
                                   (deep-tostring v)))
                             " ") "}")
-      (and key? (= (type x) :string) (x:find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
+      (and key? (utils.string? x) (x:find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
       (.. ":" x)
-      (= (type x) :string)
+      (utils.string? x)
       (-> (string.format "%q" x)
           (: :gsub "\\\"" "\\\\\"")
           (: :gsub "\"" "\\\""))
@@ -207,7 +207,7 @@ Main purpose to print function argument list in docstring."
       (values nil true 2)))
 
 (fn compile-named-fn [ast f-scope f-chunk parent index fn-name local?
-                      arg-name-list arg-list docstring]
+                      arg-name-list f-metadata]
   (for [i (+ index 1) (length ast)]
     (compiler.compile1 (. ast i) f-scope f-chunk
                        {:nval (or (and (not= i (length ast)) 0) nil)
@@ -219,12 +219,13 @@ Main purpose to print function argument list in docstring."
                  ast)
   (compiler.emit parent f-chunk ast)
   (compiler.emit parent :end ast)
-  (set-fn-metadata arg-list docstring parent fn-name)
+  (set-fn-metadata f-metadata.fnl/arglist f-metadata.fnl/docstring
+                   parent fn-name)
   (utils.hook :fn ast f-scope)
   (utils.expr fn-name :sym))
 
-(fn compile-anonymous-fn [ast f-scope f-chunk parent index
-                          arg-name-list arg-list docstring scope]
+(fn compile-anonymous-fn [ast f-scope f-chunk parent index arg-name-list
+                          f-metadata scope]
   ;; TODO: eventually compile this to an actual function value instead of
   ;; binding it to a local and using the symbol. the difficulty here is that
   ;; a function is a chunk with many lines, and the current representation of
@@ -232,7 +233,26 @@ Main purpose to print function argument list in docstring."
   ;; losing line numbering information.
   (let [fn-name (compiler.gensym scope)]
     (compile-named-fn ast f-scope f-chunk parent index fn-name true
-                      arg-name-list arg-list docstring)))
+                      arg-name-list f-metadata)))
+
+(fn get-function-metadata [ast arg-list index]
+  ;; Get function metadata from ast and put it in a table.  Detects if
+  ;; the next expression after a argument list is either a string or a
+  ;; table, and copies values into function metadata table.
+  (let [f-metadata {:fnl/arglist arg-list}
+        index* (+ index 1)
+        expr (. ast index*)]
+    (if (and (utils.string? expr)
+             (< index* (length ast)))
+        (values (doto f-metadata
+                  (tset :fnl/docstring expr))
+                index*)
+        (and (utils.table? expr)
+             (< index* (length ast)))
+        (values (collect [k v (pairs expr) :into f-metadata]
+                  (values k v))
+                index*)
+        (values f-metadata index))))
 
 (fn SPECIALS.fn [ast scope parent]
   (let [f-scope (doto (compiler.make-scope scope)
@@ -270,18 +290,15 @@ Main purpose to print function argument list in docstring."
                            (. ast index))))
 
     (let [arg-name-list (utils.map arg-list get-arg-name)
-          (index docstring) (if (and (= (type (. ast (+ index 1))) :string)
-                                     (< (+ index 1) (length ast)))
-                                (values (+ index 1) (. ast (+ index 1)))
-                                (values index nil))]
+          (f-metadata index) (get-function-metadata ast arg-list index)]
       (if fn-name
           (compile-named-fn ast f-scope f-chunk parent index fn-name local?
-                            arg-name-list arg-list docstring)
-          (compile-anonymous-fn ast f-scope f-chunk parent index
-                                arg-name-list arg-list docstring scope)))))
+                            arg-name-list f-metadata)
+          (compile-anonymous-fn ast f-scope f-chunk parent index arg-name-list
+                                f-metadata scope)))))
 
 (doc-special :fn [:name? :args :docstring? "..."]
-             "Function syntax. May optionally include a name and docstring.
+             "Function syntax. May optionally include a name and docstring or a metadata table.
 If a name is provided, the function will be bound in the current scope.
 When called with the wrong number of args, excess args will be discarded
 and lacking args will be nil, use lambda for arity-checked functions." true)
@@ -308,7 +325,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
         (let [indices []]
           (for [i 3 len]
             (let [index (. ast i)]
-              (if (and (= (type index) :string)
+              (if (and (utils.string? index)
                        (utils.valid-lua-identifier? index))
                   (table.insert indices (.. "." index))
                   (let [[index] (compiler.compile1 index scope parent {:nval 1})]
@@ -551,7 +568,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
         new-manglings []
         sub-scope (compiler.make-scope scope)]
     (fn destructure-binding [v]
-      (compiler.assert (not= :string (type v))
+      (compiler.assert (not (utils.string? v))
                        (.. "unexpected iterator clause " (tostring v)) binding)
       (if (utils.sym? v)
           (compiler.declare-local v [] sub-scope ast new-manglings)
@@ -677,7 +694,7 @@ Evaluates body once for each value between start and stop (inclusive)." true)
       (let [subexprs (compiler.compile1 (. ast i) scope parent
                                         {:nval (if (not= i (length ast)) 1)})]
         (utils.map subexprs tostring args)))
-    (if (and (= (type (. ast 3)) :string)
+    (if (and (utils.string? (. ast 3))
              (utils.valid-lua-identifier? (. ast 3)))
         (native-method-call ast scope parent target args)
         (= target.type :sym)
@@ -1147,7 +1164,7 @@ modules in the compiler environment."
   (compiler.assert (= (length ast) 2) "Expected one module name argument"
                    (or ?real-ast ast)) ; real-ast comes from import-macros
   (let [modname (resolve-module-name ast scope parent {})]
-    (compiler.assert (= :string (type modname))
+    (compiler.assert (utils.string? modname)
                      "module name must compile to string" (or ?real-ast ast))
     (when (not (. macro-loaded modname))
       (let [(loader filename) (search-macro-module modname 1)]

@@ -48,7 +48,8 @@
     "(fn)" "expected parameters"
     "(lambda x)" "expected arg list"
     "(fn abc:def [x] (+ x 2))" "unexpected multi symbol abc:def"
-    "#[$ $...] 1 2 3" "$ and $... in hashfn are mutually exclusive"}))
+    "#[$ $...] 1 2 3" "$ and $... in hashfn are mutually exclusive"
+    "#(values ...)" "use $... in hashfn"}))
 
 (fn test-macro-fails []
   (test-failures

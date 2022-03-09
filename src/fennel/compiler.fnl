@@ -492,7 +492,9 @@ if opts contains the nval option."
         (compile-function-call ast scope parent opts compile1 len))))
 
 (fn compile-varg [ast scope parent opts]
-  (assert-compile scope.vararg "unexpected vararg" ast)
+  (assert-compile scope.vararg (if scope.hashfn
+                                   "use $... in hashfn"
+                                   "unexpected vararg") ast)
   (handle-compile-opts [(utils.expr "..." :varg)] parent opts ast))
 
 (fn compile-sym [ast scope parent opts]

@@ -103,6 +103,9 @@ table.insert(package.loaders or package.searchers, fennel.searcher)
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
+You can pass [options](api.md) to the fennel compiler, by using `fennel.makeSearcher()` 
+instead of `fennel.searcher`.
+
 Be sure to use the `fennel.lua` library and not the file for the
 entire `fennel` executable.
 

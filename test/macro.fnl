@@ -20,9 +20,8 @@
 
 (fn test-doto []
   (== "(doto [1 3 2] (table.sort #(> $1 $2)) table.sort)" [1 2 3])
-  ;; (let [c "(macro twice [x] `(do ,x ,x)) (twice (doto {} (table.insert 5)))"]
-  ;;   (l.assertTrue (pcall (fennel.eval c))))
-  )
+  (== "(macro twice [x] `(do ,x ,x))
+       (let [t []] (twice (doto t (table.insert 5))))" [5 5]))
 
 (fn test-?. []
   (let [cases [["(?. {:a 1})" {:a 1}]

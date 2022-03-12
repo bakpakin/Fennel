@@ -742,10 +742,10 @@ time:
 ```
 
 The `...` module args are propagated during compilation, so when the
-application, which uses this library is compiled, all library code is
+application which uses this library is compiled, all library code is
 correctly included into the self-contained Lua file.
 
-Compiling a project, that uses this `example` library with the
+Compiling a project that uses this `example` library with
 `--require-as-include` will include the following section in the
 resulting Lua code:
 
@@ -758,14 +758,14 @@ package.preload["libs.example.module-a"] = package.preload["libs.example.module-
 end
 ```
 
-Note that `package.preload` entry contain a fully qualified path
+Note that the `package.preload` entry contains a fully qualified path
 `"libs.example.module-a"`, which was resolved at compile time.
 
 ### Requiring modules from modules other than `init.fnl`
 
 To require a module from a module other than `init` module, we must
-keep the path up to current module, but remove the module name.  For
-example, let's add `greet` module to `libs/example/utils/greet.fnl`,
+keep the path up to the current module, but remove the module name.  For
+example, let's add a `greet` module in `libs/example/utils/greet.fnl`,
 and require it from `libs/example/module-a.fnl`:
 
 ```fennel
@@ -783,7 +783,7 @@ This module can be required as follows:
 {:hello hello :greet greet}
 ```
 
-The resulting module name is constructed via `gsub` call, on the
+The resulting module name is constructed via a `gsub` call on the
 module name string.  All other modules need to use a similar way to
 require other modules, with the only difference being their name in
 the pattern.

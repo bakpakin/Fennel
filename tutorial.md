@@ -509,7 +509,7 @@ function such as `print` without needing to bind it to a single table.
 
 Varargs are scoped differently than other variables as well - they are only
 accessible to the function in which they are created. This means that the
-following code wil NOT work, as the varargs in the inner function are out of
+following code will NOT work, as the varargs in the inner function are out of
 scope.
 
 ```fennel

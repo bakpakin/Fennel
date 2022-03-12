@@ -1,6 +1,9 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
 
+(fn == [code expected]
+  (l.assertEquals (fennel.eval code) expected code))
+
 (fn test-arrows []
   (let [cases [["(-> (+ 85 21) (+ 1) (- 99))" 8]
                ["(-> 1234 (string.reverse) (string.upper))" "4321"]
@@ -13,12 +16,13 @@
                ["(-?>> :w (. {:w :x}) (. {:x :missing}) (. {:y :z}))" nil]
                ["(-?>> :w (. {:w :x}) (. {:x :y}) (. {:y :z}))" "z"]]]
     (each [_ [code expected] (ipairs cases)]
-      (l.assertEquals (fennel.eval code) expected code))))
+      (== code expected))))
 
 (fn test-doto []
-  (let [cases [["(doto [1 2 3] (table.sort #(> $1 $2)) table.sort)" [1 2 3]]]]
-    (each [_ [code expected] (ipairs cases)]
-      (l.assertEquals (fennel.eval code) expected code))))
+  (== "(doto [1 3 2] (table.sort #(> $1 $2)) table.sort)" [1 2 3])
+  ;; (let [c "(macro twice [x] `(do ,x ,x)) (twice (doto {} (table.insert 5)))"]
+  ;;   (l.assertTrue (pcall (fennel.eval c))))
+  )
 
 (fn test-?. []
   (let [cases [["(?. {:a 1})" {:a 1}]

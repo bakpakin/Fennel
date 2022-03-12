@@ -1,20 +1,21 @@
-;; This module contains all the built-in Fennel macros. Unlike all the other
-;; modules that are loaded by the old bootstrap compiler, this runs in the
-;; compiler scope of the version of the compiler being defined.
+;; TODO: These macros can be defined using macros from the bootstrap compiler,
+;; but currently the linter freaks out if you do this and so the macro
+;; definitions are kinda awkward
 
-;; The code for these macros is somewhat idiosyncratic because it cannot use any
-;; macros which have not yet been defined.
-
-;; TODO: some of these macros modify their arguments; we should stop doing that,
-;; but in a way that preserves file/line metadata.
+(fn copy [t]
+  (if (or (list? t) (table? t))
+      (let [out (setmetatable [] (getmetatable t))]
+        (each [k v (pairs t)] (tset out k v))
+        out)
+      t))
 
 (fn ->* [val ...]
   "Thread-first macro.
 Take the first value and splice it into the second form as its first argument.
 The value of the second form is spliced into the first arg of the third, etc."
-  (var x val)
+  (var x (copy val))
   (each [_ e (ipairs [...])]
-    (let [elt (if (list? e) e (list e))]
+    (let [elt (copy (if (list? e) e (list e)))]
       (table.insert elt 2 x)
       (set x elt)))
   x)
@@ -23,41 +24,39 @@ The value of the second form is spliced into the first arg of the third, etc."
   "Thread-last macro.
 Same as ->, except splices the value into the last position of each form
 rather than the first."
-  (var x val)
+  (var x (copy val))
   (each [_ e (ipairs [...])]
-    (let [elt (if (list? e) e (list e))]
+    (let [elt (copy (if (list? e) e (list e)))]
       (table.insert elt x)
       (set x elt)))
   x)
 
-(fn -?>* [val ...]
+(fn -?>* [val ?e ...]
   "Nil-safe thread-first macro.
 Same as -> except will short-circuit with nil when it encounters a nil value."
-  (if (= 0 (select "#" ...))
+  (if (= nil ?e)
       val
-      (let [els [...]
-            e (table.remove els 1)
+      (let [e (copy ?e)
             el (if (list? e) e (list e))
             tmp (gensym)]
         (table.insert el 2 tmp)
         `(let [,tmp ,val]
            (if (not= nil ,tmp)
-               (-?> ,el ,(unpack els))
+               (-?> ,el ,...)
                ,tmp)))))
 
-(fn -?>>* [val ...]
+(fn -?>>* [val ?e ...]
   "Nil-safe thread-last macro.
 Same as ->> except will short-circuit with nil when it encounters a nil value."
-  (if (= 0 (select "#" ...))
+  (if (= nil ?e)
       val
-      (let [els [...]
-            e (table.remove els 1)
+      (let [e (copy ?e)
             el (if (list? e) e (list e))
             tmp (gensym)]
         (table.insert el tmp)
         `(let [,tmp ,val]
            (if (not= ,tmp nil)
-               (-?>> ,el ,(unpack els))
+               (-?>> ,el ,...)
                ,tmp)))))
 
 (fn ?dot [tbl ...]
@@ -68,7 +67,7 @@ a nil value in any of subsequent keys."
         lookups `(do (var ,head ,tbl) ,head)]
     (each [_ k (ipairs [...])]
       ;; Kinda gnarly to reassign in place like this, but it emits the best lua.
-      ;; With this impl, it emits a flat, concise, and readable set of if blocks.
+      ;; With this impl, it emits a flat, concise, and readable set of ifs
       (table.insert lookups (# lookups) `(if (not= nil ,head)
                                            (set ,head (. ,head ,k)))))
     lookups))
@@ -78,7 +77,7 @@ a nil value in any of subsequent keys."
   (let [name (gensym)
         form `(let [,name ,val])]
     (each [_ elt (ipairs [...])]
-      (let [elt (if (list? elt) elt (list elt))]
+      (let [elt (copy (if (list? elt) elt (list elt)))]
         (table.insert elt 2 name)
         (table.insert form elt)))
     (table.insert form name)

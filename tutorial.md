@@ -548,6 +548,7 @@ use `_G.myglobal` to refer to it in a way that works around this check.
 
 Another possible cause for this error is a modified [function environment][16].
 The solution depends on how you're using Fennel:
+
 * Embedded Fennel can have its searcher modified to ignore certain (or all)
   globals via the `allowedGlobals` parameter. See the [Lua API][17] page for
   instructions.

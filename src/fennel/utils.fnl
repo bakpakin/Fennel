@@ -184,8 +184,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
                    :__lt sym<})
 
 (local sequence-marker [:SEQUENCE])
-(local vararg
-       (setmetatable ["..."] {1 :VARARG :__fennelview deref :__tostring deref}))
+(local varg-mt {1 :VARARG :__fennelview deref :__tostring deref})
 
 (local getenv (or (and os os.getenv) #nil))
 
@@ -205,11 +204,9 @@ they are specifically not cons cells."
 not exposed outside the compiler. Second optional argument is a table describing
 where the symbol came from; should be a table with filename, line, bytestart,
 and byteend fields."
-  (let [s {1 str}]
-    (each [k v (pairs (or ?source []))]
-      (when (= (type k) :string)
-        (tset s k v)))
-    (setmetatable s symbol-mt)))
+  (setmetatable (collect [k v (pairs (or ?source [])) :into [str]]
+                  (if (= (type k) :string) (values k v)))
+                symbol-mt))
 
 (set nil-sym (sym :nil))
 
@@ -229,7 +226,7 @@ except when certain macros need to look for binding forms, etc specifically."
   :expression Complex strings of Lua code, may have side effects, etc
               but is an expression
   :statement Same as expression, but is also a valid statement (function calls)
-  :vargs varargs symbol
+  :vargs variable arguments (multivalue arg) symbol
   :sym symbol reference"
   (setmetatable {:type etype 1 strcode} expr-mt))
 
@@ -237,16 +234,18 @@ except when certain macros need to look for binding forms, etc specifically."
   (let [{: filename : line} (or ?source [])]
     (setmetatable {1 contents : filename : line} comment-mt)))
 
-(fn varg []
-  vararg)
+(fn varg [?source]
+  (setmetatable (collect [k v (pairs (or ?source [])) :into ["..."]]
+                  (if (= (type k) :string) (values k v)))
+                varg-mt))
 
 (fn expr? [x]
   "Checks if an object is an expression. Returns the object if it is."
   (and (= (type x) :table) (= (getmetatable x) expr-mt) x))
 
 (fn varg? [x]
-  "Checks if an object is the vararg symbol. Returns the object if is."
-  (and (= x vararg) x))
+  "Checks if an object is the varg symbol. Returns the object if is."
+  (and (= (type x) :table) (= (getmetatable x) varg-mt) x))
 
 (fn list? [x]
   "Checks if an object is a list. Returns the object if is."
@@ -265,8 +264,8 @@ except when certain macros need to look for binding forms, etc specifically."
   (and (= (type x) :table) (= (getmetatable x) comment-mt) x))
 
 (fn table? [x]
-  "Checks if an object any kind of table, EXCEPT list/symbol/vararg/comment."
-  (and (= (type x) :table) (not= x vararg) (not= (getmetatable x) list-mt)
+  "Checks if an object any kind of table, EXCEPT list/symbol/varg/comment."
+  (and (= (type x) :table) (not (varg? x)) (not= (getmetatable x) list-mt)
        (not= (getmetatable x) symbol-mt) (not (comment? x)) x))
 
 (fn string? [x]

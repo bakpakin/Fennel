@@ -997,7 +997,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              :_IS_COMPILER true
              :_SCOPE scope
              :_SPECIALS compiler.scopes.global.specials
-             :_VARARG (utils.varg)
+             :_VARARG (utils.varg) ; don't use this!
              : macro-loaded
              : unpack
              :assert-compile compiler.assert

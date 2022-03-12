@@ -327,21 +327,18 @@ stream is finished."
 
     (fn parse-sym [b] ; not just syms actually...
       (let [bytestart byteindex
-            rawstr (string.char (unpack (parse-sym-loop [b] (getb))))]
+            rawstr (string.char (unpack (parse-sym-loop [b] (getb))))
+            source {:byteend byteindex : bytestart :filename ?filename : line}]
         (if (= rawstr :true)
             (dispatch true)
             (= rawstr :false)
             (dispatch false)
             (= rawstr "...")
-            (dispatch (utils.varg))
+            (dispatch (utils.varg source))
             (rawstr:match "^:.+$")
             (dispatch (rawstr:sub 2))
             (not (parse-number rawstr))
-            (dispatch (utils.sym (check-malformed-sym rawstr)
-                                 {:byteend byteindex
-                                  : bytestart
-                                  :filename ?filename
-                                  : line})))))
+            (dispatch (utils.sym (check-malformed-sym rawstr) source)))))
 
     (fn parse-loop [b]
       (if (not b) nil

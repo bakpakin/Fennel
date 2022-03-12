@@ -268,9 +268,7 @@ except when certain macros need to look for binding forms, etc specifically."
   (and (= (type x) :table) (not (varg? x)) (not= (getmetatable x) list-mt)
        (not= (getmetatable x) symbol-mt) (not (comment? x)) x))
 
-(fn string? [x]
-  "Convenience function to check if object is a string."
-  (= (type x) :string))
+(fn string? [x] (= (type x) :string))
 
 (fn multi-sym? [str]
   "A multi symbol is a symbol that is actually composed of two or more symbols

@@ -2,11 +2,11 @@
 
 Changes are **marked in bold** which could result in backwards-incompatibility.
 
-## 1.0.1 / ???
+## 1.1.0 / ???
 
 ### New Features
 * The `accumulate` macro can now accumulate over multiple values
-* The `fn` special now accepts metadata table in-place of a docstring
+* The `fn` special now accepts a metadata table in place of a docstring
 
 ### Bug Fixes
 * Fix a bug where  `--skip-include` would mistakenly emit a warning

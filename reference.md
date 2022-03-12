@@ -74,8 +74,7 @@ The `λ` form is an alias for `lambda` and behaves identically.
 
 *(Since 0.3.0)*
 
-The `fn`, `lambda`, `λ` and `macro` forms accept an optional
-docstring.
+The `fn`, `lambda`, `λ` and `macro` forms accept an optional docstring.
 
 ```fennel
 (fn pxy [x y]
@@ -103,10 +102,10 @@ All function metadata will be garbage collected along with the function itself.
 Docstrings and other metadata can also be accessed via functions on the fennel
 API with `fennel.doc` and `fennel.metadata`.
 
-*(Since 1.0.1)*
+*(Since 1.1.0)*
 
-All forms from above now also accept a metadata table in-place of the
-docstring:
+All forms that accept a docstring will also accept a metadata table in
+the same place:
 
 ```fennel
 (fn add [...]
@@ -119,8 +118,9 @@ docstring:
     (_ a b) (add (+ a b) (select 3 ...))))
 ```
 
-Here, the arglist is overridden by that in the metadata table (note that symbols are provided in the raw form).
-Calling `,doc` command in the REPL prints specified argument list:
+Here the arglist is overridden by that in the metadata table (note
+that the contents of the table are implicitly quoted). Calling `,doc`
+command in the REPL prints specified argument list:
 
 ```
 >> ,doc add

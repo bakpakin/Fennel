@@ -14,6 +14,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Prevent errors resolving the target of the `,doc` command from crashing the REPL
 * Fix a bug where disabling the compiler sandbox broke module require scope
 * Fix a bug where certain specials wouldn't short-circuit in `and`/`or`
+* Fix a bug where symbols containing `nil` did not show up in REPL completion
 
 ### Changes and Removals
 

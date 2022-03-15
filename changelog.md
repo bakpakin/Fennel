@@ -9,6 +9,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * The `fn` special now accepts a metadata table in place of a docstring
 
 ### Bug Fixes
+* Fix an issue where built-in macros would modify their AST arguments
 * Fix a bug where  `--skip-include` would mistakenly emit a warning
 * Remove hex string escapes to preserve PUC Lua 5.1 compatibility
 * Prevent errors resolving the target of the `,doc` command from crashing the REPL

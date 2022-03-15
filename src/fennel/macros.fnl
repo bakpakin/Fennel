@@ -1,19 +1,16 @@
-;; TODO: These macros can be defined using macros from the bootstrap compiler,
-;; but currently the linter freaks out if you do this and so the macro
-;; definitions are kinda awkward
+;; These macros are awkward because their definition cannot rely on the any
+;; built-in macros, only special forms. (no when, no icollect, etc)
 
 (fn copy [t]
-  (if (or (list? t) (table? t))
-      (let [out (setmetatable [] (getmetatable t))]
-        (each [k v (pairs t)] (tset out k v))
-        out)
-      t))
+  (let [out []]
+    (each [_ v (ipairs t)] (table.insert out v))
+    (setmetatable out (getmetatable t))))
 
 (fn ->* [val ...]
   "Thread-first macro.
 Take the first value and splice it into the second form as its first argument.
 The value of the second form is spliced into the first arg of the third, etc."
-  (var x (copy val))
+  (var x val)
   (each [_ e (ipairs [...])]
     (let [elt (copy (if (list? e) e (list e)))]
       (table.insert elt 2 x)
@@ -24,7 +21,7 @@ The value of the second form is spliced into the first arg of the third, etc."
   "Thread-last macro.
 Same as ->, except splices the value into the last position of each form
 rather than the first."
-  (var x (copy val))
+  (var x val)
   (each [_ e (ipairs [...])]
     (let [elt (copy (if (list? e) e (list e)))]
       (table.insert elt x)
@@ -108,19 +105,18 @@ encountering an error before propagating it."
        ,closer
        (close-handlers# (_G.xpcall ,bodyfn ,traceback)))))
 
-(fn into-val [iter-tbl]
-  (var into nil)
+(fn extract-into [iter-tbl]
+  (var (into iter-out found?) (values [] (copy iter-tbl)))
   (for [i (length iter-tbl) 2 -1]
     (if (= :into (. iter-tbl i))
-        (do (assert (not into) "expected only one :into clause")
-            (set into (table.remove iter-tbl (+ i 1)))
-            (table.remove iter-tbl i))))
-  (assert (or (not into)
-              (sym? into)
-              (table? into)
-              (list? into))
+        (do (assert (not found?) "expected only one :into clause")
+            (set found? true)
+            (set into (. iter-tbl (+ i 1)))
+            (table.remove iter-out i)
+            (table.remove iter-out i))))
+  (assert (or (not found?) (sym? into) (table? into) (list? into))
           "expected table, function call, or symbol in :into clause")
-  (or into []))
+  (values into iter-out))
 
 (fn collect* [iter-tbl key-expr value-expr ...]
   "Return a table made by running an iterator and evaluating an expression that
@@ -141,9 +137,10 @@ Supports early termination with an :until clause."
   (assert (not= nil key-expr) "expected key and value expression")
   (assert (= nil ...)
           "expected 1 or 2 body expressions; wrap multiple expressions with do")
-  (let [kv-expr (if (= nil value-expr) key-expr `(values ,key-expr ,value-expr))]
-    `(let [tbl# ,(into-val iter-tbl)]
-       (each ,iter-tbl
+  (let [kv-expr (if (= nil value-expr) key-expr `(values ,key-expr ,value-expr))
+        (into iter) (extract-into iter-tbl)]
+    `(let [tbl# ,into]
+       (each ,iter
          (match ,kv-expr
            (k# v#) (tset tbl# k# v#)))
        tbl#)))
@@ -167,17 +164,18 @@ Supports early termination with an :until clause."
           "expected iterator binding table")
   (assert (not= nil value-expr) "expected table value expression")
   (assert (= nil ...)
-          "expected exactly one body expression. Wrap multiple expressions with do")
-  `(let [tbl# ,(into-val iter-tbl)]
-     ;; believe it or not, using a var here has a pretty good performance boost:
-     ;; https://p.hagelb.org/icollect-performance.html
-     (var i# (length tbl#))
-     (each ,iter-tbl
-       (let [val# ,value-expr]
-         (when (not= nil val#)
-           (set i# (+ i# 1))
-           (tset tbl# i# val#))))
-     tbl#))
+          "expected exactly one body expression. Wrap multiple expressions in do")
+  (let [(into iter) (extract-into iter-tbl)]
+    `(let [tbl# ,into]
+       ;; believe it or not, using a var here has a pretty good performance
+       ;; boost: https://p.hagelb.org/icollect-performance.html
+       (var i# (length tbl#))
+       (each ,iter
+         (let [val# ,value-expr]
+           (when (not= nil val#)
+             (set i# (+ i# 1))
+             (tset tbl# i# val#))))
+       tbl#)))
 
 (fn accumulate* [iter-tbl body ...]
   "Accumulation macro.
@@ -200,10 +198,10 @@ returns 5"
   (assert (not= nil body) "expected body expression")
   (assert (= nil ...)
           "expected exactly one body expression. Wrap multiple expressions with do")
-  (let [accum-var (table.remove iter-tbl 1)
-        accum-init (table.remove iter-tbl 1)]
+  (let [accum-var (. iter-tbl 1)
+        accum-init (. iter-tbl 2)]
     `(do (var ,accum-var ,accum-init)
-         (each ,iter-tbl
+         (each ,[(unpack iter-tbl 3)]
            (set ,accum-var ,body))
          ,(if (list? accum-var)
               (list (sym :values) (unpack accum-var))

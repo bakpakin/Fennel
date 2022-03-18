@@ -2,6 +2,8 @@
 (local fennel (require :fennel))
 (local view (require :fennel.view))
 
+;; TODO: use == macro; remove code as strings
+
 (fn test-traceback []
   (let [tracer (fennel.dofile "test/mod/tracer.fnl")
         traceback (tracer)]

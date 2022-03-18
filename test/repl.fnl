@@ -2,6 +2,8 @@
 (local fennel (require :fennel))
 (local specials (require :fennel.specials))
 
+;; TODO: stop using code in strings here
+
 (fn wrap-repl [options]
   (var repl-complete nil)
   (fn send []

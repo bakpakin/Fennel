@@ -1,6 +1,8 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
 
+;; TODO: use == macro; remove code as strings
+
 (set _G.tbl [])
 
 (fn test-calculations []

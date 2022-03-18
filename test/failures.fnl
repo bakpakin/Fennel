@@ -2,6 +2,7 @@
 (local fennel (require :fennel))
 (local friend (require :fennel.friend))
 
+;; TODO: use this macro below where possible
 (macro assert-fail-msg [form expected]
   `(let [(ok# msg#) (pcall fennel.compile-string (macrodebug ,form true)
                            {:allowedGlobals (icollect [k# (pairs _G)] k#)})]

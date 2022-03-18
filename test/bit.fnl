@@ -1,6 +1,7 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
 
+;; TODO: replace with == macro; remove code as strings
 (fn == [test expected]
   (let [opts (if (rawget _G :jit) {:useBitLib true})]
     (l.assertEquals (fennel.eval test opts) expected)))

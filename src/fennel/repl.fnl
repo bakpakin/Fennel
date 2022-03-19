@@ -296,10 +296,10 @@ For more information about the language, see https://fennel-lang.org/reference")
 
 (fn repl [options]
   (let [old-root-options utils.root.options
-        env (specials.wrap-env (or options.env (or (rawget _G :_ENV) _G)))
-        save-locals? (and (not= options.saveLocals false) env.debug
-                          env.debug.getlocal)
         opts (utils.copy options)
+        env (specials.wrap-env (or opts.env (rawget _G :_ENV) _G))
+        save-locals? (and (not= opts.saveLocals false) env.debug
+                          env.debug.getlocal)
         read-chunk (or opts.readChunk default-read-chunk)
         on-values (or opts.onValues default-on-values)
         on-error (or opts.onError default-on-error)
@@ -312,7 +312,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                                         c)))]
     (set (opts.env opts.scope) (values env (compiler.make-scope)))
     ;; use metadata unless we've specifically disabled it
-    (set opts.useMetadata (not= options.useMetadata false))
+    (set opts.useMetadata (not= opts.useMetadata false))
     (when (= opts.allowedGlobals nil)
       (set opts.allowedGlobals (specials.current-global-names env)))
     (when opts.registerCompleter

@@ -5,25 +5,29 @@ embedding Fennel in a Lua program. If you're writing a pure Fennel
 program or working on a system that already has Fennel support, you
 probably don't need this.
 
-Only the `fennel` module is part of the public API. The other modules
-are implementation details subject to change.
+Only the `fennel` module is part of the public API. The other modules are
+implementation details subject to change. Most functions will `error` upon
+failure.
 
 Any time a function takes an `options` table argument, that table will
 usually accept these fields:
 
 * `allowedGlobals`: a sequential table of strings of the names of globals which
   the compiler will allow references to. Set to false to disable checks.
-* `correlate`: when this is truthy, Fennel attempts to emit Lua where the line
+  Defaults to the contents of the `env` table, if provided, or the
+  current environment.
+* `correlate`: when this is set, Fennel attempts to emit Lua where the line
   numbers match up with the Fennel input code; useful for situation where code
   that isn't under your control will print the stack traces.
 * `useMetadata` *(since 0.3.0)*: enables or disables [metadata](#work-with-docstrings-and-metadata),
-  allowing use of the doc macro. Intended for development purposes
+  allowing use of the `,doc` repl command. Intended for development purposes
   (see [performance note](#metadata-performance-note)); defaults to
   true for REPL only.
-* `requireAsInclude` *(since 0.3.0)*: Alias any static `require` calls to the `include` special,
-  embedding the module code inline in the compiled output. If the module name isn't a string
-  literal or resolvable at compile time, falls back to `require` at runtime. Can be used to
-  embed both fennel and Lua modules.
+* `requireAsInclude` *(since 0.3.0)*: Alias any static `require` calls to the
+  `include` special, embedding the module code inline in the compiled
+  output. If the module name isn't a string literal that is resolvable at
+  compile time it falls back to `require` at runtime. Can be used to embed both
+  Fennel and Lua modules.
 * `env`: an environment table in which to run the code; see the Lua manual.
 * `compilerEnv`: an environment table in which to run compiler-scoped code
   for macro definitions and `eval-compiler` calls. Internal Fennel functions
@@ -50,7 +54,7 @@ fennel.repl([options])
 Takes these additional options:
 
 * `readChunk()`: a function that when called, returns a string of source code.
-  The empty is string is used as the end of source marker.
+  The empty is string or nil is used as the end of source marker.
 * `pp`: a pretty-printer function to apply on values (default: `fennel.view`).
 * `onValues(values)`: a function that will be called on all returned top level values.
 * `onError(errType, err, luaSource)`: a function that will be called on each error.
@@ -58,12 +62,8 @@ Takes these additional options:
   'compile', 'runtime',  or 'lua'. `err` is the error message, and `luaSource`
   is the source of the generated lua code.
 
-If you don't provide `allowedGlobals` then it defaults to being all
-the globals in the environment under which the code will run. Passing
-in `false` here will disable global checking entirely.
-
 By default, metadata will be enabled and you can view function signatures and
-docstrings with the `doc` macro from the REPL.
+docstrings with the `,doc` command in the REPL.
 
 ## Evaulate a string of Fennel
 
@@ -106,9 +106,8 @@ the module name, and also in that it caches the loaded value to return
 on subsequent calls, while `fennel.dofile` will reload each time. The
 behavior of `fennel.path` mirrors that of Lua's `package.path`.
 
-If you install Fennel into `package.searchers` then you can use the
-3rd-party [lume.hotswap][1] function to reload modules that have been
-loaded with `require`.
+If you install Fennel into `package.searchers` then you can use the repl's
+`,reload mod` command to reload modules that have been loaded with `require`.
 
 ## Macro Searchers
 
@@ -121,7 +120,7 @@ to load sandboxed Fennel modules and a searcher to load sandboxed Lua
 modules, but if you disable the compiler sandbox you may want to
 replace these with searchers which can load arbitrary modules.
 
-The default `fennel.macro-searchers` table also cannot load C modules.
+The default `fennel.macro-searchers` functions also cannot load C modules.
 Here's an example of some code which would allow that to work:
 
 ```lua
@@ -146,6 +145,8 @@ override the default traceback function to replace it with Fennel's:
 debug.traceback = fennel.traceback
 ```
 
+Note that some systems print stack traces from C, which will not be affected.
+
 ## Search the path for a module without loading it
 
 ```lua
@@ -159,7 +160,7 @@ string to search. If none is provided, it defaults to Fennel's own path.
 
 Returns `nil` if the module is not found on the path.
 
-## Compile a string into Lua (can throw errors)
+## Compile a string into Lua
 
 ```lua
 local lua = fennel.compileString(str[, options])
@@ -173,7 +174,10 @@ table in `options` to enable it.
 
 Accepts `filename` in `options` as in `fennel.eval`.
 
-## Compile an iterator of bytes into a string of Lua (can throw errors)
+## Compile an iterator of bytes into a string of Lua
+
+This is useful when streaming data into the compiler to allow you to avoid
+loading all the code into a single string in one go.
 
 ```lua
 local lua = fennel.compileStream(strm[, options])
@@ -181,9 +185,9 @@ local lua = fennel.compileStream(strm[, options])
 
 Accepts `indent` and `filename` in `options` as per above.
 
-## Compile a data structure (AST) into Lua source code (can throw errors)
+## Compile an AST data structure into Lua source code
 
-The code can be loaded via dostring or other methods. Will error on bad input.
+The `ast` here can be gotten from `fennel.parser`.
 
 ```lua
 local lua = fennel.compile(ast[, options])
@@ -233,13 +237,15 @@ default to false:
 * `unfriendly`: disable enhanced parse error reporting
 * `comments`: include comment nodes in AST
 
+The list of common options at the top of this document do not apply here.
+
 ## AST node definition
 
 The AST returned by the parser consists of data structures
 representing the code. Passing AST nodes to the `fennel.view` function
 will give you a string which should round-trip thru the parser to give
 you the same data back. The same is true with `tostring`, except it
-does not work with kv tables.
+does not work with non-sequence tables.
 
 AST nodes can be any of these types:
 
@@ -250,6 +256,9 @@ return values in a binding context. It's represented as a table which
 can be identified using the `fennel.list?` predicate function or
 constructed using `fennel.list` which takes any number of arguments
 for the contents of the list.
+
+Note that lists are compile-time constructs in Fennel. They do not exist at
+runtime, except in such cases as the compiler is in use at runtime.
 
 The list also contains these keys indicating where it was defined:
 `filename`, `line`, `bytestart`, and `byteend`. This data is used for
@@ -266,7 +275,7 @@ these.
 
 At runtime there is no difference between sequences and kv tables
 which use monotonically increasing integer keys, but the parser is
-able to distinguish between them.
+able to distinguish between them to improve error reporting.
 
 Sequences have their source data in `filename`, `line`, etc keys just
 like lists. But kv tables cannot have this, because adding arbitrary
@@ -318,15 +327,35 @@ metatable instead, keyed by the key or value they were attached to.
 ## Serialization
 
 The `fennel.view` function takes any Fennel data and turns it into a
-representation suitable for feeding back to Fennel's parser. In
-addition to tables, strings, numbers, and booleans, it can produce
-reasonable output from ASTs that come from the parser. It will emit an
-unreadable placeholder for coroutines, functions, and userdata though.
+representation suitable for feeding back to Fennel's parser. In addition to
+tables, strings, numbers, and booleans, it can produce reasonable output from
+ASTs that come from the parser. It will emit an unreadable placeholder for
+coroutines, compiled functions, and userdata though.
 
 ```lua
 print(fennel.view({abc=123}[, options])
 {:abc 123}
 ```
+
+The list of common options at the top of this document do not apply here;
+instead these options are accepted:
+
+* `one-line?` (boolean: default: false) keep the output string as a one-liner
+* `depth` (number, default: 128) limit how many levels to go (default: 128)
+* `detect-cycles?` (boolean, default: true) don't try to traverse a looping table
+* `metamethod?` (boolean: default: true) use the __fennelview metamethod if found
+* `empty-as-sequence?` (boolean, default: false) render empty tables as []
+* `line-length` (number, default: 80) length of the line at which
+  multi-line output for tables is forced
+* `escape-newlines?` (default: false) emit strings with \\n instead of newline
+* `prefer-colon?` (default: false) emit strings in colon notation when possible
+* `utf8?` (boolean, default true) whether to use utf8 module to compute string
+  lengths
+* `max-sparse-gap` (integer, default 10) maximum gap to fill in with nils in
+  sparse sequential tables.
+* `preprocess` (function) if present, called on x (and recursively on each value
+  in x), and the result is used for pretty printing; takes the same arguments as
+  `fennel.view`
 
 ## Work with docstrings and metadata
 
@@ -338,24 +367,23 @@ declared with `fn` or `λ/lambda` will use the created function as a key on
 The metadata table is weakly-referenced by key, so each function's metadata will
 be garbage collected along with the function itself.
 
-You can work with the API to view or modify this metadata yourself, or use the `doc`
-macro from fennel to view function documentation.
+You can work with the API to view or modify this metadata yourself, or use the 
+`,doc` repl command to view function documentation.
 
 In addition to direct access to the metadata tables, you can use the following methods:
 
 * `fennel.metadata:get(func, key)`: get a value from a function's metadata
 * `fennel.metadata:set(func, key, val)`:  set a metadata value
 * `fennel.metadata:setall(func, key1, val1, key2, val2, ...)`: set pairs
-* `fennel.doc(func, fnName)`: print formatted documentation for function using name.
-  Utilized by the `doc` macro, name is whatever symbol you operate on that's bound to
-  the function.
+* `fennel.doc(func, fnName)`: print formatted documentation for function using
+  name.  Utilized by the `,doc` command, name is whatever symbol you operate
+  on that's bound to the function.
 
 ```lua
-local greet = fennel.eval([[
-(λ greet [name] "Say hello" (print (string.format "Hello, %s!" name)))
-]], {useMetadata = true})
+local greet = fennel.eval('(λ greet [name] "Say hello" (print "Hello," name))',
+                          {useMetadata = true})
 
--- fennel.metadata[greet]
+fennel.metadata[greet]
 -- > {"fnl/docstring" = "Say hello", "fnl/arglist" = ["name"]}
 
 fennel.doc(greet, "greet")
@@ -376,9 +404,8 @@ referenced by the function itself as a key.
 
 This may have a performance impact in some applications due to the extra
 allocations and garbage collection associated with dynamic function creation.
-The impact hasn't been benchmarked, and may be minimal particularly in luajit,
-but enabling metadata is currently recommended for development purposes only
-to minimize overhead.
+The impact hasn't been benchmarked, but enabling metadata is currently
+recommended for development purposes only.
 
 ## Load Lua code in a portable way
 

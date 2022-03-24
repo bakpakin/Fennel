@@ -162,7 +162,7 @@ which need to run on a wide range of versions.
 Like Clojure, any value can serve as a key. However, since tables are
 mutable data, two tables with identical values will not be `=` to each
 other as [per Baker][5] and thus will act as distinct keys. Clojure's
-`:keyword` notation is used in Fennel as a syntax for certain kinds of
+`:keyword` notation is used in Fennel as a syntax for
 strings; there is no distinct type for keywords.
 
 Note that `nil` in Fennel is rather different from Clojure; in Clojure

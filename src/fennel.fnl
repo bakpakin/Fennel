@@ -95,7 +95,8 @@
     out))
 
 ;; The public API module we export:
-(local mod {:list utils.list
+(local mod {;; AST functions
+            :list utils.list
             :list? utils.list?
             :sym utils.sym
             :sym? utils.sym?
@@ -104,40 +105,46 @@
             :comment utils.comment
             :comment? utils.comment?
             :varg utils.varg
-            :path utils.path
-            :macro-path utils.macro-path
+            ;; parsing
             :sym-char? parser.sym-char?
             :parser parser.parser
             :granulate parser.granulate
             :string-stream parser.string-stream
+            ;; compiling
             :compile compiler.compile
             :compile-string compiler.compile-string
             :compile-stream compiler.compile-stream
-            :compile1 compiler.compile1
-            :traceback compiler.traceback
-            :mangle compiler.global-mangling
-            :unmangle compiler.global-unmangling
-            :metadata compiler.metadata
-            :scope compiler.make-scope
-            :gensym compiler.gensym
+            ;; running code
+            : eval
+            : repl
+            : view
+            :dofile dofile*
             :load-code specials.load-code
+            ;; examining
+            :doc specials.doc
+            :metadata compiler.metadata
+            :traceback compiler.traceback
+            :version utils.version
+            :runtime-version utils.runtime-version
+            ;; finding code
+            :path utils.path
+            :macro-path utils.macro-path
             :macro-loaded specials.macro-loaded
             :macro-searchers specials.macro-searchers
             :search-module specials.search-module
             :make-searcher specials.make-searcher
-            :makeSearcher specials.make-searcher
             :searcher (specials.make-searcher)
-            :doc specials.doc
-            : view
-            : eval
-            :dofile dofile*
-            :version utils.version
-            :runtime-version utils.runtime-version
-            : repl
             : syntax
+            ;; deprecated; you probably don't want these
+            :gensym compiler.gensym
+            :scope compiler.make-scope
+            :mangle compiler.global-mangling
+            :unmangle compiler.global-unmangling
+            :compile1 compiler.compile1
             ;; backwards-compatibility aliases
             :loadCode specials.load-code
             :make_searcher specials.make-searcher
+            :makeSearcher specials.make-searcher
             :searchModule specials.search-module
             :macroLoaded specials.macro-loaded
             :compileStream compiler.compile-stream

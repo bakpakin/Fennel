@@ -84,6 +84,9 @@ available as `...`.
 local result = fennel.dofile(filename[, options[, ...]])
 ```
 
+Additional arguments beyond `options` are passed to the code and
+available as `...`.
+
 ## Use Lua's built-in require function
 
 ```lua
@@ -104,7 +107,8 @@ The `require` function is different from `fennel.dofile` in that it
 searches the directories in `fennel.path` for `.fnl` files matching
 the module name, and also in that it caches the loaded value to return
 on subsequent calls, while `fennel.dofile` will reload each time. The
-behavior of `fennel.path` mirrors that of Lua's `package.path`.
+behavior of `fennel.path` mirrors that of Lua's `package.path`. There is
+also a `fennel.macro-path` which is used to look up macro modules.
 
 If you install Fennel into `package.searchers` then you can use the repl's
 `,reload mod` command to reload modules that have been loaded with `require`.
@@ -132,6 +136,9 @@ table.insert(fennel["macro-searchers"], function(module_name)
    end
 end)
 ```
+
+Macro searchers store loaded macro modules in the `fennel.macro-loaded`
+table which works the same as `package.loaded` but for macro modules.
 
 ## Get Fennel-aware stack traces.
 
@@ -298,6 +305,9 @@ do not represent collections; they are used as scalar types.
 the symbol named `"nil"` which unfortunately prints in a way that is
 visually indistinguishable from actual `nil`.
 
+The `fennel.sym-char?` function will tell you if a given character is
+allowed to be used in the name of a symbol.
+
 ### vararg
 
 This is a special type of symbol-like construct (`...`) indicating
@@ -406,6 +416,27 @@ This may have a performance impact in some applications due to the extra
 allocations and garbage collection associated with dynamic function creation.
 The impact hasn't been benchmarked, but enabling metadata is currently
 recommended for development purposes only.
+
+## Describe Fennel syntax
+
+If you're writing a tool which performs syntax highlighting or some other
+operations on Fennel code, the `fennel.syntax` function can provide you with
+data about what forms and keywords to treat specially.
+
+```lua
+local syntax = fennel.syntax()
+print(fennel.view(syntax["icollect"]))
+--> {:binding-form? true :body-form? true :macro? true}
+```
+
+The table has string keys and table values. Each entry will have one of
+`"macro?"`, `"global?"`, or `"special?"` set to `true` indicating what type
+it is. Globals can also have `"function?"` set to true. Macros and specials
+can have `"binding-form?"` set to true indicating it accepts a `[]` argument
+which introduces new locals, and/or a `"body-form?"` indicating whether it
+should be indented with two spaces instead of being indented like a function
+call. They can also have a `"define?"` key indicating whether it introduces a
+new top-level identifier like `local` or `fn`.
 
 ## Load Lua code in a portable way
 

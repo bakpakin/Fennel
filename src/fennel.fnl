@@ -108,8 +108,6 @@
             ;; parsing
             :sym-char? parser.sym-char?
             :parser parser.parser
-            :granulate parser.granulate
-            :string-stream parser.string-stream
             ;; compiling
             :compile compiler.compile
             :compile-string compiler.compile-string
@@ -141,6 +139,8 @@
             :mangle compiler.global-mangling
             :unmangle compiler.global-unmangling
             :compile1 compiler.compile1
+            :string-stream parser.string-stream
+            :granulate parser.granulate
             ;; backwards-compatibility aliases
             :loadCode specials.load-code
             :make_searcher specials.make-searcher

@@ -60,11 +60,7 @@ Also returns a second function to clear the buffer in the byte stream"
                  44 :unquote
                  96 :quote})
 
-(fn parser [getbyte ?filename ?options]
-  "Parse one value given a function that returns sequential bytes.
-Will throw an error as soon as possible without getting more bytes on bad input.
-Returns if a value was read, and then the value read. Will return nil when input
-stream is finished."
+(fn parser-fn [getbyte filename {: source : unfriendly : comments}]
   (var stack []) ; stack of unfinished values
   ;; Provide one character buffer and keep track of current line and byte index
   (var line 1)
@@ -87,26 +83,19 @@ stream is finished."
       (set line (+ line 1)))
     r)
 
-  ;; it's really easy to accidentally pass an options table here because all the
-  ;; other fennel functions take the options table as the second arg!
-  (assert (or (= nil ?filename) (= :string (type ?filename)))
-          "expected filename as second argument to parser")
   ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!
-
   (fn parse-error [msg byteindex-override]
-    (let [{: source : unfriendly} (or ?options utils.root.options {})]
-      ;; allow plugins to override parse-error
-      (when (= nil (utils.hook :parse-error msg (or ?filename :unknown)
-                               (or line "?") (or byteindex-override byteindex)
-                               source utils.root.reset))
-        (utils.root.reset)
-        (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
-            (error (string.format "%s:%s: Parse error: %s"
-                                  (or ?filename :unknown) (or line "?") msg)
-                   0)
-            (friend.parse-error msg (or ?filename :unknown) (or line "?")
-                                (or byteindex-override byteindex) source)))))
+    ;; allow plugins to override parse-error
+    (when (= nil (utils.hook :parse-error msg filename
+                             (or line "?") (or byteindex-override byteindex)
+                             source utils.root.reset))
+      (utils.root.reset)
+      (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
+          (error (string.format "%s:%s: Parse error: %s"
+                                filename (or line "?") msg) 0)
+          (friend.parse-error msg filename (or line "?")
+                              (or byteindex-override byteindex) source))))
 
   (fn parse-stream []
     (var (whitespace-since-dispatch done? retval) true)
@@ -144,19 +133,17 @@ stream is finished."
     (fn parse-comment [b contents]
       (if (and b (not= 10 b))
           (parse-comment (getb) (doto contents (table.insert (string.char b))))
-          (and ?options ?options.comments)
+          comments
           (dispatch (utils.comment (table.concat contents)
-                                   {:line (- line 1) :filename ?filename}))
+                                   {:line (- line 1) :filename filename}))
           b))
 
     (fn open-table [b]
       (when (not whitespace-since-dispatch)
         (parse-error (.. "expected whitespace before opening delimiter "
                          (string.char b))))
-      (table.insert stack {:bytestart byteindex
-                           :closer (. delims b)
-                           :filename ?filename
-                           : line}))
+      (table.insert stack {:bytestart byteindex :closer (. delims b)
+                           : filename : line}))
 
     (fn close-list [list]
       (dispatch (setmetatable list (getmetatable (utils.list)))))
@@ -264,8 +251,7 @@ stream is finished."
     (fn parse-prefix [b]
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"
       (table.insert stack {:prefix (. prefixes b)
-                           :filename ?filename
-                           : line
+                           : filename : line
                            :bytestart byteindex})
       (let [nextb (getb)]
         (when (or (whitespace? nextb) (= true (. delims nextb)))
@@ -328,7 +314,7 @@ stream is finished."
     (fn parse-sym [b] ; not just syms actually...
       (let [bytestart byteindex
             rawstr (string.char (unpack (parse-sym-loop [b] (getb))))
-            source {:byteend byteindex : bytestart :filename ?filename : line}]
+            source {:byteend byteindex : bytestart : filename : line}]
         (if (= rawstr :true)
             (dispatch true)
             (= rawstr :false)
@@ -357,5 +343,18 @@ stream is finished."
     (parse-loop (skip-whitespace (getb))))
 
   (values parse-stream #(set (stack line byteindex lastb) (values [] 1 0 nil))))
+
+(fn parser [stream-or-string ?filename ?options]
+  "Returns an iterator fn which parses string-or-stream and returns AST nodes.
+On success, returns true and the AST node. Returns nil when it reaches the end."
+  (let [filename (or ?filename :unknown)
+        options (or ?options utils.root.options {})]
+    ;; it's really easy to accidentally pass an options table here because all
+    ;; the other fennel functions take the options table as the second arg!
+    (assert (= :string (type filename))
+            "expected filename as second argument to parser")
+    (if (= :string (type stream-or-string))
+        (parser-fn (string-stream stream-or-string) filename options)
+        (parser-fn stream-or-string filename options))))
 
 {: granulate : parser : string-stream : sym-char?}

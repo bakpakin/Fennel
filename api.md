@@ -129,11 +129,11 @@ Here's an example of some code which would allow that to work:
 
 ```lua
 table.insert(fennel["macro-searchers"], function(module_name)
-   local filename = fennel["search-module"](module_name, package.cpath)
-   if filename then
-      local func = "luaopen_" .. module_name
-      return function() return package.loadlib(filename, func) end, filename
-   end
+  local filename = fennel["search-module"](module_name, package.cpath)
+  if filename then
+    local func = "luaopen_" .. module_name
+    return function() return package.loadlib(filename, func) end, filename
+  end
 end)
 ```
 
@@ -202,42 +202,27 @@ local lua = fennel.compile(ast[, options])
 
 Accepts `indent` and `filename` in `options` as per above.
 
-## Get an iterator over the bytes in a string
-
-```lua
-local stream = fennel.stringStream(str)
-```
-
-## Converts an iterator for strings into an iterator over their bytes
-
-Useful for the REPL or reading files in chunks. This will NOT insert
-newlines or other whitespace between chunks, so be careful when using
-with io.read().  Returns a second function, clearstream, which will
-clear the current buffered chunk when called. Useful for implementing
-a repl.
-
-```lua
-local bytestream, clearstream = fennel.granulate(chunks)
-```
-
-## Converts a stream of bytes to a stream of AST nodes
+## Convert text into AST node(s)
 
 The `fennel.parser` function returns a stateful iterator function.
-It returns true in the first return value if an AST was read, and
-returns nil if an end of file was reached without error. Will error
-on bad input or unexpected end of source.
+If a form was successfully read, it returns true followed by the AST node.
+Returns nil when it reaches the end. Raises an error if it can't parse 
+the input.
 
 ```lua
-local parse = fennel.parser(strm)
-local ok, ast = parse()
+local parse = fennel.parser(text)
+local ok, ast = assert(parse()) -- just get the first form
 
 -- Or use in a for loop
 for ok, ast in parse do
-    print(ok, ast)
+  if ok then
+    print(fennel.view(ast))
+  end
 end
 ```
 
-The `fennel.parser` function takes two optional arguments; a filename
+The first argument can either be a string or a function that returns
+one byte at a time. It takes two optional arguments; a filename
 and a table of options. Supported options are both booleans that
 default to false:
 

@@ -65,7 +65,7 @@
 
 (fn test-prefixes []
   (let [code "\n\n`(let\n  ,abc #(+ 2 3))"
-        (ok? ast) ((fennel.parser (fennel.string-stream code)))]
+        (ok? ast) ((fennel.parser code))]
     (l.assertEquals ast.line 3)
     (l.assertEquals (. ast 2 2 :line) 4)
     (l.assertEquals (. ast 2 3 :line) 4)))

@@ -5,6 +5,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 ## 1.1.0 / ???
 
 ### New Features
+* The `fennel.parser` function now accepts a string in addition to an iterator
 * The `accumulate` macro can now accumulate over multiple values
 * The `fn` special now accepts a metadata table in place of a docstring
 
@@ -18,7 +19,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Fix a bug where symbols containing `nil` did not show up in REPL completion
 
 ### Changes and Removals
-
+* The `granulate` and `string-stream` functions in the API are deprecated
 * Deprecate the `global` form in favor of using the `_G` table
 
 

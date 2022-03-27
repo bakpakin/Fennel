@@ -531,9 +531,9 @@ Syntax:
         (table.insert match-body body)))
     (match* val (unpack match-body))))
 
-(fn match-try-step [val else pattern body ...]
+(fn match-try-step [expr else pattern body ...]
   (if (= nil pattern body)
-      val
+      expr
       ;; unlike regular match, we can't know how many values the value
       ;; might evaluate to, so we have to capture them all in ... via IIFE
       ;; to avoid double-evaluation.
@@ -541,18 +541,18 @@ Syntax:
           (match ...
             ,pattern ,(match-try-step body else ...)
             ,(unpack else)))
-        ,val)))
+        ,expr)))
 
-(fn match-try* [val pattern body ...]
+(fn match-try* [expr pattern body ...]
   "Perform chained pattern matching for a sequence of steps which might fail.
 
-The value from the first expression is matched against the first pattern. If
-it matches, the first body is evaluated and its value is matched against the
-second pattern, etc.
+The values from the initial expression are matched against the first pattern.
+If they match, the first body is evaluated and its values are matched against
+the second pattern, etc.
 
 If there is a (catch pat1 body1 pat2 body2 ...) form at the end, any mismatch
 from the steps will be tried against these patterns in sequence as a fallback
-just like a normal match. If there is no catch, the mismatched value will be
+just like a normal match. If there is no catch, the mismatched values will be
 returned as the value of the entire expression."
   (let [clauses [pattern body ...]
         last (. clauses (length clauses))
@@ -563,7 +563,7 @@ returned as the value of the entire expression."
             "expected every pattern to have a body")
     (assert (= 0 (math.fmod (length catch) 2))
             "expected every catch pattern to have a body")
-    (match-try-step val catch (unpack clauses))))
+    (match-try-step expr catch (unpack clauses))))
 
 {:-> ->*
  :->> ->>*

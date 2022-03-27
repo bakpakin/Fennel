@@ -617,12 +617,6 @@ Example:
 Example:
 
 ```fennel
-(global (x-m x-e) (math.frexp 21)), {:m x-m :e m-e} ;  => {:e 5 :m 0.65625}
-```
-
-Example:
-
-```fennel
 (do (local (_ _ z) (unpack [:a :b :c :d :e])) z)  => c
 ```
 
@@ -1417,6 +1411,8 @@ if you are able to avoid it, you should.
 
 ### `require-macros` load macros with less flexibility
 
+*(Since 0.1.0, deprecated in 0.4.0)*
+
 The `require-macros` form is like `import-macros`, except it does not
 give you any control over the naming of the macros being
 imported. It is strongly recommended to use `import-macros` instead.
@@ -1440,6 +1436,8 @@ Example, using the `add` function created above:
 
 ### `global` set global variable
 
+*(Since 0.1.0, deprecated in 1.1.0)*
+
 Sets a global variable to a new value. Note that there is no
 distinction between introducing a new global and changing the value of
 an existing one. This supports destructuring and multiple-value binding.
@@ -1453,7 +1451,7 @@ Example:
 Using `global` adds the identifier in question to the list of allowed
 globals so that referring to it later on will not cause a compiler error.
 However, globals are also available in the `_G` table, and accessing
-them thru that instead is recommended for clarity.
+them that way instead is recommended for clarity.
 
 [1]: https://www.lua.org/manual/5.1/
 [2]: https://gist.github.com/nimaai/2f98cc421c9a51930e16#variable-capture

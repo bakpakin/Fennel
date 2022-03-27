@@ -521,30 +521,16 @@ scope.
 You can read [more detailed coverage of some of the problems with `...` and multiple values][18]
 here.
 
-## Globals
 
-Globals are set with `global`. Good code doesn't use too many of
-these, but they can be nice for debugging in some contexts. Note that
-unlike most forms, with `global` there is no distinction between
-creating a new global and giving an existing global a new
-value.
+## Strict global checking
 
-```fennel
-(global add (fn [x y] (+ x y)))
-(add 32 12) ; -> 44
-```
-
-Unless you are doing ahead-of-time compilation, Fennel will track all
-known globals and prevent you from referring to unknown globals, which
-prevents a common source of bugs in Lua where typos go undetected.
-
-### Strict global checking
 If you get an error that says `unknown global in strict mode` it means that
 you're trying compile code that uses a global which the Fennel compiler doesn't
 know about. Most of the time, this is due to a coding mistake. However, in some
 cases you may get this error with a legitimate global reference. If this
 happens, it may be due to an inherent limitation of Fennel's strategy. You can
-use `_G.myglobal` to refer to it in a way that works around this check.
+use `_G.myglobal` to refer to it in a way that works around this check
+and calls attention to the fact that this is in fact a global.
 
 Another possible cause for this error is a modified [function environment][16].
 The solution depends on how you're using Fennel:
@@ -580,7 +566,7 @@ runtime overhead over Lua.
   If you don't already have one, it's recommended for debugging to
   define a printer function which calls `fennel.view` on its argument
   before printing it: `(local fennel (require :fennel))
-  (global pp (fn [x] (print (fennel.view x))))`
+  (fn _G.pp [x] (print (fennel.view x)))`
 
 * Lua programmers should note Fennel functions cannot do early returns.
 

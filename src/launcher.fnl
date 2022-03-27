@@ -159,32 +159,6 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
   (table.insert (or package.loaders package.searchers)
                 (fennel.make-searcher searcher-opts)))
 
-(fn try-readline [ok readline]
-  (when ok
-    (when readline.set_readline_name
-      (readline.set_readline_name :fennel))
-    (readline.set_options {:keeplines 1000 :histfile ""})
-
-    (fn options.readChunk [parser-state]
-      (let [prompt (if (< 0 parser-state.stack-size) ".. " ">> ")
-            str (readline.readline prompt)]
-        (if str (.. str "\n"))))
-
-    (var completer nil)
-
-    (fn options.registerCompleter [repl-completer]
-      (set completer repl-completer))
-
-    (fn repl-completer [text from to]
-      (if completer
-          (do
-            (readline.set_completion_append_character "")
-            (completer (text:sub from to)))
-          []))
-
-    (readline.set_complete_function repl-completer)
-    readline))
-
 (fn load-initfile []
   (let [home (or (os.getenv :HOME) "/")
         xdg-config-home (or (os.getenv :XDG_CONFIG_HOME) (.. home :/.config))
@@ -198,18 +172,16 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
       (dosafely fennel.dofile init-filename options options fennel))))
 
 (fn repl []
-  (let [readline (and (not= "dumb" (os.getenv "TERM"))
-                      (try-readline (pcall require :readline)))]
+  (let [readline? (and (not= "dumb" (os.getenv "TERM"))
+                       (pcall require :readline))]
     (set searcher-opts.useMetadata (not= false options.useMetadata))
     (when (not= false options.fennelrc)
       (load-initfile))
     (print (.. "Welcome to " (fennel.runtime-version) "!"))
     (print "Use ,help to see available commands.")
-    (when (and (not readline) (not= "dumb" (os.getenv "TERM")))
+    (when (and (not readline?) (not= "dumb" (os.getenv "TERM")))
       (print "Try installing readline via luarocks for a better repl experience."))
-    (fennel.repl options)
-    (when readline
-      (readline.save_history))))
+    (fennel.repl options)))
 
 (fn eval [form]
   (print (dosafely fennel.eval (if (= form "-")

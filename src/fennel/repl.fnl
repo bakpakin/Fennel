@@ -294,9 +294,43 @@ For more information about the language, see https://fennel-lang.org/reference")
     (when (not= :exit command-name)
       (loop))))
 
-(fn repl [options]
+(fn try-readline! [opts ok readline]
+  (when ok
+    (when readline.set_readline_name
+      (readline.set_readline_name :fennel))
+    (readline.set_options {:keeplines 1000 :histfile ""})
+
+    (fn opts.readChunk [parser-state]
+      (let [prompt (if (< 0 parser-state.stack-size) ".. " ">> ")
+            str (readline.readline prompt)]
+        (if str (.. str "\n"))))
+
+    (var completer nil)
+
+    (fn opts.registerCompleter [repl-completer]
+      (set completer repl-completer))
+
+    (fn repl-completer [text from to]
+      (if completer
+          (do
+            (readline.set_completion_append_character "")
+            (completer (text:sub from to)))
+          []))
+
+    (readline.set_complete_function repl-completer)
+    readline))
+
+(fn should-use-readline? [opts]
+  (and
+    (not= "dumb" (os.getenv "TERM"))
+    (not opts.readChunk)
+    (not opts.registerCompleter)))
+
+(fn repl [?options]
   (let [old-root-options utils.root.options
-        opts (utils.copy options)
+        opts (or (and ?options (utils.copy ?options)) {})
+        readline (and (should-use-readline? opts)
+                      (try-readline! opts (pcall require :readline)))
         env (specials.wrap-env (or opts.env (rawget _G :_ENV) _G))
         save-locals? (and (not= opts.saveLocals false) env.debug
                           env.debug.getlocal)
@@ -364,4 +398,6 @@ For more information about the language, see https://fennel-lang.org/reference")
               (set utils.root.options old-root-options)
               (loop)))))
 
-    (loop)))
+    (loop)
+    (when readline
+      (readline.save_history))))

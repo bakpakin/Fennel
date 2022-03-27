@@ -62,7 +62,7 @@ lint: fennel
 
 ## Binaries
 
-BIN_LUA_VERSION=5.4.3
+BIN_LUA_VERSION=5.4.4
 BIN_LUA_DIR ?= $(PWD)/lua-$(BIN_LUA_VERSION)
 NATIVE_LUA_LIB ?= $(BIN_LUA_DIR)/src/liblua-native.a
 LUA_INCLUDE_DIR ?= $(BIN_LUA_DIR)/src
@@ -83,9 +83,8 @@ $(NATIVE_LUA_LIB): $(BIN_LUA_DIR)
 ## Cross compiling
 
 xc-deps:
-	apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
-		gcc-multilib-x86-64-linux-gnu libc6-dev-amd64-cross \
-		gcc-mingw-w64-i686 curl lua5.3
+	apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross curl \
+		gcc-multilib-x86-64-linux-gnu libc6-dev-amd64-cross gcc-mingw-w64-i686
 
 fennel-x86_64: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-x86_64.a
 	$(COMPILE_ARGS) CC=x86_64-linux-gnu-gcc ./fennel --no-compiler-sandbox \

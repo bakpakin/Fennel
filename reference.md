@@ -508,6 +508,37 @@ still supported, `where` should be preferred instead:
   ([a 2 3] ? (> a 0)) "obsolete guard syntax")
 ```
 
+### `match-try` for matching multiple steps
+
+Evaluates a series of pattern matching steps. The value from the first
+expression is matched against the first pattern. If it matches, the first
+body is evaluated and its value is matched against the second pattern, etc.
+
+If there is a `(catch pat1 body1 pat2 body2 ...)` form at the end, any
+mismatch from the steps will be tried against these patterns in sequence as a
+fallback just like a normal match. If there is no catch, the mismatched value
+will be returned as the value of the entire expression.
+
+```fennel
+(fn handle [conn]
+  (match-try (conn:receive :*l)
+    input (parse input)
+    (command-name params) (commands.get command-name)
+    command (pcall command (table.unpack params))
+    (catch
+     (_ :timeout) nil
+     (_ :closed) (pcall disconnect conn "connection closed")
+     (_ msg) (print "Error handling input" msg))))
+```
+
+This is useful when you want to perform a series of steps, any of which could
+fail. The `catch` clause lets you keep all your error handling in one
+place. Note that there are two ways to indicate failure in Fennel and Lua;
+using the `assert`/`error` functions or returning nil followed by some data
+representing the failure. This form only works on the latter, but you can use
+`pcall` to transform `error` calls into values.
+
+
 ### `var` declare local variable
 
 Introduces a new local inside an existing scope which may have its

@@ -167,6 +167,7 @@ which wraps its single argument in a function literal. For example,
 ```fennel
 #$3               ; same as (fn [x y z] z)
 #[$1 $2 $3]       ; same as (fn [a b c] [a b c])
+#{:a $1 :b $2}    ; same as (fn [a b] {:a a :b b})
 #$                ; same as (fn [x] x) (aka the identity function)
 #val              ; same as (fn [] val)
 #[:one :two $...] ; same as (fn [...] ["one" "two" ...])

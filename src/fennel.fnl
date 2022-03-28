@@ -105,6 +105,7 @@
             :comment utils.comment
             :comment? utils.comment?
             :varg utils.varg
+            :varg? utils.varg?
             ;; parsing
             :sym-char? parser.sym-char?
             :parser parser.parser
@@ -146,6 +147,8 @@
             :make_searcher specials.make-searcher
             :makeSearcher specials.make-searcher
             :searchModule specials.search-module
+            :macroPath utils.macro-path
+            :macroSearchers specials.macro-searchers
             :macroLoaded specials.macro-loaded
             :compileStream compiler.compile-stream
             :compileString compiler.compile-string

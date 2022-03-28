@@ -33,7 +33,7 @@ end
 
 local suites = {"core", "mangling", "quoting", "bit", "fennelview", "parser",
                 "failures", "repl", "cli", "macro", "linter", "loops", "misc",
-                "searcher"}
+                "searcher", "api"}
 
 if(#arg == 0) then
    local ok, err = pcall(testall, suites)

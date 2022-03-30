@@ -170,7 +170,8 @@ rather than generating new one."
   "Check to see if a symbol will be overshadowed by a special."
   (let [name (tostring symbol)]
     ;; we can't block in the parser because & is still ok in symbols like &as
-    (assert-compile (not (name:find "&")) "illegal character &")
+    (assert-compile (not (name:find "&")) "invalid character: &")
+    (assert-compile (not (name:find "^%.")) "invalid character: .")
     (assert-compile (not (or (. scope.specials name) (. scope.macros name)))
                     (: "local %s was overshadowed by a special form or macro"
                        :format name) ast)

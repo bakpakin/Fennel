@@ -53,7 +53,7 @@
         "expected even number of values in table literal" ["removing a key"
                                                            "adding a value"]
         "expected whitespace before opening delimiter" ["adding whitespace"]
-        "illegal character: (.)" ["deleting or replacing %s"
+        "invalid character: (.)" ["deleting or replacing %s"
                                   "avoiding reserved characters like \", \\, ', ~, ;, @, `, and comma"]
         "could not read number (.*)" ["removing the non-digit character"
                                       "beginning the identifier with a non-digit if it is not meant to be a number"]

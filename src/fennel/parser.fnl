@@ -291,7 +291,7 @@ Also returns a second function to clear the buffer in the byte stream"
       ;; for backwards-compatibility, special-case allowance of ~= but
       ;; all other uses of ~ are disallowed
       (if (and (rawstr:match "^~") (not= rawstr "~="))
-          (parse-error "illegal character: ~")
+          (parse-error "invalid character: ~")
           (rawstr:match "%.[0-9]")
           (parse-error (.. "can't start multisym segment with a digit: " rawstr)
                        (+ (+ (- byteindex (length rawstr))
@@ -335,7 +335,7 @@ Also returns a second function to clear the buffer in the byte stream"
           (. prefixes b) (parse-prefix b)
           (or (sym-char? b) (= b (string.byte "~"))) (parse-sym b)
           (not (utils.hook :illegal-char b getb ungetb dispatch))
-          (parse-error (.. "illegal character: " (string.char b))))
+          (parse-error (.. "invalid character: " (string.char b))))
       (if (not b) nil ; EOF
           done? (values true retval)
           (parse-loop (skip-whitespace (getb)))))

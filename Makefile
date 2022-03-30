@@ -105,13 +105,9 @@ $(BIN_LUA_DIR)/src/liblua-x86_64.a: $(BIN_LUA_DIR)
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a CC=x86_64-linux-gnu-gcc
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
-# There's a bug in the Lua makefile that doesn't let you override RANLIB so it
-# tries to call system strip(1) which only knows how to strip arm64 binaries.
-# To work around it, rather than call `make mingw' we expand the call.
+# Cross-compilation here doesn't work from arm64; need to do it on x86_64
 $(BIN_LUA_DIR)/src/liblua-mingw.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src CC=i686-w64-mingw32-gcc \
-		"AR=i686-w64-mingw32-gcc -shared -o" \
-		"RANLIB=i686-w64-mingw32-strip --strip-unneeded" clean liblua.a
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
 $(BIN_LUA_DIR)/src/liblua-arm32.a: $(BIN_LUA_DIR)

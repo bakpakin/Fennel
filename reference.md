@@ -20,9 +20,9 @@ The one exception to this compile-time rule is the `fennel.view`
 function which returns a string representation of any Fennel data
 suitable for printing.
 
-## Syntax
-
 Fennel source code should be UTF-8-encoded text.
+
+## Syntax
 
 `(parentheses)`: used to delimit lists, which are primarily used to
 denote calls to functions, macros, and specials, but also can be used
@@ -102,7 +102,7 @@ comment.
 Creates a function which binds the arguments given inside the square
 brackets. Will accept any number of arguments; ones in excess of the
 declared ones are ignored, and if not enough arguments are supplied to
-cover the declared ones, the remaining ones are `nil`.
+cover the declared ones, the remaining ones are given values of `nil`.
 
 Example:
 
@@ -112,9 +112,7 @@ Example:
 ```
 
 Giving it a name is optional; if one is provided it will be bound to
-it as a local. Even if you don't use it as an anonymous function,
-providing a name will cause your stack traces to be more readable, so
-it's recommended. Providing a name that's a table field will cause it
+it as a local. Providing a name that's a table field will cause it
 to be inserted in a table instead of bound as a local:
 
 ```fennel
@@ -123,6 +121,10 @@ to be inserted in a table instead of bound as a local:
 (fn functions.p [x y z]
   (print (* x (+ y z))))
 ```
+
+Like Lua, functions in Fennel support tail-call optimization, allowing
+(among other things) functions to recurse indefinitely without overflowing
+the stack, provided the call is in a tail position.
 
 
 ### `lambda`/`λ` nil-checked function
@@ -201,7 +203,8 @@ command in the REPL prints specified argument list:
   Add arbitrary amount of numbers.
 ```
 
-Supported metadata keys are `fnl/docstring` and `fnl/arglist`.
+Fennel itself uses the metadata keys `fnl/docstring` and `fnl/arglist`
+but third-party code can make use of arbitrary keys.
 
 ### Hash function literal shorthand
 
@@ -210,24 +213,22 @@ Supported metadata keys are `fnl/docstring` and `fnl/arglist`.
 It's pretty easy to create function literals, but Fennel provides
 an even shorter form of functions. Hash functions are anonymous
 functions of one form, with implicitly named arguments. All
-of the below functions are functionally equivalent, but the second one
-only works as an implementation detail and should not be written directly.
+of the below functions are functionally equivalent:
 
 ```fennel
 (fn [a b] (+ a b))
 ```
 
 ```fennel
-(hashfn (+ $1 $2))
+(hashfn (+ $1 $2)) ; implementation detail; don't use directly
 ```
 
 ```fennel
 #(+ $1 $2)
 ```
 
-This style of anonymous function is useful as a parameter to
-higher order functions, such as those provided by Lua libraries
-like lume and luafun.
+This style of anonymous function is useful as a parameter to higher
+order functions. It's recommended only for simple one-line functions.
 
 The current implementation only allows for hash functions to use up to
 9 arguments, each named `$1` through `$9`, or those with varargs,
@@ -266,44 +267,6 @@ Example:
 This example returns a function which will print a number that is 2
 greater than the argument it is passed.
 
-### `pick-values` emit exactly n values
-
-*(Since 0.4.0)*
-
-Discards all values after the first n when dealing with multi-values (`...`)
-and multiple returns. Useful for composing functions that return multiple values
-with variadic functions. Expands to a `let` expression that binds and re-emits
-exactly n values, e.g.
-
-```fennel
-(pick-values 2 (func))
-```
-expands to
-```fennel
-(let [(_0_ _1_) (func)] (values _0_ _1_))
-```
-
-Example:
-
-```fennel
-(pick-values 0 :a :b :c :d :e) ; => nil
-[(pick-values 2 (table.unpack [:a :b :c]))] ;-> ["a" "b"]
-
-(fn add [x y ...] (let [sum (+ (or x 0) (or y 0))]
-                        (if (= (select :# ...) 0) sum (add sum ...))))
-
-(add (pick-values 2 10 10 10 10)) ; => 20
-(->> [1 2 3 4 5] (table.unpack) (pick-values 3) (add)) ; => 6
-```
-
-**Note:** If n is greater than the number of values supplied, n values will still be emitted.
-This is reflected when using `(select "#" ...)` to count varargs, but tables `[...]`
-ignore trailing nils:
-
-```fennel
-(select :# (pick-values 5 "one" "two")) ; => 5
-[(pick-values 5 "one" "two")]           ; => ["one" "two"]
-```
 
 ## Binding
 
@@ -376,10 +339,10 @@ Example:
 (setmetatable
  t
  {:__fennelrest (fn [t k]
-               (let [res {}]
-                 (for [i k (length t)]
-                   (tset res (tostring (. t i)) (. t i)))
-                 res))})
+                  (let [res {}]
+                    (for [i k (length t)]
+                      (tset res (tostring (. t i)) (. t i)))
+                  res))})
 (let [[a b & c] t]
   c) ;; => {:3 3 :4 4 :5 5 :6 6}
 ```
@@ -392,42 +355,6 @@ Example:
 ```fennel
 (let [{:a a :b b &as all} {:a 1 :b 2 :c 3 :d 4}]
   (+ a b all.c all.d)) ; => 10
-```
-
-### `with-open` bind and auto-close file handles
-
-*(Since 0.4.2)*
-
-While Lua will automatically close an open file handle when it's garbage collected,
-GC may not run right away; `with-open` ensures handles are closed immediately, error
-or no, without boilerplate.
-
-The usage is similar to `let`, except:
-- destructuring is disallowed (symbols only on the left-hand side)
-- every binding should be a file handle or other value with a `:close` method.
-
-After executing the body, or upon encountering an error, `with-open`
-will invoke `(value:close)` on every bound variable before returning the results.
-
-The body is implicitly wrapped in a function and run with `xpcall` so that all bound
-handles are closed before it re-raises the error.
-
-Example:
-
-```fennel
-;; Basic usage
-(with-open [fout (io.open :output.txt :w) fin (io.open :input.txt)]
-  (fout:write "Here is some text!\n")
-  ((fin:lines))) ; => first line of input.txt
-
-;; This demonstrates that the file will also be closed upon error.
-(var fh nil)
-(local (ok err)
-  (pcall #(with-open [file (io.open :test.txt :w)]
-            (set fh file) ; you would normally never do this
-            (error :whoops!))))
-(io.type fh) ; => "closed file"
-[ok err]     ; => [false "<error message and stacktrace>"]
 ```
 
 ### `local` declare local
@@ -443,6 +370,7 @@ Example:
 ```
 
 Supports destructuring and multiple-value binding.
+
 
 ### `match` pattern matching
 
@@ -474,10 +402,7 @@ evaluates `(print :q q)` with `q` bound to the second element of
 `mytable`. The final clause will only match if `mytable` has 1 as its
 first element; if so then it will add up the second and third elements.
 
-Patterns can be tables, literal values, or symbols. If a symbol is
-already in scope, then the value is checked against the existing
-value, but if it's a new local then the symbol is bound to the value.
-The `_` pattern is treated as a wildcard that always matches.
+Patterns can be tables, literal values, or symbols.
 
 Tables can be nested, and they may be either sequential (`[]` style)
 or key/value (`{}` style) tables. Sequential tables will match if they
@@ -514,8 +439,10 @@ value will not match:
    [a b x] :yes)) ; a and b are fresh values while x=95 and x=95
 ```
 
-There is a special case for `_`; it is never bound and always acts as
-a wildcard. If no clause matches, it returns nil.
+There is a special case for symbols beginning with `_`; they are never
+bound and always act as a wildcards.
+
+If no clause matches, the form evaluates to nil.
 
 Sometimes you need to match on something more general than a structure
 or specific value. In these cases you can use guard clauses:
@@ -537,20 +464,20 @@ be combined with `or` special in the `where` clause:
 
 ```fennel
 (match [5 1 2]
-  (where (or [a 3 9] [a 1 2]) (= 5 a)) "Will match either [5 3 9] or [5 1 2]"
-  _ "will match anything else")
+  (where (or [a 3 9] [a 1 2]) (= 5 a)) "Either [5 3 9] or [5 1 2]"
+  _ "anything else")
 ```
 
 This is essentially equivalent to:
 
 ```fennel
 (match [5 1 2]
-  (where [a 3 9] (= 5 a)) "Will match either [5 3 9] or [5 1 2]"
-  (where [a 1 2] (= 5 a)) "Will match either [5 3 9] or [5 1 2]"
-  _ "will match anything else")
+  (where [a 3 9] (= 5 a)) "Either [5 3 9] or [5 1 2]"
+  (where [a 1 2] (= 5 a)) "Either [5 3 9] or [5 1 2]"
+  _ "anything else")
 ```
 
-However, patterns which bind variables, should not be combined with
+However, patterns which bind variables should not be combined with
 `or` if different variables are bound in different patterns or some
 variables are missing:
 
@@ -559,12 +486,12 @@ variables are missing:
 (match [1 2 3]
   ;; Will throw an error because `b' is nil for the first
   ;; pattern but the guard still uses it.
-  (where (or [a 1 2] [a b 3]) (> a 0) (> b 1))
+  (where (or [a 1 2] [a b 3]) (< a 0) (< b 1))
   :body)
 
 ;; ok
 (match [1 2 3]
-  (where (or [a b 2] [a b 3]) (> a 0) (>= b 1))
+  (where (or [a b 2] [a b 3]) (< a 0) (<= b 1))
   :body)
 ```
 
@@ -572,14 +499,14 @@ variables are missing:
 from Clojure. The reason Fennel doesn't have `if-let` is that `match`
 makes it redundant.
 
-**Note 2:** Prior to Fennel 0.8.2 the `match` macro used infix `?`
+**Note 2:** Prior to Fennel 0.9.0 the `match` macro used infix `?`
 operator to test patterns against the guards. While this syntax is
 still supported, `where` should be preferred instead:
 
 ``` fennel
 (match [1 2 3]
-  (where [a 2 3] (> a 0)) "new guard syntax"
-  ([a 2 3] ? (> a 0)) "obsolete guard syntax")
+  (where [a 2 3] (< 0 a)) "new guard syntax"
+  ([a 2 3] ? (< 0 a)) "obsolete guard syntax")
 ```
 
 ### `match-try` for matching multiple steps
@@ -694,6 +621,81 @@ Example:
 (do (local (_ _ z) (unpack [:a :b :c :d :e])) z)  => c
 ```
 
+### `with-open` bind and auto-close file handles
+
+*(Since 0.4.2)*
+
+While Lua will automatically close an open file handle when it's garbage collected,
+GC may not run right away; `with-open` ensures handles are closed immediately, error
+or no, without boilerplate.
+
+The usage is similar to `let`, except:
+- destructuring is disallowed (symbols only on the left-hand side)
+- every binding should be a file handle or other value with a `:close` method.
+
+After executing the body, or upon encountering an error, `with-open`
+will invoke `(value:close)` on every bound variable before returning the results.
+
+The body is implicitly wrapped in a function and run with `xpcall` so that all bound
+handles are closed before it re-raises the error.
+
+Example:
+
+```fennel
+;; Basic usage
+(with-open [fout (io.open :output.txt :w) fin (io.open :input.txt)]
+  (fout:write "Here is some text!\n")
+  ((fin:lines))) ; => first line of input.txt
+
+;; This demonstrates that the file will also be closed upon error.
+(var fh nil)
+(local (ok err)
+  (pcall #(with-open [file (io.open :test.txt :w)]
+            (set fh file) ; you would normally never do this
+            (error :whoops!))))
+(io.type fh) ; => "closed file"
+[ok err]     ; => [false "<error message and stacktrace>"]
+```
+
+
+### `pick-values` emit exactly n values
+
+*(Since 0.4.0)*
+
+Discards all values after the first n when dealing with multi-values (`...`)
+and multiple returns. Useful for composing functions that return multiple values
+with variadic functions. Expands to a `let` expression that binds and re-emits
+exactly n values, e.g.
+
+```fennel
+(pick-values 2 (func))
+```
+expands to
+```fennel
+(let [(_0_ _1_) (func)] (values _0_ _1_))
+```
+
+Example:
+
+```fennel
+(pick-values 0 :a :b :c :d :e) ; => nil
+[(pick-values 2 (table.unpack [:a :b :c]))] ;-> ["a" "b"]
+
+(fn add [x y ...] (let [sum (+ (or x 0) (or y 0))]
+                        (if (= (select :# ...) 0) sum (add sum ...))))
+
+(add (pick-values 2 10 10 10 10)) ; => 20
+(->> [1 2 3 4 5] (table.unpack) (pick-values 3) (add)) ; => 6
+```
+
+**Note:** If n is greater than the number of values supplied, n values will still be emitted.
+This is reflected when using `(select "#" ...)` to count varargs, but tables `[...]`
+ignore trailing nils:
+
+```fennel
+(select :# (pick-values 5 "one" "two")) ; => 5
+[(pick-values 5 "one" "two")]           ; => ["one" "two"]
+```
 ## Flow Control
 
 ### `if` conditional
@@ -790,7 +792,7 @@ Example:
 (var done? false)
 (while (not done?)
   (print :not-done)
-  (when (> (math.random) 0.95)
+  (when (< 0.95 (math.random))
     (set done? true)))
 ```
 
@@ -941,13 +943,13 @@ value into a table is a no-op.
 
 ```fennel
 (icollect [_ v (ipairs [1 2 3 4 5 6])]
-  (when (> v 2) (* v v)))
+  (when (< 2 v) (* v v)))
 ;; -> [9 16 25 36]
 
 ;; equivalent to:
 (let [tbl []]
   (each [_ v (ipairs [1 2 3 4 5 6])]
-    (tset tbl (+ (length tbl) 1) (when (> v 2) (* v v))))
+    (tset tbl (+ (length tbl) 1) (when (< 2 v) (* v v))))
   tbl)
 ```
 
@@ -1307,9 +1309,9 @@ previous example. The syntax mimics `fn`.
 ```fennel
 (macrodebug (-> abc
                 (+ 99)
-                (> 0)
+                (< 0)
                 (when (os.exit))))
-; -> (if (> (+ abc 99) 0) (do (os.exit)))
+; -> (if (< (+ abc 99) 0) (do (os.exit)))
 ```
 
 Call the `macrodebug` macro with a form and it will repeatedly expand
@@ -1532,3 +1534,4 @@ them that way instead is recommended for clarity.
 [3]: https://fennel-lang.org/lua-primer
 [4]: http://www.lua.org/pil/7.1.html
 [5]: http://www.lua.org/pil/8.1.html
+[6]: https://www.lua.org/manual/5.4/manual.html#3.1

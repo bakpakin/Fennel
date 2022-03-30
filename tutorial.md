@@ -23,8 +23,8 @@ function will be bound to that name in local scope; otherwise it is
 simply an anonymous value.
 
 > A brief note on naming: identifiers are typically lowercase
-> separated by dashes (aka "kebab-case"). They may contain digits too, but
-> must start with a letter or underscore. You can also use the question mark
+> separated by dashes (aka "kebab-case"). They may contain digits too,
+> as long as they're not at the start. You can also use the question mark
 > (typically for functions that return a true or false, ex., `at-max-velocity?`).
 > Underscores (`_`) are often used to name a variable that we don't plan
 > on using.

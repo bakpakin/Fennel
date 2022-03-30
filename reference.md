@@ -1,8 +1,9 @@
 # Fennel Reference
 
-These are all the built-in macros and special forms recognized by the
-Fennel compiler. It does not include built-in Lua functions; see the
-[Lua reference manual][1] or the [Lua primer][3] for that.
+This document covers the syntax, built-in macros, and special forms
+recognized by the Fennel compiler. It does not include built-in Lua
+functions; see the [Lua reference manual][1] or the [Lua primer][3]
+for that.
 
 A macro is a function which runs at compile time and transforms some
 Fennel code into different Fennel. A special form (or special) is a
@@ -19,8 +20,80 @@ The one exception to this compile-time rule is the `fennel.view`
 function which returns a string representation of any Fennel data
 suitable for printing.
 
-Fennel source code should be UTF-8-encoded text, although currently
-only ASCII forms of whitespace and numerals are supported.
+## Syntax
+
+Fennel source code should be UTF-8-encoded text.
+
+`(parentheses)`: used to delimit lists, which are primarily used to
+denote calls to functions, macros, and specials, but also can be used
+in binding contexts to bind to multiple values. Lists are a
+compile-time construct; they are not used at runtime. For example:
+`(print "hello world")`
+
+`{curly brackets}`: used to denote key/value table
+literals, for example: `{:a 1 :b 2}`
+
+`[square brackets]`: used to denote sequential
+tables, which can be used for literal data structures and also in
+specials and macros to delimit where new identifiers are introduced,
+such as argument lists or let bindings. For example: `[1 2 3]`
+
+The syntax for numbers is the [same as Lua's][6], except that underscores
+may be used to separate digits for readability. Non-ASCII digits are
+not yet supported.
+
+The syntax for strings uses double-quotes `"` around a
+string. Double quotes inside a string must be escaped with
+backslashes. The syntax for these is [the same as Lua's][6], except
+that strings may contain newline characters. Single-quoted or long
+bracket (aka multi-line) strings are not supported.
+
+Fennel has a lot fewer restrictions on identifiers than Lua.
+Identifiers are represented by symbols, but identifiers are not
+exactly the same as symbols; some symbols are used by macros for
+things other than identifiers. Symbols may not begin with digits or a
+colon, but may have digits anywhere else. Beyond that, any unicode characters are
+accepted as long as they are not unprintable or whitespace, one of the
+delimiter characters mentioned above, one of the a prefix characters
+listed below, or one of these reserved characters:
+
+* single quote: `'`
+* tilde: `~`
+* semicolon: `;`
+* at: `@`
+
+Underscores are allowed in identifier names, but dashes are preferred
+as word separators. By convention, identifiers starting with
+underscores are used to indicate that a local is bound but not meant
+to be used.
+
+The ampersand character `&` is allowed in symbols but not in
+identifiers. This allows it to be reserved for macros, like the
+behavior of `&as` in destructuring.
+
+Symbols that contain a dot `.` or colon `:` are considered
+"multi symbols". The part of the symbol before the first dot or colon is
+used as an identifier, and the part after the dot or colon is a field
+looked up on the local identified. A colon is only allowed before the
+final segment of a multi symbol, so `x.y:z` is valid but `a:b.c` is
+not. Colon multi symbols cannot be used for anything but function calls.
+
+Fennel also supports certain kinds of strings that begin with a colon
+as long as they don't contain any characters which wouldn't be allowed
+in a symbol, for example `:fennel-lang.org` is a string.
+
+Spaces, tabs, newlines, vertical tabs, form feeds, and carriage
+returns are counted as whitespace. Non-ASCII whitespace characters are
+not yet supported.
+
+Certain prefixes are expanded by the parser into longhand equivalents:
+
+* `#foo` expands to `(hashfn foo)`
+* `` `foo ``   expands to `(quote foo)`
+* `,foo` expands to `(unquote foo)`
+
+A semicolon and everything following it up to the end of the line is a
+comment.
 
 ## Functions
 

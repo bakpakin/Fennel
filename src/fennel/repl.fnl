@@ -251,9 +251,10 @@ For more information about the language, see https://fennel-lang.org/reference")
                        "Print all documentations matching a pattern in function name")
 
 (fn resolve [identifier {: ___replLocals___ &as env} scope]
-  (let [e (setmetatable {} {:__index #(or (. ___replLocals___ $2) (. env $2))})
-        code (compiler.compile-string (tostring identifier) {: scope})]
-    ((specials.load-code code e))))
+  (let [e (setmetatable {} {:__index #(or (. ___replLocals___ $2) (. env $2))})]
+    (match (pcall compiler.compile-string (tostring identifier) {: scope})
+      (true code) (match ((specials.load-code code e))
+                    (where x (= (type x) :function)) x))))
 
 (fn commands.find [env read on-values on-error scope]
   (run-command read on-error

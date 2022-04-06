@@ -371,7 +371,7 @@ For more information about the language, see https://fennel-lang.org/reference")
       (each [k (pairs chars)]
         (tset chars k nil))
       (reset)
-      (let [(ok parse-ok? x) (pcall read)
+      (let [(ok not-eof? x) (pcall read)
             src-string (string.char (unpack chars))]
         (if (not ok)
             (do
@@ -381,7 +381,7 @@ For more information about the language, see https://fennel-lang.org/reference")
             (command? src-string)
             (run-command-loop src-string read loop env on-values on-error
                               opts.scope chars)
-            (when parse-ok? ; if this is false, we got eof
+            (when not-eof?
               (match (pcall compiler.compile x (doto opts
                                                  (tset :source src-string)))
                 (false msg) (do

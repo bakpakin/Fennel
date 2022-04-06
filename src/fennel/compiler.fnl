@@ -834,7 +834,7 @@ which we have to do if we don't know."
         (when (and remap (. remap info.currentline))
           ;; And some global info
           (set info.short_src
-               (if (. remap info.currentline 1)
+               (if (not= (or (. remap info.currentline 1) :unknown) :unknown)
                    (. sourcemap (.. "@" (. remap info.currentline 1))
                       :short_src)
                    remap.short_src))

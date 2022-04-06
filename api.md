@@ -206,7 +206,7 @@ Accepts `indent` and `filename` in `options` as per above.
 
 The `fennel.parser` function returns a stateful iterator function.
 If a form was successfully read, it returns true followed by the AST node.
-Returns nil when it reaches the end. Raises an error if it can't parse 
+Returns nil when it reaches the end. Raises an error if it can't parse
 the input.
 
 ```lua

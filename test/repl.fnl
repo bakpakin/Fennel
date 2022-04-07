@@ -105,7 +105,18 @@
     (set dummy-module {:dummy :reloaded})
     (send ",reload dummy")
     (l.assertEquals :first-load dummy-first-contents)
-    (l.assertEquals :reloaded dummy.dummy)))
+    (l.assertEquals :reloaded dummy.dummy)
+    (l.assertStrContains (. (send ",reload lmao") 1)
+                         "module 'lmao' not found")))
+
+(fn test-reload-macros []
+  (let [send (wrap-repl)]
+    (tset fennel.macro-loaded :test.macros {:inc #(error :lol)})
+    (l.assertFalse (pcall fennel.eval
+                          "(import-macros m :test.macros) (m.inc 1)"))
+    (send ",reload test.macros")
+    (l.assertTrue (pcall fennel.eval
+                         "(import-macros m :test.macros) (m.inc 1)"))))
 
 (fn test-reset []
   (let [send (wrap-repl)
@@ -250,6 +261,7 @@
      : test-help
      : test-exit
      : test-reload
+     : test-reload-macros
      : test-reset
      : test-plugins
      : test-options

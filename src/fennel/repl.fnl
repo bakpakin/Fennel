@@ -138,6 +138,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                                (on-values [new])
                                old)
                              new)]
+                 (tset specials.macro-loaded module-name nil)
                  ;; if the module isn't a table then we can't make changes
                  ;; which affect already-loaded code, but if it is then we
                  ;; should splice new values into the existing table and
@@ -150,7 +151,11 @@ For more information about the language, see https://fennel-lang.org/reference")
                        (tset old k nil)))
                    (tset package.loaded module-name old))
                  (on-values [:ok]))
-    (false msg) (on-error :Runtime (pick-values 1 (msg:gsub "\n.*" "")))))
+    (false msg) (if (. specials.macro-loaded module-name)
+                    (tset specials.macro-loaded module-name nil)
+                    ;; only show the error if it's not found in package.loaded
+                    ;; AND macro-loaded
+                    (on-error :Runtime (pick-values 1 (msg:gsub "\n.*" ""))))))
 
 (fn run-command [read on-error f]
   (match (pcall read)

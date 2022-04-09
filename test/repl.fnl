@@ -111,12 +111,13 @@
 
 (fn test-reload-macros []
   (let [send (wrap-repl)]
-    (tset fennel.macro-loaded :test.macros {:inc #(error :lol)})
+    (tset fennel.macro-loaded :test/macros {:inc #(error :lol)})
     (l.assertFalse (pcall fennel.eval
-                          "(import-macros m :test.macros) (m.inc 1)"))
-    (send ",reload test.macros")
+                          "(import-macros m :test/macros) (m.inc 1)"))
+    (send ",reload test/macros")
     (l.assertTrue (pcall fennel.eval
-                         "(import-macros m :test.macros) (m.inc 1)"))))
+                         "(import-macros m :test/macros) (m.inc 1)"))
+    (tset fennel.macro-loaded :test/macros nil)))
 
 (fn test-reset []
   (let [send (wrap-repl)

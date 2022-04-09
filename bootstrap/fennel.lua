@@ -5130,7 +5130,28 @@ do
       (if else-branch
           (table.insert match-body else-branch))
       (match* val (unpack match-body))))
-  
+
+  (fn match-try-step [expr else pattern body ...]
+    (if (= nil pattern body)
+        expr
+        `((fn [...]
+            (match ...
+              ,pattern ,(match-try-step body else ...)
+              ,(unpack else)))
+          ,expr)))
+
+  (fn match-try* [expr pattern body ...]
+    (let [clauses [pattern body ...]
+          last (. clauses (length clauses))
+          catch (if (= `catch (and (= :table (type last)) (. last 1)))
+                   (let [[_ & e] (table.remove clauses)] e) ; remove `catch sym
+                   [`_# `...])]
+      (assert (= 0 (math.fmod (length clauses) 2))
+              "expected every pattern to have a body")
+      (assert (= 0 (math.fmod (length catch) 2))
+              "expected every catch pattern to have a body")
+      (match-try-step expr catch (unpack clauses))))
+
   {:-> ->*
    :->> ->>*
    :-?> -?>*
@@ -5149,7 +5170,8 @@ do
    :macro macro*
    :macrodebug macrodebug*
    :import-macros import-macros*
-   :match match-where}
+   :match match-where
+   :match-try match-try*}
   ]===]
   local module_name = "fennel.macros"
   local _

@@ -126,7 +126,7 @@ be thought of as a table comprehension. The body should provide two expressions
 
 For example,
   (collect [k v (pairs {:apple \"red\" :orange \"orange\"})]
-    v k)
+    (values v k))
 returns
   {:red \"apple\" :orange \"orange\"}
 

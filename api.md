@@ -436,8 +436,9 @@ local f = fennel.loadCode(luaCode, { x = y }, "myfile.lua")
 
 ## Detect Lua VM runtime version
 
-This function does a best effort detection of the Lua VM environment hosting Fennel.
-Useful for displaying an "About" dialog in your Fennel app that matches the REPL and `--version` CLI flag.
+This function does a best effort detection of the Lua VM environment
+hosting Fennel. Useful for displaying an "About" dialog in your
+Fennel app that matches the REPL and `--version` CLI flag.
 
 ```fennel
 (fennel.runtime-version)
@@ -447,6 +448,8 @@ Useful for displaying an "About" dialog in your Fennel app that matches the REPL
 print(fennel.runtimeVersion())
 -- > Fennel 1.0.0 on PUC Lua 5.4
 ```
+
+The `fennel.version` field will give you the version of just Fennel itself.
 
 ## Plugins
 

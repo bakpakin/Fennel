@@ -30,7 +30,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 ## 1.0.0 / 2021-11-14
 
 ### New Features
-* Allow `collect` to take two body arguments instead of requiring `values`
+* Allow `collect` to take two direct body arguments instead of requiring `values`
 * Support `--rename-native-module` when compiling binaries
 * Add `:into` clause to `collect` and `icollect`
 * Add Macro guide

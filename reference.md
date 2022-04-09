@@ -908,55 +908,58 @@ Example:
 (let [t {:a [2 3 4 {:b 42}]}] (?. t :a 4 :b)) ; => 42
 ```
 
-### `collect`, `icollect` table comprehension macros
+### `icollect`, `collect` table comprehension macros
 
 *(Since 0.8.0)*
 
-The `collect` macro takes a "iterator binding table" in the format
-that `each` takes, and an expression that produces key-value pairs,
-and runs through the iterator, filling a new table with the key-value
-pairs produced by the expression. The body should have two
-arguments; the first is used as the key and the second is the
-value. If the key is nil, it is omitted from the returned table.
-
-```fennel
-(collect [k v (pairs {:apple "red" :orange "orange"})]
-  (.. "color-" v) k)
-;; -> {:color-orange "orange" :color-red "apple"}
-
-;; equivalent to:
-(let [tbl {}]
-  (each [k v (pairs {:apple "red" :orange "orange"})]
-    (match (values (.. "color-" v) k)
-      (key value) (tset tbl key value)))
-  tbl)
-```
-
-For backwards compatibility it also supports a single `(values k v)`
-in the body.
-
-The `icollect` macro is almost identical, except that the
-expression returns one value and the new table is filled sequentially
-to produce a sequential table. Adding a `when` condition around the
-expression can act effectively as a filter, since inserting a nil
-value into a table is a no-op.
+The `icollect` macro takes a "iterator binding table" in the format
+that `each` takes, and returns a sequential table containing all the
+values produced by each iteration of the macro's body. If the value is
+nil, it is omitted from the return table. This is similar to how `map`
+works in several other languages, but it is a macro, not a function.
 
 ```fennel
 (icollect [_ v (ipairs [1 2 3 4 5 6])]
-  (when (< 2 v) (* v v)))
+  (if (> v 2) (* v v)))
 ;; -> [9 16 25 36]
 
 ;; equivalent to:
 (let [tbl []]
   (each [_ v (ipairs [1 2 3 4 5 6])]
-    (tset tbl (+ (length tbl) 1) (when (< 2 v) (* v v))))
+    (tset tbl (+ (length tbl) 1) (if (> v 2) (* v v))))
   tbl)
+```
+
+The `collect` macro is almost identical, except that the
+body should return two things: a key and a value.
+
+```fennel
+(collect [k v (pairs {:apple "red" :orange "orange" :lemon "yellow"})]
+  (if (not= k "yellow")
+      (values (.. "color-" v) k)))
+;; -> {:color-orange "orange" :color-red "apple"}
+
+;; equivalent to:
+(let [tbl {}]
+  (each [k v (pairs {:apple "red" :orange "orange"})]
+    (if (not= k "yellow")
+      (match (values (.. "color-" v) k)
+        (key value) (tset tbl key value))))
+  tbl)
+```
+
+If the key and value are given directly in the body of `collect` and
+not nested in an outer form, then the `values` can be omitted for brevity:
+
+```fennel
+(collect [k v (pairs {:a 85 :b 52 :c 621 :d 44})]
+  k (* v 5))
 ```
 
 Like `each` and `for`, the table comprehensions support an `:until`
 clause for early termination.
 
-Both `collect` and `icollect` take an `:into` clause which allows you
+Both `icollect` and `collect` take an `:into` clause which allows you
 put your results into an existing table instead of starting with an
 empty one:
 

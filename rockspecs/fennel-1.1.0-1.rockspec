@@ -1,5 +1,5 @@
 package = "fennel"
-local fennel_version = 1.1.0
+local fennel_version = "1.1.0"
 version = (fennel_version .. "-1")
 source = {url = ("https://fennel-lang.org/downloads/fennel-" .. fennel_version .. ".tar.gz")}
 description = {summary = "A lisp that compiles to Lua", detailed = ("Get your parens on--write macros and " .. "homoiconic code on the Lua runtime!"), license = "MIT", homepage = "https://fennel-lang.org/"}

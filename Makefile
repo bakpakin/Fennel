@@ -150,6 +150,12 @@ uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
 
 SSH_KEY ?= ~/.ssh/id_rsa
 
+rockspecs/fennel-$(VERSION)-1.rockspec: rockspecs/template.fnl
+	VERSION=$(VERSION) fennel --no-compiler-sandbox -c $< > $@
+	git add $@
+
+rockspec: rockspecs/fennel-$(VERSION)-1.rockspec
+
 uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
@@ -172,4 +178,4 @@ uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 release: uploadtar uploadrock
 
 .PHONY: build test testall count format ci clean coverage install \
-	uploadtar uploadrock release lint
+	uploadtar uploadrock release lint rockspec

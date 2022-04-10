@@ -8,10 +8,9 @@ This document is intended for Fennel maintainers.
 2. Update and date the changelog.
 3. Update version number in `src/fennel/utils.fnl`.
 4. Check for changes which need to be mentioned in help text or man page.
-5. Create rockspec by copying an old rockspec. Make sure luarocks version
-   matches the file name exactly and the tarball URL is updated.
+5. Run `make rockspec VERSION=$VERSION`
 6. Update the download links in `setup.md`.
-7. Commit above changes.
+7. Run `git commit -m "Release $VERSION"`
 8. Run `git tag -s $VERSION -m $VERSION`.
 
 ## Uploading
@@ -27,5 +26,5 @@ Announce it on the mailing list. Fennel is now released!
 
 ## Post-release
 
-1. Bump the version in `src/fennel.fnl` to the next version with a "-dev" suffix.
+1. Bump the version in `src/fennel/utils.fnl` to the next version with a "-dev" suffix.
 2. Add a stub for the next version to `changelog.md`

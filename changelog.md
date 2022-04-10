@@ -2,10 +2,10 @@
 
 Changes are **marked in bold** which could result in backwards-incompatibility.
 
-## 1.1.0 / ???
+## 1.1.0 / 2022-04-09
 
 ### New Forms
-* Add `match->` macro for chained pattern matching for steps which might fail
+* Add `match-try` macro for chained pattern matching for steps which might fail
 
 ### New Features
 * The `fennel.parser` function now accepts a string in addition to an iterator

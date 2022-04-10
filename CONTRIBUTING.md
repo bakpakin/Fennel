@@ -21,9 +21,8 @@
 
 * Check past and current issues to see if your problem has been run into before.
   Take a look at the [issue tracker][3] and the [mailing list][2].
-* If you can't find a past issue for your problem, or if the issues has been
-  closed you should open a new issue. If there is a closed issue that is
-  relevant, make sure to reference it.
+* If you can't find a past issue for your problem, you should open a new issue.
+  If there is a closed issue that is relevant, make sure to reference it.
 * As with any project, include a comprehensive description of the problem and
   instructions on how to reproduce it. If it is a compiler or language bug,
   please try to include a minimal example. This means don't post all 200 lines

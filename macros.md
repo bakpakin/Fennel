@@ -295,7 +295,7 @@ that code inside the body of the macro can refer to it. For instance, here's
 a simplified version of the `with-open` macro that introduces a local which
 is bound to a file that gets closed automatically at the end of the body.
 
-```
+```fennel
 (macro with-open2 [[name to-open] ...]
   `(let [,name ,to-open
          value# (do ,...)]

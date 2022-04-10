@@ -1,6 +1,6 @@
 (global package :fennel)
 
-(local fennel-version (eval-compiler (os.getenv "VERSION")))
+(local fennel-version (eval-compiler (.. "\"" (os.getenv "VERSION") "\"")))
 
 (global version (.. fennel-version "-1"))
 

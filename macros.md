@@ -54,9 +54,9 @@ There's a lot more going on here, but it's still just a table of three
 elements. Again we start with a symbol (`let`) but in this case the
 second argument is a sequential table. Square brackets in Fennel code
 tend to indicate that new locals are being introduced, but they are
-just normal sequential tables. When destructuring you can see that
-both sequential tables and key/value tables can be used, for the
-return value of `get-elements` and `pipe-for` respectively.
+just normal sequential tables to the parser. When destructuring you
+can see that both sequential tables and key/value tables can be used,
+for the return value of `get-elements` and `pipe-for` respectively.
 
 ## How to Manipulate Data
 
@@ -210,7 +210,7 @@ in the meaning between this version and the first version which calls
 
 ### macrodebug
 
-Quoting is notoriously subtle and often trips new macro authors up. If
+Quoting is notoriously subtle and often trips macro authors up. If
 you run into trouble, `macrodebug` can save the day by showing you
 precisely what your macro is expanding to. It's a tool you can run in
 the repl to inspect the results of the macro expansion:
@@ -287,6 +287,54 @@ prefer that style. In very rare cases, you could wish to bypass this
 safety check; when you are in a situation like that, you can use `sym`
 to create a symbol which the compiler will not flag. But this is
 almost always a mistake.
+
+### Identifier arguments
+
+Sometimes you want to introduce an identifier that does not use gensym so
+that code inside the body of the macro can refer to it. For instance, here's
+a simplified version of the `with-open` macro that introduces a local which
+is bound to a file that gets closed automatically at the end of the body.
+
+```
+(macro with-open2 [[name to-open] ...]
+  `(let [,name ,to-open
+         value# (do ,...)]
+     (: ,name :close)
+     value#))
+
+(with-open2 [f (io.open "/tmp/hey" :w)]
+  (f:write (get-contents)))
+```
+
+In a case like this, the macro should accept symbols for the locals as
+arguments. It is convention to take these arguments in square brackets, but
+the macro system does not enforce this.
+
+### Using functions from a module
+
+If you want your macroexpanded code to call a function your library provides
+in a module, you may at first accidentally write a sloppy version of your
+macro which only works if the module is already required in a local in scope
+where the macro is called:
+
+```fennel
+(macro mymacro [a b c]
+  `(mymodule.process (+ b c) a))
+```
+
+However, this is error-prone; you shouldn't make any assumptions about the
+scope of the caller. While it will fail to compile in contexts where
+`mymodule` is not in scope at all, there is no guarantee that `mymodule`
+will be bound to the module you intend. It's much better to expand to a
+form which requires whatever module is needed inside the macroexpansion:
+
+```fennel
+(macro mymacro [a b c]
+  `(let [mymodule# (require :mymodule)]
+     (mymodule#.process (+ b c) a)))
+```
+
+Remember that `require` caches all modules, so this will be a cheap table lookup.
 
 ### Macro Modules
 

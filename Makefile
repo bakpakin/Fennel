@@ -73,9 +73,9 @@ coverage: fennel
 	@echo "Note: 'built-ins' coverage is inaccurate because it isn't a real file."
 
 install: fennel fennel.lua fennelview.lua
-	mkdir -p $(BINDIR) && \
-		cp fennel $(BINDIR)/
-	mkdir -p $(LUADIR) && \
-		for f in fennel.lua fennelview.lua; do cp $$f $(LUADIR)/; done
+	mkdir -p $(DESTDIR)$(BINDIR) && \
+		cp fennel $(DESTDIR)$(BINDIR)/
+	mkdir -p $(DESTDIR)$(LUADIR) && \
+		for f in fennel.lua fennelview.lua; do cp $$f $(DESTDIR)$(LUADIR)/; done
 
 .PHONY: build test testall luacheck count ci clean coverage install

@@ -3355,6 +3355,26 @@ Example:\n  (import-macros mymacros                 :my-macros    ; bind to symb
     ;; many values as we ever match against in the clauses.
     (list (sym :let) [vals val]
           (match-condition vals clauses))))
+
+  :match-try (fn match-try* [expr pattern body ...]
+               (fn match-try-step [expr else pattern body ...]
+                 (if (= nil pattern body)
+                     expr
+                     `((fn [...]
+                         (match ...
+                           ,pattern ,(match-try-step body else ...)
+                           ,(unpack else)))
+                       ,expr)))
+               (let [clauses [pattern body ...]
+                     last (. clauses (length clauses))
+                     catch (if (= `catch (and (= :table (type last)) (. last 1)))
+                               (let [[_ & e] (table.remove clauses)] e)
+                               [`_# `...])]
+                 (assert (= 0 (math.fmod (length clauses) 2))
+                         "expected every pattern to have a body")
+                 (assert (= 0 (math.fmod (length catch) 2))
+                         "expected every catch pattern to have a body")
+                 (match-try-step expr catch (unpack clauses))))
  }
 ]===]
 do

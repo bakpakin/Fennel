@@ -30,7 +30,7 @@ testall: fennel # recursive make considered not really a big deal; calm down
 	$(MAKE) test LUA=luajit
 
 fuzz: fennel.lua
-	$(LUA) test/init.lua fuzz
+	export LUA_PATH="$(TEST_LUA_PATH)"; $(LUA) test/init.lua fuzz
 
 # older versions of cloc might need --force-lang=lisp
 count: ; cloc $(MINI_SRC); cloc $(LIB_SRC) ; cloc $(SRC)

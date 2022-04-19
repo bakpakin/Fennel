@@ -1,4 +1,4 @@
-(local l (require :test.luaunit))
+(local l (require :luaunit))
 
 ;; These are the slowest tests, so for now we just have a basic sanity check
 ;; to ensure that it compiles and can evaluate math.

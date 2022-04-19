@@ -4,7 +4,7 @@ table.insert(package.loaders or package.searchers, package.loaded.fennel.searche
 package.loaded.fennelview = package.loaded.fennel.dofile("fennelview.fnl")
 package.loaded.fennelfriend = package.loaded.fennel.dofile("fennelfriend.fnl")
 
-local lu = require('test.luaunit')
+local lu = require('luaunit')
 local runner = lu.LuaUnit:new()
 runner:setOutputType(os.getenv('FNL_TEST_OUTPUT') or 'tap')
 

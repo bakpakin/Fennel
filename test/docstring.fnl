@@ -1,4 +1,4 @@
-(local l (require :test.luaunit))
+(local l (require :luaunit))
 (local fennel (require :fennel))
 
 (local doc-env (setmetatable {:print #$ :fennel fennel}

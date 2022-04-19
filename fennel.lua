@@ -803,7 +803,7 @@ local compiler = (function()
     -- Calling this function will mean that further
     -- compilation in scope will use these new manglings
     -- instead of the current manglings.
-    local function applyManglings(scope, newManglings, ast)
+    local function applyManglings(scope, newManglings)
         for raw, mangled in pairs(newManglings) do
             -- Disabled because of some unknown bug in the old compiler
             -- assertCompile(not scope.refedglobals[mangled],
@@ -837,7 +837,6 @@ local compiler = (function()
     -- Generates a unique symbol in the scope.
     local function gensym(scope, base)
         local mangling
-        local append = 0
         repeat
             mangling = (base or '') .. next_append()
         until not scope.unmanglings[mangling]

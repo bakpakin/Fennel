@@ -1,6 +1,8 @@
 /fennel
 /downloads/
 /lua-5.*
+/fennelview.lua
+/fennelfriend.lua
 
 # Created by https://www.gitignore.io/api/lua
 

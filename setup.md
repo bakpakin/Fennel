@@ -126,7 +126,16 @@ this compilation for you.
     	./fennel --compile $< > $@
     ```
 
- 2. Ensure your build target depends on the `.lua` files you need.
+ 2. Ensure your build target depends on the `.lua` files you need, for
+    example, if every `.fnl` file has a corresponding `.lua` file:
+
+    ```
+    SRC := $(wildcard *.fnl)
+    OUT := $(patsubst %.fnl,%.lua,$(SRC))
+    myprogram: $(OUT)
+        [...]
+    ```
+
 
 **Note 1**: Ahead-of-time compilation is also useful if what you are
 working with requires optimal startup time. "Fennel compiles fast,

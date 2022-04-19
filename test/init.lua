@@ -1,4 +1,4 @@
-local runner = require("test.luaunit").LuaUnit:new()
+local runner = require("luaunit").LuaUnit:new()
 runner:setOutputType(os.getenv("FNL_TEST_OUTPUT") or "tap")
 
 local function loadfennel()

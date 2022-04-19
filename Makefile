@@ -15,17 +15,19 @@ SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
 build: fennel fennel.lua
 
-test: fennel.lua
-	$(LUA) test/init.lua $(TESTS)
+TEST_LUA_PATH ?= test/?.lua;./?.lua
 
-testall: export FNL_TESTALL = 1
-testall: export FNL_TEST_OUTPUT ?= text
-testall: fennel fennel.lua
-	@printf 'Testing lua 5.1:\n'  ; lua5.1 test/init.lua
-	@printf "\nTesting lua 5.2:\n"; lua5.2 test/init.lua
-	@printf "\nTesting lua 5.3:\n"; lua5.3 test/init.lua
-	@printf "\nTesting lua 5.4:\n"; lua5.4 test/init.lua
-	@printf "\nTesting luajit:\n" ; luajit test/init.lua
+test: fennel.lua
+	export LUA_PATH="$(TEST_LUA_PATH)"; $(LUA) test/init.lua $(TESTS)
+
+testall: export FNL_TEST_OUTPUT=text
+testall: export FNL_TESTALL=yes
+testall: fennel # recursive make considered not really a big deal; calm down
+	$(MAKE) test LUA=lua5.1
+	$(MAKE) test LUA=lua5.2
+	$(MAKE) test LUA=lua5.3
+	$(MAKE) test LUA=lua5.4
+	$(MAKE) test LUA=luajit
 
 fuzz: fennel.lua
 	$(LUA) test/init.lua fuzz

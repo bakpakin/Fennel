@@ -1,4 +1,4 @@
-(local l (require :test.luaunit))
+(local l (require :luaunit))
 
 (local expected {
   :comment         "function"

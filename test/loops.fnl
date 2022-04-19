@@ -1,4 +1,4 @@
-(local l (require :test.luaunit))
+(local l (require :luaunit))
 (local fennel (require :fennel))
 
 (macro == [form expected ?opts]

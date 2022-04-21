@@ -145,6 +145,26 @@ Supports early termination with an :until clause."
            (k# v#) (tset tbl# k# v#)))
        tbl#)))
 
+(fn seq-collect [how iter-tbl value-expr ...]
+  "Common part between icollect and fcollect for producing sequential tables.
+
+Iteration code only deffers in using the for or each keyword, the rest
+of the generated code is identical."
+  (assert (not= nil value-expr) "expected table value expression")
+  (assert (= nil ...)
+          "expected exactly one body expression. Wrap multiple expressions in do")
+  (let [(into iter) (extract-into iter-tbl)]
+    `(let [tbl# ,into]
+       ;; believe it or not, using a var here has a pretty good performance
+       ;; boost: https://p.hagelb.org/icollect-performance.html
+       (var i# (length tbl#))
+       (,how ,iter
+             (let [val# ,value-expr]
+               (when (not= nil val#)
+                 (set i# (+ i# 1))
+                 (tset tbl# i# val#))))
+       tbl#)))
+
 (fn icollect* [iter-tbl value-expr ...]
   "Return a sequential table made by running an iterator and evaluating an
 expression that returns values to be inserted sequentially into the table.
@@ -162,20 +182,26 @@ Supports an :into clause after the iterator to put results in an existing table.
 Supports early termination with an :until clause."
   (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
           "expected iterator binding table")
-  (assert (not= nil value-expr) "expected table value expression")
-  (assert (= nil ...)
-          "expected exactly one body expression. Wrap multiple expressions in do")
-  (let [(into iter) (extract-into iter-tbl)]
-    `(let [tbl# ,into]
-       ;; believe it or not, using a var here has a pretty good performance
-       ;; boost: https://p.hagelb.org/icollect-performance.html
-       (var i# (length tbl#))
-       (each ,iter
-         (let [val# ,value-expr]
-           (when (not= nil val#)
-             (set i# (+ i# 1))
-             (tset tbl# i# val#))))
-       tbl#)))
+  (seq-collect 'each iter-tbl value-expr ...))
+
+(fn fcollect* [iter-tbl value-expr ...]
+  "Return a sequential table made by advancing a range as specified by
+for, and evaluating an expression that returns values to be inserted
+sequentially into the table.  This can be thought of as a range
+comprehension. If the body evaluates to nil that element is omitted.
+
+For example,
+  (fcollect [i 1 10 2]
+    (when (not= i 3)
+      (* i i)))
+returns
+  [1 25 49 81]
+
+Supports an :into clause after the range to put results in an existing table.
+Supports early termination with an :until clause."
+  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
+          "expected range binding table")
+  (seq-collect 'for iter-tbl value-expr ...))
 
 (fn accumulate* [iter-tbl body ...]
   "Accumulation macro.
@@ -575,6 +601,7 @@ returned as the value of the entire expression."
  :with-open with-open*
  :collect collect*
  :icollect icollect*
+ :fcollect fcollect*
  :accumulate accumulate*
  :partial partial*
  :lambda lambda*

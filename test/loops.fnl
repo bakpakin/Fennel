@@ -55,7 +55,22 @@
     (l.assertStrContains msg ":into clause"))
   (== (do (macro twice [expr] `(do ,expr ,expr))
           (twice (icollect [i v (ipairs [:a :b :c])] v)))
-      [:a :b :c]))
+      [:a :b :c])
+  (== (fcollect [i 1 4] i)
+      [1 2 3 4])
+  (== (fcollect [i 1 4 2] i)
+      [1 3])
+  (== (fcollect [i 1 10 2 :until (> i 5)] i)
+      [1 3 5])
+  (== (fcollect [i 1 4 :into [0]] i)
+      [0 1 2 3 4])
+  (== (fcollect [i 1 4 2 :into [0]] i)
+      [0 1 3])
+  (== (fcollect [i 1 10 2
+                 :into [0]
+                 :until (> i 5)]
+        (when (not= i 3) i))
+      [0 1 5]))
 
 (fn test-accumulate []
   (== (do (var x true)

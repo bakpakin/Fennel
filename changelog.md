@@ -4,7 +4,7 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 
 ## 1.1.1 / ???
 
-* ???
+* Add `fcollect` macro for range "comprehension"
 
 ## 1.1.0 / 2022-04-09
 

@@ -993,6 +993,30 @@ Example:
 
 The `:until` clause is also supported here for early termination.
 
+### `fcollect` range comprehension macro
+
+*(Since 1.1.1)*
+
+Similarly to `icollect`, `fcollect` provides a way of building a
+sequential table. Unlike `icollect`, instead of an iterator it
+traverses a range, as accepted by the `for` special.  The `:into` and
+`:until` clauses work the same as in `icollect`.
+
+Example:
+
+```fennel
+(fcollect [i 0 10 2]
+  (if (> i 2) (* i i)))
+;; -> [16 36 64 100]
+
+;; equivalent to:
+(let [tbl {}]
+  (for [i 0 10 2]
+    (if (> i 2)
+        (table.insert tbl (* i i))))
+  tbl)
+```
+
 ### `values` multi-valued return
 
 Returns multiple values from a function. Usually used to signal

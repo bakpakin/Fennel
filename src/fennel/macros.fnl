@@ -199,7 +199,7 @@ returns
 
 Supports an :into clause after the range to put results in an existing table.
 Supports early termination with an :until clause."
-  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
+  (assert (and (sequence? iter-tbl) (< 2 (length iter-tbl)))
           "expected range binding table")
   (seq-collect 'for iter-tbl value-expr ...))
 

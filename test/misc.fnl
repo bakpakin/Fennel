@@ -2,7 +2,19 @@
 (local fennel (require :fennel))
 (local view (require :fennel.view))
 
-;; TODO: use == macro; remove code as strings
+(macro == [form expected ?opts ?extra-msg]
+  `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
+     (l.assertTrue ok# val# ,?extra-msg)
+     (l.assertEquals val# ,expected ,?extra-msg)))
+
+(macro assert-fail-msg [form expected ?extra-msg]
+  `(let [(ok# msg#) (pcall fennel.compile-string (macrodebug ,form true)
+                           {:allowedGlobals (icollect [k# (pairs _G)] k#)})]
+     (l.assertFalse ok# ,?extra-msg)
+     (l.assertStrContains msg# ,expected ,?extra-msg)))
+
+(fn ==v [x y msg]
+  (l.assertEquals (view x) (view y) msg))
 
 (fn test-traceback []
   (let [tracer (fennel.dofile "test/mod/tracer.fnl")
@@ -11,18 +23,22 @@
     (l.assertStrContains traceback "tracer.fnl:9:")))
 
 (fn test-leak []
-  (l.assertFalse (pcall fennel.eval "(->1 1 (+ 4))" {:allowedGlobals false})
-                 "Expected require-macros not leak into next evaluation."))
+  (assert-fail-msg (->1 1 (+ 4))
+                   "unknown identifier.*->1"
+                   "Expected require-macros not leak into next evaluation."))
 
 (fn test-runtime-quote []
-  (l.assertFalse (pcall fennel.eval "`(hey)" {:allowedGlobals false})
-                 "Expected quoting lists to fail at runtime.")
-  (l.assertFalse (pcall fennel.eval "`[hey]" {:allowedGlobals false})
-                 "Expected quoting syms to fail at runtime."))
+  (assert-fail-msg `(hey)
+                   "symbols may only be used at compile time"
+                   "Expected quoting lists to fail at runtime.")
+  (assert-fail-msg `[hey]
+                   "symbols may only be used at compile time"
+                   "Expected quoting lists to fail at runtime."))
 
 (fn test-global-mangling []
-  (l.assertTrue (pcall fennel.eval "(.. hello-world :w)" {:env {:hello-world "hi"}})
-                "Expected global mangling to work."))
+  (== (.. hello-world :w) "hiw"
+      {:env {:hello-world "hi"}}
+      "Expected global mangling to work."))
 
 (fn test-include []
   (let [stderr io.stderr
@@ -41,26 +57,32 @@
         (ok6 out6) (pcall fennel.dofile "test/mod/foo6.fnl"
                           {:requireAsInclude true}
                           :test)]
-    (l.assertTrue ok (: "Expected foo to run but it failed with error %s" :format (tostring out)))
-    (l.assertTrue ok2 (: "Expected foo2 to run but it failed with error %s" :format (tostring out2)))
-    (l.assertTrue ok3 (: "Expected foo3 to run but it failed with error %s" :format (tostring out3)))
-    (l.assertTrue ok4 (: "Expected foo4 to run but it failed with error %s" :format (tostring out4)))
-    (l.assertTrue ok5 (: "Expected foo5 to run but it failed with error %s" :format (tostring out5)))
-    (l.assertTrue ok6 (: "Expected foo6 to run but it failed with error %s" :format (tostring out6)))
+    (l.assertTrue ok (: "Expected foo to run but it failed with error %s"
+                        :format (tostring out)))
+    (l.assertTrue ok2 (: "Expected foo2 to run but it failed with error %s"
+                         :format (tostring out2)))
+    (l.assertTrue ok3 (: "Expected foo3 to run but it failed with error %s"
+                         :format (tostring out3)))
+    (l.assertTrue ok4 (: "Expected foo4 to run but it failed with error %s"
+                         :format (tostring out4)))
+    (l.assertTrue ok5 (: "Expected foo5 to run but it failed with error %s"
+                         :format (tostring out5)))
+    (l.assertTrue ok6 (: "Expected foo6 to run but it failed with error %s"
+                         :format (tostring out6)))
     (l.assertEquals (and (= :table (type out)) out.result) expected
                     (.. "Expected include to have result: " expected))
     (l.assertFalse out.quux
                    "Expected include not to leak upvalues into included modules")
-    (l.assertEquals (view out) (view out2)
-                    "Expected requireAsInclude to behave the same as include")
-    (l.assertEquals (view out) (view out3)
-                    "Expected requireAsInclude to behave the same as include when given an expression")
-    (l.assertEquals (view out) (view out4)
-                    "Expected include to work when given an expression")
-    (l.assertEquals (view out) (view out5)
-                    "Expected relative requireAsInclude to work when given a ...")
-    (l.assertEquals (view out) (view out6)
-                    "Expected relative requireAsInclude to work with nested modules")
+    (==v out out2
+         "Expected requireAsInclude to behave the same as include")
+    (==v out out3
+         "Expected requireAsInclude to behave the same as include when given an expression")
+    (==v out out4
+         "Expected include to work when given an expression")
+    (==v out out5
+         "Expected relative requireAsInclude to work when given a ...")
+    (==v out out6
+         "Expected relative requireAsInclude to work with nested modules")
     (l.assertNil _G.quux "Expected include to actually be local")
     (let [spliceOk (pcall fennel.dofile "test/mod/splice.fnl")]
       (l.assertTrue spliceOk "Expected splice to run")
@@ -73,7 +95,8 @@
               (local baz (require :test.mod.baz))
               (local (quux-ok quux) (pcall #(require :test.mod.quuuuuuux)))
               [(when bar-ok bar) baz (when quux-ok quux)]"
-        opts {:requireAsInclude true :skipInclude [:test.mod.bar :test.mod.quuuuuuux]}
+        opts {:requireAsInclude true :skipInclude [:test.mod.bar
+                                                   :test.mod.quuuuuuux]}
         out (fennel.compile-string code opts)
         value (fennel.eval code opts)]
     (l.assertStrContains out "baz = require(\"test.mod.baz\")")
@@ -105,28 +128,28 @@
                   "Expected mangled globals to be kept across eval invocations."))
 
 (fn test-empty-values []
-  (l.assertTrue (fennel.eval
-                 "(let [a (values)
-                        b (values (values))
-                        (c d) (values)
-                        e (if (values) (values))
-                        f (while (values) (values))
-                        [g] [(values)]
-                        {: h} {:h (values)}]
-                    (not (or a b c d e f g h)))")
-                "empty (values) should resolve to nil")
-  (let [broken-code (fennel.compile "(local [x] (values)) (local {: y} (values))")]
-    (l.assertNotNil broken-code "code should compile")
-    (l.assertError broken-code "code should fail at runtime")))
+  (== (let [a (values)
+            b (values (values))
+            (c d) (values)
+            e (if (values) (values))
+            f (while (values) (values))
+            [g] [(values)]
+            {: h} {:h (values)}]
+        (not (or a b c d e f g h))) true
+        nil "empty (values) should resolve to nil")
+  (== (pcall #(local [x] (values))) false)
+  (== (pcall #(local {: y} (values))) false))
 
 (fn test-short-circuit []
-  (let [method-code "(var shorted? false)
-              (fn set-shorted! [] (set shorted? true) {:f! (fn [])})
-              (and false (: (set-shorted!) :f!))
-              shorted?"
-        comparator-code "(and false (< 1 (error :nein!) 3))"]
-    (l.assertFalse (fennel.eval method-code))
-    (l.assertFalse (fennel.eval comparator-code))))
+  (== (do (var shorted? false)
+          (fn set-shorted! [] (set shorted? true) {:f! (fn [])})
+          (and false (: (set-shorted!) :f!))
+          shorted?)
+      false)
+  (== (and false (< 1 (error :nein!) 3)) false)
+  ;; TODO: fix this
+  ;; (== (and false (not (do (error :noooo) true))) false)
+  )
 
 {: test-empty-values
  : test-env-iteration

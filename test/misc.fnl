@@ -147,9 +147,8 @@
           shorted?)
       false)
   (== (and false (< 1 (error :nein!) 3)) false)
-  ;; TODO: fix this
-  ;; (== (and false (not (do (error :noooo) true))) false)
-  )
+  (== (and false (not (do (error :noooo) true))) false)
+  (== (and false (values (error :lol) false)) false))
 
 {: test-empty-values
  : test-env-iteration

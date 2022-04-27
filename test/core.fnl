@@ -29,10 +29,7 @@
                "(or 5)" 5
                "(or false nil true 12 false)" true
                "(or)" false
-               "(and (values))" true
-               "(and true true (values))" true
                "(and true (values true false) true)" true
-               "(and true (values true false))" false
                "(tostring (and _G.xyz (do _G.xyz.y) _G.xyz))" :nil
                ;; short-circuit special forms
                "(let [t {:a 85}] (or true (tset t :a 1)) t.a)" 85

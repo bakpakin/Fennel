@@ -770,19 +770,16 @@ Method name doesn't have to be known at compile-time; if it is, use
 ;; Spice in a do to trigger an IIFE to ensure we short-circuit certain
 ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
 ;; https://todo.sr.ht/~technomancy/fennel/111
-(fn maybe-short-circuit-protect [ast i name {:macros mac}]
-  (let [call (and (utils.list? ast) (tostring (. ast 1)))]
-    (if (and (or (= :or name) (= :and name)) (< 1 i)
-             ;; dangerous specials (or a macro which could be anything)
-             (or (. mac call) (= :set call) (= :tset call) (= :global call)))
-        (utils.list (utils.sym :do) ast)
-        ast)))
+(fn maybe-short-circuit-protect [ast i name]
+  (if (and (or (= :or name) (= :and name)) (utils.list? ast) (< 1 i))
+      (utils.list (utils.sym :do) ast)
+      ast))
 
 (fn arithmetic-special [name zero-arity unary-prefix ast scope parent]
   (let [len (length ast) operands []
         padded-op (.. " " name " ")]
     (for [i 2 len]
-      (let [subast (maybe-short-circuit-protect (. ast i) i name scope)
+      (let [subast (maybe-short-circuit-protect (. ast i) i name)
             subexprs (compiler.compile1 subast scope parent)]
         (if (= i len)
             ;; last arg gets all its exprs but everyone else only gets one

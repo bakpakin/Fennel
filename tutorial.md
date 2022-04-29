@@ -763,8 +763,7 @@ This module can be required as follows:
 
 ```fennel
 ;; file libs/example/module-a.fnl
-(local parent-module (: ... :match "(.+)(%.[^.]+)"))  ; libs.example
-(local greet (require (.. parent-module :.utils.greet)))
+(local greet (require (.. (: ... :match "(.+)%.[^.]+") :.utils.greet)))
 
 (fn hello [] (print "hello from a"))
 

@@ -304,7 +304,12 @@ For more information about the language, see https://fennel-lang.org/reference")
   (when ok
     (when readline.set_readline_name
       (readline.set_readline_name :fennel))
-    (readline.set_options {:keeplines 1000 :histfile ""})
+    ;; set_options returns current options so we can preserve whatever was
+    ;; already set in the .fennelrc file
+    (let [rl-opts (collect [k v (pairs (readline.set_options {}))
+                            :into {:keeplines 1000 :histfile ""}]
+                    (values k v))]
+      (readline.set_options rl-opts))
 
     (fn opts.readChunk [parser-state]
       (let [prompt (if (< 0 parser-state.stack-size) ".. " ">> ")
@@ -327,10 +332,9 @@ For more information about the language, see https://fennel-lang.org/reference")
     readline))
 
 (fn should-use-readline? [opts]
-  (and
-    (not= "dumb" (os.getenv "TERM"))
-    (not opts.readChunk)
-    (not opts.registerCompleter)))
+  (and (not= "dumb" (os.getenv "TERM"))
+       (not opts.readChunk)
+       (not opts.registerCompleter)))
 
 (fn repl [?options]
   (let [old-root-options utils.root.options

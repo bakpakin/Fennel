@@ -763,16 +763,15 @@ This module can be required as follows:
 
 ```fennel
 ;; file libs/example/module-a.fnl
-(local greet (require (: ... :gsub "(.*)%.module%-a$" "%1.utils.greet")))
+(local greet (require (.. (: ... :match "(.+)%.[^.]+") :.utils.greet)))
+
 (fn hello [] (print "hello from a"))
 
 {:hello hello :greet greet}
 ```
 
-The resulting module name is constructed via a `gsub` call on the
-module name string.  All other modules need to use a similar way to
-require other modules, with the only difference being their name in
-the pattern.
+The parent module name is determined via calling the `match` method on the
+current module name string (`...`).
 
 [1]: https://stopa.io/post/265
 [2]: http://danmidwood.com/content/2014/11/21/animated-paredit.html

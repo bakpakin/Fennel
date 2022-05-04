@@ -4,7 +4,11 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 
 ## 1.1.1 / ???
 
+### New Forms
 * Add `fcollect` macro for range "comprehension"
+
+### Bug Fixes
+* Fix a bug where macros modifying table literals would emit incorrect output.
 
 ## 1.1.0 / 2022-04-09
 

@@ -1,10 +1,10 @@
 (local l (require :luaunit))
 (local fennel (require :fennel))
 
-(macro == [form expected ?opts]
+(macro == [form expected ?opts ?msg]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
      (l.assertTrue ok# val#)
-     (l.assertEquals val# ,expected)))
+     (l.assertEquals val# ,expected ,?msg)))
 
 (fn test-arrows []
   (== (-> (+ 85 21) (+ 1) (- 99)) 8)
@@ -224,41 +224,38 @@
   (== (match nil _ :yes nil :no) "yes")
   (== (let [_ :bar] (match :foo _ :should-match :foo :no)) "should-match"))
 
-(macro == [code expected ?msg]
-  `(l.assertEquals (fennel.eval (macrodebug ,code true)) ,expected ,?msg))
-
 (fn test-match-try []
   (== (match-try [1 2 1]
         [1 a b] [b a]
         [1 & rest] rest)
       [2]
-      "matching all the way thru")
+      nil "matching all the way thru")
   (== (match-try [1 2 3]
         [1 a b] [b a]
         [1 & rest] rest)
       [3 2]
-      "stopping on the second clause")
+      nil "stopping on the second clause")
   (== [(match-try (values nil "whatever")
          [1 a b] [b a]
          [1 & rest] rest)]
       [nil :whatever]
-      "nil, msg failure representation stops immediately")
+      nil "nil, msg failure representation stops immediately")
   (== (select 2 (match-try "hey"
                   x (values nil "error")
                   y nil))
       "error"
-      "all values are in fact propagated even on a mid-chain mismatch")
+      nil "all values are in fact propagated even on a mid-chain mismatch")
   (== (select :# (match-try "hey"
                    x (values nil "error" nil nil)
                    y nil))
       4
-      "trailing nils are preserved")
+      nil "trailing nils are preserved")
   (== (match-try {:a "abc" :x "xyz"}
         {: b} :son-of-a-b!
         (catch
          {: a : x} (.. a x)))
       "abcxyz"
-      "catch clause works")
+      nil "catch clause works")
   (== (match-try {:a "abc" :x "xyz"}
         {: a} {:abc "whatever"}
         {: b} :son-of-a-b!
@@ -266,7 +263,7 @@
          [hey] :idunno
          {: abc} (.. abc "yo")))
       "whateveryo"
-      "multiple catch clauses works")
+      nil "multiple catch clauses works")
   (let [(_ msg1) (pcall fennel.eval "(match-try abc def)")
         (_ msg2) (pcall fennel.eval "(match-try abc {} :def _ :wat (catch 55))")]
     (l.assertStrMatches msg1 ".*expected every pattern to have a body.*")
@@ -296,6 +293,11 @@
           (expand-string (when true (fn [] :x))))
       "iftrue(do (fn {} \"x\"))"))
 
+(fn test-literal []
+  (== (do (macro splice [t] (doto t (tset :hello :world)))
+          (splice {:greetings "comrade"}))
+      {:hello "world" :greetings "comrade"}))
+
 {: test-arrows
  : test-doto
  : test-?.
@@ -310,4 +312,5 @@
  : test-lua-module
  : test-disabled-sandbox-searcher
  : test-expand
- : test-match-try}
+ : test-match-try
+ : test-literal}

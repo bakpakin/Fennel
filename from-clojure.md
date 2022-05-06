@@ -86,7 +86,7 @@ advantage of this notation is that unlike `:keys` it can be nested.
   (println msg)
   (+ abc def))
 
-(my-function {:msg "have a cola and smile" :abc 99 :def 523})
+(my-function {:msg "hacasb" :abc 99 :def 523})
 ```
 
 ```fennel
@@ -95,7 +95,7 @@ advantage of this notation is that unlike `:keys` it can be nested.
   (print msg)
   (+ abc def))
 
-(my-function {:msg "have a cola and smile" :abc 99 :def 523})
+(my-function {:msg "hacasb" :abc 99 :def 523})
 ```
 
 Like Clojure, normal locals cannot be given new values. However,

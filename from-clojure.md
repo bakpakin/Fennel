@@ -228,7 +228,7 @@ to alter values held, to be later dynamically looked up:
 
 In contrast to Clojure's `binding`, which only binds var to a given
 value in the scope created by the `binding` macro, the modification of
-the table here is permanent, and table value have to be restored
+the table here is permanent, and table values have to be restored
 manually.
 
 In Clojure, similarly to variables, dynamic functions can be defined:
@@ -368,7 +368,7 @@ form of pattern matching, Fennel omits it in favor of `match`.
 ;; fennel
 (match (calculate-thingy)
   result (print "Got" result)
-  _ (println "Couldn't get any results"))
+  _ (print "Couldn't get any results"))
 ```
 
 ## Modules

@@ -68,7 +68,7 @@ will see its values updated as expected, regardless of mangling rules."
                                             ["#<unknown-arguments>"])
                                         " ")]
               (string.format "(%s%s%s)\n  %s" name
-                             (if (> (length arglist) 0) " " "") arglist
+                             (if (< 0 (length arglist)) " " "") arglist
                              docstring))
             (string.format "%s\n  %s" name docstring)))))
 
@@ -395,7 +395,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
                      "expected binding sequence" bindings)
     (compiler.assert (= (% (length bindings) 2) 0)
                      "expected even number of name/value bindings" (. ast 2))
-    (compiler.assert (>= (length ast) 3) "expected body expression" (. ast 1))
+    (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
     ;; we have to gensym the binding for the let body's return value before
     ;; compiling the binding vector, otherwise there's a possibility to conflict
     (for [_ 1 (or opts.nval 0)]
@@ -424,7 +424,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 
 (fn SPECIALS.tset [ast scope parent]
   "For setting items in a table."
-  (compiler.assert (> (length ast) 3)
+  (compiler.assert (< 3 (length ast))
                    "expected table, key, and value arguments" ast)
   (let [root (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1)
         keys []]
@@ -556,7 +556,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
                      (utils.expr condition :expression)))))
 
 (fn SPECIALS.each [ast scope parent]
-  (compiler.assert (>= (length ast) 3) "expected body expression" (. ast 1))
+  (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
   (let [binding (compiler.assert (utils.table? (. ast 2))
                                  "expected binding table" ast)
         _ (compiler.assert (<= 2 (length binding))
@@ -635,7 +635,7 @@ order, but can be used with any iterator." true)
     (compiler.assert (utils.sym? binding-sym)
                      (: "unable to bind %s %s" :format (type binding-sym)
                         (tostring binding-sym)) (. ast 2))
-    (compiler.assert (>= (length ast) 3) "expected body expression" (. ast 1))
+    (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
     (compiler.assert (<= (length ranges) 3) "unexpected arguments" (. ranges 4))
     (for [i 1 (math.min (length ranges) 3)]
       (tset range-args i (tostring (. (compiler.compile1 (. ranges i) scope

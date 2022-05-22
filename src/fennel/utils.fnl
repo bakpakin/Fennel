@@ -154,7 +154,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 (fn list->string [self ?tostring2]
   (var (safe max) (values [] 0))
   (each [k (pairs self)]
-    (when (and (= (type k) :number) (> k max))
+    (when (and (= (type k) :number) (< max k))
       (set max k)))
   (for [i 1 max]
     (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
@@ -284,7 +284,7 @@ be declared local, and they may have side effects on invocation (metatables)."
             (if (or (= last-char ":") (= last-char "."))
                 (tset parts (+ (length parts) 1) (part:sub 1 (- 2)))
                 (tset parts (+ (length parts) 1) part))))
-        (and (> (length parts) 0) (or (: str :match "%.") (: str :match ":"))
+        (and (< 0 (length parts)) (or (: str :match "%.") (: str :match ":"))
              (not (str:match "%.%.")) (not= (str:byte) (string.byte "."))
              (not= (str:byte (- 1)) (string.byte ".")) parts))))
 

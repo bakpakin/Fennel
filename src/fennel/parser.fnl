@@ -35,13 +35,12 @@ Also returns a second function to clear the buffer in the byte stream"
 ;; Opener keys have closer as the value; closers keys have true as their value.
 (local delims {40 41 41 true 91 93 93 true 123 125 125 true})
 
-(fn whitespace? [b]
-  (or (= b 32) (and (>= b 9) (<= b 13))))
+(fn whitespace? [b] (or (= b 32) (<= 9 b 13)))
 
 ;; fnlfmt: skip
 (fn sym-char? [b]
   (let [b (if (= :number (type b)) b (string.byte b))]
-    (and (> b 32)
+    (and (< 32 b)
          (not (. delims b))
          (not= b 127) ; backspace
          (not= b 34) ; backslash
@@ -126,7 +125,7 @@ Also returns a second function to clear the buffer in the byte stream"
           (do
             (set whitespace-since-dispatch true)
             (skip-whitespace (getb)))
-          (and (not b) (> (length stack) 0))
+          (and (not b) (< 0 (length stack)))
           (badend)
           b))
 

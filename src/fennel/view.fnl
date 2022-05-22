@@ -44,10 +44,10 @@
 (fn max-index-gap [kv]
   ;; Find the largest gap between neighbor items
   (var gap 0)
-  (when (> (length* kv) 0)
+  (when (< 0 (length* kv))
     (var i 0)
     (each [_ [k] (ipairs kv)]
-      (when (> (- k i) gap)
+      (when (< gap (- k i))
         (set gap (- k i)))
       (set i k)))
   gap)
@@ -81,7 +81,7 @@
       (insert kv [k v]))
     (table.sort kv sort-keys)
     (when (not assoc?)
-      (if (> (max-index-gap kv) options.max-sparse-gap)
+      (if (< options.max-sparse-gap (max-index-gap kv))
           (set assoc? true)
           (fill-gaps kv)))
     (if (= (length* kv) 0)
@@ -143,7 +143,7 @@
         close (if (= :seq table-type) "]" "}")
         oneline (.. open (table.concat elements " ") close)]
     (if (and (not options.one-line?)
-             (or multiline? (> (+ indent (length* oneline)) options.line-length)))
+             (or multiline? (< options.line-length (+ indent (length* oneline)))))
         (.. open (table.concat elements indent-str) close)
         oneline)))
 
@@ -156,7 +156,7 @@
 (fn pp-associative [t kv options indent]
   (var multiline? false)
   (let [id (. options.seen t)]
-    (if (>= options.level options.depth) "{...}"
+    (if (<= options.depth options.level) "{...}"
         (and id options.detect-cycles?) (.. "@" id "{...}")
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
@@ -174,7 +174,7 @@
 (fn pp-sequence [t kv options indent]
   (var multiline? false)
   (let [id (. options.seen t)]
-    (if (>= options.level options.depth) "[...]"
+    (if (<= options.depth options.level) "[...]"
         (and id options.detect-cycles?) (.. "@" id "[...]")
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
@@ -194,12 +194,12 @@
                         (table.concat " "))]
         (if (and (not options.one-line?)
                  (or force-multi-line? (oneline:find "\n")
-                     (> (+ indent (length* oneline)) options.line-length)))
+                     (< options.line-length (+ indent (length* oneline)))))
             (table.concat lines (.. "\n" (string.rep " " indent)))
             oneline))))
 
 (fn pp-metamethod [t metamethod options indent]
-  (if (>= options.level options.depth)
+  (if (<= options.depth options.level)
       (if options.empty-as-sequence? "[...]" "{...}")
       (let [_ (set options.visible-cycle? #(visible-cycle? $ options))
             (lines force-multi-line?) (metamethod t pp options indent)]
@@ -258,7 +258,7 @@
                             _ init (ipairs inits)
                             :until ret]
                  (and byte
-                      (>= init.max-byte byte init.min-byte)
+                      (<= init.min-byte byte init.max-byte)
                       init))
           code (and init
                     (do
@@ -267,13 +267,13 @@
                         (let [byte (string.byte str i)]
                           (set code (and byte
                                          code
-                                         (>= 0xbf byte 0x80)
+                                         (<= 0x80 byte 0xbf)
                                          (+ (* code 64) (- byte 0x80))))))
                       code))]
       (if (and code
-               (>= init.max-code code init.min-code)
+               (<= init.min-code code init.max-code)
                ;; surrogate pairs disallowed
-               (not (>= 0xdfff code 0xd800)))
+               (not (<= 0xd800 code 0xdfff)))
           init.len)))
   (var index 1)
   (var output [])

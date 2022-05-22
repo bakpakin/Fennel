@@ -132,7 +132,7 @@ returns
 
 Supports an :into clause after the iterator to put results in an existing table.
 Supports early termination with an :until clause."
-  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
+  (assert (and (sequence? iter-tbl) (<= 2 (length iter-tbl)))
           "expected iterator binding table")
   (assert (not= nil key-expr) "expected key and value expression")
   (assert (= nil ...)
@@ -180,7 +180,7 @@ returns
 
 Supports an :into clause after the iterator to put results in an existing table.
 Supports early termination with an :until clause."
-  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
+  (assert (and (sequence? iter-tbl) (<= 2 (length iter-tbl)))
           "expected iterator binding table")
   (seq-collect 'each iter-tbl value-expr ...))
 
@@ -219,7 +219,7 @@ For example,
                _ n (pairs {:apple 2 :orange 3})]
     (+ total n))
 returns 5"
-  (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 4))
+  (assert (and (sequence? iter-tbl) (<= 4 (length iter-tbl)))
           "expected initial value and iterator binding table")
   (assert (not= nil body) "expected body expression")
   (assert (= nil ...)
@@ -267,7 +267,7 @@ expands to
   (if (and _G.io _G.io.stderr)
       (_G.io.stderr:write
        "-- WARNING: pick-args is deprecated and will be removed in the future.\n"))
-  (assert (and (= (type n) :number) (= n (math.floor n)) (>= n 0))
+  (assert (and (= (type n) :number) (= n (math.floor n)) (<= 0 n))
           (.. "Expected n to be an integer literal >= 0, got " (tostring n)))
   (let [bindings []]
     (for [i 1 n]
@@ -283,7 +283,7 @@ For example,
 expands to
   (let [(_0_ _1_) ...]
     (values _0_ _1_))"
-  (assert (and (= :number (type n)) (>= n 0) (= n (math.floor n)))
+  (assert (and (= :number (type n)) (<= 0 n) (= n (math.floor n)))
           (.. "Expected n to be an integer >= 0, got " (tostring n)))
   (let [let-syms (list)
         let-values (if (= 1 (select "#" ...)) ... `(values ,...))]
@@ -301,7 +301,7 @@ nil, unless that argument's name begins with a question mark."
         has-internal-name? (sym? (. args 1))
         arglist (if has-internal-name? (. args 2) (. args 1))
         docstring-position (if has-internal-name? 3 2)
-        has-docstring? (and (> (length args) docstring-position)
+        has-docstring? (and (< docstring-position (length args))
                             (= :string (type (. args docstring-position))))
         arity-check-position (- 4 (if has-internal-name? 0 1)
                                 (if has-docstring? 0 1))

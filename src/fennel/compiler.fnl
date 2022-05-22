@@ -205,7 +205,7 @@ if they have already been declared via declare-local"
         multi-sym-parts (utils.multi-sym? name)
         name (or (hashfn-arg-name name multi-sym-parts scope) name)]
     (let [parts (or multi-sym-parts [name])
-          etype (or (and (> (length parts) 1) :expression) :sym)
+          etype (or (and (< 1 (length parts)) :expression) :sym)
           local? (. scope.manglings (. parts 1))]
       (when (and local? (. scope.symmeta (. parts 1)))
         (tset (. scope.symmeta (. parts 1)) :used true))
@@ -233,10 +233,9 @@ if they have already been declared via declare-local"
 (fn peephole [chunk]
   "Do some peephole optimization."
   (if chunk.leaf chunk
-      (and (>= (length chunk) 3) (= (. (. chunk (- (length chunk) 2)) :leaf)
-                                    :do)
-           (not (. (. chunk (- (length chunk) 1)) :leaf))
-           (= (. (. chunk (length chunk)) :leaf) :end))
+      (and (<= 3 (length chunk)) (= (. chunk (- (length chunk) 2) :leaf) :do)
+           (not (. chunk (- (length chunk) 1) :leaf))
+           (= (. chunk (length chunk) :leaf) :end))
       (let [kid (peephole (. chunk (- (length chunk) 1)))
             new-chunk {:ast chunk.ast}]
         (for [i 1 (- (length chunk) 3)]
@@ -252,7 +251,7 @@ if they have already been declared via declare-local"
     (if chunk.leaf
         (tset out last-line (.. (or (. out last-line) "") " " chunk.leaf))
         (each [_ subchunk (ipairs chunk)]
-          (when (or subchunk.leaf (> (length subchunk) 0)) ; ignore empty chunks
+          (when (or subchunk.leaf (< 0 (length subchunk))) ; ignore empty chunks
             ;; don't increase line unless it's from the same file
             (let [source (utils.ast-source subchunk.ast)]
               (when (= file source.filename)
@@ -282,9 +281,9 @@ Tab is what is used to indent a block."
                   tab tab
                   nil "")]
         (fn parter [c]
-          (when (or c.leaf (> (length c) 0))
+          (when (or c.leaf (< 0 (length c)))
             (let [sub (flatten-chunk sm c tab (+ depth 1))]
-              (if (> depth 0)
+              (if (< 0 depth)
                   (.. tab (sub:gsub "\n" (.. "\n" tab)))
                   sub))))
 
@@ -364,7 +363,7 @@ if opts contains the nval option."
     (let [n opts.nval
           len (length exprs)]
       (when (not= n len)
-        (if (> len n)
+        (if (< n len)
             (do
               ;; drop extra
               (keep-side-effects exprs parent (+ n 1) ast)
@@ -476,7 +475,7 @@ if opts contains the nval option."
         first (. ast 1)
         multi-sym-parts (utils.multi-sym? first)
         special (and (utils.sym? first) (. scope.specials (tostring first)))]
-    (assert-compile (> len 0) "expected a function, macro, or special to call"
+    (assert-compile (< 0 len) "expected a function, macro, or special to call"
                     ast)
     (if special
         (compile-special ast scope parent opts special)
@@ -529,7 +528,7 @@ if opts contains the nval option."
   (let [buffer []]
     (fn write-other-values [k]
       (when (or (not= (type k) :number) (not= (math.floor k) k) (< k 1)
-                (> k (length ast)))
+                (< (length ast) k))
         (if (and (= (type k) :string) (utils.valid-lua-identifier? k)) [k k]
             (let [[compiled] (compile1 k scope parent {:nval 1})
                   kstr (.. "[" (tostring compiled) "]")]

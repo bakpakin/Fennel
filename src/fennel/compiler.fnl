@@ -366,7 +366,7 @@ if opts contains the nval option."
       (when (not= n len)
         (if (> len n)
             (do
-              ; drop extra
+              ;; drop extra
               (keep-side-effects exprs parent (+ n 1) ast)
               (for [i (+ n 1) len]
                 (tset exprs i nil)))

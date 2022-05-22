@@ -386,7 +386,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 
 (doc-special :var [:name :val] "Introduce new mutable local.")
 
-(fn kv? [t] (. (icollect [k (pairs t)] (if (not (= :number (type k))) k)) 1))
+(fn kv? [t] (. (icollect [k (pairs t)] (if (not= :number (type k)) k)) 1))
 
 (fn SPECIALS.let [ast scope parent opts]
   (let [bindings (. ast 2)
@@ -563,7 +563,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
                            "expected binding and iterator" binding)
         until-condition (remove-until-condition binding)
         iter (table.remove binding (length binding))
-        ; last item is iterator call
+        ;; last item is iterator call
         destructures []
         new-manglings []
         sub-scope (compiler.make-scope scope)]

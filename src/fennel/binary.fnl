@@ -231,7 +231,7 @@ int main(int argc, char *argv[]) {
                                           (values :-rdynamic "" true))
         compile-command [cc
                          :-Os
-                         ; optimize for size
+                         ;; optimize for size
                          lua-c-path
                          (table.concat native " ")
                          static-lua
@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
 
 (fn native-path? [path]
   (let [(extension version-extension) (path:match "%.(%a+)(%.?%d*)$")]
-    (if (and version-extension (not (= version-extension ""))
+    (if (and version-extension (not= version-extension "")
              (not (version-extension:match "%.%d+"))) false
         (match extension
           :a path

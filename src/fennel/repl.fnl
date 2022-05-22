@@ -225,14 +225,11 @@ For more information about the language, see https://fennel-lang.org/reference")
 
 (fn apropos-doc [pattern]
   "Search function documentations for a given pattern."
-  (let [names []]
-    (each [_ path (ipairs (apropos ".*"))]
-      (let [tgt (apropos-follow-path path)]
-        (if (= :function (type tgt))
-            (match (compiler.metadata:get tgt :fnl/docstring)
-              docstr (when (docstr:match pattern)
-                       (table.insert names path))))))
-    names))
+  (icollect [_ path (ipairs (apropos ".*"))]
+    (let [tgt (apropos-follow-path path)]
+      (when (= :function (type tgt))
+        (match (compiler.metadata:get tgt :fnl/docstring)
+          docstr (and (docstr:match pattern) path))))))
 
 (fn commands.apropos-doc [_env read on-values on-error _scope]
   (run-command read on-error #(on-values (apropos-doc (tostring $)))))

@@ -82,6 +82,9 @@
 (fn test-relative-macros []
   (== (require :test.relative) 3))
 
+(fn test-relative-chained-mac-mod-mac []
+  (== (require :test.relative-chained-mac-mod-mac) [:a :b :c]))
+
 (fn test-require-macros []
   (== (do (require-macros :test.macros) (->1 9 (+ 2) (* 11))) 121)
   (== (do (require-macros :test.macros)
@@ -304,6 +307,7 @@
  : test-import-macros
  : test-require-macros
  : test-relative-macros
+ : test-relative-chained-mac-mod-mac
  : test-eval-compiler
  : test-inline-macros
  : test-macrodebug

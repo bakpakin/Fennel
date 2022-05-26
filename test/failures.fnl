@@ -176,14 +176,22 @@
     (l.assertStrContains msg4 "msg4")
     (l.assertStrContains msg5 "msg5")))
 
-(fn doer [ast]
-  (friend.assert-compile false "bad news" ast))
+(fn doer []
+  ;; this plugin does not detach in subsequent tests, so we must check that
+  ;; it only fires once, exactly for our specific test.
+  ;; https://github.com/bakpakin/Fennel/pull/427#issuecomment-1138286136
+  (var fired-once false)
+  (fn [ast]
+    (when (not fired-once)
+      (set fired-once true)
+      (friend.assert-compile false "test-macro-traces plugin failed successfully" ast))))
 
 (fn test-macro-traces []
   ;; we want to trigger an error from inside a built-in macro and make sure we
   ;; don't get built-in macro trace info in the error messages.
   (let [(_ err) (pcall fennel.eval "\n\n(match 5 b (print 5))"
-                       {:plugins [{:do doer
+                       {:plugins [{:plugin-from :test-macro-traces
+                                   :do (doer)
                                    :versions [(fennel.version:gsub "-dev" "")]}]
                         :filename "matcher.fnl"})]
     (l.assertStrContains err "matcher.fnl:3")))

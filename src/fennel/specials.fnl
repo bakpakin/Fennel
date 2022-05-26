@@ -1099,6 +1099,7 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
 
 (fn fennel-macro-searcher [module-name]
   (let [opts (doto (utils.copy utils.root.options)
+               (tset :module-name module-name)
                (tset :env :_COMPILER)
                (tset :requireAsInclude false)
                (tset :allowedGlobals nil))]

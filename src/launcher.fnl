@@ -90,81 +90,85 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
   (match (. arg i)
     :--lua (handle-lua i)))
 
-(for [i 1 (length arg)]
-  (if (not options.ignore-options)
-    (match (. arg i)
-      :--no-searcher (do
-                       (set options.no-searcher true)
-                       (table.remove arg i))
-      :--indent (do
-                  (set options.indent (table.remove arg (+ i 1)))
-                  (when (= options.indent :false)
-                    (set options.indent false))
-                  (table.remove arg i))
-      :--add-package-path (let [entry (table.remove arg (+ i 1))]
-                            (set package.path (.. entry ";" package.path))
-                            (table.remove arg i))
-      :--add-fennel-path (let [entry (table.remove arg (+ i 1))]
-                           (set fennel.path (.. entry ";" fennel.path))
-                           (table.remove arg i))
-      :--add-macro-path (let [entry (table.remove arg (+ i 1))]
-                          (set fennel.macro-path (.. entry ";" fennel.macro-path))
-                          (table.remove arg i))
-      :--load (handle-load i)
-      :-l (handle-load i)
-      :--no-fennelrc (do
-                       (set options.fennelrc false)
-                       (table.remove arg i))
-      :--correlate (do
-                     (set options.correlate true)
-                     (table.remove arg i))
-      :--check-unused-locals (do
-                               (set options.checkUnusedLocals true)
-                               (table.remove arg i))
-      :--globals (do
-                   (allow-globals (table.remove arg (+ i 1)) _G)
-                   (table.remove arg i))
-      :--globals-only (do
-                        (allow-globals (table.remove arg (+ i 1)) {})
-                        (table.remove arg i))
-      :--require-as-include (do
-                              (set options.requireAsInclude true)
-                              (table.remove arg i))
-      :--skip-include (let [skip-names (table.remove arg (+ i 1))
-                            skip (icollect [m (skip-names:gmatch "([^,]+)")] m)]
-                        (set options.skipInclude skip)
-                        (table.remove arg i))
-      :--use-bit-lib (do
-                       (set options.useBitLib true)
-                       (table.remove arg i))
-      :--metadata (do
-                    (set options.useMetadata true)
+(set options.i 1)
+(while (. arg options.i)
+  (let [i options.i]
+    (if (not options.ignore-options)
+      (match (. arg i)
+        :--no-searcher (do
+                         (set options.no-searcher true)
+                         (table.remove arg i))
+        :--indent (do
+                    (set options.indent (table.remove arg (+ i 1)))
+                    (when (= options.indent :false)
+                      (set options.indent false))
                     (table.remove arg i))
-      :--no-metadata (do
-                       (set options.useMetadata false)
+        :--add-package-path (let [entry (table.remove arg (+ i 1))]
+                              (set package.path (.. entry ";" package.path))
+                              (table.remove arg i))
+        :--add-fennel-path (let [entry (table.remove arg (+ i 1))]
+                             (set fennel.path (.. entry ";" fennel.path))
+                             (table.remove arg i))
+        :--add-macro-path (let [entry (table.remove arg (+ i 1))]
+                            (set fennel.macro-path (.. entry ";" fennel.macro-path))
+                            (table.remove arg i))
+        :--load (handle-load i)
+        :-l (handle-load i)
+        :--no-fennelrc (do
+                         (set options.fennelrc false)
+                         (table.remove arg i))
+        :--correlate (do
+                       (set options.correlate true)
                        (table.remove arg i))
-      :--no-compiler-sandbox (do
-                               (set options.compiler-env _G)
-                               (table.remove arg i))
-      :--raw-errors (do
-                      (set options.unfriendly true)
+        :--check-unused-locals (do
+                                 (set options.checkUnusedLocals true)
+                                 (table.remove arg i))
+        :--globals (do
+                     (allow-globals (table.remove arg (+ i 1)) _G)
+                     (table.remove arg i))
+        :--globals-only (do
+                          (allow-globals (table.remove arg (+ i 1)) {})
+                          (table.remove arg i))
+        :--require-as-include (do
+                                (set options.requireAsInclude true)
+                                (table.remove arg i))
+        :--skip-include (let [skip-names (table.remove arg (+ i 1))
+                              skip (icollect [m (skip-names:gmatch "([^,]+)")] m)]
+                          (set options.skipInclude skip)
+                          (table.remove arg i))
+        :--use-bit-lib (do
+                         (set options.useBitLib true)
+                         (table.remove arg i))
+        :--metadata (do
+                      (set options.useMetadata true)
                       (table.remove arg i))
-      :--plugin (let [opts {:env :_COMPILER :useMetadata true :compiler-env _G}
-                      plugin (fennel.dofile (table.remove arg (+ i 1)) opts)]
-                  (table.insert options.plugins 1 plugin)
-                  (table.remove arg i))
-      :--repl nil
-      :--compile nil
-      :-c nil
-      :--compile-binary nil
-      :--eval nil
-      :-e nil
-      :-v nil
-      :--version nil
-      :--help nil
-      :-h nil
-      "-" nil
-      _ (set options.ignore-options true))))
+        :--no-metadata (do
+                         (set options.useMetadata false)
+                         (table.remove arg i))
+        :--no-compiler-sandbox (do
+                                 (set options.compiler-env _G)
+                                 (table.remove arg i))
+        :--raw-errors (do
+                        (set options.unfriendly true)
+                        (table.remove arg i))
+        :--plugin (let [opts {:env :_COMPILER :useMetadata true :compiler-env _G}
+                        plugin (fennel.dofile (table.remove arg (+ i 1)) opts)]
+                    (table.insert options.plugins 1 plugin)
+                    (table.remove arg i))
+        :--repl (set options.i (+ options.i 1))
+        :--compile (set options.i (+ options.i 1))
+        :-c (set options.i (+ options.i 1))
+        :--compile-binary (set options.i (+ options.i 1))
+        :--eval (set options.i (+ options.i 1))
+        :-e (set options.i (+ options.i 1))
+        :-v (set options.i (+ options.i 1))
+        :--version (set options.i (+ options.i 1))
+        :--help (set options.i (+ options.i 1))
+        :-h (set options.i (+ options.i 1))
+        "-" (set options.i (+ options.i 1))
+        _ (do
+            (set options.i (+ options.i 1))
+            (set options.ignore-options true))))))
 
 (local searcher-opts {})
 

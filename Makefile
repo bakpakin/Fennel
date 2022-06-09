@@ -15,10 +15,7 @@ SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
 build: fennel fennel.lua
 
-TEST_LUA_PATH ?= test/?.lua;./?.lua
-
-test: fennel.lua
-	export LUA_PATH="$(TEST_LUA_PATH)"; $(LUA) test/init.lua $(TESTS)
+test: fennel.lua ; $(LUA) test/init.lua $(TESTS)
 
 testall: export FNL_TEST_OUTPUT=text
 testall: export FNL_TESTALL=yes
@@ -29,8 +26,7 @@ testall: fennel # recursive make considered not really a big deal; calm down
 	$(MAKE) test LUA=lua5.4
 	$(MAKE) test LUA=luajit
 
-fuzz: fennel.lua
-	export LUA_PATH="$(TEST_LUA_PATH)"; $(LUA) test/init.lua fuzz
+fuzz: fennel.lua; $(LUA) test/init.lua fuzz
 
 # older versions of cloc might need --force-lang=lisp
 count: ; cloc $(MINI_SRC); cloc $(LIB_SRC) ; cloc $(SRC)

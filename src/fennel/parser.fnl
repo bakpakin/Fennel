@@ -225,8 +225,9 @@ Also returns a second function to clear the buffer in the byte stream"
       (let [state (match [state b]
                     [:base 92] :backslash
                     [:base 34] :done
-                    [:backslash 10] (do (table.remove chars (- (length chars) 1))
-                                        :base)
+                    [:backslash 10] (do
+                                      (table.remove chars (- (length chars) 1))
+                                      :base)
                     _ :base)]
         (if (and b (not= state :done))
             (parse-string-loop chars (getb) state)

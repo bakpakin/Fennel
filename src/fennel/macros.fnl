@@ -61,7 +61,9 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
 Same as . (dot), except will short-circuit with nil when it encounters
 a nil value in any of subsequent keys."
   (let [head (gensym :t)
-        lookups `(do (var ,head ,tbl) ,head)]
+        lookups `(do
+                   (var ,head ,tbl)
+                   ,head)]
     (each [_ k (ipairs [...])]
       ;; Kinda gnarly to reassign in place like this, but it emits the best lua.
       ;; With this impl, it emits a flat, concise, and readable set of ifs
@@ -109,11 +111,12 @@ encountering an error before propagating it."
   (var (into iter-out found?) (values [] (copy iter-tbl)))
   (for [i (length iter-tbl) 2 -1]
     (if (= :into (. iter-tbl i))
-        (do (assert (not found?) "expected only one :into clause")
-            (set found? true)
-            (set into (. iter-tbl (+ i 1)))
-            (table.remove iter-out i)
-            (table.remove iter-out i))))
+        (do
+          (assert (not found?) "expected only one :into clause")
+          (set found? true)
+          (set into (. iter-tbl (+ i 1)))
+          (table.remove iter-out i)
+          (table.remove iter-out i))))
   (assert (or (not found?) (sym? into) (table? into) (list? into))
           "expected table, function call, or symbol in :into clause")
   (values into iter-out))
@@ -226,12 +229,13 @@ returns 5"
           "expected exactly one body expression. Wrap multiple expressions with do")
   (let [accum-var (. iter-tbl 1)
         accum-init (. iter-tbl 2)]
-    `(do (var ,accum-var ,accum-init)
-         (each ,[(unpack iter-tbl 3)]
-           (set ,accum-var ,body))
-         ,(if (list? accum-var)
-              (list (sym :values) (unpack accum-var))
-              accum-var))))
+    `(do
+       (var ,accum-var ,accum-init)
+       (each ,[(unpack iter-tbl 3)]
+         (set ,accum-var ,body))
+       ,(if (list? accum-var)
+            (list (sym :values) (unpack accum-var))
+            accum-var))))
 
 (fn double-eval-safe? [x type]
   (or (= :number type) (= :string type) (= :boolean type)

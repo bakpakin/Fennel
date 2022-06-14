@@ -193,7 +193,7 @@
     (l.assertEquals (send "(foo)") [:foo])
     (l.assertEquals (comp "fo") [:for :foo])))
 
-(fn test-source-offset []
+(fn test-error-handling []
   (let [(send comp) (wrap-repl)]
     ;; we get the source in the error message
     (l.assertStrContains (. (send "(let a)") 1) "(let a)\n     ^")
@@ -202,7 +202,9 @@
     (set _G.dbg true)
     ;; repl commands don't mess it up
     (send ",complete l")
-    (l.assertStrContains (. (send "(let c)") 1) "(let c)\n     ^")))
+    (l.assertStrContains (. (send "(let c)") 1) "(let c)\n     ^")
+    ;; parser errors should be properly displayed, albeit without ^ at position
+    (l.assertStrContains (. (send "(print @)") 1) "invalid character: @")))
 
 (fn test-locals-saving []
   (let [(send comp) (wrap-repl)]
@@ -268,7 +270,7 @@
      : test-options
      : test-apropos
      : test-byteoffset
-     : test-source-offset
+     : test-error-handling
      : test-code
      : test-locals-saving
      : test-docstrings

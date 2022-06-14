@@ -381,7 +381,7 @@ For more information about the language, see https://fennel-lang.org/reference")
             src-string (string.char (unpack chars))]
         (if (not ok)
             (do
-              (on-error :Parse parse-ok?)
+              (on-error :Parse not-eof?)
               (clear-stream)
               (loop))
             (command? src-string)

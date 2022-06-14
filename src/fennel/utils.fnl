@@ -11,21 +11,21 @@
 
 (fn luajit-vm? []
   ;; Heuristic for detecting jit module from LuaJIT VM
-  (and (not= nil jit) (= (type jit) :table) (not= nil jit.on)
-       (not= nil jit.off) (= (type jit.version_num) :number)))
+  (and (not= nil _G.jit) (= (type _G.jit) :table) (not= nil _G.jit.on)
+       (not= nil _G.jit.off) (= (type _G.jit.version_num) :number)))
 
 (fn luajit-vm-version []
   ;; Use more recent Apple naming scheme
-  (let [jit-os (if (= jit.os :OSX) :macOS jit.os)]
-    (.. jit.version " " jit-os "/" jit.arch)))
+  (let [jit-os (if (= _G.jit.os :OSX) :macOS _G.jit.os)]
+    (.. _G.jit.version " " jit-os "/" _G.jit.arch)))
 
 (fn fengari-vm? []
   ;; Heuristic for detecting fengari module from Fengari VM
-  (and (not= nil fengari) (= (type fengari) :table) (not= nil fengari.VERSION)
-       (= (type fengari.VERSION_NUM) :number)))
+  (and (not= nil _G.fengari) (= (type _G.fengari) :table) (not= nil _G.fengari.VERSION)
+       (= (type _G.fengari.VERSION_NUM) :number)))
 
 (fn fengari-vm-version []
-  (.. fengari.RELEASE " (" _VERSION ")"))
+  (.. _G.fengari.RELEASE " (" _VERSION ")"))
 
 (fn lua-vm-version []
   (if (luajit-vm?) (luajit-vm-version)

@@ -47,10 +47,10 @@ will see its values updated as expected, regardless of mangling rules."
 (fn load-code [code ?env ?filename]
   "Load Lua code with an environment in all recent Lua versions"
   (let [env (or ?env (rawget _G :_ENV) _G)]
-    (if (and (rawget _G :setfenv) (rawget _G :loadstring))
-        (let [f (assert (_G.loadstring code ?filename))]
-          (doto f (setfenv env)))
-        (assert (load code ?filename :t env)))))
+    (match (values (rawget _G :setfenv) (rawget _G :loadstring))
+      (setfenv loadstring) (let [f (assert (loadstring code ?filename))]
+                             (doto f (setfenv env)))
+      _ (assert (load code ?filename :t env)))))
 
 (fn doc* [tgt name]
   "Return a docstring for tgt."

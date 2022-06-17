@@ -2,7 +2,7 @@
 
 Changes are **marked in bold** which could result in backwards-incompatibility.
 
-## 1.1.1 / ???
+## 1.2.0 / ???
 
 ### New Forms
 * Add `fcollect` macro for range "comprehension"

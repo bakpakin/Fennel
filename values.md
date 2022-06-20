@@ -103,7 +103,7 @@ opt-out) can significantly improve the resulting code.
 
 Other examples include the lack of `goto` and the lack of early
 returns. Or how if a loop terminates early, it will make this obvious by
-using an `:until` clause at the top of the loop; you don't have to
+using an `&until` clause at the top of the loop; you don't have to
 read the entire loop body to search for a `break` as you would in Lua.
 
 ## Consistency and Distinction

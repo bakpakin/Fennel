@@ -110,15 +110,17 @@ encountering an error before propagating it."
 (fn extract-into [iter-tbl]
   (var (into iter-out found?) (values [] (copy iter-tbl)))
   (for [i (length iter-tbl) 2 -1]
-    (if (= :into (. iter-tbl i))
-        (do
-          (assert (not found?) "expected only one :into clause")
-          (set found? true)
-          (set into (. iter-tbl (+ i 1)))
-          (table.remove iter-out i)
-          (table.remove iter-out i))))
+    (let [item (. iter-tbl i)]
+      (if (or (= `&into item)
+              (= :into  item))
+          (do
+            (assert (not found?) "expected only one &into clause")
+            (set found? true)
+            (set into (. iter-tbl (+ i 1)))
+            (table.remove iter-out i)
+            (table.remove iter-out i))))) 
   (assert (or (not found?) (sym? into) (table? into) (list? into))
-          "expected table, function call, or symbol in :into clause")
+          "expected table, function call, or symbol in &into clause")
   (values into iter-out))
 
 (fn collect* [iter-tbl key-expr value-expr ...]
@@ -133,8 +135,8 @@ For example,
 returns
   {:red \"apple\" :orange \"orange\"}
 
-Supports an :into clause after the iterator to put results in an existing table.
-Supports early termination with an :until clause."
+Supports an &into clause after the iterator to put results in an existing table.
+Supports early termination with an &until clause."
   (assert (and (sequence? iter-tbl) (<= 2 (length iter-tbl)))
           "expected iterator binding table")
   (assert (not= nil key-expr) "expected key and value expression")
@@ -181,8 +183,8 @@ For example,
 returns
   [1 4 16 25]
 
-Supports an :into clause after the iterator to put results in an existing table.
-Supports early termination with an :until clause."
+Supports an &into clause after the iterator to put results in an existing table.
+Supports early termination with an &until clause."
   (assert (and (sequence? iter-tbl) (<= 2 (length iter-tbl)))
           "expected iterator binding table")
   (seq-collect 'each iter-tbl value-expr ...))
@@ -200,8 +202,8 @@ For example,
 returns
   [1 25 49 81]
 
-Supports an :into clause after the range to put results in an existing table.
-Supports early termination with an :until clause."
+Supports an &into clause after the range to put results in an existing table.
+Supports early termination with an &until clause."
   (assert (and (sequence? iter-tbl) (< 2 (length iter-tbl)))
           "expected range binding table")
   (seq-collect 'for iter-tbl value-expr ...))

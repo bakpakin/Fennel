@@ -544,9 +544,11 @@ Takes any number of condition/body pairs and evaluates the first body where
 the condition evaluates to truthy. Similar to cond in other lisps.")
 
 (fn remove-until-condition [bindings]
-  (when (= :until (. bindings (- (length bindings) 1)))
-    (table.remove bindings (- (length bindings) 1))
-    (table.remove bindings)))
+  (let [last-item (. bindings (- (length bindings) 1))]
+    (when (or (and (utils.sym? last-item) (= (tostring last-item) :&until))
+              (=  :until last-item))
+      (table.remove bindings (- (length bindings) 1))
+      (table.remove bindings))))
 
 (fn compile-until [condition scope chunk]
   (when condition

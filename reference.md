@@ -750,14 +750,17 @@ Example:
   (print key (f value)))
 ```
 
-Any loop can be terminated early by placing an `:until` clause at the
+Any loop can be terminated early by placing an `&until` clause at the
 end of the bindings:
 
 ```fennel
 (local out [])
-(each [_ value (pairs tbl) :until (< max-len (length out))]
+(each [_ value (pairs tbl) &until (< max-len (length out))]
   (table.insert out value))
 ```
+
+**Note:** prior to fennel version 1.??, `:until` was used instead of `&until`;
+the old syntax is still supported, but `&until` should be preferred.
 
 Most iterators return two values, but `each` will bind any number. See
 [Programming in Lua][4] for details about how iterators work.
@@ -777,12 +780,12 @@ Example:
 This example will print all odd numbers under ten.
 
 Like `each`, loops using `for` can also be terminated early with an
-`:until` clause. The clause is checked before each iteration of the
+`&until` clause. The clause is checked before each iteration of the
 body; if it is true at the beginning then the body will not run at all.
 
 ```fennel
 (var x 0)
-(for [i 1 128 :until (maxed-out? x)]
+(for [i 1 128 &until (maxed-out? x)]
   (set x (+ x i)))
 ```
 
@@ -961,18 +964,23 @@ not nested in an outer form, then the `values` can be omitted for brevity:
   k (* v 5))
 ```
 
-Like `each` and `for`, the table comprehensions support an `:until`
+Like `each` and `for`, the table comprehensions support an `&until`
 clause for early termination.
 
-Both `icollect` and `collect` take an `:into` clause which allows you
+Both `icollect` and `collect` take an `&into` clause which allows you
 put your results into an existing table instead of starting with an
 empty one:
 
 ```fennel
-(icollect [_ x (ipairs [2 3]) :into [9]]
+(icollect [_ x (ipairs [2 3]) &into [9]]
   (* x 11))
 ;; -> [9 22 33]
 ```
+
+**Note:** Prior to fennel version 1.??, `:into` was used instead of `&into`;
+the old syntax is still supported, but `&into` should be preferred.
+
+
 
 ### `accumulate` iterator accumulation
 
@@ -996,7 +1004,7 @@ Example:
     (+ sum n)) ; -> 100
 ```
 
-The `:until` clause is also supported here for early termination.
+The `&until` clause is also supported here for early termination.
 
 ### `fcollect` range comprehension macro
 
@@ -1004,8 +1012,8 @@ The `:until` clause is also supported here for early termination.
 
 Similarly to `icollect`, `fcollect` provides a way of building a
 sequential table. Unlike `icollect`, instead of an iterator it
-traverses a range, as accepted by the `for` special.  The `:into` and
-`:until` clauses work the same as in `icollect`.
+traverses a range, as accepted by the `for` special.  The `&into` and
+`&until` clauses work the same as in `icollect`.
 
 Example:
 

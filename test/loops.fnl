@@ -32,7 +32,7 @@
   (== (collect [k v (pairs {:foo 3 :bar 4 :baz 5 :qux 6})]
         (if (> v 4) (values k (+ v 1))))
       {:baz 6 :qux 7})
-  (== (collect [k v (pairs {:neon :lights}) :into {:shimmering-neon :lights}]
+  (== (collect [k v (pairs {:neon :lights}) &into {:shimmering-neon :lights}]
         (values k (v:upper)))
       {:neon "LIGHTS" :shimmering-neon "lights"})
   (== (icollect [_ v (ipairs [1 2 3 4 5 6])]
@@ -41,18 +41,18 @@
   (== (icollect [num (string.gmatch "24,58,1999" "%d+")]
         (tonumber num))
       [24 58 1999])
-  (== (icollect [_ x (ipairs [2 3]) :into [11]] (* x 11))
+  (== (icollect [_ x (ipairs [2 3]) &into [11]] (* x 11))
       [11 22 33])
-  (== (let [xs [11]] (icollect [_ x (ipairs [2 3]) :into xs] (* x 11)))
+  (== (let [xs [11]] (icollect [_ x (ipairs [2 3]) &into xs] (* x 11)))
       [11 22 33])
-  (let [code "(icollect [_ x (ipairs [2 3]) :into \"oops\"] x)"
+  (let [code "(icollect [_ x (ipairs [2 3]) &into \"oops\"] x)"
         (ok? msg) (pcall fennel.compileString code)]
     (l.assertFalse ok?)
-    (l.assertStrContains msg ":into clause"))
-  (let [code "(icollect [_ x (ipairs [2 3]) :into 2] x)"
+    (l.assertStrContains msg "&into clause"))
+  (let [code "(icollect [_ x (ipairs [2 3]) &into 2] x)"
         (ok? msg) (pcall fennel.compileString code)]
     (l.assertFalse ok?)
-    (l.assertStrContains msg ":into clause"))
+    (l.assertStrContains msg "&into clause"))
   (== (do (macro twice [expr] `(do ,expr ,expr))
           (twice (icollect [i v (ipairs [:a :b :c])] v)))
       [:a :b :c])
@@ -60,15 +60,19 @@
       [1 2 3 4])
   (== (fcollect [i 1 4 2] i)
       [1 3])
+  (== (fcollect [i 1 10 2 &until (> i 5)] i)
+      [1 3 5])
   (== (fcollect [i 1 10 2 :until (> i 5)] i)
       [1 3 5])
+  (== (fcollect [i 1 4 &into [0]] i)
+      [0 1 2 3 4])
   (== (fcollect [i 1 4 :into [0]] i)
       [0 1 2 3 4])
-  (== (fcollect [i 1 4 2 :into [0]] i)
+  (== (fcollect [i 1 4 2 &into [0]] i)
       [0 1 3])
   (== (fcollect [i 1 10 2
-                 :into [0]
-                 :until (> i 5)]
+                 &into [0]
+                 &until (> i 5)]
         (when (not= i 3) i))
       [0 1 5]))
 
@@ -81,7 +85,7 @@
             [x y]))
       [true :init])
   (== (accumulate [s :fen
-                   _ c (ipairs [:n :e :l :o]) :until (>= c :o)]
+                   _ c (ipairs [:n :e :l :o]) &until (>= c :o)]
         (.. s c))
       "fennel")
   (== (accumulate [n 0 _ _ (pairs {:one 1 :two nil :three 3})]
@@ -98,11 +102,11 @@
       :ab))
 
 (fn test-conditions []
-  (== (do (var x 0) (for [i 1 10 :until (= i 5)] (set x i)) x) 4)
-  (== (do (var x 0) (each [_ i (ipairs [1 2 3]) :until (< 2 x)] (set x i)) x) 3)
-  (== (icollect [_ i (ipairs [4 5 6]) :until (= i 5)] i) [4])
-  (== (collect [i x (pairs [4 5 6]) :until (= x 6)] (values i x)) [4 5])
-  (== (icollect [i x (pairs [4 5 6]) :into [3] :until (= x 6)] x) [3 4 5]))
+  (== (do (var x 0) (for [i 1 10 &until (= i 5)] (set x i)) x) 4)
+  (== (do (var x 0) (each [_ i (ipairs [1 2 3]) &until (< 2 x)] (set x i)) x) 3)
+  (== (icollect [_ i (ipairs [4 5 6]) &until (= i 5)] i) [4])
+  (== (collect [i x (pairs [4 5 6]) &until (= x 6)] (values i x)) [4 5])
+  (== (icollect [i x (pairs [4 5 6]) &into [3] &until (= x 6)] x) [3 4 5]))
 
 {: test-each
  : test-for

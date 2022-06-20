@@ -3,7 +3,7 @@
 ;; These are the slowest tests, so for now we just have a basic sanity check
 ;; to ensure that it compiles and can evaluate math.
 
-(local *testall* (os.getenv :FNL_TESTALL)) ; set by `make testall`
+(local test-all? (os.getenv :FNL_TESTALL)) ; set by `make testall`
 
 (fn file-exists? [filename]
   (let [f (io.open filename)]
@@ -22,7 +22,7 @@
 
 (fn test-lua-flag []
   ;; skip this when cli is not compiled or not running tests with `make testall`
-  (when (and *testall* (file-exists? :./fennel))
+  (when (and test-all? (file-exists? "./fennel"))
     (let [;; running io.popen for all 20 combinations of lua versions is slow,
           ;; so we'll just pick the next one in the list after host-lua
           host-lua (match _VERSION
@@ -45,4 +45,15 @@
         {1 (if (= _VERSION "Lua 5.1") true nil) 2 "test"}
         (.. "errors should cause failing exit status with --lua " lua-exec)))))
 
-{: test-cli : test-lua-flag}
+(fn test-args []
+  (when true (and test-all? (file-exists? "./fennel"))
+    (let [code "(print (length arg) (. arg 3))"
+          cmd (string.format "./fennel --eval %q -l" code)
+          proc (io.popen cmd)
+          output (: (proc:read :*a) :gsub "\n$" "")]
+      (l.assertTrue (proc:close))
+      (l.assertEquals "3 -l" output))))
+
+{: test-cli
+ : test-lua-flag
+ : test-args}

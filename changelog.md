@@ -8,7 +8,8 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 * Add `fcollect` macro for range "comprehension"
 
 ### Bug Fixes
-* Fix a bug where macros modifying table literals would emit incorrect output.
+* Improve argument handling so unused arguments get passed on to script
+* Fix a bug where macros modifying table literals would emit incorrect output
 * Fix a bug in the REPL where parser errors display the error message as `nil`
 
 ## 1.1.0 / 2022-04-09

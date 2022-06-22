@@ -85,6 +85,12 @@
 (fn test-relative-chained-mac-mod-mac []
   (== (require :test.relative-chained-mac-mod-mac) [:a :b :c]))
 
+(fn test-relative-filename []
+  ;; manual pcall instead of == macro for smaller failure message
+  (let [(ok? val) (pcall require :test.relative-filename)]
+    (l.assertTrue ok? "... had bad filename")
+    (l.assertEquals val 2)))
+
 (fn test-require-macros []
   (== (do (require-macros :test.macros) (->1 9 (+ 2) (* 11))) 121)
   (== (do (require-macros :test.macros)
@@ -308,6 +314,7 @@
  : test-require-macros
  : test-relative-macros
  : test-relative-chained-mac-mod-mac
+ : test-relative-filename
  : test-eval-compiler
  : test-inline-macros
  : test-macrodebug

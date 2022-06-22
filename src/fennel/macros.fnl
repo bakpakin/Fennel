@@ -357,8 +357,13 @@ Example:
     ;; this is weird because require-macros is deprecated but it works.
     (let [(binding modname) (select i binding1 module-name1 ...)
           scope (get-scope)
-          macros* (_SPECIALS.require-macros `(import-macros ,modname)
-                                            scope {} binding1)]
+          ;; if the module-name is an expression (and not just a string) we
+          ;; patch our expression to have the correct source filename so
+          ;; require-macros can pass it down when resolving the module-name.
+          expr `(import-macros ,modname)
+          filename (if (list? modname) (. modname 1 :filename) :unknown)
+          _ (tset expr :filename filename)
+          macros* (_SPECIALS.require-macros expr scope {} binding1)]
       (if (sym? binding)
           ;; bind whole table of macros to table bound to symbol
           (tset scope.macros (. binding 1) macros*)

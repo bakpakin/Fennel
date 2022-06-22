@@ -1061,9 +1061,9 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
     (fn find-in-path [start ?tried-paths]
       (match (fullpath:match pattern start)
         path (match (try-path path)
-          filename filename
-          (nil error) (find-in-path (+ start (length path) 1)
-                                    (doto (or ?tried-paths []) (table.insert error))))
+               filename filename
+               (nil error) (find-in-path (+ start (length path) 1)
+                                         (doto (or ?tried-paths []) (table.insert error))))
         _ (values nil
                   ;; Before Lua 5.4 it was necessary to prepend a \n\t to the
                   ;; error message. In newer versions doing so causes an empty

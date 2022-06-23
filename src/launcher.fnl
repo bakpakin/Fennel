@@ -52,11 +52,17 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
 
 (local options {:plugins []})
 
+;; Lua 5.1 doesn't have table.pack
+;; necessary to preserve nils in luajit
+(fn pack [...]
+  (doto [...]
+    (tset :n (select :# ...))))
+
 (fn dosafely [f ...]
   (let [args [...]]
-    (match (xpcall #(f (unpack args)) fennel.traceback)
-      (true val) val
-      (_ msg) (do
+    (match (pack (xpcall #(f (unpack args)) fennel.traceback))
+      [true &as all] (unpack all 2 all.n)
+      [_ msg] (do
                 (io.stderr:write (.. msg "\n"))
                 (os.exit 1)))))
 

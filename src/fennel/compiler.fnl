@@ -694,10 +694,35 @@ which we have to do if we don't know."
                     "" :nil
                     right right)]
         (emit parent (string.format "local %s = %s" s right) left)
+        (var excluded-keys [])
         (each [k v (utils.stablepairs left)]
           (when (not (and (= :number (type k))
                           (: (tostring (. left (- k 1))) :find "^&")))
-            (if (and (utils.sym? v) (= (tostring v) "&"))
+            (if (and (utils.sym? k) (= (tostring k) "&"))
+                (let [unpack-str "(function (t, k, e)
+                                      local mt = getmetatable(t)
+                                      if \"table\" == type(mt) and mt.__fennelrest then
+                                         return mt.__fennelrest(t, k)
+                                      else
+                                         local rest = {}
+                                         for k, v in pairs(t) do
+                                           if not e[k] then
+                                             rest[k] = v
+                                           end
+                                         end
+                                         return rest
+                                      end
+                                   end)(%s, %s, %s)"
+                      excluded-keys-string (string.format "{%s}"
+                                                          (table.concat
+                                                           (utils.map excluded-keys
+                                                                      #(string.format "[%s] = true" (serialize-string $1)))
+                                                           ", "))
+                      formatted (string.format (string.gsub unpack-str "\n%s*" " ") s (tostring v) excluded-keys-string)
+                      subexpr (utils.expr formatted :expression)]
+                  (destructure1 v [subexpr] left))
+
+                (and (utils.sym? v) (= (tostring v) "&"))
                 (let [unpack-str "(function (t, k)
                                       local mt = getmetatable(t)
                                       if \"table\" == type(mt) and mt.__fennelrest then
@@ -713,17 +738,21 @@ which we have to do if we don't know."
                                   "expected rest argument before last parameter"
                                   left)
                   (destructure1 (. left (+ k 1)) [subexpr] left))
+
                 (and (utils.sym? k) (= (tostring k) :&as))
                 (destructure-sym v [(utils.expr (tostring s))] left)
+
                 (and (utils.sequence? left) (= (tostring v) :&as))
                 (let [(_ next-sym trailing) (select k (unpack left))]
                   (assert-compile (= nil trailing)
                                   "expected &as argument before last parameter"
                                   left)
                   (destructure-sym next-sym [(utils.expr (tostring s))] left))
+
                 (let [key (if (= (type k) :string) (serialize-string k) k)
                       subexpr (utils.expr (string.format "%s[%s]" s key)
                                           :expression)]
+                  (when (= (type k) :string) (table.insert excluded-keys k))
                   (destructure1 v [subexpr] left)))))))
 
     (fn destructure-values [left up1 top? destructure1]

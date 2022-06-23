@@ -225,7 +225,9 @@
                "(let [({: x} y) (values {:x 10} 20)] (+ x y))" 30
                "(let [[a & b] (setmetatable {} {:__fennelrest #42})] b)" 42
                "(let [[a & b] (setmetatable {} {:__fennelrest #false})] b)" false
-               "(let [[a & b] (setmetatable [1 2 3 4 5] {:__fennelrest (fn [t k] [((or table.unpack _G.unpack) t (+ k 1))])})] b)" [3 4 5]}]
+               "(let [[a & b] (setmetatable [1 2 3 4 5] {:__fennelrest (fn [t k] [((or table.unpack _G.unpack) t (+ k 1))])})] b)" [3 4 5]
+               "(let [{: a & b} (setmetatable {} {:__fennelrest #69})] b)" 69
+               "(let [{: a & r} {:a 1 :b 2}] r)" {:b 2}}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))
 

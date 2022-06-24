@@ -105,10 +105,22 @@
                                        (math.random 0xe000 0x10ffff)))))
       (l.assertEquals (_G.utf8.len (view {(table.concat x) [1 2]})) 217))))
 
+(fn test-seq-comments []
+  ;; a sequence containing a comment as its last item should have its closing
+  ;; delimiter on a new line.
+  (let [(_ok? ast) ((fennel.parser (fennel.string-stream "(print [1\n;hi\n])")
+                                   "" {:comments true}))]
+    (l.assertEquals (view ast) "(print [1\n ;hi\n ])"))
+  ;; a sequence containing a comment should print on multiple lines.
+  (let [(_ok? ast) ((fennel.parser (fennel.string-stream "(print [1;hi\n2])")
+                                   "" {:comments true}))]
+    (l.assertEquals (view ast) "(print [1\n ;hi\n 2])")))
+
 {: test-generated
  : test-newline
  : test-fennelview-userdata-handling
  : test-cycles
  : test-escapes
  : test-gaps
- : test-utf8}
+ : test-utf8
+ : test-seq-comments}

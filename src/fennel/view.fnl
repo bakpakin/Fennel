@@ -137,14 +137,23 @@
 ;; forward declaration for recursive pretty printer
 (var pp nil)
 
-(fn concat-table-lines [elements options multiline? indent table-type prefix]
+(fn concat-table-lines [elements
+                        options
+                        multiline?
+                        indent
+                        table-type
+                        prefix
+                        last-comment?]
   (let [indent-str (.. "\n" (string.rep " " indent))
         open (.. (or prefix "") (if (= :seq table-type) "[" "{"))
         close (if (= :seq table-type) "]" "}")
         oneline (.. open (table.concat elements " ") close)]
     (if (and (not options.one-line?)
-             (or multiline? (< options.line-length (+ indent (length* oneline)))))
-        (.. open (table.concat elements indent-str) close)
+             (or multiline?
+                 (< options.line-length (+ indent (length* oneline)))
+                 last-comment?))
+        (.. open (table.concat elements indent-str)
+            (if last-comment? indent-str "") close)
         oneline)))
 
 ;; this will only produce valid answers for valid utf-8 data, since it just
@@ -152,6 +161,13 @@
 ;; because we only run this on validated and escaped strings.
 (fn utf8-len [x]
   (accumulate [n 0 _ (string.gmatch x "[%z\001-\127\192-\247]")] (+ n 1)))
+
+;; an alternative to `utils.comment?` to avoid a depedency cycle.
+(fn comment? [x]
+  (if (= :table (type x))
+      (let [fst (. x 1)]
+        (and (= :string (type fst)) (not= nil (fst:find "^;"))))
+      false))
 
 (fn pp-associative [t kv options indent]
   (var multiline? false)
@@ -169,7 +185,8 @@
                         (set multiline?
                              (or multiline? (k:find "\n") (v:find "\n")))
                         (.. k " " v)))]
-          (concat-table-lines items options multiline? indent :table prefix)))))
+          (concat-table-lines items options multiline? indent :table prefix
+                              false)))))
 
 (fn pp-sequence [t kv options indent]
   (var multiline? false)
@@ -180,11 +197,14 @@
               id (and visible-cycle? (. options.seen t))
               indent (table-indent indent id)
               prefix (if visible-cycle? (.. "@" id) "")
+              last-comment? (comment? (. t (length t)))
               items (icollect [_ [_ v] (pairs kv)]
                       (let [v (pp v options indent)]
-                        (set multiline? (or multiline? (v:find "\n")))
+                        (set multiline?
+                             (or multiline? (v:find "\n") (v:find "^;")))
                         v))]
-          (concat-table-lines items options multiline? indent :seq prefix)))))
+          (concat-table-lines items options multiline? indent :seq prefix
+                              last-comment?)))))
 
 (fn concat-lines [lines options indent force-multi-line?]
   (if (= (length* lines) 0)

@@ -9,12 +9,13 @@ if ((0 ~= tonumber(failure_count)) and channel) then
 
   local git = io.popen("git log --oneline -n 1 HEAD")
   local nc = io.popen(string.format("nc %s > /dev/null", server_port), "w")
-  local log = git:read("*a")
+  local log = git:read("*a"):gsub("\n", " ")
 
   nc:write(string.format("NICK fennel-build\n"))
   nc:write(string.format("USER fennel-build 8 x : fennel-build\n"))
   nc:write(string.format("JOIN %s\n", channel))
-  nc:write(string.format("PRIVMSG %s :Build failure! %s | %s",
+  nc:write(string.format("PRIVMSG %s :Build failure! %s / %s\n",
                          channel, log, url))
   nc:write("QUIT\n")
+  nc:close()
 end

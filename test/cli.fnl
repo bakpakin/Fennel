@@ -18,7 +18,9 @@
 (fn test-cli []
   ;; skip this if we haven't compiled the CLI
   (when (file-exists? "./fennel")
-    (l.assertEquals [(peval "(+ 1 2 3)")] [true "6"])))
+    (l.assertEquals [(peval "(+ 1 2 3)")] [true "6"])
+    (l.assertEquals [(peval "(values 1 2)")] [true "1\t2"])
+    (l.assertEquals [(peval "(values 1 nil 2 nil nil)")] [true "1\tnil\t2\tnil\tnil"])))
 
 (fn test-lua-flag []
   ;; skip this when cli is not compiled or not running tests with `make testall`
@@ -47,12 +49,7 @@
 
 (fn test-args []
   (when true (and test-all? (file-exists? "./fennel"))
-    (let [code "(. arg 3)"
-          cmd (string.format "./fennel --eval %q -l" code)
-          proc (io.popen cmd)
-          output (: (proc:read :*a) :gsub "\n$" "")]
-      (l.assertTrue (proc:close))
-      (l.assertEquals output "-l"))))
+    (l.assertEquals [(peval "(. arg 3)" "-l")] [true "-l"])))
 
 {: test-cli
  : test-lua-flag

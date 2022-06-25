@@ -129,6 +129,10 @@ smaller changes, you can also push your changes to a branch on a public git
 remote hosted anywhere you like and ask someone on IRC or the mailing list to
 take a look.
 
+Note that if you submit thru GitHub, your pull request will be incorrectly
+marked as closed when it is merged due to a bug in GitHub's ability to detect
+merges applied outside GitHub.
+
 In order to get CI to automatically run your patches, they will need to have
 `[PATCH fennel]` in the subject. You can configure git to do this automatically:
 

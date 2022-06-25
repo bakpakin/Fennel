@@ -47,12 +47,12 @@
 
 (fn test-args []
   (when true (and test-all? (file-exists? "./fennel"))
-    (let [code "(print (length arg) (. arg 3))"
+    (let [code "(. arg 3)"
           cmd (string.format "./fennel --eval %q -l" code)
           proc (io.popen cmd)
           output (: (proc:read :*a) :gsub "\n$" "")]
       (l.assertTrue (proc:close))
-      (l.assertEquals "3 -l" output))))
+      (l.assertEquals output "-l"))))
 
 {: test-cli
  : test-lua-flag

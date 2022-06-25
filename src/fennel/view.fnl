@@ -296,15 +296,15 @@
                (not (<= 0xd800 code 0xdfff)))
           init.len)))
   (var index 1)
-  (var output [])
-  (while (<= index (length str))
-    (let [nexti (or (string.find str "[\128-\255]" index) (+ (length str) 1))
-          len (validate-utf8 str nexti)]
-      (table.insert output (string.sub str index (+ nexti (or len 0) -1)))
-      (when (and (not len) (<= nexti (length str)))
-        (table.insert output (string.format "\\%03d" (string.byte str nexti))))
-      (set index (if len (+ nexti len) (+ nexti 1)))))
-  (table.concat output))
+  (let [output []]
+    (while (<= index (length str))
+      (let [nexti (or (string.find str "[\128-\255]" index) (+ (length str) 1))
+            len (validate-utf8 str nexti)]
+        (table.insert output (string.sub str index (+ nexti (or len 0) -1)))
+        (when (and (not len) (<= nexti (length str)))
+          (table.insert output (string.format "\\%03d" (string.byte str nexti))))
+        (set index (if len (+ nexti len) (+ nexti 1)))))
+    (table.concat output)))
 
 (fn pp-string [str options indent]
   "This is a more complicated version of string.format %q.

@@ -650,8 +650,9 @@ which we have to do if we don't know."
       ;; Calculate initial rvalue
       (let [inits (utils.map lvalues #(if (. scope.manglings $) $ :nil))
             init (table.concat inits ", ")
-            lvalue (table.concat lvalues ", ")]
-        (var (plen plast) (values (length parent) (. parent (length parent))))
+            lvalue (table.concat lvalues ", ")
+            plast (. parent (length parent))]
+        (var plen (length parent))
         (local ret (compile1 from scope parent {:target lvalue}))
         (when declaration
           ;; A single leaf emitted at the end of the parent chunk means a
@@ -791,7 +792,7 @@ which we have to do if we don't know."
         {:returned true}))
 
     (let [ret (destructure1 to nil ast true)]
-      (utils.hook :destructure from to scope)
+      (utils.hook :destructure from to scope opts)
       (apply-manglings scope new-manglings ast)
       ret)))
 

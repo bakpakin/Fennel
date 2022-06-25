@@ -152,13 +152,14 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 ;; function for regular tostring as for fennelview. when called from fennelview
 ;; the list's contents will also show as being fennelviewed.
 (fn list->string [self ?tostring2]
-  (var (safe max) (values [] 0))
-  (each [k (pairs self)]
-    (when (and (= (type k) :number) (< max k))
-      (set max k)))
-  (for [i 1 max]
-    (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
-  (.. "(" (table.concat (map safe (or ?tostring2 view)) " " 1 max) ")"))
+  (let [safe []]
+    (var max 0)
+    (each [k (pairs self)]
+      (when (and (= (type k) :number) (< max k))
+        (set max k)))
+    (for [i 1 max]
+      (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
+    (.. "(" (table.concat (map safe (or ?tostring2 view)) " " 1 max) ")")))
 
 (fn comment-view [c]
   (values c true))

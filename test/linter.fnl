@@ -21,6 +21,12 @@ https://todo.sr.ht/~technomancy/fennel/12"
         ok? (pcall fennel.compile-string src options)]
     (l.assertFalse ok?)))
 
+(fn test-var-never-set []
+  (set _G.dbg true)
+  (l.assertFalse (pcall fennel.compile-string "(var x 1) (+ x 9)" options))
+  (l.assertTrue (pcall fennel.compile-string "(var x 1) (set x 9)" options)))
+
 {: test-used
  : test-arity-check
- : test-missing-fn}
+ : test-missing-fn
+ : test-var-never-set}

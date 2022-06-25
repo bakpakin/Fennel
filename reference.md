@@ -759,8 +759,8 @@ end of the bindings:
   (table.insert out value))
 ```
 
-**Note:** prior to fennel version 1.??, `:until` was used instead of `&until`;
-the old syntax is still supported, but `&until` should be preferred.
+**Note:** prior to fennel version 1.2.0, `:until` was used instead of `&until`;
+the old syntax is still supported for backwards compatibility.
 
 Most iterators return two values, but `each` will bind any number. See
 [Programming in Lua][4] for details about how iterators work.
@@ -977,8 +977,8 @@ empty one:
 ;; -> [9 22 33]
 ```
 
-**Note:** Prior to fennel version 1.??, `:into` was used instead of `&into`;
-the old syntax is still supported, but `&into` should be preferred.
+**Note:** Prior to fennel version 1.2.0, `:into` was used instead of `&into`;
+the old syntax is still supported for backwards compatibility.
 
 
 

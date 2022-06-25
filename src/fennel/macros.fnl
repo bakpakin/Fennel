@@ -118,7 +118,7 @@ encountering an error before propagating it."
             (set found? true)
             (set into (. iter-tbl (+ i 1)))
             (table.remove iter-out i)
-            (table.remove iter-out i))))) 
+            (table.remove iter-out i)))))
   (assert (or (not found?) (sym? into) (table? into) (list? into))
           "expected table, function call, or symbol in &into clause")
   (values into iter-out))

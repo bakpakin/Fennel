@@ -7,6 +7,9 @@ Changes are **marked in bold** which could result in backwards-incompatibility.
 ### New Forms
 * Add `fcollect` macro for range "comprehension"
 
+### New Features
+* For greater consistency, add `&into`/`&until` to certain looping constructs
+
 ### Bug Fixes
 * Improve argument handling so unused arguments get passed on to script
 * Fix a bug where macros modifying table literals would emit incorrect output

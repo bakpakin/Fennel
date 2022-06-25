@@ -592,8 +592,13 @@ Example:
   (tset tbl field 19) tbl) ; => {:d 19}
 ```
 
+You can provide multiple successive field names to perform nested
+sets. For example:
 
-You can provide multiple successive field names to perform nested sets.
+```fennel
+(let [tbl {:a {:b {}}} field :c]
+  (tset tbl :a :b field "d") tbl) ; => {:a {:b {:c "d"}}}
+```
 
 ### multiple value binding
 

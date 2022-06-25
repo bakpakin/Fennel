@@ -686,58 +686,59 @@ which we have to do if we don't know."
         (when declaration
           (tset scope.symmeta (tostring left) {:var isvar}))))
 
+    (local unpack-fn "function (t, k, e)
+                        local mt = getmetatable(t)
+                        if 'table' == type(mt) and mt.__fennelrest then
+                          return mt.__fennelrest(t, k)
+                        elseif e then
+                          local rest = {}
+                          for k, v in pairs(t) do
+                            if not e[k] then rest[k] = v end
+                          end
+                          return rest
+                        else
+                          return {(table.unpack or unpack)(t, k)}
+                        end
+                      end")
+
+    (fn destructure-kv-rest [s v left excluded-keys destructure1]
+      (let [exclude-str (table.concat
+                         (icollect [_ k (ipairs excluded-keys)]
+                           (string.format "[%s] = true" (serialize-string k)))
+                         ", ")
+            subexpr (-> (.. "(" unpack-fn ")(%s, %s, {%s})")
+                        (string.gsub "\n%s*" " ")
+                        (string.format s (tostring v) exclude-str)
+                        (utils.expr :expression))]
+        (destructure1 v [subexpr] left)))
+
+    (fn destructure-rest [s k left destructure1]
+      (let [unpack-str (.. "(" unpack-fn ")(%s, %s)")
+            formatted (string.format (string.gsub unpack-str "\n%s*" " ") s k)
+            subexpr (utils.expr formatted :expression)]
+        (assert-compile (and (utils.sequence? left)
+                             (= nil (. left (+ k 2))))
+                        "expected rest argument before last parameter"
+                        left)
+        (destructure1 (. left (+ k 1)) [subexpr] left)))
+
     (fn destructure-table [left rightexprs top? destructure1]
       (let [s (gensym scope symtype)
             right (match (if top?
                              (exprs1 (compile1 from scope parent))
                              (exprs1 rightexprs))
                     "" :nil
-                    right right)]
+                    right right)
+            excluded-keys []]
         (emit parent (string.format "local %s = %s" s right) left)
-        (var excluded-keys [])
         (each [k v (utils.stablepairs left)]
           (when (not (and (= :number (type k))
                           (: (tostring (. left (- k 1))) :find "^&")))
             (if (and (utils.sym? k) (= (tostring k) "&"))
-                (let [unpack-str "(function (t, k, e)
-                                      local mt = getmetatable(t)
-                                      if \"table\" == type(mt) and mt.__fennelrest then
-                                         return mt.__fennelrest(t, k)
-                                      else
-                                         local rest = {}
-                                         for k, v in pairs(t) do
-                                           if not e[k] then
-                                             rest[k] = v
-                                           end
-                                         end
-                                         return rest
-                                      end
-                                   end)(%s, %s, %s)"
-                      excluded-keys-string (string.format "{%s}"
-                                                          (table.concat
-                                                           (utils.map excluded-keys
-                                                                      #(string.format "[%s] = true" (serialize-string $1)))
-                                                           ", "))
-                      formatted (string.format (string.gsub unpack-str "\n%s*" " ") s (tostring v) excluded-keys-string)
-                      subexpr (utils.expr formatted :expression)]
-                  (destructure1 v [subexpr] left))
+                (destructure-kv-rest s v left excluded-keys destructure1)
 
                 (and (utils.sym? v) (= (tostring v) "&"))
-                (let [unpack-str "(function (t, k)
-                                      local mt = getmetatable(t)
-                                      if \"table\" == type(mt) and mt.__fennelrest then
-                                         return mt.__fennelrest(t, k)
-                                      else
-                                         return {(table.unpack or unpack)(t, k)}
-                                      end
-                                   end)(%s, %s)"
-                      formatted (string.format (string.gsub unpack-str "\n%s*" " ") s k)
-                      subexpr (utils.expr formatted :expression)]
-                  (assert-compile (and (utils.sequence? left)
-                                       (= nil (. left (+ k 2))))
-                                  "expected rest argument before last parameter"
-                                  left)
-                  (destructure1 (. left (+ k 1)) [subexpr] left))
+                (destructure-rest s k left destructure1)
 
                 (and (utils.sym? k) (= (tostring k) :&as))
                 (destructure-sym v [(utils.expr (tostring s))] left)

@@ -253,8 +253,9 @@ Note that lists are compile-time constructs in Fennel. They do not exist at
 runtime, except in such cases as the compiler is in use at runtime.
 
 The list also contains these keys indicating where it was defined:
-`filename`, `line`, `bytestart`, and `byteend`. This data is used for
-stack traces and for pinpointing compiler error messages.
+`filename`, `line`, `col`, `bytestart`, and `byteend`. This data is used
+for stack traces and for pinpointing compiler error messages. Note that
+column numbers are based on bytes, not characters.
 
 ### sequence/kv table
 
@@ -283,8 +284,9 @@ Symbols typically represent identifiers in Fennel code. Symbols can be
 identified with `fennel.sym?` and constructed with `fennel.sym` which
 takes a string name as its first argument and a source data table as
 the second. Symbols are represented as tables which store their source
-data in fields on themselves. Unlike the other tables in the AST, they
-do not represent collections; they are used as scalar types.
+data (`filename`, `line`, `col`, etc) in fields on themselves. Unlike
+the other tables in the AST, they do not represent collections; they
+are used as scalar types.
 
 **Note:** `nil` is not a valid AST; code that references nil will have
 the symbol named `"nil"` which unfortunately prints in a way that is

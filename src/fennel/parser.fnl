@@ -62,13 +62,11 @@ Also returns a second function to clear the buffer in the byte stream"
 (fn parser-fn [getbyte filename {: source : unfriendly : comments}]
   (var stack []) ; stack of unfinished values
   ;; Provide one character buffer and keep track of current line and byte index
-  (var line 1)
-  (var byteindex 0)
-  (var lastb nil)
+  (var (line line-start prev-line-start byteindex lastb) (values 1 0 0 0 nil))
 
   (fn ungetb [ub]
     (when (= ub 10)
-      (set line (- line 1)))
+      (set (line line-start) (values (- line 1) prev-line-start)))
     (set byteindex (- byteindex 1))
     (set lastb ub))
 
@@ -79,7 +77,8 @@ Also returns a second function to clear the buffer in the byte stream"
         (set r (getbyte {:stack-size (length stack)})))
     (set byteindex (+ byteindex 1))
     (when (= r 10)
-      (set line (+ line 1)))
+      (set prev-line-start line-start)
+      (set (line line-start) (values (+ line 1) byteindex)))
     r)
 
   ;; If you add new calls to this function, please update fennel.friend as well
@@ -99,12 +98,15 @@ Also returns a second function to clear the buffer in the byte stream"
   (fn parse-stream []
     (var (whitespace-since-dispatch done? retval) true)
 
+    (fn set-source-fields [source]
+      (set source.col (- source.bytestart source.line-start 1))
+      (set (source.byteend source.line-start) byteindex))
+
     (fn dispatch [v]
       "Dispatch when we complete a value"
       (match (. stack (length stack))
         nil (set (retval done? whitespace-since-dispatch) (values v true false))
-        {: prefix} (let [source (doto (table.remove stack)
-                                  (tset :byteend byteindex))
+        {: prefix} (let [source (doto (table.remove stack) set-source-fields)
                          list (utils.list (utils.sym prefix source) v)]
                      (each [k v (pairs source)]
                        (tset list k v))
@@ -142,7 +144,7 @@ Also returns a second function to clear the buffer in the byte stream"
         (parse-error (.. "expected whitespace before opening delimiter "
                          (string.char b))))
       (table.insert stack {:bytestart byteindex :closer (. delims b)
-                           : filename : line}))
+                           : filename : line : line-start}))
 
     (fn close-list [list]
       (dispatch (setmetatable list (getmetatable (utils.list)))))
@@ -215,7 +217,7 @@ Also returns a second function to clear the buffer in the byte stream"
         (when (and top.closer (not= top.closer b))
           (parse-error (.. "mismatched closing delimiter " (string.char b)
                            ", expected " (string.char top.closer))))
-        (set top.byteend byteindex) ; set closing byte index
+        (set-source-fields top)
         (if (= b 41) (close-list top)
             (= b 93) (close-sequence top)
             (close-curly-table top))))
@@ -250,9 +252,8 @@ Also returns a second function to clear the buffer in the byte stream"
 
     (fn parse-prefix [b]
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"
-      (table.insert stack {:prefix (. prefixes b)
-                           : filename : line
-                           :bytestart byteindex})
+      (table.insert stack {:prefix (. prefixes b) : filename : line
+                           :bytestart byteindex : line-start})
       (let [nextb (getb)]
         (when (or (whitespace? nextb) (= true (. delims nextb)))
           (when (not= b 35)
@@ -312,9 +313,9 @@ Also returns a second function to clear the buffer in the byte stream"
           rawstr))
 
     (fn parse-sym [b] ; not just syms actually...
-      (let [bytestart byteindex
-            rawstr (string.char (unpack (parse-sym-loop [b] (getb))))
-            source {:byteend byteindex : bytestart : filename : line}]
+      (let [source {:bytestart byteindex : filename : line : line-start}
+            rawstr (string.char (unpack (parse-sym-loop [b] (getb))))]
+        (set-source-fields source)
         (if (= rawstr :true)
             (dispatch true)
             (= rawstr :false)

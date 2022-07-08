@@ -66,11 +66,28 @@
 (fn test-prefixes []
   (let [code "\n\n`(let\n  ,abc #(+ 2 3))"
         (ok? ast) ((fennel.parser code))]
+    (l.assertTrue ok?)
     (l.assertEquals ast.line 3)
     (l.assertEquals (. ast 2 2 :line) 4)
     (l.assertEquals (. ast 2 3 :line) 4)))
 
+(fn line-col [{: line : col}] [line col])
+
+(fn test-source-meta []
+  (let [code "\n\n  (  let [x 5 \n        y {:z 66}]\n (+ x y.z))"
+        (ok? ast) ((fennel.parser code))
+        [let* [_ _ _ tbl]] ast
+        [_ seq] ast]
+    (l.assertTrue ok?)
+    (l.assertEquals (line-col ast) [3 2] "line and column on lists")
+    (l.assertEquals (line-col let*) [3 5] "line and column on symbols")
+    (l.assertEquals (line-col (getmetatable seq)) [3 9]
+                    "line and column on sequences")
+    (l.assertEquals (line-col (getmetatable tbl)) [4 10]
+                    "line and column on tables")))
+
 {: test-basics
  : test-control-codes
  : test-comments
- : test-prefixes}
+ : test-prefixes
+ : test-source-meta}

@@ -12,6 +12,7 @@ deprecated forms.
 * Add `fcollect` macro for range "comprehension"
 
 ### New Features
+* Parser now includes column information (byte-based) in AST nodes
 * For greater consistency, add `&into`/`&until` to certain looping constructs
 
 ### Bug Fixes

@@ -88,47 +88,32 @@
                             (sug matches))))))
   suggestion)
 
-(fn read-line-from-file [filename line]
-  (var bytes 0)
-  (let [f (assert (io.open filename))
-        _ (for [_ 1 (- line 1)]
-            (set bytes (+ bytes 1 (length (f:read)))))
-        codeline (f:read)]
-    (f:close)
-    (values codeline bytes)))
+(fn read-line [filename line ?source]
+  (if ?source
+      (let [matcher (string.gmatch (.. ?source "\n") "(.-)(\r?\n)")]
+        (for [_ 2 line] (matcher))
+        (matcher))
+      (with-open [f (assert (io.open filename))]
+        (for [_ 2 line] (f:read))
+        (f:read))))
 
-(fn read-line-from-string [matcher target-line ?current-line ?bytes]
-  (let [(this-line newline) (matcher)
-        current-line (or ?current-line 1)
-        bytes (+ (or ?bytes 0) (length this-line) (length newline))]
-    (if (= target-line current-line)
-        (values this-line (- bytes (length this-line) 1))
-        this-line
-        (read-line-from-string matcher target-line (+ current-line 1) bytes))))
+(fn pinpoint [col len bytestart byteend]
+  (let [bol (- bytestart col) eol (+ bol len)]
+    (.. (string.rep " " col) "^"
+        (string.rep "^" (- (math.min byteend eol) bytestart)))))
 
-(fn read-line [filename line source]
-  (if source
-      (read-line-from-string (string.gmatch (.. source "\n") "(.-)(\r?\n)")
-                             line)
-      (read-line-from-file filename line)))
-
-(fn friendly-msg [msg {: filename : line : bytestart : byteend} source]
-  (let [(ok codeline bol) (pcall read-line filename line source)
+(fn friendly-msg [msg {: filename : line : bytestart : byteend : col} source]
+  (let [(ok codeline) (pcall read-line filename line source)
         suggestions (suggest msg)
         out [msg ""]]
     ;; don't assume the file can be read as-is
     ;; (when (not ok) (print :err codeline))
     (when (and ok codeline)
       (table.insert out codeline))
-    (when (and ok codeline bytestart byteend)
-      (table.insert out
-                    (.. (string.rep " " (- bytestart bol 1)) "^"
-                        (string.rep "^"
-                                    (math.min (- byteend bytestart)
-                                              (- (+ bol (length codeline))
-                                                 bytestart))))))
-    (when (and ok codeline bytestart (not byteend))
-      (table.insert out (.. (string.rep "-" (- bytestart bol 1)) "^"))
+    (when (and ok codeline bytestart byteend col)
+      (table.insert out (pinpoint col (utils.len codeline) bytestart byteend)))
+    (when (and ok codeline (not byteend) col)
+      (table.insert out (.. (string.rep "-" col) "^"))
       (table.insert out ""))
     (when suggestions
       (each [_ suggestion (ipairs suggestions)]
@@ -138,18 +123,19 @@
 (fn assert-compile [condition msg ast source]
   "A drop-in replacement for the internal assert-compile with friendly messages."
   (when (not condition)
-    (let [{: filename : line} (utils.ast-source ast)]
-      (error (friendly-msg (: "Compile error in %s:%s\n  %s" :format
+    (let [{: filename : line : col} (utils.ast-source ast)]
+      (error (friendly-msg (: "Compile error in %s:%s:%s\n  %s" :format
                               ;; still need fallbacks because backtick erases
-                              ;; source data, and vararg has no source data
-                              (or filename :unknown) (or line "?") msg)
+                              ;; source and macros can generate source-less ast
+                              (or filename :unknown) (or line "?")
+                              (or col "?") msg)
                            (utils.ast-source ast) source) 0)))
   condition)
 
-(fn parse-error [msg filename line bytestart source]
+(fn parse-error [msg filename line col source]
   "A drop-in replacement for the internal parse-error with friendly messages."
-  (error (friendly-msg (: "Parse error in %s:%s\n  %s" :format filename line
-                          msg)
-                       {: filename : line : bytestart} source) 0))
+  (error (friendly-msg (: "Parse error in %s:%s:%s\n  %s" :format
+                          filename line col msg)
+                       {: filename : line : col} source) 0))
 
 {: assert-compile : parse-error}

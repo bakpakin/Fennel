@@ -4,5 +4,5 @@
 
 for f in test/bad/*.fnl; do
     echo "============================================ $f"
-    ./fennel --check-unused-locals $f || true
+    ./fennel $f || true
 done

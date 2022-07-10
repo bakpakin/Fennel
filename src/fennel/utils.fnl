@@ -41,6 +41,11 @@
   (when (and _G.io _G.io.stderr)
     (_G.io.stderr:write (: "--WARNING: %s\n" :format (tostring message)))))
 
+;; if utf8-aware len is available, use it, otherwise use bytes
+(local len (match (pcall require :utf8)
+             (true utf8) utf8.len
+             _ string.len))
+
 (fn mt-keys-in-order [t out used-keys]
   ;; the metatable keys list gives us ordering; it is not canonical for what
   ;; keys actually exist in the table. for instance a macro can modify a k/v
@@ -418,6 +423,7 @@ handlers will be skipped."
  : ast-source
  : version
  : runtime-version
+ : len
  :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")
  :macro-path (table.concat [:./?.fnl :./?/init-macros.fnl :./?/init.fnl
                             (getenv :FENNEL_MACRO_PATH)] ";")}

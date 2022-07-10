@@ -89,11 +89,11 @@ Also returns a second function to clear the buffer in the byte stream"
                              (or line "?") (or byteindex-override byteindex)
                              source utils.root.reset))
       (utils.root.reset)
-      (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
-          (error (string.format "%s:%s: Parse error: %s"
-                                filename (or line "?") msg) 0)
-          (friend.parse-error msg filename (or line "?")
-                              (or byteindex-override byteindex) source))))
+      (let [col (- (or byteindex-override byteindex) line-start 1)]
+        (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
+            (error (string.format "%s:%s:%s Parse error: %s"
+                                  filename (or line "?") col msg) 0)
+            (friend.parse-error msg filename (or line "?") col source)))))
 
   (fn parse-stream []
     (var (whitespace-since-dispatch done? retval) true)

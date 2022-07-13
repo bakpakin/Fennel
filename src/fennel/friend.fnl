@@ -97,27 +97,27 @@
         (for [_ 2 line] (f:read))
         (f:read))))
 
-(fn pinpoint [col len bytestart byteend]
-  (let [bol (- bytestart col) eol (+ bol len)]
-    (.. (string.rep " " col) "^"
-        (string.rep "^" (- (math.min byteend eol) bytestart)))))
+(fn pinpoint [codeline col ?bytestart ?byteend]
+  (let [col-chars (utils.len (codeline:sub 1 col))]
+    (if ?byteend
+        (let [bol (- ?bytestart col 1) eol (+ bol (utils.len codeline))
+              target (codeline:sub (- ?bytestart bol) (- ?byteend bol))]
+          (.. (string.rep " " col-chars)
+              (string.rep "^" (math.min (utils.len target)
+                                        (- (utils.len codeline) col-chars)))))
+        (.. (string.rep "-" col-chars) "^\n"))))
 
 (fn friendly-msg [msg {: filename : line : bytestart : byteend : col} source]
   (let [(ok codeline) (pcall read-line filename line source)
-        suggestions (suggest msg)
         out [msg ""]]
     ;; don't assume the file can be read as-is
     ;; (when (not ok) (print :err codeline))
     (when (and ok codeline)
       (table.insert out codeline))
-    (when (and ok codeline bytestart byteend col)
-      (table.insert out (pinpoint col (utils.len codeline) bytestart byteend)))
-    (when (and ok codeline (not byteend) col)
-      (table.insert out (.. (string.rep "-" col) "^"))
-      (table.insert out ""))
-    (when suggestions
-      (each [_ suggestion (ipairs suggestions)]
-        (table.insert out (: "* Try %s." :format suggestion))))
+    (when (and ok codeline col)
+      (table.insert out (pinpoint codeline col bytestart byteend)))
+    (each [_ suggestion (ipairs (or (suggest msg) []))]
+      (table.insert out (: "* Try %s." :format suggestion)))
     (table.concat out "\n")))
 
 (fn assert-compile [condition msg ast source]

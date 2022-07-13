@@ -252,10 +252,12 @@ for the contents of the list.
 Note that lists are compile-time constructs in Fennel. They do not exist at
 runtime, except in such cases as the compiler is in use at runtime.
 
-The list also contains these keys indicating where it was defined:
-`filename`, `line`, `col`, `bytestart`, and `byteend`. This data is used
-for stack traces and for pinpointing compiler error messages. Note that
-column numbers are based on bytes, not characters.
+The list also contains these keys indicating where it was defined: `filename`,
+`line`, `col`, `endcol`, `bytestart`, and `byteend`. This data is used for
+stack traces and for pinpointing compiler error messages. Note that column
+numbers are based on character count, which does not always correspond to
+visual columns; for instance "วัด" is three characters but only two visual
+columns.
 
 ### sequence/kv table
 

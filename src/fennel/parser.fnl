@@ -59,14 +59,18 @@ Also returns a second function to clear the buffer in the byte stream"
                  44 :unquote
                  96 :quote})
 
+(fn char-starter? [b] (or (< 1 b 127) (< 192 b 247)))
+
 (fn parser-fn [getbyte filename {: source : unfriendly : comments}]
   (var stack []) ; stack of unfinished values
   ;; Provide one character buffer and keep track of current line and byte index
-  (var (line line-start prev-line-start byteindex lastb) (values 1 0 0 0 nil))
+  (var (line byteindex col prev-col lastb) (values 1 0 0 0 nil))
 
   (fn ungetb [ub]
+    (when (char-starter? ub)
+      (set col (- col 1)))
     (when (= ub 10)
-      (set (line line-start) (values (- line 1) prev-line-start)))
+      (set (line col) (values (- line 1) prev-col)))
     (set byteindex (- byteindex 1))
     (set lastb ub))
 
@@ -76,21 +80,22 @@ Also returns a second function to clear the buffer in the byte stream"
         (set (r lastb) (values lastb nil))
         (set r (getbyte {:stack-size (length stack)})))
     (set byteindex (+ byteindex 1))
+    (when (and r (char-starter? r))
+      (set col (+ col 1)))
     (when (= r 10)
-      (set prev-line-start line-start)
-      (set (line line-start) (values (+ line 1) byteindex)))
+      (set (line col prev-col) (values (+ line 1) 0 col)))
     r)
 
   ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!
-  (fn parse-error [msg byteindex-override]
-    ;; allow plugins to override parse-error
-    (when (= nil (utils.hook :parse-error msg filename
-                             (or line "?") (or byteindex-override byteindex)
-                             source utils.root.reset))
-      (utils.root.reset)
-      (let [col (- (or byteindex-override byteindex) line-start 1)]
-        (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
+  (fn parse-error [msg ?col-adjust]
+    (let [col (+ col (or ?col-adjust -1))]
+      ;; allow plugins to override parse-error
+      (when (= nil (utils.hook :parse-error msg filename
+                               (or line "?") col
+                               source utils.root.reset))
+        (utils.root.reset)
+        (if (or unfriendly (not _G.io) (not _G.io.read))
             (error (string.format "%s:%s:%s Parse error: %s"
                                   filename (or line "?") col msg) 0)
             (friend.parse-error msg filename (or line "?") col source)))))
@@ -99,8 +104,7 @@ Also returns a second function to clear the buffer in the byte stream"
     (var (whitespace-since-dispatch done? retval) true)
 
     (fn set-source-fields [source]
-      (set source.col (- source.bytestart source.line-start 1))
-      (set (source.byteend source.line-start) byteindex))
+      (set (source.byteend source.endcol) (values byteindex (- col 1))))
 
     (fn dispatch [v]
       "Dispatch when we complete a value"
@@ -144,7 +148,7 @@ Also returns a second function to clear the buffer in the byte stream"
         (parse-error (.. "expected whitespace before opening delimiter "
                          (string.char b))))
       (table.insert stack {:bytestart byteindex :closer (. delims b)
-                           : filename : line : line-start}))
+                           : filename : line :col (- col 1)}))
 
     (fn close-list [list]
       (dispatch (setmetatable list (getmetatable (utils.list)))))
@@ -253,7 +257,7 @@ Also returns a second function to clear the buffer in the byte stream"
     (fn parse-prefix [b]
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"
       (table.insert stack {:prefix (. prefixes b) : filename : line
-                           :bytestart byteindex : line-start})
+                           :bytestart byteindex :col (- col 1)})
       (let [nextb (getb)]
         (when (or (whitespace? nextb) (= true (. delims nextb)))
           (when (not= b 35)
@@ -291,29 +295,26 @@ Also returns a second function to clear the buffer in the byte stream"
     (fn check-malformed-sym [rawstr]
       ;; for backwards-compatibility, special-case allowance of ~= but
       ;; all other uses of ~ are disallowed
+      (fn col-adjust [pat] (- (rawstr:find pat) (utils.len rawstr) 1))
       (if (and (rawstr:match "^~") (not= rawstr "~="))
           (parse-error "invalid character: ~")
           (rawstr:match "%.[0-9]")
           (parse-error (.. "can't start multisym segment with a digit: " rawstr)
-                       (+ (+ (- byteindex (length rawstr))
-                             (rawstr:find "%.[0-9]"))
-                          1))
+                       (col-adjust "%.[0-9]"))
           (and (rawstr:match "[%.:][%.:]") (not= rawstr "..")
                (not= rawstr "$..."))
           (parse-error (.. "malformed multisym: " rawstr)
-                       (+ (- byteindex (length rawstr)) 1
-                          (rawstr:find "[%.:][%.:]")))
+                       (col-adjust "[%.:][%.:]"))
           (and (not= rawstr ":") (rawstr:match ":$"))
           (parse-error (.. "malformed multisym: " rawstr)
-                       (+ (- byteindex (length rawstr)) 1 (rawstr:find ":$")))
+                       (col-adjust ":$"))
           (rawstr:match ":.+[%.:]")
           (parse-error (.. "method must be last component of multisym: " rawstr)
-                       (+ (- byteindex (length rawstr))
-                          (rawstr:find ":.+[%.:]")))
+                       (col-adjust ":.+[%.:]"))
           rawstr))
 
     (fn parse-sym [b] ; not just syms actually...
-      (let [source {:bytestart byteindex : filename : line : line-start}
+      (let [source {:bytestart byteindex : filename : line :col (- col 1)}
             rawstr (string.char (unpack (parse-sym-loop [b] (getb))))]
         (set-source-fields source)
         (if (= rawstr :true)
@@ -343,7 +344,7 @@ Also returns a second function to clear the buffer in the byte stream"
 
     (parse-loop (skip-whitespace (getb))))
 
-  (values parse-stream #(set (stack line byteindex lastb) (values [] 1 0 nil))))
+  (values parse-stream #(set (stack line byteindex col lastb) (values [] 1 0 0 nil))))
 
 (fn parser [stream-or-string ?filename ?options]
   "Returns an iterator fn which parses string-or-stream and returns AST nodes.

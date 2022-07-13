@@ -97,17 +97,14 @@
         (for [_ 2 line] (f:read))
         (f:read))))
 
-(fn pinpoint [codeline col ?bytestart ?byteend]
-  (let [col-chars (utils.len (codeline:sub 1 col))]
-    (if ?byteend
-        (let [bol (- ?bytestart col 1) eol (+ bol (utils.len codeline))
-              target (codeline:sub (- ?bytestart bol) (- ?byteend bol))]
-          (.. (string.rep " " col-chars)
-              (string.rep "^" (math.min (utils.len target)
-                                        (- (utils.len codeline) col-chars)))))
-        (.. (string.rep "-" col-chars) "^\n"))))
+(fn pinpoint [codeline col ?endcol]
+  (if ?endcol
+      (.. (string.rep " " col)
+          (string.rep "^" (math.min (- ?endcol col -1)
+                                    (- (utils.len codeline) col))))
+      (.. (string.rep "-" col) "^\n")))
 
-(fn friendly-msg [msg {: filename : line : bytestart : byteend : col} source]
+(fn friendly-msg [msg {: filename : line : col : endcol} source]
   (let [(ok codeline) (pcall read-line filename line source)
         out [msg ""]]
     ;; don't assume the file can be read as-is
@@ -115,7 +112,7 @@
     (when (and ok codeline)
       (table.insert out codeline))
     (when (and ok codeline col)
-      (table.insert out (pinpoint codeline col bytestart byteend)))
+      (table.insert out (pinpoint codeline col endcol)))
     (each [_ suggestion (ipairs (or (suggest msg) []))]
       (table.insert out (: "* Try %s." :format suggestion)))
     (table.concat out "\n")))

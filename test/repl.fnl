@@ -184,7 +184,7 @@
     (l.assertEquals out out2 "lines and byte offsets should be stable")
     (l.assertStrContains out ":bytestart 5")
     (l.assertStrContains out ":byteend 7")
-    (l.assertStrContains out3 "   (f [123])\n      ^^^^^")))
+    (l.assertStrContains out3 "   (f \027[7m[123]\027[0m)")))
 
 (fn test-code []
   (let [(send comp) (wrap-repl)]
@@ -196,13 +196,13 @@
 (fn test-error-handling []
   (let [(send comp) (wrap-repl)]
     ;; we get the source in the error message
-    (l.assertStrContains (. (send "(let a)") 1) "(let a)\n     ^")
+    (l.assertStrContains (. (send "(let a)") 1) "(let \027")
     ;; repeated errors still get it
-    (l.assertStrContains (. (send "(let b)") 1) "(let b)\n     ^")
+    (l.assertStrContains (. (send "(let b)") 1) "(let \027")
     (set _G.dbg true)
     ;; repl commands don't mess it up
     (send ",complete l")
-    (l.assertStrContains (. (send "(let c)") 1) "(let c)\n     ^")
+    (l.assertStrContains (. (send "(let c)") 1) "(let \027")
     ;; parser errors should be properly displayed, albeit without ^ at position
     (l.assertStrContains (. (send "(print @)") 1) "invalid character: @")))
 

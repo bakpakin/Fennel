@@ -3,6 +3,7 @@
 ;; It can be disabled to fall back to the regular terse errors.
 
 (local utils (require :fennel.utils))
+(local (utf8-ok? utf8) (pcall require :utf8))
 
 (local suggestions
        {"unexpected multi symbol (.*)" ["removing periods or colons from %s"]
@@ -97,12 +98,18 @@
         (for [_ 2 line] (f:read))
         (f:read))))
 
-(fn pinpoint [codeline col ?endcol]
-  (if ?endcol
-      (.. (string.rep " " col)
-          (string.rep "^" (math.min (- ?endcol col -1)
-                                    (- (utils.len codeline) col))))
-      (.. (string.rep "-" col) "^\n")))
+(fn sub [str start end]
+  "Try to take the substring based on characters, not bytes."
+  (if utf8-ok?
+      (string.sub str (utf8.offset str start) (- (utf8.offset str (+ end 1)) 1))
+      (string.sub str start end)))
+
+(fn highlight-line [codeline col ?endcol]
+  (let [endcol (or ?endcol col)
+        eol (if utf8-ok? (utf8.len codeline) (string.len codeline))]
+    (.. (sub codeline 1 col) "\027[7m"
+        (sub codeline (+ col 1) (+ endcol 1))
+        "\027[0m" (sub codeline (+ endcol 2) eol))))
 
 (fn friendly-msg [msg {: filename : line : col : endcol} source]
   (let [(ok codeline) (pcall read-line filename line source)
@@ -110,9 +117,9 @@
     ;; don't assume the file can be read as-is
     ;; (when (not ok) (print :err codeline))
     (when (and ok codeline)
-      (table.insert out codeline))
-    (when (and ok codeline col)
-      (table.insert out (pinpoint codeline col endcol)))
+      (if col
+          (table.insert out (highlight-line codeline col endcol))
+          (table.insert out codeline)))
     (each [_ suggestion (ipairs (or (suggest msg) []))]
       (table.insert out (: "* Try %s." :format suggestion)))
     (table.concat out "\n")))

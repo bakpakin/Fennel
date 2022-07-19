@@ -12,6 +12,7 @@ deprecated forms.
 * Add `fcollect` macro for range "comprehension"
 
 ### New Features
+* Show errors using terminal control codes instead of arrow indicator
 * Parser now includes column information (byte-based) in AST nodes
 * For greater consistency, add `&into`/`&until` to certain looping constructs
 

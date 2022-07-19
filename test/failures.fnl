@@ -151,6 +151,8 @@
     (l.assertFalse ok?)
     (l.assertStrMatches msg ".*module name must compile to string.*")))
 
+(fn no-codes [s] (s:gsub "\027%[[0-9]m" ""))
+
 ;; automated tests for suggestions are rudimentary because the usefulness of the
 ;; output is so subjective. to see a full catalog of suggestions, run the script
 ;; test/bad/friendly.sh and review that output.
@@ -166,10 +168,9 @@
     ;; offer suggestions
     (l.assertStrContains msg "Try declaring x using var")
     ;; show the code and point out the identifier at fault
-    (l.assertStrContains msg "(set x 3)")
-    (l.assertStrContains msg "\n     ^")
+    (l.assertStrContains (no-codes msg) "(set x 3)")
     ;; parse error
-    (l.assertStrContains parse-msg "{:a 1 :b 2 :c}")
+    (l.assertStrContains (no-codes parse-msg) "{:a 1 :b 2 :c}")
     ;; non-table AST in assertion
     (l.assertStrContains assert-msg "bad")
     ;; source should be part of the error message

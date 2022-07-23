@@ -100,9 +100,11 @@
 
 (fn sub [str start end]
   "Try to take the substring based on characters, not bytes."
-  (if utf8-ok?
-      (string.sub str (utf8.offset str start) (- (utf8.offset str (+ end 1)) 1))
-      (string.sub str start end)))
+  (if (< end start) ""
+      utf8-ok?
+      (string.sub str (utf8.offset str start)
+                  (- (or (utf8.offset str (+ end 1)) (+ (utf8.len str) 1)) 1))
+      (string.sub str start (math.min end (str:len)))))
 
 (fn highlight-line [codeline col ?endcol]
   (let [endcol (or ?endcol col)

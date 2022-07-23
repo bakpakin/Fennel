@@ -94,9 +94,7 @@
     "(set [a b c] [1 2 3]) (+ a b c)" "expected local"
     "(set a 19)" "error in 'a': expected local"
     "(set)" "Compile error in 'set': expected name and value"
-    ;; TODO: this should be an error in 1.0
     "(local abc&d 19)" "invalid character: &"
-
     "(let [t []] (set t.47 :forty-seven))"
     "can't start multisym segment with a digit: t.47"
     "(let [x {:foo (fn [self] self.bar) :bar :baz}] x:foo)"
@@ -162,7 +160,8 @@
         (_ assert-msg) (pcall fennel.eval
                               "(eval-compiler (assert-compile nil \"bad\" 1))")
         (_ msg4) (pcall fennel.eval "(abc] ;; msg4")
-        (_ msg5) (pcall fennel.eval "(let {:a 1}) ;; msg5")]
+        (_ msg5) (pcall fennel.eval "(let {:a 1}) ;; msg5")
+        (_ msg6) (pcall fennel.eval "(for [:abc \n \"def t\"] nil)")]
     ;; show the raw error message
     (l.assertStrContains msg "expected var x")
     ;; offer suggestions
@@ -175,7 +174,8 @@
     (l.assertStrContains assert-msg "bad")
     ;; source should be part of the error message
     (l.assertStrContains msg4 "msg4")
-    (l.assertStrContains msg5 "msg5")))
+    (l.assertStrContains msg5 "msg5")
+    (l.assertStrContains msg6 "unable to bind string abc")))
 
 (fn doer []
   ;; this plugin does not detach in subsequent tests, so we must check that

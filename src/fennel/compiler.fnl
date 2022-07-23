@@ -452,8 +452,8 @@ if opts contains the nval option."
 (fn compile-function-call [ast scope parent opts compile1 len]
   (let [fargs [] ; regular function call
         fcallee (. (compile1 (. ast 1) scope parent {:nval 1}) 1)]
-    (assert-compile (or (= :string (type (. ast 1))) ; strings can have __call metamethod
-                        (not= fcallee.type :literal))
+    (assert-compile (or (utils.sym? (. ast 1)) (utils.list? (. ast 1))
+                        (= :string (type (. ast 1))))
                     (.. "cannot call literal value " (tostring (. ast 1))) ast)
     (for [i 2 len]
       (let [subexprs (compile1 (. ast i) scope parent

@@ -136,7 +136,8 @@
     "(do\n\n\n(each \n[x 34 (pairs {})] 21))"
     "unknown:5:0 Compile error in 'x': unable to bind number 34"
     "(with-open [(x y z) (values 1 2 3)])"
-    "with-open only allows symbols in bindings"}))
+    "with-open only allows symbols in bindings"
+    "([])" "cannot call literal value table"}))
 
 (fn test-macro []
   (let [code "(import-macros {: fail-one} :test.macros) (fail-one 1)"

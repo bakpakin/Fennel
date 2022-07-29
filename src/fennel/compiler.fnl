@@ -562,8 +562,8 @@ function. Macros are resolved here, as well as special forms in that order.
 * the `ast` param is the root AST to compile
 * the `scope` param is the scope in which we are compiling
 * the `parent` param is the table of lines that we are compiling into.
-add lines to parent by appending strings. Add indented blocks by appending
-tables of more lines.
+add lines to parent by appending {:ast ... :leaf ...} elements. Add indented
+blocks by appending tables of more lines.
 * the `opts` param contains info about where the form is being compiled
 
 Fields of `opts` include:

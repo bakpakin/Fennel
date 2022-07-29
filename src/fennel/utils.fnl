@@ -298,9 +298,8 @@ be declared local, and they may have side effects on invocation (metatables)."
   symbol.quoted)
 
 (fn ast-source [ast]
-  "Most AST nodes put file/line info in the table itself, but k/v tables
-store it on the metatable instead."
-  (if (table? ast) (or (getmetatable ast) {})
+  "Get a table for the given ast which includes file/line info, if possible."
+  (if (or (table? ast) (sequence? ast)) (or (getmetatable ast) {})
       (= :table (type ast)) ast
       {}))
 

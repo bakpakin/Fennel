@@ -125,6 +125,7 @@
             :traceback compiler.traceback
             :version utils.version
             :runtime-version utils.runtime-version
+            :ast-source utils.ast-source
             ;; finding code
             :path utils.path
             :macro-path utils.macro-path

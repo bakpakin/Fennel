@@ -158,6 +158,7 @@ the number of expected arguments."
 (doc-special :values ["..."]
              "Return multiple values from a function. Must be in tail position.")
 
+;; TODO: use view here?
 (fn deep-tostring [x key?]
   "Tostring for literal tables created with {} or [].
 Recursively transforms tables into one-line string representation.
@@ -1007,6 +1008,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              :version utils.version
              :metadata compiler.metadata
              ;; AST functions
+             :ast-source utils.ast-source
              :list utils.list :list? utils.list? :table? utils.table?
              :sequence utils.sequence :sequence? utils.sequence?
              :sym utils.sym :sym? utils.sym? :multi-sym? utils.multi-sym?

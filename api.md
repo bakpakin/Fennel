@@ -239,6 +239,12 @@ will give you a string which should round-trip thru the parser to give
 you the same data back. The same is true with `tostring`, except it
 does not work with non-sequence tables.
 
+The `fennel.ast-source` function takes an AST node and returns a table
+with source data around filename, line number, et in it, if
+possible. Some AST nodes cannot provide this data, for instance
+numbers, strings, and booleans, or symbols constructed within macros
+using the `sym` function instead of backtick.
+
 AST nodes can be any of these types:
 
 ### list

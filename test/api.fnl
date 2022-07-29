@@ -33,7 +33,8 @@
   :varg            "function"
   :varg?           "function"
   :version         "string"
-  :view            "function"})
+  :view            "function"
+  :ast-source      "function"})
 
 (local expected-aliases {
   :compileStream  "function"

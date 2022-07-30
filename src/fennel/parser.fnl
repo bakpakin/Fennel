@@ -61,7 +61,11 @@ Also returns a second function to clear the buffer in the byte stream"
 
 (fn char-starter? [b] (or (< 1 b 127) (< 192 b 247)))
 
-(fn parser-fn [getbyte filename {: source : unfriendly : comments}]
+(fn wrap-mt {1 :WRAP
+             :__fennelview utils.deref
+             :__tostring #(tostring (utils.deref $))})
+
+(fn parser-fn [getbyte filename {: source : unfriendly : comments : wrap}]
   (var stack []) ; stack of unfinished values
   ;; Provide one character buffer and keep track of current line and byte index
   (var (line byteindex col prev-col lastb) (values 1 0 0 0 nil))
@@ -226,6 +230,11 @@ Also returns a second function to clear the buffer in the byte stream"
             (= b 93) (close-sequence top)
             (close-curly-table top))))
 
+    (fn wrap [val bytestart col]
+      (if wrap
+          (set-source-fields (setmetatable {1 val : bytestart : col} wrap-mt))
+          val))
+
     (fn parse-string-loop [chars b state]
       (table.insert chars b)
       (let [state (match [state b]
@@ -244,14 +253,16 @@ Also returns a second function to clear the buffer in the byte stream"
 
     (fn parse-string []
       (table.insert stack {:closer 34})
-      (let [chars [34]]
+      (let [chars [34]
+            bytestart byteindex
+            colstart col]
         (when (not (parse-string-loop chars (getb) :base))
           (badend))
         (table.remove stack)
         (let [raw (string.char (unpack chars))
               formatted (raw:gsub "[\a-\r]" escape-char)]
           (match ((or (rawget _G :loadstring) load) (.. "return " formatted))
-            load-fn (dispatch (load-fn))
+            load-fn (dispatch (wrap (load-fn) bytestart colstart))
             nil (parse-error (.. "Invalid string: " raw))))))
 
     (fn parse-prefix [b]
@@ -282,7 +293,9 @@ Also returns a second function to clear the buffer in the byte stream"
                                                   (rawstr:gsub "_" ""))]
         (if (rawstr:match "^%d")
             (do
-              (dispatch (or (tonumber number-with-stripped-underscores)
+              (dispatch (or (wrap
+                             (tonumber number-with-stripped-underscores)
+                             (- bytestart (rawstr:len)) (- col (rawstr:len)))
                             (parse-error (.. "could not read number \"" rawstr
                                              "\""))))
               true)
@@ -318,9 +331,9 @@ Also returns a second function to clear the buffer in the byte stream"
             rawstr (string.char (unpack (parse-sym-loop [b] (getb))))]
         (set-source-fields source)
         (if (= rawstr :true)
-            (dispatch true)
+            (dispatch (wrap true (- byteindex 4) (- col 4)))
             (= rawstr :false)
-            (dispatch false)
+            (dispatch (wrap false (- byteindex 5) (- col 5)))
             (= rawstr "...")
             (dispatch (utils.varg source))
             (rawstr:match "^:.+$")

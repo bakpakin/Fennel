@@ -18,6 +18,7 @@ deprecated forms.
 * For greater consistency, add `&into`/`&until` to certain looping constructs
 
 ### Bug Fixes
+* Fix an issue with native modules in `--compile-binary`
 * Improve argument handling so unused arguments get passed on to script
 * Fix a bug where macros modifying table literals would emit incorrect output
 * Fix a bug in the REPL where parser errors display the error message as `nil`

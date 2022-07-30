@@ -163,6 +163,16 @@ int main(int argc, char *argv[]) {
     (f:close)
     lua-code))
 
+(fn module-name [open rename used-renames]
+  (let [require-name (match (. rename open)
+                       renamed (do
+                                 (tset used-renames open true)
+                                 renamed)
+                       _ open)]
+    ;; changing initial underscore breaks luaossl
+    (.. (require-name:sub 1 1)
+        (: (require-name:sub 2) :gsub "_" "."))))
+
 (fn native-loader [native ?options]
   (let [opts (or ?options {:rename-modules {}})
         rename (or opts.rename-modules {})
@@ -179,17 +189,10 @@ int main(int argc, char *argv[]) {
                        "Did you mean to use --native-library instead of --native-module?")
                    :format path)))
         (each [_ open (ipairs opens)]
-          (let [require-name (match (. rename open)
-                               renamed (do
-                                         (tset used-renames open true)
-                                         renamed)
-                               _ open)]
-            (table.insert out
-                          (: "  int luaopen_%s(lua_State *L);" :format open))
-            (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format
-                                 open))
-            (table.insert out (: "  lua_setfield(L, -2, \"%s\");\n" :format
-                                 require-name))))))
+          (table.insert out (: "  int luaopen_%s(lua_State *L);" :format open))
+          (table.insert out (: "  lua_pushcfunction(L, luaopen_%s);" :format open))
+          (table.insert out (: "  lua_setfield(L, -2, \"%s\");\n" :format
+                               (module-name open rename used-renames))))))
     (each [key val (pairs rename)]
       (when (not (. used-renames key))
         (warn (: (.. "unused --rename-native-module %s %s argument. "

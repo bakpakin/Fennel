@@ -410,7 +410,7 @@ if opts contains the nval option."
   "The stack trace info should be based on the macro caller, not the macro AST."
   (when (and (= :table (type node)) (not= filename node.filename))
     (let [src (utils.ast-source node)]
-      (set (src.filename src.line) (values filename line))
+      (set (src.filename src.line src.from-macro?) (values filename line true))
       (set (src.bytestart src.byteend) (values bytestart byteend))))
   (= :table (type node)))
 

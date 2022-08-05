@@ -75,7 +75,7 @@ run a Fennel file anywhere on your system.
 * Opt-in mutability for local variables
 * Opt-in nil checks for function arguments
 * Pattern matching
-* Ability to extend the syntax with your own macros and special forms
+* Ability to extend the syntax with your own macros
 
 ## Differences from other lisp languages
 

@@ -196,7 +196,9 @@
                                    :do (doer)
                                    :versions [(fennel.version:gsub "-dev" "")]}]
                         :filename "matcher.fnl"})]
-    (l.assertStrContains err "matcher.fnl:3")))
+    (l.assertStrContains err "matcher.fnl:3"))
+  (let [(_ err) (pcall fennel.eval "(match 5 b)")]
+    (l.assertNotStrContains err "fennel.compiler.macroexpand")))
 
 {: test-global-fails
  : test-fn-fails

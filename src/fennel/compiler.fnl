@@ -414,6 +414,10 @@ if opts contains the nval option."
       (set (src.bytestart src.byteend) (values bytestart byteend))))
   (= :table (type node)))
 
+(fn built-in? [m]
+  (accumulate [found? false _ f (pairs scopes.global.macros) :until found?]
+    (= f m)))
+
 (fn macroexpand* [ast scope ?once]
   "Expand macros in the ast. Only do one level if once is true."
   (match (if (utils.list? ast)
@@ -424,10 +428,11 @@ if opts contains the nval option."
                  ;; TODO: we want to pass a traceback level, but it only
                  ;; supports trimming the trace from the wrong direction.
                  (ok transformed) (xpcall #(macro* (unpack ast 2))
-                                          debug.traceback)]
+                                          (if (built-in? macro*)
+                                              tostring
+                                              debug.traceback))]
              (utils.walk-tree transformed (partial propagate-trace-info ast))
              (set scopes.macro old-scope)
-             ;; TODO: omit stack trace when it comes from a built-in macro
              (assert-compile ok transformed ast)
              (if (or ?once (not transformed))
                  transformed

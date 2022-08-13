@@ -101,7 +101,8 @@
     "multisym method calls may only be in call position"
     "(let [x {:y {:foo (fn [self] self.bar) :bar :baz}}] x:y:foo)"
     "method must be last component of multisym: x:y:foo"
-    "(set abc:def 2)" "cannot set method sym"}))
+    "(set abc:def 2)" "cannot set method sym"
+    "(local () 1)" "at least one value"}))
 
 (fn test-parse-fails []
   (test-failures

@@ -773,6 +773,7 @@ which we have to do if we don't know."
                 ;; further destructuring of tables inside values
                 (table.insert left-names symname)
                 (tset tables i [name (utils.expr symname :sym)]))))
+        (assert-compile (. left 1) "must provide at least one value" left)
         (assert-compile top? "can't nest multi-value destructuring" left)
         (compile-top-target left-names)
         (when declaration

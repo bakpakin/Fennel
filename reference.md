@@ -1225,7 +1225,7 @@ macro module which implements `when2` in terms of `if` and `do`:
 {:when2 when2}
 ```
 
-For a full explanation of how this works see [the macro guide](macros.md).
+For a full explanation of how this works see [the macro guide](/macros.md).
 All forms in Fennel are normal tables you can use `table.insert`,
 `ipairs`, destructuring, etc on. The backtick on the third line
 creates a template list for the code emitted by the macro, and the

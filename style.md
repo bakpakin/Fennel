@@ -228,7 +228,6 @@ in the module, not the name used inside the module.
 
 ```fennel
 ;; Don't:
-
 (local XMLHttpRequest (make-request))
 (macro foreach [t ...] ...)
 (fn append_map [t f] ...)
@@ -377,11 +376,12 @@ When designing APIs, remember that it's always easier to loosen restrictions
 without breaking backwards-compatibility than it is to add restrictions to
 existing code already in use.
 
-Any strings which have spaces in them must use `"this style"` notation. The
-`:shorthand` notation can be more convenient if not, especially for things
-like table fields. Most of the time if you should use the shorthand if you
-can, but for strings that are used for a kind of data which *could* include
-spaces but just happen not to, the longer style is better.
+While `:this-style` strings are the same as `"this-style"` to the compiler,
+they convey a different sense to the reader. Use `"quotation marks"` for
+strings whose contents are relevant. On the other hand, the `:colon-style` is
+better for strings that are used as opaque names; for instance, most table
+keys. Fennel doesn't have keywords like other lisps do, but strings serve the
+same purpose, which is why that syntax is used for them in that context.
 
 ### Specific Forms
 
@@ -421,7 +421,6 @@ Prefer destructuring to `.` for field access.
 
 ```fennel
 ;; Don't:
-
 (let [box (. (get-boxes) 1)
       address (. (get-label) :address)]
   ...)
@@ -578,7 +577,7 @@ Use quoting to build up code instead of calling `list` and `sym`.
 # Attribution
 
    Copyright © 2007-2011 Taylor R. Campbell
-   Copyright © 2021 Phil Hagelberg and contributors
+   Copyright © 2021-2022 Phil Hagelberg and contributors
 
    CC BY-NC-SA 3.0
 

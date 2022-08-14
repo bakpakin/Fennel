@@ -1,5 +1,6 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
+(local compiler (require :fennel.compiler))
 
 ;; TODO: use == macro; remove code as strings
 
@@ -478,6 +479,10 @@
   (let [nested (fennel.dofile "src/fennel.fnl" {:compilerEnv _G})]
     (l.assertEquals fennel.version nested.version)))
 
+(fn test-sym []
+  (l.assertEquals "f_1_auto.foo:bar"
+                  (eval-compiler (string.format "%q" (view `f#.foo:bar)))))
+
 {: test-booleans
  : test-calculations
  : test-comparisons
@@ -493,4 +498,5 @@
  : test-method-calls
  : test-comment
  : test-nest
+ : test-sym
 }

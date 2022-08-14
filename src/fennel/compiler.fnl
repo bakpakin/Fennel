@@ -155,14 +155,20 @@ these new manglings instead of the current manglings."
   (tset scope.gensyms mangling true)
   mangling)
 
+(fn combine-auto-gensym [parts first]
+  (tset parts 1 first)
+  (let [last (table.remove parts)
+        last2 (table.remove parts)
+        last-joiner (or (and parts.multi-sym-method-call ":") ".")]
+    (table.insert parts (.. last2 last-joiner last))
+    (table.concat parts ".")))
+
 (fn autogensym [base scope]
   "Generates a unique symbol in the scope based on the base name. Calling
 repeatedly with the same base and same scope will return existing symbol
 rather than generating new one."
   (match (utils.multi-sym? base)
-    parts (do
-            (tset parts 1 (autogensym (. parts 1) scope))
-            (table.concat parts (or (and parts.multi-sym-method-call ":") ".")))
+    parts (combine-auto-gensym parts (autogensym (. parts 1) scope))
     _ (or (. scope.autogensyms base)
           (let [mangling (gensym scope (base:sub 1 (- 2)) :auto)]
             (tset scope.autogensyms base mangling)

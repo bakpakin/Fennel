@@ -420,6 +420,25 @@ if opts contains the nval option."
       (set (src.bytestart src.byteend) (values bytestart byteend))))
   (= :table (type node)))
 
+(fn max-n [t]
+  "A hacky way to obtain semi-real lable length."
+  (var n 0)
+  (each [k (pairs t)]
+    (when (and (= :number (type k)))
+      (set n (math.max k n))))
+  n)
+
+(fn quote-literal-nils [index node parent]
+  "Replaces literal `nil` values with quoted version."
+  (when (and parent (utils.list? parent))
+    (for [i 1 (max-n parent)]
+      (match (. parent i)
+        nil (tset parent i (utils.sym "nil")))))
+  (values index node parent))
+
+(fn comp [f g]
+  (fn [...] (f (g ...))))
+
 (fn built-in? [m]
   (accumulate [found? false _ f (pairs scopes.global.macros) :until found?]
     (= f m)))
@@ -437,7 +456,9 @@ if opts contains the nval option."
                                           (if (built-in? macro*)
                                               tostring
                                               debug.traceback))]
-             (utils.walk-tree transformed (partial propagate-trace-info ast))
+             (utils.walk-tree transformed
+                              (comp (partial propagate-trace-info ast)
+                                    quote-literal-nils))
              (set scopes.macro old-scope)
              (assert-compile ok transformed ast)
              (if (or ?once (not transformed))

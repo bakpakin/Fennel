@@ -23,6 +23,9 @@ deprecated forms.
 * Improve argument handling so unused arguments get passed on to script
 * Fix a bug where macros modifying table literals would emit incorrect output
 * Fix a bug in the REPL where parser errors display the error message as `nil`
+* Fix a bug when `nil` were emitted by `unquote` in a macro, and the
+  macro was not compiled correctly because the resulting list length
+  was calculated incorrectly
 
 ## 1.1.0 / 2022-04-09
 

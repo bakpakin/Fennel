@@ -160,10 +160,14 @@ the number of expected arguments."
 
 ;; TODO: use view here?
 (fn deep-tostring [x key?]
-  "Tostring for literal tables created with {} or [].
+  "Tostring for literal tables created with {}, [] or ().
 Recursively transforms tables into one-line string representation.
 Main purpose to print function argument list in docstring."
-  (if (utils.sequence? x)
+  (if (utils.list? x)
+      (.. "(" (table.concat (icollect [_ v (ipairs x)]
+                              (deep-tostring v))
+                            " ") ")")
+      (utils.sequence? x)
       (.. "[" (table.concat (icollect [_ v (ipairs x)]
                               (deep-tostring v))
                             " ") "]")

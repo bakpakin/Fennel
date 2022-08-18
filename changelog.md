@@ -12,6 +12,7 @@ deprecated forms.
 * Add `fcollect` macro for range "comprehension"
 
 ### New Features
+* Make `include` splice modules in where they're used instead of at the top
 * Add `ast-source` function to API to get file/line info from AST nodes
 * Show errors using terminal control codes instead of arrow indicator
 * Parser now includes column information (byte-based) in AST nodes

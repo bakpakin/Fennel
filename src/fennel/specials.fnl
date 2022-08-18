@@ -1216,9 +1216,9 @@ Consider using import-macros instead as it is more flexible.")
     (compiler.emit temp-chunk preload-str ast)
     (compiler.emit temp-chunk sub-chunk)
     (compiler.emit temp-chunk :end ast)
-    ;; Splice temp-chunk to begining of root chunk
-    (each [i v (ipairs temp-chunk)]
-      (table.insert utils.root.chunk i v))
+    ;; Splice temp-chunk to the end of the root chunk
+    (each [_ v (ipairs temp-chunk)]
+      (table.insert utils.root.chunk v))
     ;; For fennel source, compile sub-chunk AFTER splicing into start of
     ;; root chunk.
     (if fennel?

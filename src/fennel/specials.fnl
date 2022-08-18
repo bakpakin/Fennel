@@ -723,7 +723,7 @@ Method name doesn't have to be known at compile-time; if it is, use
   (let [els []]
     (for [i 2 (length ast)]
       (table.insert els (view (. ast i) {:one-line? true})))
-    (compiler.emit parent (.. "--[[ " (table.concat els " ") " ]]--") ast)))
+    (compiler.emit parent (.. "--[[ " (table.concat els " ") " ]]") ast)))
 
 (doc-special :comment ["..."] "Comment which will be emitted in Lua output." true)
 

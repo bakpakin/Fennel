@@ -470,9 +470,9 @@
       (l.assertEquals (fennel.view mt) "META"))))
 
 (fn test-comment []
-  (l.assertEquals "--[[ hello world ]]--\nreturn nil"
+  (l.assertEquals "--[[ hello world ]]\nreturn nil"
                   (fennel.compile-string "(comment hello world)"))
-  (l.assertEquals "--[[ \"hello\nworld\" ]]--\nreturn nil"
+  (l.assertEquals "--[[ \"hello\nworld\" ]]\nreturn nil"
                   (fennel.compile-string "(comment \"hello\nworld\")")))
 
 (fn test-nest []

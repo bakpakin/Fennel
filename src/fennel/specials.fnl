@@ -1132,19 +1132,22 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
         (loader ?filename) (values loader ?filename)
         _ (search-macro-module modname (+ n 1)))))
 
-(fn metadata-only-fennel [modname]
-  "Let limited Fennel module thru just for purposes of compiling docstrings."
+(fn sandbox-fennel-module [modname]
+  "Let limited Fennel module thru with safe fields."
+  ;; TODO: why fennel.macros here? should never be required.
   (if (or (= modname :fennel.macros)
           (and package package.loaded
                (= :table (type (. package.loaded modname)))
                (= (. package.loaded modname :metadata) compiler.metadata)))
-      {:metadata compiler.metadata}))
+      ;; should never be needed to use view thru here since it's global in
+      ;; macro scope, but it's not obvious, so allow this to be used as well.
+      {:metadata compiler.metadata : view}))
 
 (set safe-require (fn [modname]
                     "This is a replacement for require for use in macro contexts.
 It ensures that compile-scoped modules are loaded differently from regular
 modules in the compiler environment."
-                    (or (. macro-loaded modname) (metadata-only-fennel modname)
+                    (or (. macro-loaded modname) (sandbox-fennel-module modname)
                         (let [(loader filename) (search-macro-module modname 1)]
                           (compiler.assert loader (.. modname " module not found."))
                           (tset macro-loaded modname (loader modname filename))

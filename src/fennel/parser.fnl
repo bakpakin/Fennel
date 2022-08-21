@@ -61,7 +61,7 @@ Also returns a second function to clear the buffer in the byte stream"
 
 (fn char-starter? [b] (or (< 1 b 127) (< 192 b 247)))
 
-(fn parser-fn [getbyte filename {: source : unfriendly : comments}]
+(fn parser-fn [getbyte filename {: source : unfriendly : comments &as options}]
   (var stack []) ; stack of unfinished values
   ;; Provide one character buffer and keep track of current line and byte index
   (var (line byteindex col prev-col lastb) (values 1 0 0 0 nil))
@@ -91,7 +91,7 @@ Also returns a second function to clear the buffer in the byte stream"
   (fn parse-error [msg ?col-adjust]
     (let [col (+ col (or ?col-adjust -1))]
       ;; allow plugins to override parse-error
-      (when (= nil (utils.hook :parse-error msg filename
+      (when (= nil (utils.hook-opts :parse-error options msg filename
                                (or line "?") col
                                source utils.root.reset))
         (utils.root.reset)
@@ -336,7 +336,7 @@ Also returns a second function to clear the buffer in the byte stream"
           (= b 34) (parse-string b)
           (. prefixes b) (parse-prefix b)
           (or (sym-char? b) (= b (string.byte "~"))) (parse-sym b)
-          (not (utils.hook :illegal-char b getb ungetb dispatch))
+          (not (utils.hook-opts :illegal-char options b getb ungetb dispatch))
           (parse-error (.. "invalid character: " (string.char b))))
       (if (not b) nil ; EOF
           done? (values true retval)

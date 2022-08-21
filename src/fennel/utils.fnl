@@ -376,18 +376,25 @@ has options calls down into compile."
     (warn (string.format "plugin %s does not support Fennel version %s"
                          (or name :unknown) version))))
 
-(fn hook [event ...]
+(fn hook-opts [event ?options ...]
   "Side-effecting plugins should return nil. In the event that a plugin handler
 returns non-nil it will be used as the value of the call and further plugin
 handlers will be skipped."
-  (var result nil)
-  (when (and root.options root.options.plugins)
-    (each [_ plugin (ipairs root.options.plugins)
-           :until result]
-      (check-plugin-version plugin)
-      (match (. plugin event)
-        f (set result (f ...)))))
-  result)
+  (let [plugins (or (?. ?options :plugins)
+                    (?. root.options :plugins))]
+    (when plugins
+      (accumulate [result nil
+                   _ plugin (ipairs plugins)
+                   :until result]
+        (do
+          (check-plugin-version plugin)
+          (match (. plugin event)
+            f (f ...)))))))
+
+
+(fn hook [event ...]
+  "Call the relevant compiler plugin hooks for a given event"
+  (hook-opts event root.options ...))
 
 {: warn
  : allpairs
@@ -416,6 +423,7 @@ handlers will be skipped."
  : valid-lua-identifier?
  : lua-keywords
  : hook
+ : hook-opts
  : propagate-options
  : root
  : debug-on?

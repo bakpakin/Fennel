@@ -35,6 +35,7 @@ usually accept these fields:
   Defaults to a table containing limited known-safe globals. Pass `_G` to
   disable sandboxing.
 * `unfriendly`: disable friendly compiler/parser error messages.
+* `plugins`: list of compiler [plugins](#plugins).
 
 You can pass the string `"_COMPILER"` as the value for `env`; it will
 cause the code to be run/compiled in a context which has all
@@ -228,6 +229,7 @@ default to false:
 
 * `unfriendly`: disable enhanced parse error reporting
 * `comments`: include comment nodes in AST
+* `plugins`: *(since 1.2.0)* An optional list of compiler [plugins](#plugins).
 
 The list of common options at the top of this document do not apply here.
 

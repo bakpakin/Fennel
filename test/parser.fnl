@@ -86,8 +86,20 @@
     (l.assertEquals (line-col (getmetatable tbl)) [4 10]
                     "line and column on tables")))
 
+(fn test-plugin-hooks []
+  (var parse-error-called nil)
+  (let [code "(there is a parse error here (((("
+        plugin {:versions [(: fennel.version :gsub "-dev" "")]
+                :parse-error
+                (fn parse-error [msg filename line col source root-reset]
+                  (set parse-error-called true))}
+        (ok? ok2? ast) (pcall (fennel.parser code "" {:plugins [plugin]}))]
+    (l.assertTrue (not ok?) "parse error is expected")
+    (l.assertTrue parse-error-called "plugin wasn't called")))
+
 {: test-basics
  : test-control-codes
  : test-comments
  : test-prefixes
- : test-source-meta}
+ : test-source-meta
+ : test-plugin-hooks}

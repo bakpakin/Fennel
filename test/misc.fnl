@@ -53,8 +53,8 @@
     (l.assertTrue ok6-2 (: "Expected foo6 to run but it failed with error %s" :format (tostring out6-2)))
     (l.assertEquals (and (= :table (type out)) out.result) expected
                     (.. "Expected include to have result: " expected))
-    (l.assertFalse out.quux
-                   "Expected include not to leak upvalues into included modules")
+    (l.assertEquals out.quux [:FOO 1]
+                    "Expected include not to leak upvalues into included modules")
     (l.assertEquals (view out) (view out2)
                     "Expected requireAsInclude to behave the same as include")
     (l.assertEquals (view out) (view out3)

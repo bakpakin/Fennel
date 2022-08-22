@@ -1158,6 +1158,7 @@ modules in the compiler environment."
   (each [k v (pairs macros*)]
     (compiler.assert (= (type v) :function)
                      "expected each macro to be function" ast)
+    (compiler.check-binding-valid (utils.sym k) scope ast)
     (tset scope.macros k v)))
 
 (fn resolve-module-name [{: filename 2 second} _scope _parent opts]

@@ -1028,6 +1028,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
  : compile1
  : compile-stream
  : compile-string
+ : check-binding-valid
  : emit
  : destructure
  : require-include

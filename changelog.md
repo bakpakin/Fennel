@@ -27,6 +27,8 @@ deprecated forms.
 * Fix a bug when `nil` were emitted by `unquote` in a macro, and the
   macro was not compiled correctly because the resulting list length
   was calculated incorrectly
+* Fix a REPL bug where `,doc m.foo` did not resolve multisym to macro for macro
+  modules loaded as macro table via `(import-macros m :my.macro.module)`
 
 ## 1.1.0 / 2022-04-09
 

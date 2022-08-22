@@ -8,7 +8,8 @@
   (var repl-complete nil)
   (fn send []
     (var output [])
-    (let [opts (or options {})]
+    (let [opts (collect [k v (pairs (or options {})) :into {:useMetadata true}]
+                 (values k v))]
       (fn opts.readChunk []
         (let [chunk (coroutine.yield output)]
           (set output [])
@@ -241,6 +242,7 @@
 
 (fn test-docstrings []
   (let [send (wrap-repl)]
+    (tset fennel.macro-loaded :test.macros nil)
     (each [_ [code expected msg] (ipairs doc-cases)]
       (l.assertEquals (table.concat (send code)) expected msg))))
 

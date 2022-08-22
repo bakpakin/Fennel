@@ -395,17 +395,11 @@ if opts contains the nval option."
       {:returned true}
       (doto exprs (tset :returned true))))
 
-(fn find-macro [ast scope multi-sym-parts]
-  (fn find-in-table [t i]
-    (if (<= i (length multi-sym-parts))
-        (find-in-table (and (utils.table? t) (. t (. multi-sym-parts i)))
-                       (+ i 1))
-        t))
-
-  (let [macro* (and (utils.sym? (. ast 1))
-                    (. scope.macros (tostring (. ast 1))))]
+(fn find-macro [ast scope]
+  (let [macro* (-?>> (utils.sym? (. ast 1)) (tostring) (. scope.macros))
+        multi-sym-parts (utils.multi-sym? (. ast 1))]
     (if (and (not macro*) multi-sym-parts)
-        (let [nested-macro (find-in-table scope.macros 1)]
+        (let [nested-macro (utils.get-in scope.macros multi-sym-parts)]
           (assert-compile (or (not (. scope.macros (. multi-sym-parts 1)))
                               (= (type nested-macro) :function))
                           "macro not found in imported macro module" ast)
@@ -445,8 +439,7 @@ if opts contains the nval option."
 
 (fn macroexpand* [ast scope ?once]
   "Expand macros in the ast. Only do one level if once is true."
-  (match (if (utils.list? ast)
-             (find-macro ast scope (utils.multi-sym? (. ast 1))))
+  (match (if (utils.list? ast) (find-macro ast scope))
     false ast
     macro* (let [old-scope scopes.macro
                  _ (set scopes.macro scope)

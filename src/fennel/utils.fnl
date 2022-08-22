@@ -76,6 +76,15 @@
 
     (values stablenext t nil)))
 
+(fn get-in [tbl path ?fallback]
+  (assert (and (= :table (type tbl))) "get-in expects path to be a table")
+  (if (= 0 (length path))
+    ?fallback
+    (match (accumulate [t tbl _ k (ipairs path) :until (= nil t)]
+             (match (type t) :table (. t k)))
+      res res
+      _ ?fallback)))
+
 ;; Note: the collect/icollect macros mostly make map/kvmap obsolete.
 
 (fn map [t f ?out]
@@ -400,6 +409,7 @@ handlers will be skipped."
  : allpairs
  : stablepairs
  : copy
+ : get-in
  : kvmap
  : map
  : walk-tree

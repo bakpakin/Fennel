@@ -273,8 +273,10 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn commands.doc [env read on-values on-error scope]
   (run-command read on-error
                #(let [name (tostring $)
-                      (is-ok target) (pcall #(or (. scope.specials name) (. scope.macros name)
-                                              (resolve name env scope)))]
+                      path (or (utils.multi-sym? name) [name])
+                      (is-ok target) (pcall #(or (utils.get-in scope.specials path)
+                                                 (utils.get-in scope.macros path)
+                                                 (resolve name env scope)))]
                   (if is-ok (on-values [(specials.doc target name)])
                             (on-error :Repl "Could not resolve value for docstring lookup")))))
 

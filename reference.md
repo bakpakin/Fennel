@@ -3,7 +3,7 @@
 This document covers the syntax, built-in macros, and special forms
 recognized by the Fennel compiler. It does not include built-in Lua
 functions; see the [Lua reference manual][1] or the [Lua primer][3]
-for that.
+for that. This is not an introductory text; see the [tutorial][7] for that.
 
 A macro is a function which runs at compile time and transforms some
 Fennel code into different Fennel. A special form (or special) is a
@@ -18,7 +18,8 @@ it's much smaller than almost any other language.
 
 The one exception to this compile-time rule is the `fennel.view`
 function which returns a string representation of any Fennel data
-suitable for printing.
+suitable for printing. But this is not part of the language itself; it
+is a library function which can be used from Lua just as easily.
 
 Fennel source code should be UTF-8-encoded text.
 
@@ -42,11 +43,11 @@ The syntax for numbers is the [same as Lua's][6], except that underscores
 may be used to separate digits for readability. Non-ASCII digits are
 not yet supported.
 
-The syntax for strings uses double-quotes `"` around a
-string. Double quotes inside a string must be escaped with
+The syntax for strings uses double-quotes `"` around the
+string's contents. Double quotes inside a string must be escaped with
 backslashes. The syntax for these is [the same as Lua's][6], except
 that strings may contain newline characters. Single-quoted or long
-bracket (aka multi-line) strings are not supported.
+bracket strings are not supported.
 
 Fennel has a lot fewer restrictions on identifiers than Lua.
 Identifiers are represented by symbols, but identifiers are not
@@ -76,7 +77,7 @@ Symbols that contain a dot `.` or colon `:` are considered
 used as an identifier, and the part after the dot or colon is a field
 looked up on the local identified. A colon is only allowed before the
 final segment of a multi symbol, so `x.y:z` is valid but `a:b.c` is
-not. Colon multi symbols cannot be used for anything but function calls.
+not. Colon multi symbols cannot be used for anything but method calls.
 
 Fennel also supports certain kinds of strings that begin with a colon
 as long as they don't contain any characters which wouldn't be allowed
@@ -126,6 +127,8 @@ Like Lua, functions in Fennel support tail-call optimization, allowing
 (among other things) functions to recurse indefinitely without overflowing
 the stack, provided the call is in a tail position.
 
+The final form in this and all other function forms is used as the
+return value.
 
 ### `lambda`/`λ` nil-checked function
 
@@ -251,6 +254,11 @@ Hash arguments can also be used as parts of multisyms. For instance,
 `#$.foo` is a function which will return the value of the "foo" key in
 its first argument.
 
+Unlike regular functions, there is no implicit `do` in a hash
+function, and thus it cannot contain multiple forms without an
+explicit `do`. The body itself is directly used as the return value
+rather than the last element in the body.
+
 ### `partial` partial application
 
 Returns a new function which works like its first argument, but fills
@@ -284,7 +292,8 @@ Example:
 
 These locals cannot be changed with `set` but they can be shadowed by
 an inner `let` or `local`. Outside the body of the `let`, the bindings
-it introduces are no longer visible.
+it introduces are no longer visible. The last form in the body is used
+as the return value.
 
 Any time you bind a local, you can destructure it if the value is a
 table or a function call which returns multiple values:
@@ -726,7 +735,8 @@ All values other than nil or false are treated as true.
 ### `when` single side-effecting conditional
 
 Takes a single condition and evaluates the rest as a body if it's not
-nil or false. This is intended for side-effects.
+nil or false. This is intended for side-effects. The last form in the
+body is used as the return value.
 
 Example:
 
@@ -741,13 +751,14 @@ Example:
 
 Runs the body once for each value provided by the iterator. Commonly
 used with `ipairs` (for sequential tables) or `pairs` (for any table
-in undefined order) but can be used with any iterator.
+in undefined order) but can be used with any iterator. Returns nil.
 
 Example:
 
 ```fennel
 (each [key value (pairs mytbl)]
-  (print key (f value)))
+  (print "executing key")
+  (print (f value)))
 ```
 
 Any loop can be terminated early by placing an `&until` clause at the
@@ -768,12 +779,13 @@ Most iterators return two values, but `each` will bind any number. See
 ### `for` numeric loop
 
 Counts a number from a start to stop point (inclusive), evaluating the
-body once for each value. Accepts an optional step.
+body once for each value. Accepts an optional step. Returns nil.
 
 Example:
 
 ```fennel
 (for [i 1 10 2]
+  (log-number i)
   (print i))
 ```
 
@@ -792,7 +804,7 @@ body; if it is true at the beginning then the body will not run at all.
 ### `while` good old while loop
 
 Loops over a body until a condition is met. Uses a native Lua `while`
-loop, so this can be faster than recursion.
+loop. Returns nil.
 
 Example:
 
@@ -821,6 +833,8 @@ this `begin` or `progn`.
     false-alarm?
     (promote lt-petrov))
 ```
+
+Some other forms like `fn` and `let` have an implicit `do`.
 
 ## Data
 
@@ -993,7 +1007,7 @@ and an expression as its arguments. The difference is that in
 `accumulate`, the first two items in the binding table are used as
 an "accumulator" variable and its initial value.
 For each iteration step, it evaluates the given expression and
-the returned value becomes the next accumulator variable.
+its value becomes the next accumulator variable.
 `accumulate` returns the final value of the accumulator variable.
 
 Example:
@@ -1575,3 +1589,4 @@ them that way instead is recommended for clarity.
 [4]: http://www.lua.org/pil/7.1.html
 [5]: http://www.lua.org/pil/8.1.html
 [6]: https://www.lua.org/manual/5.4/manual.html#3.1
+[7]: https://fennel-lang.org/tutorial

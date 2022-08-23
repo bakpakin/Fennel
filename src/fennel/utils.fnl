@@ -51,7 +51,7 @@
   ;; keys actually exist in the table. for instance a macro can modify a k/v
   ;; table that came from the parser.
   (each [_ k (ipairs (. (getmetatable t) :keys))]
-    (when (. t k)
+    (when (and (. t k) (not (. used-keys k)))
       (tset used-keys k true)
       (table.insert out k)))
   (each [k (pairs t)]

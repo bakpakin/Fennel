@@ -19,6 +19,7 @@ deprecated forms.
 * For greater consistency, add `&into`/`&until` to certain looping constructs
 
 ### Bug Fixes
+* Duplicate table keys no longer crash the compiler
 * Don't print stack trace for compiler errors in built-in macros
 * Fix an issue with native modules in `--compile-binary`
 * Improve argument handling so unused arguments get passed on to script

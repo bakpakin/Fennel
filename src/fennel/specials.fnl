@@ -1183,7 +1183,7 @@ modules in the compiler environment."
         (compiler.assert loader (.. modname " module not found.") ast)
         (tset macro-loaded modname
               (compiler.assert (utils.table? (loader modname filename))
-                               "expected macros to be table" ast))))
+                               "expected macros to be table" (or ?real-ast ast)))))
     ;; if we're called from import-macros, return the modname, else add them
     ;; to scope directly
     (if (= :import-macros (tostring (. ast 1)))

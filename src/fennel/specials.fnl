@@ -1181,7 +1181,9 @@ modules in the compiler environment."
     (when (not (. macro-loaded modname))
       (let [(loader filename) (search-macro-module modname 1)]
         (compiler.assert loader (.. modname " module not found.") ast)
-        (tset macro-loaded modname (loader modname filename))))
+        (tset macro-loaded modname
+              (compiler.assert (utils.table? (loader modname filename))
+                               "expected macros to be table" ast))))
     ;; if we're called from import-macros, return the modname, else add them
     ;; to scope directly
     (if (= :import-macros (tostring (. ast 1)))

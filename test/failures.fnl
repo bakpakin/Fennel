@@ -38,6 +38,7 @@
     ;; strict mode applies to macro modules too
     "(import-macros t :test.bad.unknown-global)" "unknown identifier in strict mode"}))
 
+
 (fn test-fn-fails []
   (test-failures
    {"(fn [12])" "expected symbol for function parameter"
@@ -70,7 +71,9 @@
     "(let [t {:b 2}] (import-macros t :test.macros) t.b)"
     "tried to reference a macro"
     "(import-macros {: asdf} :test.macros)"
-    "macro asdf not found in module test.macros"}))
+    "macro asdf not found in module test.macros"
+    "(import-macros m :test.bad.macro-no-return-table)"
+    "expected macros to be table"}))
 
 (fn test-binding-fails []
   (test-failures

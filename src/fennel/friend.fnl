@@ -67,8 +67,11 @@
         "$ and $... in hashfn are mutually exclusive" ["modifying the hashfn so it only contains $... or $, $1, $2, $3, etc"]
         "tried to reference a macro at runtime" ["renaming the macro so as not to conflict with locals"]
         "tried to reference a special form at runtime" ["wrapping the special in a function if you need it to be first class"]
+        "missing subject" ["adding an item to operate on"]
         "expected even number of pattern/body pairs" ["checking that every pattern has a body to go with it"
                                                       "adding _ before the final body"]
+        "expected at least one pattern/body pair" ["adding a pattern and a body to execute when the pattern matches"]
+
         "unexpected arguments" ["removing an argument"
                                 "checking for typos"]
         "unexpected iterator clause" ["removing an argument"

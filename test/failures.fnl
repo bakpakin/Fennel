@@ -134,6 +134,9 @@
     ;; PUC is ridiculous in what it accepts in a string
     "\"\\!\"" (if (or (not= _VERSION "Lua 5.1") _G.jit) "Invalid string")
     "(match :hey true false def)" "even number of pattern/body pairs"
+    "(match :hey)" "at least one pattern/body pair"
+    "(match)" "missing subject"
+    "(doto)" "missing subject"
     ;; validity check on iterator clauses
     "(each [k (do-iter) :igloo 33] nil)" "unexpected iterator clause igloo"
     "(for [i 1 3 2 other-stuff] nil)" "unexpected arguments"
@@ -166,7 +169,8 @@
                               "(eval-compiler (assert-compile nil \"bad\" 1))")
         (_ msg4) (pcall fennel.eval "(abc] ;; msg4")
         (_ msg5) (pcall fennel.eval "(let {:a 1}) ;; msg5")
-        (_ msg6) (pcall fennel.eval "(for [:abc \n \"def t\"] nil)")]
+        (_ msg6) (pcall fennel.eval "(for [:abc \n \"def t\"] nil)")
+        (_ msg7) (pcall fennel.eval "(match) ;; msg7")]
     ;; show the raw error message
     (l.assertStrContains msg "expected var x")
     ;; offer suggestions
@@ -180,7 +184,8 @@
     ;; source should be part of the error message
     (l.assertStrContains msg4 "msg4")
     (l.assertStrContains msg5 "msg5")
-    (l.assertStrContains msg6 "unable to bind string abc")))
+    (l.assertStrContains msg6 "unable to bind string abc")
+    (l.assertStrContains msg7 "msg7")))
 
 (fn doer []
   ;; this plugin does not detach in subsequent tests, so we must check that

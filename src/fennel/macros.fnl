@@ -73,6 +73,7 @@ a nil value in any of subsequent keys."
 
 (fn doto* [val ...]
   "Evaluate val and splice it into the first argument of subsequent forms."
+  (assert (not= val nil) "missing subject")
   (let [name (gensym)
         form `(let [,name ,val])]
     (each [_ elt (ipairs [...])]
@@ -558,8 +559,11 @@ Syntax:
   pattern body
   (where pattern guard guards*) body
   (where (or pattern patterns*) guard guards*) body)"
+  (assert (not= val nil) "missing subject")
   (assert (= 0 (math.fmod (select :# ...) 2))
           "expected even number of pattern/body pairs")
+  (assert (not= 0 (select :# ...))
+          "expected at least one pattern/body pair")
   (let [conds-bodies (partition-2 [...])
         match-body []]
     (each [_ [cond body] (ipairs conds-bodies)]

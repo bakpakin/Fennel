@@ -408,8 +408,8 @@ if opts contains the nval option."
 
 (fn propagate-trace-info [{: filename : line : bytestart : byteend} _index node]
   "The stack trace info should be based on the macro caller, not the macro AST."
-  (when (and (= :table (type node)) (not= filename node.filename))
-    (let [src (utils.ast-source node)]
+  (let [src (utils.ast-source node)]
+    (when (and (= :table (type node)) (not= filename src.filename))
       (set (src.filename src.line src.from-macro?) (values filename line true))
       (set (src.bytestart src.byteend) (values bytestart byteend))))
   (= :table (type node)))

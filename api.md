@@ -280,13 +280,11 @@ At runtime there is no difference between sequences and kv tables
 which use monotonically increasing integer keys, but the parser is
 able to distinguish between them to improve error reporting.
 
-Sequences have their source data in `filename`, `line`, etc keys just
-like lists. But kv tables cannot have this, because adding arbitrary
-keys to the table would change its contents, so these fields are
-instead stored on the metatable. The metatable for kv tables also
-includes a `keys` sequence which tells you which order the keys
-appeared originally, since kv tables are unordered and there would
-otherwise be no way to reconstruct this information.
+Sequences and kv tables have their source data in `filename`, `line`,
+etc keys of their metatable. The metatable for kv tables also includes
+a `keys` sequence which tells you which order the keys appeared
+originally, since kv tables are unordered and there would otherwise be
+no way to reconstruct this information.
 
 ### symbol
 
@@ -297,6 +295,12 @@ the second. Symbols are represented as tables which store their source
 data (`filename`, `line`, `col`, etc) in fields on themselves. Unlike
 the other tables in the AST, they do not represent collections; they
 are used as scalar types.
+
+Symbols can refer not just directly to locals, but also to table
+references like `tbl.x` for field lookup or `access.channel:deny` for
+method invocation. The `fennel.multi-sym?` function will return a
+table containing the segments if the symbol if it is one of these, or
+nil otherwise.
 
 **Note:** `nil` is not a valid AST; code that references nil will have
 the symbol named `"nil"` which unfortunately prints in a way that is

@@ -100,6 +100,7 @@
             :list? utils.list?
             :sym utils.sym
             :sym? utils.sym?
+            :multi-sym? utils.multi-sym?
             :sequence utils.sequence
             :sequence? utils.sequence?
             :comment utils.comment

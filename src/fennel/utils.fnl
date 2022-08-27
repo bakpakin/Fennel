@@ -286,9 +286,9 @@ except when certain macros need to look for binding forms, etc specifically."
 (fn string? [x] (= (type x) :string))
 
 (fn multi-sym? [str]
-  "A multi symbol is a symbol that is actually composed of two or more symbols
-using dot syntax. The main differences from normal symbols is that they can't
-be declared local, and they may have side effects on invocation (metatables)."
+  "Returns a table containing the symbol's segments if passed a multi-sym.
+A multi-sym refers to a table field reference like tbl.x or access.channel:deny.
+Returns nil if passed something other than a multi-sym."
   (if (sym? str) (multi-sym? (tostring str))
       (not= (type str) :string) false
       (let [parts []]

@@ -17,6 +17,7 @@
   :macro-searchers "table"
   :make-searcher   "function"
   :metadata        "table"
+  :multi-sym?      "function"
   :parser          "function"
   :path            "string"
   :repl            "function"

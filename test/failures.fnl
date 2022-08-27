@@ -111,7 +111,9 @@
   (test-failures
    {"\n\n(+))" "unknown:3:3 Parse error: unexpected closing delimiter )"
     "(foo:)" "malformed multisym"
-    "(foo.bar:)" "malformed multisym"}))
+    "(foo.bar:)" "malformed multisym"
+    "{:x 1 :x 2}" "duplicate key"
+    "{x 1 x 2}" "duplicate key"}))
 
 (fn test-core-fails []
   (test-failures

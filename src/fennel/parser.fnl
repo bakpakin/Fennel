@@ -61,6 +61,12 @@ Also returns a second function to clear the buffer in the byte stream"
 
 (fn char-starter? [b] (or (< 1 b 127) (< 192 b 247)))
 
+(fn index-sym [t k]
+  ;; (. t k) sadly cannot work when k is a sym, so we have to override
+  (if (utils.sym? k)
+      (accumulate [found? false x (pairs t) :until found?] (= x k))
+      (rawget t k)))
+
 (fn parser-fn [getbyte filename {: source : unfriendly : comments &as options}]
   (var stack []) ; stack of unfinished values
   ;; Provide one character buffer and keep track of current line and byte index
@@ -104,6 +110,7 @@ Also returns a second function to clear the buffer in the byte stream"
     (var (whitespace-since-dispatch done? retval) true)
 
     (fn set-source-fields [source]
+      (set source.keys nil) ; only needed for duplicate key detection
       (set (source.byteend source.endcol) (values byteindex (- col 1))))
 
     (fn dispatch [v]
@@ -116,6 +123,10 @@ Also returns a second function to clear the buffer in the byte stream"
                        (tset list k v))
                      (dispatch list))
         top (do
+              (when (and (= 125 top.closer) (= 0 (math.fmod (length top) 2)))
+                (if (and (. top.keys v) (not= (utils.sym ":") v))
+                    (parse-error "duplicate key")
+                    (tset top.keys v true)))
               (set whitespace-since-dispatch false)
               (table.insert top v))))
 
@@ -148,7 +159,8 @@ Also returns a second function to clear the buffer in the byte stream"
         (parse-error (.. "expected whitespace before opening delimiter "
                          (string.char b))))
       (table.insert stack {:bytestart byteindex :closer (. delims b)
-                           : filename : line :col (- col 1)}))
+                           : filename : line :col (- col 1)
+                           :keys (setmetatable {} {:__index index-sym})}))
 
     (fn close-list [list]
       (dispatch (setmetatable list (getmetatable (utils.list)))))

@@ -310,6 +310,32 @@ In a case like this, the macro should accept symbols for the locals as
 arguments. It is convention to take these arguments in square brackets, but
 the macro system does not enforce this.
 
+### AST quirks
+
+Above we said that tables in the code are just regular tables that you
+can manipulate like you do in normal Fennel code. This is mostly true,
+but there are a few quirks to it.
+
+You can construct tables yourself inside the macro, but they will lack
+file/line metadata unless you manually copy it over from one of the
+input tables. This can lead to less effective error messages.
+
+```fennel
+(macro f [a]
+  (print (. a 1) :/ (type (. a 1)) :/ (length a)))
+
+(f [nil 1 8]) ; -> nil / table / 3
+```
+
+When a macro gets any form with a `nil` in it, the table representing
+that form does not actually have a nil value in that place; it's a
+symbol named `nil` which will evaluate to nil once the code is
+compiled. This is an important distinction, because otherwise it will
+not have a single clearly-defined `length`; Lua's semantics state that
+both 2 and 4 are valid lengths for `[1 2 nil 4]` because the table has
+a gap in it. But using a `nil` symbol instead in the AST means the
+length will always be 4, which helps avoids some nasty bugs.
+
 ### Using functions from a module
 
 If you want your macroexpanded code to call a function your library provides

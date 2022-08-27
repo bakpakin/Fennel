@@ -6,7 +6,7 @@ Note that since 0.3.0, no deprecations have actually resulted in
 removals. They are advisory only and we have no plans to break the
 deprecated forms.
 
-## 1.2.0 / ???
+## 1.2.0 / 2022-08-27
 
 ### New Forms
 * Add `fcollect` macro for range "comprehension"

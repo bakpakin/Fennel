@@ -483,7 +483,7 @@ if opts contains the nval option."
     (for [i 2 len]
       (let [subexprs (compile1 (. ast i) scope parent
                                {:nval (if (not= i len) 1)})]
-        (table.insert fargs (or (. subexprs 1) (utils.expr :nil :literal)))
+        (table.insert fargs (. subexprs 1))
         (if (= i len)
             ;; Add multivalues to function args
             (for [j 2 (length subexprs)]

@@ -12,6 +12,10 @@ deprecated forms.
 
 * ???
 
+### Bug Fixes
+
+* Ensure `(values)` consistently evaluates to zero values.
+
 ## 1.2.0 / 2022-08-27
 
 ### New Forms

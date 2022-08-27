@@ -121,6 +121,8 @@
                         {: h} {:h (values)}]
                     (not (or a b c d e f g h)))")
                 "empty (values) should resolve to nil")
+  (l.assertEquals (fennel.eval "(select :# (values))") 0)
+  (l.assertEquals (fennel.eval "(select :# (#(values)))") 0)
   (let [broken-code (fennel.compile "(local [x] (values)) (local {: y} (values))")]
     (l.assertNotNil broken-code "code should compile")
     (l.assertError broken-code "code should fail at runtime")))

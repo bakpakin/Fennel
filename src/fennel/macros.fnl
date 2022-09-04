@@ -12,7 +12,7 @@ Take the first value and splice it into the second form as its first argument.
 The value of the second form is spliced into the first arg of the third, etc."
   (var x val)
   (each [_ e (ipairs [...])]
-    (let [elt (copy (if (list? e) e (list e)))]
+    (let [elt (if (list? e) (copy e) (list e))]
       (table.insert elt 2 x)
       (set x elt)))
   x)
@@ -23,7 +23,7 @@ Same as ->, except splices the value into the last position of each form
 rather than the first."
   (var x val)
   (each [_ e (ipairs [...])]
-    (let [elt (copy (if (list? e) e (list e)))]
+    (let [elt (if (list? e) (copy e) (list e))]
       (table.insert elt x)
       (set x elt)))
   x)
@@ -33,8 +33,7 @@ rather than the first."
 Same as -> except will short-circuit with nil when it encounters a nil value."
   (if (= nil ?e)
       val
-      (let [e (copy ?e)
-            el (if (list? e) e (list e))
+      (let [el (if (list? ?e) (copy ?e) (list ?e))
             tmp (gensym)]
         (table.insert el 2 tmp)
         `(let [,tmp ,val]
@@ -47,8 +46,7 @@ Same as -> except will short-circuit with nil when it encounters a nil value."
 Same as ->> except will short-circuit with nil when it encounters a nil value."
   (if (= nil ?e)
       val
-      (let [e (copy ?e)
-            el (if (list? e) e (list e))
+      (let [el (if (list? ?e) (copy ?e) (list ?e))
             tmp (gensym)]
         (table.insert el tmp)
         `(let [,tmp ,val]
@@ -77,7 +75,7 @@ a nil value in any of subsequent keys."
   (let [name (gensym)
         form `(let [,name ,val])]
     (each [_ elt (ipairs [...])]
-      (let [elt (copy (if (list? elt) elt (list elt)))]
+      (let [elt (if (list? elt) (copy elt) (list elt))]
         (table.insert elt 2 name)
         (table.insert form elt)))
     (table.insert form name)

@@ -3,7 +3,9 @@
 This document covers the syntax, built-in macros, and special forms
 recognized by the Fennel compiler. It does not include built-in Lua
 functions; see the [Lua reference manual][1] or the [Lua primer][3]
-for that. This is not an introductory text; see the [tutorial][7] for that.
+for that. This is not an introductory text; see the [tutorial][7] for
+that. If you already have a piece of Lua code you just want
+to see translated to Fennel, use [antifennel][8].
 
 A macro is a function which runs at compile time and transforms some
 Fennel code into different Fennel. A special form (or special) is a
@@ -1586,7 +1588,8 @@ them that way instead is recommended for clarity.
 [1]: https://www.lua.org/manual/5.1/
 [2]: https://gist.github.com/nimaai/2f98cc421c9a51930e16#variable-capture
 [3]: https://fennel-lang.org/lua-primer
-[4]: http://www.lua.org/pil/7.1.html
-[5]: http://www.lua.org/pil/8.1.html
+[4]: https://www.lua.org/pil/7.1.html
+[5]: https://www.lua.org/pil/8.1.html
 [6]: https://www.lua.org/manual/5.4/manual.html#3.1
 [7]: https://fennel-lang.org/tutorial
+[8]: https://fennel-lang.org/see

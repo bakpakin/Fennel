@@ -14,6 +14,9 @@ trouble, especially if you've used another dynamic imperative language with
 closures. The [Lua reference manual][3] is a fine place to look for details,
 but Fennel's own [Lua Primer][14] is shorter and covers the highlights.
 
+If you've already got some Lua example code and you just want to see how it
+would look in Fennel, you can learn a lot from putting it in [antifennel][19].
+
 ## OK, so how do you do things?
 
 ### Functions and lambdas
@@ -783,7 +786,7 @@ current module name string (`...`).
 [8]: https://p.hagelb.org/equal-rights-for-functional-objects.html
 [9]: https://luafun.github.io/
 [10]: https://www.lua.org/manual/5.1/manual.html#5
-[11]: http://leafo.net/posts/itchio-and-coroutines.html
+[11]: https://leafo.net/posts/itchio-and-coroutines.html
 [12]: http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/
 [13]: https://love2d.org
 [14]: https://fennel-lang.org/lua-primer
@@ -791,3 +794,4 @@ current module name string (`...`).
 [16]: https://www.lua.org/pil/14.3.html
 [17]: https://fennel-lang.org/api
 [18]: https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/
+[19]: https://fennel-lang.org/see

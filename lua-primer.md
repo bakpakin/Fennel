@@ -7,11 +7,12 @@ languages ever. It's possible to learn Fennel without writing any Lua
 code, but for certain concepts there's no substitute for the Lua
 documentation.
 
-The book Programming in Lua is a great introduction.
-[The first edition][6] is available for free online and is still
-relevant. However, if you have programmed before in other languages,
-you might benefit by focusing on specific areas where Lua is
-substantially different.
+The book Programming in Lua is a great introduction.  [The first
+edition][6] is available for free online and is still relevant, other
+than the section on modules. However, it's rather long, so if you have
+programmed before in other languages, you get going more quickly by
+focusing on specific areas where Lua is substantially different from
+other languages:
 
 Lua's types include:
 

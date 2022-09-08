@@ -9,7 +9,7 @@ local function loadfennel()
    -- Ensure we're getting the Fennel we expect, not luarocks or anything
    package.loaded.fennel = dofile("fennel.lua")
    table.insert(package.loaders or package.searchers,
-                package.loaded.fennel.searcher)
+                package.loaded.fennel.make_searcher({correlate=true}))
    setmetatable(_G, nil) -- but we don't want strict mode for tests
 end
 
@@ -23,7 +23,7 @@ local function testall(suites)
     for _, test in ipairs(suites) do
         -- attach test modules (which export k/v tables of test fns) as alists
         local suite = oldfennel.dofile("test/" .. test .. ".fnl",
-                                       {useMetadata = true})
+                                       {useMetadata = true, correlate = true})
         for name, testfn in pairs(suite) do
             table.insert(instances, {name,testfn})
         end

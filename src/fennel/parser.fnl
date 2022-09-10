@@ -139,9 +139,9 @@ Also returns a second function to clear the buffer in the byte stream"
       (if (and b (not= 10 b))
           (parse-comment (getb) (doto contents (table.insert (string.char b))))
           comments
-          (dispatch (utils.comment (table.concat contents)
-                                   {:line (- line 1) :filename filename}))
-          b))
+          (do (ungetb 10)
+              (dispatch (utils.comment (table.concat contents)
+                                       {:line (- line 1) :filename filename})))))
 
     (fn open-table [b]
       (when (not whitespace-since-dispatch)

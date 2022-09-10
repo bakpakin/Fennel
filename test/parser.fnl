@@ -54,7 +54,13 @@
     (== (. (getmetatable ast) :comments :last)
         [(fennel.comment (.. ";; so let's keep them; all the comments "
                              "are good and we want them"))
-         (fennel.comment ";; to be kept")])))
+         (fennel.comment ";; to be kept")]))
+  (let [(_ ast) ((fennel.parser "(do\n; a\n(print))" "-" {:comments true}))]
+    (== ["do" "; a" "(print)"] (icollect [_ x (ipairs ast)] (tostring x)))
+    ;; top-level version
+    (== ["do" "; a" "(print)"]
+        (icollect [_ x (fennel.parser ":do\n; a\n(print)" "-" {:comments true})]
+          (tostring x)))))
 
 (fn test-control-codes []
   (for [i 1 31]

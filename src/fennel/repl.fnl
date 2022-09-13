@@ -283,6 +283,17 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.doc :fnl/docstring
                        "Print the docstring and arglist for a function, macro, or special form.")
 
+(fn commands.compile [env read on-values on-error scope]
+  (run-command read on-error
+               #(let  [allowedGlobals (specials.current-global-names env)
+                       (is-ok result) (pcall compiler.compile $ {: env : scope : allowedGlobals}  )]
+                  (if is-ok 
+                    (on-values [result])
+
+                    (on-error :Repl (.. "Error compiling expression: " result))))))
+
+(compiler.metadata:set commands.compile :fnl/docstring "compiles the expression into lua and prints the result.")
+
 (fn load-plugin-commands [plugins]
   (each [_ plugin (ipairs (or plugins []))]
     (each [name f (pairs plugin)]

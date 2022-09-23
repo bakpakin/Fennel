@@ -103,6 +103,7 @@
             :multi-sym? utils.multi-sym?
             :sequence utils.sequence
             :sequence? utils.sequence?
+            :table? utils.table?
             :comment utils.comment
             :comment? utils.comment?
             :varg utils.varg

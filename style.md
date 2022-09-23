@@ -417,7 +417,7 @@ in certain contexts:
 ;; bad argument #2 to 'insert' (number expected, got table)
 ```
 
-Prefer destructuring to `.` for field access.
+Prefer destructuring to calling `.` for field access.
 
 ```fennel
 ;; Don't:

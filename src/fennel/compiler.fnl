@@ -274,15 +274,13 @@ if they have already been declared via declare-local"
         (tset out i "")))
     (table.concat out "\n")))
 
-(fn flatten-chunk [sm chunk tab depth]
+(fn flatten-chunk [file-sourcemap chunk tab depth]
   "Flatten a tree of indented Lua source code lines.
 Tab is what is used to indent a block."
   (if chunk.leaf
-      (let [code chunk.leaf
-            info chunk.ast]
-        (when sm
-          (table.insert sm [(and info info.filename) (and info info.line)]))
-        code)
+      (let [{: filename : line} (utils.ast-source chunk.ast)]
+        (table.insert file-sourcemap [filename line])
+        chunk.leaf)
       (let [tab (match tab
                   true "  "
                   false ""
@@ -290,7 +288,7 @@ Tab is what is used to indent a block."
                   nil "")]
         (fn parter [c]
           (when (or c.leaf (< 0 (length c)))
-            (let [sub (flatten-chunk sm c tab (+ depth 1))]
+            (let [sub (flatten-chunk file-sourcemap c tab (+ depth 1))]
               (if (< 0 depth)
                   (.. tab (sub:gsub "\n" (.. "\n" tab)))
                   sub))))
@@ -315,14 +313,13 @@ Tab is what is used to indent a block."
   (let [chunk (peephole chunk)]
     (if options.correlate
         (values (flatten-chunk-correlated chunk options) [])
-        (let [sm []
-              ret (flatten-chunk sm chunk options.indent 0)]
-          (when sm
-            (set sm.short_src
-                 (or options.filename (make-short-src (or options.source ret))))
-            (set sm.key (if options.filename (.. "@" options.filename) ret))
-            (tset sourcemap sm.key sm))
-          (values ret sm)))))
+        (let [file-sourcemap {}
+              src (flatten-chunk file-sourcemap chunk options.indent 0)]
+          (set file-sourcemap.short_src (or options.filename
+                                            (make-short-src (or options.source src))))
+          (set file-sourcemap.key (if options.filename (.. "@" options.filename) src))
+          (tset sourcemap file-sourcemap.key file-sourcemap)
+          (values src file-sourcemap)))))
 
 (fn make-metadata []
   "Make module-wide state table for metadata."

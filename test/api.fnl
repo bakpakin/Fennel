@@ -30,6 +30,7 @@
   :sym-char?       "function"
   :sym?            "function"
   :syntax          "function"
+  :table?          "function"
   :traceback       "function"
   :varg            "function"
   :varg?           "function"

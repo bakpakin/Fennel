@@ -15,6 +15,7 @@ deprecated forms.
 ### Bug Fixes
 
 * Ensure `(values)` consistently evaluates to zero values.
+* Add missing `table?` predicate to fennel API to go with list?, sym?, etc
 
 ## 1.2.0 / 2022-08-27
 

@@ -72,8 +72,10 @@ a nil value in any of subsequent keys."
 (fn doto* [val ...]
   "Evaluate val and splice it into the first argument of subsequent forms."
   (assert (not= val nil) "missing subject")
-  (let [name (gensym)
-        form `(let [,name ,val])]
+  (let [rebind? (or (not (sym? val))
+                    (multi-sym? val))
+        name (if rebind? (gensym)            val)
+        form (if rebind? `(let [,name ,val]) `(do))]
     (each [_ elt (ipairs [...])]
       (let [elt (if (list? elt) (copy elt) (list elt))]
         (table.insert elt 2 name)

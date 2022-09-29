@@ -22,7 +22,10 @@
   (== (doto [1 3 2] (table.sort #(> $1 $2)) table.sort) [1 2 3])
   (== (do (macro twice [x] `(do ,x ,x))
           (let [t []] (twice (doto t (table.insert 5)))))
-      [5 5]))
+      [5 5])
+  (== (do (var x 1) (let [y (doto x (set 2))]
+                      [x y]))
+      [2 2]))
 
 (fn test-?. []
   (== (?. {:a 1}) {:a 1})

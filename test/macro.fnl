@@ -112,7 +112,10 @@
           (when2 true :when2)) "when2")
   (== (do (macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)) 18)
   (== (do (macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided) 952
-      {:compiler-env _G}))
+      {:compiler-env _G})
+  (== (do (macro n [] 1) (local x (n)) (macro n [] 2) (values x (n)))
+      (values 1 2)
+      nil "macro-macro shadowing should be allowed"))
 
 (fn test-macrodebug []
   (let [eval-normalize #(-> (pick-values 1 (fennel.eval $1 $2))

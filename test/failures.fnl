@@ -11,6 +11,7 @@
 
 (fn test-names []
   (assert-fail-msg (local + 6) "overshadowed by a special form")
+  (assert-fail-msg (macro if [] "wat") "overshadowed by a special form")
   (assert-fail-msg (print each) "tried to reference a special form"))
 
 (fn test-failures [failures]

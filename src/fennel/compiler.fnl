@@ -174,13 +174,16 @@ rather than generating new one."
             (tset scope.autogensyms base mangling)
             mangling))))
 
-(fn check-binding-valid [symbol scope ast]
-  "Check to see if a symbol will be overshadowed by a special."
-  (let [name (tostring symbol)]
+(fn check-binding-valid [symbol scope ast ?opts]
+  "Check to see if a symbol will be overshadowed by a special.
+?opts table accepts :macro? property that skips shadowing checks"
+  (let [name (tostring symbol)
+        macro? (?. ?opts :macro?)]
     ;; we can't block in the parser because & is still ok in symbols like &as
     (assert-compile (not (name:find "&")) "invalid character: &")
     (assert-compile (not (name:find "^%.")) "invalid character: .")
-    (assert-compile (not (or (. scope.specials name) (. scope.macros name)))
+    (assert-compile (not (or (. scope.specials name)
+                             (and (not macro?) (. scope.macros name))))
                     (: "local %s was overshadowed by a special form or macro"
                        :format name) ast)
     (assert-compile (not (utils.quoted? symbol))

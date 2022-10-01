@@ -189,6 +189,7 @@
                        :useMetadata true
                        :filename :src/fennel/macros.fnl
                        :moduleName module-name})
+      _ (each [k v (pairs built-ins)] (tset compiler.scopes.global.macros k v))
       match-macros (eval (embed-src :src/fennel/match.fnl)
                          {: env
                           :scope compiler.scopes.compiler
@@ -196,7 +197,6 @@
                           :useMetadata true
                           :filename :src/fennel/match.fnl
                           :moduleName module-name})]
-  (each [k v (pairs built-ins)] (tset compiler.scopes.global.macros k v))
   (each [k v (pairs match-macros)] (tset compiler.scopes.global.macros k v))
   (tset package.preload module-name nil))
 

@@ -2574,6 +2574,7 @@ local specials = (function()
             -- Expose the module in the compiler
             fennel = utils.fennelModule,
             unpack = unpack,
+            pairs = utils.stablepairs, -- reproducible builds!
 
             -- Useful for macros and meta programming. All of Fennel can be accessed
             -- via fennel.myfun, for example (fennel.eval "(print 1)").

@@ -60,28 +60,34 @@ lint: fennel
 
 ## Binaries
 
-BIN_LUA_VERSION=5.4.4
-BIN_LUA_DIR ?= $(PWD)/lua-$(BIN_LUA_VERSION)
-NATIVE_LUA_LIB ?= $(BIN_LUA_DIR)/src/liblua-native.a
-LUA_INCLUDE_DIR ?= $(BIN_LUA_DIR)/src
+LUA_DIR ?= $(PWD)/lua
+NATIVE_LUA_LIB ?= $(LUA_DIR)/src/liblua-native.a
+LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
 
 COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
 
-$(BIN_LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(BIN_LUA_VERSION).tar.gz | tar xz
+# This depends on debian-specific tooling; when compiling on other platforms
+# either unpack a lua tarball here or override NATIVE_LUA_LIB/LUA_INCLUDE_DIR
+$(LUA_DIR):
+	mkdir -p tmp
+	cd tmp; apt-get source lua5.4; cd ..
+	tar xzf tmp/lua*orig.tar.gz
+	rm -rf tmp
+	mv lua-5.4* $@
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
 	$(COMPILE_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
 		$< $@ $(NATIVE_LUA_LIB) $(LUA_INCLUDE_DIR)
 
-$(NATIVE_LUA_LIB): $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a
-	mv $(BIN_LUA_DIR)/src/liblua.a $@
+$(NATIVE_LUA_LIB): $(LUA_DIR)
+	$(MAKE) -C $(LUA_DIR)/src clean liblua.a
+	mv $(LUA_DIR)/src/liblua.a $@
 
 ## Cross compiling
 
 xc-deps:
-	apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross curl \
+	apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross apt-src \
 		gcc-multilib-x86-64-linux-gnu libc6-dev-amd64-cross gcc-mingw-w64-i686
 
 fennel-x86_64: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-x86_64.a
@@ -99,25 +105,25 @@ fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
 	$(COMPILE_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< $@  $(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
-$(BIN_LUA_DIR)/src/liblua-x86_64.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a CC=x86_64-linux-gnu-gcc
-	mv $(BIN_LUA_DIR)/src/liblua.a $@
+$(LUA_DIR)/src/liblua-x86_64.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_DIR)/src clean liblua.a CC=x86_64-linux-gnu-gcc
+	mv $(LUA_DIR)/src/liblua.a $@
 
 # Cross-compilation here doesn't work from arm64; need to do it on x86_64
-$(BIN_LUA_DIR)/src/liblua-mingw.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
-	mv $(BIN_LUA_DIR)/src/liblua.a $@
+$(LUA_DIR)/src/liblua-mingw.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
+	mv $(LUA_DIR)/src/liblua.a $@
 
-$(BIN_LUA_DIR)/src/liblua-arm32.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a CC=arm-linux-gnueabihf-gcc
-	mv $(BIN_LUA_DIR)/src/liblua.a $@
+$(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_DIR)/src clean liblua.a CC=arm-linux-gnueabihf-gcc
+	mv $(LUA_DIR)/src/liblua.a $@
 
 ci: testall lint fuzz fennel
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \
 		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock
-	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
+	$(MAKE) -C $(LUA_DIR) clean || true # this dir might not exist
 
 coverage: fennel
 	$(LUA) -lluacov test/init.lua

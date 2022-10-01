@@ -4,18 +4,20 @@
 /downloads
 /scratch
 /scratch.fnl
+/scratch.lua
 /chroot
 
 /lua-5.*
+/lua
 
 /rockspecs/*asc
-
-# Created by https://www.gitignore.io/api/lua
 
 # from static compilation
 /*_binary.c
 /fennel-bin
 /fennel-arm32
+
+# Created by https://www.gitignore.io/api/lua
 
 ### Lua ###
 # Compiled Lua sources

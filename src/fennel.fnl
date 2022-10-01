@@ -168,29 +168,36 @@
 ;; stash it in the utils table, but we should untangle it
 (set utils.fennel-module mod)
 
-;; Load the built-in macros from macros.fnl.
-(let [builtin-macros
-      (eval-compiler
-        (let [FENNEL_SRC (and os os.getenv (= :table (type os)) (= :function (type os.getenv))
-                              (os.getenv :FENNEL_SRC))
-              fennel-src (if FENNEL_SRC (.. FENNEL_SRC :/) "")]
-          (with-open [f (assert (io.open (.. fennel-src :src/fennel/macros.fnl)))]
-            (.. "[===[" (f:read :*all) "]===]"))))
-      module-name :fennel.macros
+(macro embed-src [filename]
+  `(eval-compiler
+     (let [FENNEL_SRC# (and os os.getenv (= :table (type os)) os.getenv
+                           (os.getenv :FENNEL_SRC))
+           root# (if FENNEL_SRC# (.. FENNEL_SRC# :/) "")]
+       (with-open [f# (assert (io.open (.. root# ,filename)))]
+         (.. "[===[" (f#:read :*all) "]===]")))))
+
+;; Load the built-in macros from macros.fnl and match.fnl
+(let [module-name :fennel.macros
       _ (tset package.preload module-name #mod)
       env (doto (specials.make-compiler-env nil compiler.scopes.compiler {})
             (tset :utils utils) ; for import-macros to propagate compile opts
             (tset :fennel mod))
-      built-ins (eval builtin-macros
+      built-ins (eval (embed-src :src/fennel/macros.fnl)
                       {: env
                        :scope compiler.scopes.compiler
                        :allowedGlobals false
                        :useMetadata true
                        :filename :src/fennel/macros.fnl
-                       :moduleName module-name})]
-  (each [k v (pairs built-ins)]
-    (tset compiler.scopes.global.macros k v))
-  (set compiler.scopes.global.macros.λ compiler.scopes.global.macros.lambda)
+                       :moduleName module-name})
+      match-macros (eval (embed-src :src/fennel/match.fnl)
+                         {: env
+                          :scope compiler.scopes.compiler
+                          :allowedGlobals false
+                          :useMetadata true
+                          :filename :src/fennel/match.fnl
+                          :moduleName module-name})]
+  (each [k v (pairs built-ins)] (tset compiler.scopes.global.macros k v))
+  (each [k v (pairs match-macros)] (tset compiler.scopes.global.macros k v))
   (tset package.preload module-name nil))
 
 mod

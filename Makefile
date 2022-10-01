@@ -116,7 +116,7 @@ ci: testall lint fuzz fennel
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \
-		*_binary.c luacov.*
+		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
 
 coverage: fennel
@@ -173,7 +173,13 @@ uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).tar.gz
 	rsync -rtAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
-release: uploadtar uploadrock
+release: guard-VERSION uploadtar uploadrock
 
-.PHONY: build test testall count format ci clean coverage install \
-	uploadtar uploadrock release lint rockspec
+guard-%:
+	@ if [ "${${*}}" = "" ]; then \
+		echo "Environment variable $* not set"; \
+		exit 1; \
+	fi
+
+.PHONY: build test testall fuzz lint count format ci clean coverage install \
+	uploadtar uploadrock release rockspec xc-deps guard-VERSION

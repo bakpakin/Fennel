@@ -16,7 +16,8 @@ deprecated forms.
 
 * Ensure `(values)` consistently evaluates to zero values.
 * Add missing `table?` predicate to fennel API to go with list?, sym?, etc
-* Fix 1.2.0 bug preventing new macros from shadowing/replacing other macros
+* Fix bug preventing new macros from shadowing other macros
+* Ensure macros use stable `pairs` table traversal for reproducible builds
 
 ## 1.2.0 / 2022-08-27
 

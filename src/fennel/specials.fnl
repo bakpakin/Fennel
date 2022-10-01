@@ -172,7 +172,7 @@ Main purpose to print function argument list in docstring."
                               (deep-tostring v))
                             " ") "]")
       (utils.table? x)
-      (.. "{" (table.concat (icollect [k v (pairs x)]
+      (.. "{" (table.concat (icollect [k v (utils.stablepairs x)]
                               (.. (deep-tostring k true) " "
                                   (deep-tostring v)))
                             " ") "}")
@@ -977,7 +977,8 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
   {:table (utils.copy table)
    :math (utils.copy math)
    :string (utils.copy string)
-   : pairs : ipairs : select : tostring : tonumber :bit (rawget _G :bit)
+   :pairs utils.stablepairs
+   : ipairs : select : tostring : tonumber :bit (rawget _G :bit)
    : pcall : xpcall : next : print : type : assert : error
    : setmetatable :getmetatable safe-getmetatable :require safe-require
    :rawlen (rawget _G :rawlen) : rawget : rawset : rawequal : _VERSION

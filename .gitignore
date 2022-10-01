@@ -7,9 +7,6 @@
 /scratch.lua
 /chroot
 
-/lua-5.*
-/lua
-
 /rockspecs/*asc
 
 # from static compilation

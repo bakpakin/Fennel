@@ -61,19 +61,10 @@ lint: fennel
 ## Binaries
 
 LUA_DIR ?= $(PWD)/lua
-NATIVE_LUA_LIB ?= $(LUA_DIR)/src/liblua-native.a
-LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
+NATIVE_LUA_LIB ?= $(LUA_DIR)/liblua-native.a
+LUA_INCLUDE_DIR ?= $(LUA_DIR)
 
 COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
-
-# This depends on debian-specific tooling; when compiling on other platforms
-# either unpack a lua tarball here or override NATIVE_LUA_LIB/LUA_INCLUDE_DIR
-$(LUA_DIR):
-	mkdir -p tmp
-	cd tmp; apt-get source lua5.4; cd ..
-	tar xzf tmp/lua*orig.tar.gz
-	rm -rf tmp
-	mv lua-5.4* $@
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
@@ -81,13 +72,13 @@ fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
 		$< $@ $(NATIVE_LUA_LIB) $(LUA_INCLUDE_DIR)
 
 $(NATIVE_LUA_LIB): $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR)/src clean liblua.a
-	mv $(LUA_DIR)/src/liblua.a $@
+	$(MAKE) -C $(LUA_DIR) clean liblua.a
+	mv $(LUA_DIR)/liblua.a $@
 
 ## Cross compiling
 
 xc-deps:
-	apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross apt-src \
+	apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
 		gcc-multilib-x86-64-linux-gnu libc6-dev-amd64-cross gcc-mingw-w64-i686
 
 fennel-x86_64: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-x86_64.a
@@ -105,18 +96,18 @@ fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
 	$(COMPILE_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< $@  $(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
-$(LUA_DIR)/src/liblua-x86_64.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR)/src clean liblua.a CC=x86_64-linux-gnu-gcc
-	mv $(LUA_DIR)/src/liblua.a $@
+$(LUA_DIR)/liblua-x86_64.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_DIR) clean liblua.a CC=x86_64-linux-gnu-gcc
+	mv $(LUA_DIR)/liblua.a $@
 
 # Cross-compilation here doesn't work from arm64; need to do it on x86_64
-$(LUA_DIR)/src/liblua-mingw.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
-	mv $(LUA_DIR)/src/liblua.a $@
+$(LUA_DIR)/liblua-mingw.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_DIR) clean mingw CC=i686-w64-mingw32-gcc
+	mv $(LUA_DIR)/liblua.a $@
 
-$(LUA_DIR)/src/liblua-arm32.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR)/src clean liblua.a CC=arm-linux-gnueabihf-gcc
-	mv $(LUA_DIR)/src/liblua.a $@
+$(LUA_DIR)/liblua-arm32.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_DIR) clean liblua.a CC=arm-linux-gnueabihf-gcc
+	mv $(LUA_DIR)/liblua.a $@
 
 ci: testall lint fuzz fennel
 

@@ -610,13 +610,11 @@ be read when loading the module `lib.ui.menu`.
 When you run your program with the `fennel` command, you can call
 `require` to load Fennel or Lua modules. But in other contexts (such
 as compiling to Lua and then using the `lua` command, or in programs
-that embed Lua) it will not know about Fennel modules. You need to add
-an entry to Lua's `package.searchers` (`package.loaders` in Lua 5.1)
-to support it:
+that embed Lua) it will not know about Fennel modules. You need to
+install the searcher that knows how to find `.fnl` files:
 
 ```lua
-local fennel = require "fennel"
-table.insert(package.loaders or package.searchers, fennel.searcher)
+local fennel = require("fennel").install()
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 

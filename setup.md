@@ -98,13 +98,11 @@ loaded from Lua.
  3. Add the following lines to your Lua code:
 
 ```lua
-local fennel = require("fennel")
-table.insert(package.loaders or package.searchers, fennel.searcher)
-local mylib = require("mylib") -- will compile and load code in mylib.fnl
+local fennel = require("fennel").install().dofile("main.fnl")
 ```
 
-You can pass [options](api.md) to the fennel compiler, by using `fennel.makeSearcher()` 
-instead of `fennel.searcher`.
+You can pass [options](api.md) to the fennel compiler by passing a
+table to the `install` function.
 
 Be sure to use the `fennel.lua` library and not the file for the
 entire `fennel` executable.

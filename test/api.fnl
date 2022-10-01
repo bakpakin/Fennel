@@ -9,6 +9,7 @@
   :doc             "function"
   :dofile          "function"
   :eval            "function"
+  :install         "function"
   :list            "function"
   :list?           "function"
   :load-code       "function"

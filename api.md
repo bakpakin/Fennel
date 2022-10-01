@@ -91,8 +91,15 @@ available as `...`.
 ## Use Lua's built-in require function
 
 ```lua
+require("fennel").install().dofile("main.fnl")
+```
+
+This is the equivalent of this code:
+
+```lua
+local fennel = require("fennel")
 table.insert(package.loaders or package.searchers, fennel.searcher)
-local mylib = require("mylib") -- will compile and load code in mylib.fnl
+fennel.dofile("main.fnl") -- require calls in main.fnl can load fennel modules
 ```
 
 Normally Lua's `require` function only loads modules written in Lua,

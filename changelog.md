@@ -10,7 +10,7 @@ deprecated forms.
 
 ### New Features
 
-* ???
+* Add `fennel.install` function to the API for adding the searcher
 
 ### Bug Fixes
 

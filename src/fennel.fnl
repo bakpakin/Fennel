@@ -158,6 +158,11 @@
             :stringStream parser.string-stream
             :runtimeVersion utils.runtime-version})
 
+(fn mod.install [?opts]
+  (table.insert (or package.searchers package.loaders)
+                (specials.make-searcher ?opts))
+  mod)
+
 ;; This is bad; we have a circular dependency between the specials section and
 ;; the evaluation section due to require-macros/import-macros, etc. For now
 ;; stash it in the utils table, but we should untangle it

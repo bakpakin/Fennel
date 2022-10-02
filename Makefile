@@ -60,9 +60,9 @@ lint: fennel
 
 ## Binaries
 
-LUA_DIR ?= $(PWD)/lua
+LUA_DIR ?= lua
 NATIVE_LUA_LIB ?= $(LUA_DIR)/liblua-native.a
-LUA_INCLUDE_DIR ?= $(LUA_DIR)
+LUA_INCLUDE_DIR ?= $(LUA_DIR)/src
 
 COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
 
@@ -71,15 +71,13 @@ fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
 	$(COMPILE_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
 		$< $@ $(NATIVE_LUA_LIB) $(LUA_INCLUDE_DIR)
 
+$(LUA_DIR): .gitmodules ; git submodule update
+
 $(NATIVE_LUA_LIB): $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR) clean liblua.a
-	mv $(LUA_DIR)/liblua.a $@
+	$(MAKE) -C $(LUA_INCLUDE_DIR) clean liblua.a
+	mv $(LUA_INCLUDE_DIR)/liblua.a $@
 
 ## Cross compiling
-
-xc-deps:
-	apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
-		gcc-multilib-x86-64-linux-gnu libc6-dev-amd64-cross gcc-mingw-w64-i686
 
 fennel-x86_64: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-x86_64.a
 	$(COMPILE_ARGS) CC=x86_64-linux-gnu-gcc ./fennel --no-compiler-sandbox \
@@ -96,18 +94,18 @@ fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
 	$(COMPILE_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< $@  $(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
-$(LUA_DIR)/liblua-x86_64.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR) clean liblua.a CC=x86_64-linux-gnu-gcc
-	mv $(LUA_DIR)/liblua.a $@
+$(LUA_INCLUDE_DIR)/liblua-x86_64.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_INCLUDE_DIR) clean liblua.a CC=x86_64-linux-gnu-gcc
+	mv $(LUA_INCLUDE_DIR)/liblua.a $@
 
 # Cross-compilation here doesn't work from arm64; need to do it on x86_64
-$(LUA_DIR)/liblua-mingw.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR) clean mingw CC=i686-w64-mingw32-gcc
-	mv $(LUA_DIR)/liblua.a $@
+$(LUA_INCLUDE_DIR)/liblua-mingw.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_INCLUDE_DIR) clean mingw CC=i686-w64-mingw32-gcc
+	mv $(LUA_INCLUDE_DIR)/liblua.a $@
 
-$(LUA_DIR)/liblua-arm32.a: $(LUA_DIR)
-	$(MAKE) -C $(LUA_DIR) clean liblua.a CC=arm-linux-gnueabihf-gcc
-	mv $(LUA_DIR)/liblua.a $@
+$(LUA_INCLUDE_DIR)/liblua-arm32.a: $(LUA_DIR)
+	$(MAKE) -C $(LUA_INCLUDE_DIR) clean liblua.a CC=arm-linux-gnueabihf-gcc
+	mv $(LUA_INCLUDE_DIR)/liblua.a $@
 
 ci: testall lint fuzz fennel
 
@@ -125,10 +123,15 @@ install: fennel fennel.lua fennel.1
 	mkdir -p $(DESTDIR)$(LUA_LIB_DIR) && cp fennel.lua $(DESTDIR)$(LUA_LIB_DIR)/
 	mkdir -p $(DESTDIR)$(MAN_DIR) && cp fennel.1 $(DESTDIR)$(MAN_DIR)/
 
-# Release-related tasks:
+### Release
 
-fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua \
-		Makefile $(SRC)
+# The release should depend on only a handful of external things:
+# * git
+# * make
+# * gcc (see .build.yml for specific packages needed for cross-compilation)
+
+fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua Makefile $(SRC)
+	test -n "$(VERSION)" # Need version
 	rm -rf fennel-$(VERSION)
 	mkdir fennel-$(VERSION)
 	cp -r $^ fennel-$(VERSION)
@@ -146,6 +149,7 @@ uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
 SSH_KEY ?= ~/.ssh/id_rsa
 
 rockspecs/fennel-$(VERSION)-1.rockspec: rockspecs/template.fnl
+	test -n "$(VERSION)" # Need version
 	VERSION=$(VERSION) fennel --no-compiler-sandbox -c $< > $@
 	git add $@
 
@@ -168,15 +172,9 @@ uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows32.exe
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-arm32
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).tar.gz
-	rsync -rtAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/downloads/
+	rsync -rtAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/test-downloads/
 
-release: guard-VERSION uploadtar uploadrock
-
-guard-%:
-	@ if [ "${${*}}" = "" ]; then \
-		echo "Environment variable $* not set"; \
-		exit 1; \
-	fi
+release: uploadtar uploadrock
 
 .PHONY: build test testall fuzz lint count format ci clean coverage install \
-	uploadtar uploadrock release rockspec xc-deps guard-VERSION
+	uploadtar uploadrock release rockspec

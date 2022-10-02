@@ -1,4 +1,4 @@
-image: debian/sid
+image: debian/stable
 packages:
   - lua5.1
   - lua5.2
@@ -12,4 +12,17 @@ sources:
   - https://git.sr.ht/~technomancy/fennel
 tasks:
   - build: IRC_CHANNEL="#fennel" make -C fennel ci
+  - maybe-release: |
+      export VERSION=$(git -C fennel tag --points-at HEAD)
+      export VERSION=1.3.0-dev # temp test
+      cp fennel/.known_hosts ~/.ssh/known_hosts
+      if [ "$VERSION" != "" ] ; then
+        sudo apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
+          libc6-dev-amd64-cross gcc-mingw-w64-i686 rsync
+        make -C fennel release VERSION=$VERSION
+      fi
 
+# gpg and ssh keys for release signing
+secrets:
+  - 6e60381b-48b5-4975-9f5c-330f03beb8ef
+  - 307020c3-4bcd-4278-9293-57552b367a01

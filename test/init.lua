@@ -45,6 +45,6 @@ else
    testall(arg)
 end
 
-dofile("test/irc.lua", runner.result.notSuccessCount)
+dofile("test/irc.lua")(runner.result.notSuccessCount)
 
 os.exit(runner.result.notSuccessCount == 0 and 0 or 1)

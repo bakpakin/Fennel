@@ -179,7 +179,7 @@
               indent (table-indent indent id)
               slength (if options.utf8? utf8-len #(length $))
               prefix (if visible-cycle? (.. "@" id) "")
-              items (icollect [_ [k v] (pairs kv)]
+              items (icollect [_ [k v] (ipairs kv)]
                       (let [k (pp k options (+ indent 1) true)
                             v (pp v options (+ indent (slength k) 1))]
                         (set multiline?
@@ -198,7 +198,7 @@
               indent (table-indent indent id)
               prefix (if visible-cycle? (.. "@" id) "")
               last-comment? (comment? (. t (length t)))
-              items (icollect [_ [_ v] (pairs kv)]
+              items (icollect [_ [_ v] (ipairs kv)]
                       (let [v (pp v options indent)]
                         (set multiline?
                              (or multiline? (v:find "\n") (v:find "^;")))

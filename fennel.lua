@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2016-2021 Calvin Rose and contributors
+Copyright (c) 2016-2022 Calvin Rose and contributors
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
@@ -102,6 +102,14 @@ local utils = (function()
 
     local function deref(self) return self[1] end
 
+    local function symeq(a, b)
+       return ((deref(a) == deref(b)) and (getmetatable(a) == getmetatable(b)))
+    end
+
+    local function symlt(a, b)
+       return (a[1] < tostring(b))
+    end
+
     local nilSym -- haven't defined sym yet; create this later
 
     local function listToString(self, tostring2)
@@ -113,7 +121,8 @@ local utils = (function()
         return '(' .. table.concat(map(safe, tostring2 or tostring), ' ', 1, max) .. ')'
     end
 
-    local SYMBOL_MT = { 'SYMBOL', __tostring = deref, __fennelview = deref }
+    local SYMBOL_MT = { 'SYMBOL', __tostring = deref, __fennelview = deref,
+                        __eq = symeq, __lt = symlt }
     local EXPR_MT = { 'EXPR', __tostring = deref }
     local VARARG = setmetatable({ '...' },
         { 'VARARG', __tostring = deref, __fennelview = deref })
@@ -242,6 +251,16 @@ local utils = (function()
 
     local function isQuoted(symbol) return symbol.quoted end
 
+    local function astSource(ast)
+       if (isTable(ast) or isSequence(ast)) then
+          return (getmetatable(ast) or {})
+       elseif ("table" == type(ast)) then
+          return ast
+       else
+          return {}
+       end
+    end
+
     -- Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
     -- When f returns a truthy value, recursively walks the children.
     local walkTree = function(root, f, customIterator)
@@ -306,7 +325,7 @@ local utils = (function()
         list=list, sym=sym, sequence=sequence, expr=expr, varg=varg,
         isVarg=isVarg, isList=isList, isSym=isSym, isTable=isTable,
         isSequence=isSequence, isMultiSym=isMultiSym, isQuoted=isQuoted,
-        isExpr=isExpr, deref=deref,
+        isExpr=isExpr, deref=deref, astSource=astSource,
 
         -- other functions:
         isValidLuaIdentifier=isValidLuaIdentifier, luaKeywords=luaKeywords,
@@ -949,8 +968,9 @@ local compiler = (function()
                     -- Ignore empty chunks
                     if subchunk.leaf or #subchunk > 0 then
                         -- don't increase line unless it's from the same file
-                        if subchunk.ast and file == subchunk.ast.file then
-                            lastLine = math.max(lastLine, subchunk.ast.line or 0)
+                        local source = utils.astSource(subchunk.ast)
+                        if file == source.file then
+                            lastLine = math.max(lastLine, source.line or 0)
                         end
                         lastLine = flatten(subchunk, out, lastLine, file)
                     end

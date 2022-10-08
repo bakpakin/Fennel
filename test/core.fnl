@@ -480,8 +480,9 @@
     (l.assertEquals fennel.version nested.version)))
 
 (fn test-sym []
-  (l.assertEquals "f_1_auto.foo:bar"
-                  (eval-compiler (string.format "%q" (view `f#.foo:bar)))))
+  (l.assertEquals "return \"f_1_auto.foo:bar\""
+                  (fennel.compile-string
+                   "(eval-compiler (string.format \"%q\" (view `f#.foo:bar)))")))
 
 {: test-booleans
  : test-calculations

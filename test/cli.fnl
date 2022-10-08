@@ -48,7 +48,7 @@
         (.. "errors should cause failing exit status with --lua " lua-exec)))))
 
 (fn test-args []
-  (when true (and test-all? (file-exists? "./fennel"))
+  (when (and test-all? (file-exists? "./fennel"))
     (l.assertEquals [(peval "(. arg 3)" "-l")] [true "-l"])))
 
 {: test-cli

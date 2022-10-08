@@ -5,14 +5,14 @@
 ;; TODO: use this macro below where possible
 (macro assert-fail-msg [form expected]
   `(let [(ok# msg#) (pcall fennel.compile-string (macrodebug ,form true)
-                           {:allowedGlobals (icollect [k# (pairs _G)] k#)})]
+                           {:allowedGlobals ,(icollect [k# (pairs _G)] k#)})]
      (l.assertFalse ok#)
      (l.assertStrContains msg# ,expected)))
 
 (fn test-names []
   (assert-fail-msg (local + 6) "overshadowed by a special form")
   (assert-fail-msg (macro if [] "wat") "overshadowed by a special form")
-  (assert-fail-msg (print each) "tried to reference a special form"))
+  (assert-fail-msg (do each) "tried to reference a special form"))
 
 (fn test-failures [failures]
   (each [code expected-msg (pairs failures)]

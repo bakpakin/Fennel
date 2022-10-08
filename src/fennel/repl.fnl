@@ -255,8 +255,7 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn resolve [identifier {: ___replLocals___ &as env} scope]
   (let [e (setmetatable {} {:__index #(or (. ___replLocals___ $2) (. env $2))})]
     (match (pcall compiler.compile-string (tostring identifier) {: scope})
-      (true code) (match ((specials.load-code code e))
-                    (where x (= (type x) :function)) x))))
+      (true code) ((specials.load-code code e)))))
 
 (fn commands.find [env read on-values on-error scope]
   (run-command read on-error
@@ -274,11 +273,12 @@ For more information about the language, see https://fennel-lang.org/reference")
   (run-command read on-error
                #(let [name (tostring $)
                       path (or (utils.multi-sym? name) [name])
-                      (is-ok target) (pcall #(or (utils.get-in scope.specials path)
-                                                 (utils.get-in scope.macros path)
-                                                 (resolve name env scope)))]
-                  (if is-ok (on-values [(specials.doc target name)])
-                            (on-error :Repl "Could not resolve value for docstring lookup")))))
+                      (ok? target) (pcall #(or (utils.get-in scope.specials path)
+                                               (utils.get-in scope.macros path)
+                                               (resolve name env scope)))]
+                  (if ok?
+                      (on-values [(specials.doc target name)])
+                      (on-error :Repl "Could not resolve value for docstring lookup")))))
 
 (compiler.metadata:set commands.doc :fnl/docstring
                        "Print the docstring and arglist for a function, macro, or special form.")
@@ -286,13 +286,14 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn commands.compile [env read on-values on-error scope]
   (run-command read on-error
                #(let  [allowedGlobals (specials.current-global-names env)
-                       (is-ok result) (pcall compiler.compile $ {: env : scope : allowedGlobals}  )]
-                  (if is-ok 
-                    (on-values [result])
+                       (ok? result) (pcall compiler.compile
+                                           $ {: env : scope : allowedGlobals})]
+                  (if ok?
+                      (on-values [result])
+                      (on-error :Repl (.. "Error compiling expression: " result))))))
 
-                    (on-error :Repl (.. "Error compiling expression: " result))))))
-
-(compiler.metadata:set commands.compile :fnl/docstring "compiles the expression into lua and prints the result.")
+(compiler.metadata:set commands.compile :fnl/docstring
+                       "compiles the expression into lua and prints the result.")
 
 (fn load-plugin-commands [plugins]
   (each [_ plugin (ipairs (or plugins []))]

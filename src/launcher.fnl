@@ -59,12 +59,12 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
     (tset :n (select :# ...))))
 
 (fn dosafely [f ...]
-  (let [args [...]]
-    (match (pack (xpcall #(f (unpack args)) fennel.traceback))
-      [true &as all] (unpack all 2 all.n)
-      [_ msg] (do
-                (io.stderr:write (.. msg "\n"))
-                (os.exit 1)))))
+  (let [args [...]
+        result (pack (xpcall #(f (unpack args)) fennel.traceback))]
+    (when (not (. result 1))
+      (io.stderr:write (.. (. result 2) "\n"))
+      (os.exit 1))
+    (unpack result 2 result.n)))
 
 (fn allow-globals [global-names globals]
   (if (= global-names "*")

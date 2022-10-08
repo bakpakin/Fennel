@@ -6,7 +6,7 @@
 
 (local cases
        [["(doc doc)" "(doc x)\n  Print the docstring and arglist for a function, macro, or special form." "docstrings for special forms"]
-        ["(doc doto)" "(doto val ...)\n  Evaluates val and splices it into the first argument of subsequent forms." "docstrings for built-in macros" ]
+        ["(doc doto)" "(doto val ...)\n  Evaluate val and splice it into the first argument of subsequent forms." "docstrings for built-in macros" ]
         ["(doc table.concat)"  "(table.concat #<unknown-arguments>)\n  #<undocumented>" "docstrings for built-in Lua functions" ]
         ["(fn ew [] \"so \\\"gross\\\" \\\\\\\"I\\\\\\\" can't even\" 1) (doc ew)"  "(ew)\n  so \"gross\" \\\"I\\\" can't even" "docstrings should be auto-escaped" ]
         ["(fn foo [a] :C 1) (doc foo)"  "(foo a)\n  C" "for named functions, (doc fnname) shows name, args invocation, docstring" ]

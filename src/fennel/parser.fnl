@@ -35,8 +35,6 @@ Also returns a second function to clear the buffer in the byte stream"
 ;; Opener keys have closer as the value; closers keys have true as their value.
 (local delims {40 41 41 true 91 93 93 true 123 125 125 true})
 
-(fn whitespace? [b] (or (= b 32) (<= 9 b 13)))
-
 ;; fnlfmt: skip
 (fn sym-char? [b]
   (let [b (if (= :number (type b)) b (string.byte b))]
@@ -85,6 +83,8 @@ Also returns a second function to clear the buffer in the byte stream"
     (when (= r 10)
       (set (line col prev-col) (values (+ line 1) 0 col)))
     r)
+
+  (fn whitespace? [b] (or (= b 32) (<= 9 b 13) (?. options.whitespace b)))
 
   ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!

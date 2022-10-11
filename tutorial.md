@@ -72,7 +72,9 @@ get at least as many arguments as you define, unless you signify that
 one may be omitted by beginning its name with a `?`:
 
 ```fennel
-(lambda print-calculation [x ?y z] (print (- x (* (or ?y 1) z))))
+(lambda print-calculation [x ?y z]
+  (print (- x (* (or ?y 1) z))))
+
 (print-calculation 5) ; -> error: Missing argument z
 ```
 
@@ -185,9 +187,6 @@ And `tset` to put them in:
   tbl) ; -> {"a long string" "the first value" 12 "the second one"}
 ```
 
-Immutable tables are not native to Lua, though it's possible to
-construct immutable tables using metatables with some performance overhead.
-
 ### Sequential Tables
 
 Some tables are used to store data that's used sequentially; the keys
@@ -233,8 +232,8 @@ positions between nil and non-nil values.
 
 Lua's standard library is very small, and thus several functions you
 might expect to be included, such `map`, `reduce`, and `filter` are
-absent. It's recommended to pull in a 3rd-party library like [Lume][5]
-or [luafun][9] for those.
+absent. In Fennel macros are used for this instead; see `icollect`,
+`collect`, and `accumulate`.
 
 ### Iteration
 
@@ -437,7 +436,7 @@ You can write your own function which returns multiple values with `values`.
       (values nil (.. "Invalid filename: " filename))))
 ```
 
-**Note**: while errors are the most reason to return multiple values
+**Note**: while errors are the most common reason to return multiple values
 from a function, it can be used in other cases as well. This is
 the most complex thing about Lua, and a full discussion is out of
 scope for this tutorial, but it's [covered well elsewhere][18].
@@ -488,24 +487,25 @@ must be the last parameter to a function. This syntax is inherited from Lua rath
 than Lisp.
 
 The `...` form is not a list or first class value, it expands to multiple values
-inline.  To access individual elements of the vararg, first wrap it in a table
+inline.  To access individual elements of the vararg, you can
+destructure with parentheses, or first wrap it in a table
 literal (`[...]`) and index like a normal table, or use the `select` function
 from Lua's core library. Often, the vararg can be passed directly to another
-function such as `print` without needing to bind it to a single table.
+function such as `print` without needing to bind it.
 
 ```fennel
 (fn print-each [...]
- (each [i v (ipairs [...])]
-  (print (.. "Argument " i " is " v))))
+  (each [i v (ipairs [...])]
+    (print (.. "Argument " i " is " v))))
 
 (print-each :a :b :c)
 ```
 
 ```fennel
 (fn myprint [prefix ...]
- (io.write prefix)
- (io.write (.. (select "#" ...) " arguments given: "))
- (print ...))
+  (io.write prefix)
+  (io.write (.. (select "#" ...) " arguments given: "))
+  (print ...))
 
 (myprint ":D " :d :e :f)
 ```
@@ -517,8 +517,8 @@ scope.
 
 ```fennel
 (fn badcode [...]
- (fn []
-  (print ...)))
+  (fn []
+    (print ...)))
 ```
 
 You can read [more detailed coverage of some of the problems with `...` and multiple values][18]
@@ -554,9 +554,10 @@ There are a few surprises that might bite seasoned lispers. Most of
 these result necessarily from Fennel's insistence upon imposing zero
 runtime overhead over Lua.
 
-* The arithmetic and comparison operators are not first-class functions.
-  They can behave in surprising ways with multiple-return-valued functions,
-  because the number of arguments to them must be known at compile-time.
+* The arithmetic, comparison, and boolean operators are not
+  first-class functions. They can behave in surprising ways with
+  multiple-return-valued functions, because the number of arguments to
+  them must be known at compile-time.
 
 * There is no `apply` function; instead use `table.unpack` or `unpack`
   depending on your Lua version: `(f 1 3 (table.unpack [4 9]))`.
@@ -578,7 +579,7 @@ runtime overhead over Lua.
 Note that built-in functions in [Lua's standard library][10] like `math.random`
 above can be called with no fuss and no overhead.
 
-This includes features like coroutines, which are usually implemented
+This includes features like coroutines, which are often implemented
 using special syntax in other languages. Coroutines
 [let you express non-blocking operations without callbacks][11].
 
@@ -614,7 +615,7 @@ that embed Lua) it will not know about Fennel modules. You need to
 install the searcher that knows how to find `.fnl` files:
 
 ```lua
-local fennel = require("fennel").install()
+require("fennel").install()
 local mylib = require("mylib") -- will compile and load code in mylib.fnl
 ```
 
@@ -778,11 +779,9 @@ current module name string (`...`).
 [2]: http://danmidwood.com/content/2014/11/21/animated-paredit.html
 [3]: https://www.lua.org/manual/5.1/
 [4]: https://github.com/Stepets/utf8.lua
-[5]: https://github.com/rxi/lume
 [6]: https://www.lua.org/pil/7.1.html
 [7]: https://www.lua.org/manual/5.1/manual.html#pdf-string.gmatch
 [8]: https://p.hagelb.org/equal-rights-for-functional-objects.html
-[9]: https://luafun.github.io/
 [10]: https://www.lua.org/manual/5.1/manual.html#5
 [11]: https://leafo.net/posts/itchio-and-coroutines.html
 [12]: http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/

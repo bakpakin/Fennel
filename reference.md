@@ -148,6 +148,11 @@ Note that the Lua runtime will fill in missing arguments with nil when
 they are not provided by the caller, so an explicit nil argument is no
 different than omitting an argument.
 
+The `lambda` and `match` forms are the only place where the `?foo`
+notation is used by the compiler to indicate that a nil value is
+allowed, but it is a useful notation to communicate intent anywhere a
+new local is introduced.
+
 The `λ` form is an alias for `lambda` and behaves identically.
 
 ### Docstrings and metadata
@@ -545,7 +550,7 @@ will be returned as the value of the entire expression.
 
 This is useful when you want to perform a series of steps, any of which could
 fail. The `catch` clause lets you keep all your error handling in one
-place. Note that there are two ways to indicate failure in Fennel and Lua;
+place. Note that there are two ways to indicate failure in Fennel and Lua:
 using the `assert`/`error` functions or returning nil followed by some data
 representing the failure. This form only works on the latter, but you can use
 `pcall` to transform `error` calls into values.
@@ -593,8 +598,8 @@ Supports destructuring and multiple-value binding.
 ### `tset` set table field
 
 Sets the field of a given table to a new value. The field name does not
-need to be known at compile-time. Works on any table, even those bound
-with `local` and `let`.
+need to be known at compile-time. Works on any table; the table does
+not have to be declared with `var` to change its fields.
 
 Example:
 
@@ -1545,9 +1550,9 @@ if you are able to avoid it, you should.
 
 *(Since 0.1.0, deprecated in 0.4.0)*
 
-The `require-macros` form is like `import-macros`, except it does not
-give you any control over the naming of the macros being
-imported. It is strongly recommended to use `import-macros` instead.
+The `require-macros` form is like `import-macros`, except it imports
+all macros without making it clear what new identifiers are brought
+into scope. It is strongly recommended to use `import-macros` instead.
 
 ### `pick-args` create a function of fixed arity
 
@@ -1556,19 +1561,9 @@ imported. It is strongly recommended to use `import-macros` instead.
 Like `pick-values`, but takes an integer `n` and a function/operator
 `f`, and creates a new function that applies exactly `n` arguments to `f`.
 
-Example, using the `add` function created above:
-
-```fennel
-(pick-args 2 add) ; expands to `(fn [_0_ _1_] (add _0_ _1_))`
-(-> [1 2 3 4 5] (table.unpack) ((pick-args 3 add))) ; => 6
-
-(local count-args (partial select "#"))
-((pick-args 3 count-args) "still three args, but 2nd and 3rd are nil") ; => 3
-```
-
 ### `global` set global variable
 
-*(Since 0.1.0, deprecated in 1.1.0)*
+*(Deprecated in 1.1.0)*
 
 Sets a global variable to a new value. Note that there is no
 distinction between introducing a new global and changing the value of

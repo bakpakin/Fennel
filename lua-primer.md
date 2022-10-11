@@ -130,6 +130,19 @@ its first argument is less than the second.
 The `table.unpack` function returns all the elements in the table as
 multiple values. Note that `table.unpack` is just `unpack` in Lua 5.1.
 
+It's not part of the `table` module, but the `next` function works
+with tables. It's most commonly used to detect if a table is empty,
+since calling it with a single table argument will return nil for
+empty tables. But it can also be used to step thru a table without
+iterators, for example:
+
+```fennel
+(fn find [t x ?k]
+  (match (next t ?k)
+    (k x) k
+    (k y) (find t x k)))
+```
+
 ## Other important modules
 
 You can explore a module by evaluating it in the REPL to display all
@@ -211,7 +224,6 @@ These are used for loading Lua code. The `load*` functions return a
 * `_VERSION`: the current version of Lua being used as a string
 * `collectgarbage`: you hopefully will never need this
 * `debug`: see the Lua manual for this module
-* `next`: needed for implementing your own iterators
 * `rawequal`/`rawget`/`rawlen`/`rawset`: operations which bypass metatables
 
 [1]: https://www.lua.org/manual/5.1/

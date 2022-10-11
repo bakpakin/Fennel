@@ -17,7 +17,7 @@ learn since the conceptual surface area is much smaller.
 
 Clojure and Fennel are both languages which have very close
 integration with their host runtime. In the case of Clojure it's Java,
-and in the case of Fennel it's Lua. However, Fennel's integration goes
+and in the case of Fennel it's Lua. However, Fennel's symbiosis goes
 beyond that of Clojure. In Clojure, every function implements the
 interfaces needed to be callable from Java, but Clojure functions are
 distinct from Java methods. Clojure namespaces are related to Java
@@ -46,15 +46,18 @@ In Clojure it's typical to bring in libraries using a tool like
 but it's often overkill. Usually it's better to just check your
 dependencies into your source repository. Deep dependency trees are
 very rare in Fennel and Lua. Even tho Lua's standard library is very
-small, adding a single file for a 3rd-party library into your repo
-is very cheap.
+small, adding a single file for a 3rd-party library into your repo is
+very cheap. Checking a jar into a git repository in Clojure is
+strongly discouraged (for good reasons) but those reasons usually
+don't apply with Lua libraries.
 
 Deploying Clojure usually means creating an uberjar that you launch
 using an existing JVM installation, because the JVM is a pretty large
 piece of software. Fennel deployments are much more varied; you can
 easily create self-contained standalone executables that are under a
 megabyte, or you can create scripts which rely on an existing Lua
-install, or code which gets embedded inside a larger application.
+install, or code which gets embedded inside a larger application where
+the VM is already present.
 
 ## Functions and locals
 
@@ -70,14 +73,15 @@ remaining chunk instead of just for the body of the `let`.
 
 Like Clojure, Fennel uses the `fn` form to create functions. However,
 giving it a name will also declare it as a local rather than having
-the name be purely internal. Functions declared with `fn` have no
-arity checking; you can call them with any number of arguments. If you
-declare with `lambda` instead, it will throw an exception when you
-provide too few arguments.
+the name be purely internal, allowing it to be used more like
+`defn`. Functions declared with `fn` have no arity checking; you can
+call them with any number of arguments. If you declare with `lambda`
+instead, it will throw an exception when you provide too few
+arguments.
 
 Fennel supports destructuring similarly to Clojure. The main
 difference is that rather than using `:keys` Fennel has a notation
-where a bare `:` is followed by a symbol naming the key. One notable
+where a bare `:` is followed by a symbol naming the key. One main
 advantage of this notation is that unlike `:keys` it can be nested.
 
 ```clojure
@@ -152,7 +156,7 @@ fine; you just won't get the results in order.
 The other big difference is that tables are mutable. It's possible to
 use metatables to implement immutable data structures on the Lua
 runtime, but there's a significant performance overhead beyond just
-the normal immutability penalty. Using the [LuaFun][2] library can get
+the inherent immutability penalty. Using the [LuaFun][2] library can get
 you immutable operations on mutable tables without as much overhead.
 However, note that generational garbage collection is still a very
 recent development on the Lua runtime, so purely-functional approaches
@@ -348,7 +352,8 @@ library provides Clojure's `mapv`, `filter`, and other functions that
 work using a similar `seq` abstraction implemented for ordinary tables
 with linear runtime cost of converting tables to a sequential ones. In
 practice, using Cljlib allows porting most Clojure data
-transformations almost directly to Fennel.
+transformations almost directly to Fennel, though their performance
+characteristics will vary a lot.
 
 ## Pattern Matching
 
@@ -378,11 +383,16 @@ tables with a specific mechanism for loading them. This is different
 from namespaces in Clojure which have some map-like properties but are
 not really data structures in the same way.
 
+Clojure makes you replace the dashes in namespace names with
+underscores in filenames; Fennel lets you name the files consistently
+with the modules they contain.
+
 In Clojure, vars are public by default. In Fennel, all definitions are
 local to the file, but including a local in a table that is placed at
 the end of the file will cause it to be exported so other code can use
 it. This makes it easy to look in one place to see a list of
-everything that a module exports.
+everything that a module exports rather than having to read thru the
+entire file.
 
 ```clojure
 ;; clojure

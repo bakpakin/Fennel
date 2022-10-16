@@ -45,8 +45,9 @@
                (: (. spliced-source (length spliced-source)) :match
                   "^ *return .*$"))
       (each [_ name (pairs scope.manglings)]
-        (table.insert spliced-source (length spliced-source)
-                      (save-source:format name name))))
+        (when (not (. scope.gensyms name))
+          (table.insert spliced-source (length spliced-source)
+                        (save-source:format name name)))))
     (table.concat spliced-source "\n")))
 
 (fn completer [env scope text]

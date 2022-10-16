@@ -32,16 +32,9 @@
      "Runtime" (.. (compiler.traceback (tostring err) 4) "\n")
      _ (: "%s error: %s\n" :format errtype (tostring err)))))
 
-(local save-source (table.concat ["local ___i___ = 1"
-                                  "while true do"
-                                  " local name, value = debug.getlocal(1, ___i___)"
-                                  " if(name and name ~= \"___i___\") then"
-                                  " ___replLocals___[name] = value"
-                                  " ___i___ = ___i___ + 1"
-                                  " else break end end"]
-                                 "\n"))
+(local save-source " ___replLocals___['%s'] = %s")
 
-(fn splice-save-locals [env lua-source]
+(fn splice-save-locals [env lua-source scope]
   (let [spliced-source []
         bind "local %s = ___replLocals___['%s']"]
     (each [line (lua-source:gmatch "([^\n]+)\n?")]
@@ -51,7 +44,9 @@
     (when (and (< 1 (length spliced-source))
                (: (. spliced-source (length spliced-source)) :match
                   "^ *return .*$"))
-      (table.insert spliced-source (length spliced-source) save-source))
+      (each [_ name (pairs scope.manglings)]
+        (table.insert spliced-source (length spliced-source)
+                      (save-source:format name name))))
     (table.concat spliced-source "\n")))
 
 (fn completer [env scope text]
@@ -353,8 +348,7 @@ For more information about the language, see https://fennel-lang.org/reference")
         readline (and (should-use-readline? opts)
                       (try-readline! opts (pcall require :readline)))
         env (specials.wrap-env (or opts.env (rawget _G :_ENV) _G))
-        save-locals? (and (not= opts.saveLocals false) env.debug
-                          env.debug.getlocal)
+        save-locals? (not= opts.saveLocals false)
         read-chunk (or opts.readChunk default-read-chunk)
         on-values (or opts.onValues default-on-values)
         on-error (or opts.onError default-on-error)

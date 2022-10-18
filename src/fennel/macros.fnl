@@ -154,7 +154,7 @@ Supports early termination with an &until clause."
 (fn seq-collect [how iter-tbl value-expr ...]
   "Common part between icollect and fcollect for producing sequential tables.
 
-Iteration code only deffers in using the for or each keyword, the rest
+Iteration code only differs in using the for or each keyword, the rest
 of the generated code is identical."
   (assert (not= nil value-expr) "expected table value expression")
   (assert (= nil ...)
@@ -209,6 +209,22 @@ Supports early termination with an &until clause."
           "expected range binding table")
   (seq-collect 'for iter-tbl value-expr ...))
 
+(fn accumulate-impl [for? iter-tbl body ...]
+  (assert (and (sequence? iter-tbl) (<= 4 (length iter-tbl)))
+          "expected initial value and iterator binding table")
+  (assert (not= nil body) "expected body expression")
+  (assert (= nil ...)
+          "expected exactly one body expression. Wrap multiple expressions with do")
+  (let [[accum-var accum-init] iter-tbl
+        iter (sym (if for? "for" "each"))] ; accumulate or faccumulate?
+    `(do
+       (var ,accum-var ,accum-init)
+       (,iter ,[(unpack iter-tbl 3)]
+              (set ,accum-var ,body))
+       ,(if (list? accum-var)
+          (list (sym :values) (unpack accum-var))
+          accum-var))))
+
 (fn accumulate* [iter-tbl body ...]
   "Accumulation macro.
 
@@ -225,20 +241,13 @@ For example,
                _ n (pairs {:apple 2 :orange 3})]
     (+ total n))
 returns 5"
-  (assert (and (sequence? iter-tbl) (<= 4 (length iter-tbl)))
-          "expected initial value and iterator binding table")
-  (assert (not= nil body) "expected body expression")
-  (assert (= nil ...)
-          "expected exactly one body expression. Wrap multiple expressions with do")
-  (let [accum-var (. iter-tbl 1)
-        accum-init (. iter-tbl 2)]
-    `(do
-       (var ,accum-var ,accum-init)
-       (each ,[(unpack iter-tbl 3)]
-         (set ,accum-var ,body))
-       ,(if (list? accum-var)
-            (list (sym :values) (unpack accum-var))
-            accum-var))))
+  (accumulate-impl false iter-tbl body ...))
+
+(fn faccumulate* [iter-tbl body ...]
+  "Identical to accumulate, but after the accumulator the binding table is the
+same as `for` instead of `each`. Like collect to fcollect, will iterate over a
+numerical range like `for` rather than an iterator."
+  (accumulate-impl true iter-tbl body ...))
 
 (fn double-eval-safe? [x type]
   (or (= :number type) (= :string type) (= :boolean type)
@@ -618,6 +627,7 @@ returned as the value of the entire expression."
  :icollect icollect*
  :fcollect fcollect*
  :accumulate accumulate*
+ :faccumulate faccumulate*
  :partial partial*
  :lambda lambda*
  :pick-args pick-args*

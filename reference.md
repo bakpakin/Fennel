@@ -1002,7 +1002,6 @@ empty one:
 the old syntax is still supported for backwards compatibility.
 
 
-
 ### `accumulate` iterator accumulation
 
 *(Since 0.10.0)*
@@ -1026,6 +1025,21 @@ Example:
 ```
 
 The `&until` clause is also supported here for early termination.
+
+### `faccumulate` range accumulation
+*(Since 1.3.0)*
+
+Identical to accumulate, but instead of taking an iterator and the same bindings
+as `each`, it accepts the same bindings as `for` and will iterate the numerical range.
+Accepts `&until` just like `for` and `accumulate`.
+
+Example:
+
+```fennel
+(faccumulate [n 0 i 1 5] (+ n i)) ; => 15
+
+(#(faccumulate [n 1 i 1 $] (* n i)) 5) ; => 120 (factorial!)
+```
 
 ### `fcollect` range comprehension macro
 

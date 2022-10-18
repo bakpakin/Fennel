@@ -101,6 +101,14 @@
           (twice (accumulate [s "" _ v (ipairs [:a :b])] (.. s v))))
       :ab))
 
+(fn test-faccumulate []
+  (== (faccumulate [sum 0 i 1 5] (+ sum i)) 15)
+  (== (faccumulate [sum 0 i 1 5 &until (= i 4)] (+ sum i)) 10
+      "facummulate should respect &until")
+  (== (faccumulate [alphabet "" i 4 0 -1]
+                   (... alphabet (string.char (+ i 65))))
+      "EDCBA"))
+
 (fn test-conditions []
   (== (do (var x 0) (for [i 1 10 &until (= i 5)] (set x i)) x) 4)
   (== (do (var x 0) (each [_ i (ipairs [1 2 3]) &until (< 2 x)] (set x i)) x) 3)

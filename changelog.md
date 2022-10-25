@@ -8,6 +8,9 @@ deprecated forms.
 
 ## 1.3.0 / ???
 
+### New Features
+* Add `faccumulate` macro as range analog to `accumulate`.
+
 ## 1.2.1 / 2022-10-15
 
 ### New Features

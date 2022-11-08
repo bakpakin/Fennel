@@ -134,9 +134,6 @@
     "(#)" "expected one argument"
     ;; PUC is ridiculous in what it accepts in a string
     "\"\\!\"" (if (or (not= _VERSION "Lua 5.1") _G.jit) "Invalid string")
-    "(match :hey true false def)" "even number of pattern/body pairs"
-    "(match :hey)" "at least one pattern/body pair"
-    "(match)" "missing subject"
     "(doto)" "missing subject"
     ;; validity check on iterator clauses
     "(each [k (do-iter) :igloo 33] nil)" "unexpected iterator clause igloo"
@@ -145,7 +142,26 @@
     "unknown:5:0 Compile error in 'x': unable to bind number 34"
     "(with-open [(x y z) (values 1 2 3)])"
     "with-open only allows symbols in bindings"
-    "([])" "cannot call literal value table"}))
+    "([])" "cannot call literal value table"
+    "(let [((x)) 1] (do))" "can't nest multi-value destructuring"}))
+
+(fn test-match-fails []
+  (test-failures
+   {"(match :hey true false def)" "even number of pattern/body pairs"
+    "(match :hey)" "at least one pattern/body pair"
+    "(match)" "missing subject"
+    "(match :subject ((pattern)) :body)" "can't nest multi-value destructuring"
+    "(match :subject [(pattern)] :body)" "can't nest multi-value destructuring"
+    "(match :subject (or (or pattern)) :body)" "can't nest (or) pattern"
+    "(match :subject (where (where pattern)) :body)" "can't nest (where) pattern"
+    ;; (where (or)) shape is allowed
+    "(match :subject (or (where pattern)) :body)" "can't nest (where) pattern" ;; perhaps this should be allowed in the future
+    "(match :subject [(or pattern)] :body)" "can't nest (or) pattern"
+    "(match :subject [(where pattern)] :body)" "can't nest (where) pattern"
+    "(match :subject ((or pattern)) :body)" "can't nest (or) pattern"
+    "(match :subject ((where pattern)) :body)" "can't nest (where) pattern"
+    "(match [1] (where (or [_ a] [a b]) b) :body)" "unknown identifier in strict mode"
+    "(match [1] (or [_ a] [a b]) b)" "unknown identifier in strict mode"}))
 
 (fn test-macro []
   (let [code "(import-macros {: fail-one} :test.macros) (fail-one 1)"
@@ -214,6 +230,7 @@
  : test-fn-fails
  : test-binding-fails
  : test-macro-fails
+ : test-match-fails
  : test-core-fails
  : test-suggestions
  : test-macro

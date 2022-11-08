@@ -7,7 +7,8 @@ LUA_LIB_DIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 MAN_DIR ?= $(PREFIX)/man/man1
 
 MINI_SRC=src/fennel.fnl src/fennel/parser.fnl src/fennel/specials.fnl \
-		src/fennel/utils.fnl src/fennel/compiler.fnl  src/fennel/macros.fnl
+		src/fennel/utils.fnl src/fennel/compiler.fnl  src/fennel/macros.fnl \
+		src/fennel/match.fnl
 
 LIB_SRC=$(MINI_SRC) src/fennel/friend.fnl src/fennel/view.fnl src/fennel/repl.fnl
 

@@ -184,7 +184,6 @@
       built-ins (eval builtin-macros
                       {: env
                        :scope compiler.scopes.compiler
-                       :allowedGlobals false
                        :useMetadata true
                        :filename :src/fennel/macros.fnl
                        :moduleName module-name})]

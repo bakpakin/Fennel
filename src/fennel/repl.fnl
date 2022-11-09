@@ -147,7 +147,10 @@ For more information about the language, see https://fennel-lang.org/reference")
                        (tset old k nil)))
                    (tset package.loaded module-name old))
                  (on-values [:ok]))
-    (false msg) (if (. specials.macro-loaded module-name)
+    (false msg) (if (msg:match "loop or previous error loading module")
+                    (do (tset package.loaded module-name nil)
+                        (reload module-name env on-values on-error))
+                    (. specials.macro-loaded module-name)
                     (tset specials.macro-loaded module-name nil)
                     ;; only show the error if it's not found in package.loaded
                     ;; AND macro-loaded

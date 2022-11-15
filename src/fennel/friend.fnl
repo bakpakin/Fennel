@@ -109,27 +109,28 @@
                   (- (or (utf8.offset str (+ end 1)) (+ (utf8.len str) 1)) 1))
       (string.sub str start (math.min end (str:len)))))
 
-(fn highlight-line [codeline col ?endcol]
+(fn highlight-line [codeline col ?endcol {: error-pinpoint}]
   (let [endcol (or ?endcol col)
-        eol (if utf8-ok? (utf8.len codeline) (string.len codeline))]
-    (.. (sub codeline 1 col) "\027[7m"
+        eol (if utf8-ok? (utf8.len codeline) (string.len codeline))
+        [head tail] (or error-pinpoint ["\027[7m" "\027[0m"])]
+    (.. (sub codeline 1 col) head
         (sub codeline (+ col 1) (+ endcol 1))
-        "\027[0m" (sub codeline (+ endcol 2) eol))))
+        tail (sub codeline (+ endcol 2) eol))))
 
-(fn friendly-msg [msg {: filename : line : col : endcol} source]
+(fn friendly-msg [msg {: filename : line : col : endcol} source opts]
   (let [(ok codeline) (pcall read-line filename line source)
         out [msg ""]]
     ;; don't assume the file can be read as-is
     ;; (when (not ok) (print :err codeline))
     (when (and ok codeline)
       (if col
-          (table.insert out (highlight-line codeline col endcol))
+          (table.insert out (highlight-line codeline col endcol opts))
           (table.insert out codeline)))
     (each [_ suggestion (ipairs (or (suggest msg) []))]
       (table.insert out (: "* Try %s." :format suggestion)))
     (table.concat out "\n")))
 
-(fn assert-compile [condition msg ast source]
+(fn assert-compile [condition msg ast source opts]
   "A drop-in replacement for the internal assert-compile with friendly messages."
   (when (not condition)
     (let [{: filename : line : col} (utils.ast-source ast)]
@@ -138,7 +139,7 @@
                               ;; source and macros can generate source-less ast
                               (or filename :unknown) (or line "?")
                               (or col "?") msg)
-                           (utils.ast-source ast) source) 0)))
+                           (utils.ast-source ast) source opts) 0)))
   condition)
 
 (fn parse-error [msg filename line col source]

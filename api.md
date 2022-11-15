@@ -36,6 +36,7 @@ usually accept these fields:
   disable sandboxing.
 * `unfriendly`: disable friendly compiler/parser error messages.
 * `plugins`: list of compiler [plugins](#plugins).
+* `error-pinpoint`: a list of two strings indicating what to wrap compile errors in
 
 You can pass the string `"_COMPILER"` as the value for `env`; it will
 cause the code to be run/compiled in a context which has all

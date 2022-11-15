@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 * Add `faccumulate` macro as range analog to `accumulate`.
+* Add `error-pinpoint` option to support custom error highlighting
 
 ## 1.2.1 / 2022-10-15
 

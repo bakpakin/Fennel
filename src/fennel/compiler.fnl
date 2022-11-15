@@ -47,7 +47,7 @@ implement nesting. "
   "Assert a condition and raise a compile error with line numbers.
 The ast arg should be unmodified so that its first element is the form called."
   (when (not condition)
-    (let [{: source : unfriendly} (or utils.root.options {})]
+    (let [{: source : unfriendly : error-pinpoint} (or utils.root.options {})]
       ;; allow plugins to override assert-compile
       (when (= nil (utils.hook :assert-compile condition msg ast
                                utils.root.reset))
@@ -55,7 +55,7 @@ The ast arg should be unmodified so that its first element is the form called."
         (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
             ;; if we use regular `assert' we can't set level to 0
             (error (assert-msg ast msg) 0)
-            (friend.assert-compile condition msg ast source)))))
+            (friend.assert-compile condition msg ast source {: error-pinpoint})))))
   condition)
 
 (set scopes.global (make-scope))

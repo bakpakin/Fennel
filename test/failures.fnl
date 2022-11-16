@@ -171,7 +171,8 @@
         (_ msg4) (pcall fennel.eval "(abc] ;; msg4")
         (_ msg5) (pcall fennel.eval "(let {:a 1}) ;; msg5")
         (_ msg6) (pcall fennel.eval "(for [:abc \n \"def t\"] nil)")
-        (_ msg7) (pcall fennel.eval "(match) ;; msg7")]
+        (_ msg7) (pcall fennel.eval "(match) ;; msg7")
+        (_ msg-custom-pinpoint) (pcall fennel.eval "(asdf 123)" {:error-pinpoint [">>>" "<<<"]})]
     ;; show the raw error message
     (l.assertStrContains msg "expected var x")
     ;; offer suggestions
@@ -186,7 +187,9 @@
     (l.assertStrContains msg4 "msg4")
     (l.assertStrContains msg5 "msg5")
     (l.assertStrContains msg6 "unable to bind string abc")
-    (l.assertStrContains msg7 "msg7")))
+    (l.assertStrContains msg7 "msg7")
+    ;; custom error pinpointing works
+    (l.assertStrContains msg-custom-pinpoint ">>>asdf<<<")))
 
 (fn doer []
   ;; this plugin does not detach in subsequent tests, so we must check that

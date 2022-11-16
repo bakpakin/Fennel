@@ -98,7 +98,7 @@ Also returns a second function to clear the buffer in the byte stream"
         (if (or unfriendly (not _G.io) (not _G.io.read))
             (error (string.format "%s:%s:%s Parse error: %s"
                                   filename (or line "?") col msg) 0)
-            (friend.parse-error msg filename (or line "?") col source)))))
+            (friend.parse-error msg filename (or line "?") col source utils.root.options)))))
 
   (fn parse-stream []
     (var (whitespace-since-dispatch done? retval) true)

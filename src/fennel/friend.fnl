@@ -142,10 +142,10 @@
                            (utils.ast-source ast) source opts) 0)))
   condition)
 
-(fn parse-error [msg filename line col source]
+(fn parse-error [msg filename line col source opts]
   "A drop-in replacement for the internal parse-error with friendly messages."
   (error (friendly-msg (: "Parse error in %s:%s:%s\n  %s" :format
                           filename line col msg)
-                       {: filename : line : col} source) 0))
+                       {: filename : line : col} source opts) 0))
 
 {: assert-compile : parse-error}

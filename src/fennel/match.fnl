@@ -2,21 +2,17 @@
 ;; This is separated out so we can use the "core" macros during the
 ;; implementation of pattern matching.
 
-(fn without-multival [opts]
-  (if opts.multival?
-    (let [copy {}]
-      (each [k v (pairs opts)]
-        (tset copy k v))
-      (tset copy :multival? nil)
-      copy)
-    opts))
+(fn copy [t] (collect [k v (pairs t)] k v))
+
+(fn without [opts k]
+  (doto (copy opts) (tset k nil)))
 
 (fn match-values [vals pattern unifications match-pattern opts]
   (let [condition `(and)
         bindings []]
     (each [i pat (ipairs pattern)]
       (let [(subcondition subbindings) (match-pattern [(. vals i)] pat
-                                                      unifications (without-multival opts))]
+                                                      unifications (without opts :top?))]
         (table.insert condition subcondition)
         (each [_ b (ipairs subbindings)]
           (table.insert bindings b))))
@@ -31,7 +27,7 @@
                 rest-val `(select ,k ((or table.unpack _G.unpack) ,val))
                 subcondition (match-table `(pick-values 1 ,rest-val)
                                           rest-pat unifications match-pattern
-                                          (without-multival opts))]
+                                          (without opts :top?))]
             (if (not (sym? rest-pat))
                 (table.insert condition subcondition))
             (assert (= nil (. pattern (+ k 2)))
@@ -54,7 +50,7 @@
           (let [subval `(. ,val ,k)
                 (subcondition subbindings) (match-pattern [subval] pat
                                                           unifications
-                                                          (without-multival opts))]
+                                                          (without opts :top?))]
             (table.insert condition subcondition)
             (each [_ b (ipairs subbindings)]
               (table.insert bindings b)))))
@@ -151,7 +147,7 @@ introduce for the duration of the body if it does match."
   ;; an optional "pre-bindings", which is a list of bindings that happen
   ;;   before the condition and bindings are evaluated. These should only
   ;;   come from a (match-or). In this case there should be no recursion:
-  ;;   the call stack should be match-condition > match-pattern > match-or 
+  ;;   the call stack should be match-condition > match-pattern > match-or
 
   ;; we have to assume we're matching against multiple values here until we
   ;; know we're either in a multi-valued clause (in which case we know the #
@@ -193,7 +189,7 @@ introduce for the duration of the body if it does match."
         ;; multi-valued patterns (represented as lists)
         (list? pattern)
         (do
-          (assert-compile opts.multival? "can't nest multi-value destructuring" pattern)
+          (assert-compile opts.top? "can't nest multi-value destructuring" pattern)
           (match-values vals pattern unifications match-pattern opts))
         ;; table patterns
         (= (type pattern) :table)
@@ -201,26 +197,41 @@ introduce for the duration of the body if it does match."
         ;; literal value
         (values `(= ,val ,pattern) []))))
 
+;; TODO: this isn't quite working yet, but I think it's nicer without the var
+(fn pre-binding-tail [tail pre-bindings]
+  (if (= nil pre-bindings)
+      tail
+      (. tail 2)
+      (let [newtail `()]
+        (table.insert tail newtail)
+        (pre-binding-tail newtail pre-bindings))
+      (let [newtail `(if)]
+        (tset tail 1 `let)
+        (tset tail 2 pre-bindings)
+        (tset tail 3 newtail)
+        newtail)))
+
 (fn match-condition [vals clauses unification?]
   "Construct the actual `if` AST for the given match values and clauses."
-  (when (not= 0 (% (length clauses) 2)) ; treat odd final clause as default
-    (table.insert clauses (length clauses) (sym "_")))
   (let [out `(if)]
-    (var tail out)
     (for [i 1 (length clauses) 2]
       (let [pattern (. clauses i)
             body (. clauses (+ i 1))
-            (condition bindings pre-bindings) (match-pattern vals pattern {} {:multival? true : unification?} true)]
-        (when pre-bindings
-          (if (. tail 2)
-            (let [newtail `()]
-              (table.insert tail newtail)
-              (set tail newtail)))
-          (let [newtail `(if)]
-            (tset tail 1 `let)
-            (tset tail 2 pre-bindings)
-            (tset tail 3 newtail)
-            (set tail newtail)))
+            (condition bindings pre-bindings) (match-pattern vals pattern {}
+                                                             {:top? true : unification?} true)
+            tail (pre-binding-tail out pre-bindings)]
+        ;; it's unclear what this when block does, and this function is already
+        ;; long enough; can we factor this out?
+        ;; (when pre-bindings
+        ;;   (if (. tail 2)
+        ;;     (let [newtail `()]
+        ;;       (table.insert tail newtail)
+        ;;       (set tail newtail)))
+        ;;   (let [newtail `(if)]
+        ;;     (tset tail 1 `let)
+        ;;     (tset tail 2 pre-bindings)
+        ;;     (tset tail 3 newtail)
+        ;;     (set tail newtail)))
         (table.insert tail condition)
         (table.insert tail `(let ,bindings
                               ,body))))

@@ -147,8 +147,9 @@ Supports early termination with an &until clause."
         (into iter) (extract-into iter-tbl)]
     `(let [tbl# ,into]
        (each ,iter
-         (match ,kv-expr
-           (k# v#) (tset tbl# k# v#)))
+         (let [(k# v#) ,kv-expr]
+           (if (and (not= k# nil) (not= v# nil))
+             (tset tbl# k# v#))))
        tbl#)))
 
 (fn seq-collect [how iter-tbl value-expr ...]

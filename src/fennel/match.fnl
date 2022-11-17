@@ -14,8 +14,7 @@
       (let [(subcondition subbindings) (match-pattern [(. vals i)] pat
                                                       unifications (without opts :top?))]
         (table.insert condition subcondition)
-        (each [_ b (ipairs subbindings)]
-          (table.insert bindings b))))
+        (icollect [_ b (ipairs subbindings) &into bindings] b)))
     (values condition bindings)))
 
 (fn match-table [val pattern unifications match-pattern opts]
@@ -52,8 +51,7 @@
                                                           unifications
                                                           (without opts :top?))]
             (table.insert condition subcondition)
-            (each [_ b (ipairs subbindings)]
-              (table.insert bindings b)))))
+            (icollect [_ b (ipairs subbindings) &into bindings] b))))
     (values condition bindings)))
 
 (fn match-guard [vals condition guards unifications match-pattern opts]
@@ -70,8 +68,8 @@
   (if (list? pattern)
       (let [result {}]
         (each [_ child-pattern (ipairs pattern)]
-          (each [name symbol (pairs (symbols-in-pattern child-pattern))]
-            (tset result name symbol)))
+          (collect [name symbol (pairs (symbols-in-pattern child-pattern)) &into result]
+            name symbol))
         result)
       (sym? pattern)
       (if (and (not= pattern `or)
@@ -83,10 +81,10 @@
       (= (type pattern) :table)
       (let [result {}]
         (each [key-pattern value-pattern (pairs pattern)]
-          (each [name symbol (pairs (symbols-in-pattern key-pattern))]
-            (tset result name symbol))
-          (each [name symbol (pairs (symbols-in-pattern value-pattern))]
-            (tset result name symbol)))
+          (collect [name symbol (pairs (symbols-in-pattern key-pattern)) &into result]
+            name symbol)
+          (collect [name symbol (pairs (symbols-in-pattern value-pattern)) &into result]
+            name symbol))
         result)
       {}))
 
@@ -123,17 +121,18 @@
           []))
       ;; case with bindings is handled specially, and returns three values instead of two
       (let [matched? (gensym :matched?)
-            bindings-two (icollect [_ binding (ipairs bindings)]
-                           (gensym (tostring binding)))
-            the-actual-body `(if)]
+            bindings-mangled (icollect [_ binding (ipairs bindings)]
+                               (gensym (tostring binding)))
+            pre-bindings `(if)]
         (for [i 2 (length pattern)]
           (let [subpattern (. pattern i)
                 (subcondition subbindings) (match-guard vals subpattern guards {} match-pattern opts)]
-            (table.insert the-actual-body subcondition)
-            (table.insert the-actual-body `(let ,subbindings (values true ,(unpack bindings))))))
+            (table.insert pre-bindings subcondition)
+            (table.insert pre-bindings `(let ,subbindings
+                                          (values true ,(unpack bindings))))))
         (values matched?
-                [`(,(unpack bindings)) `(values ,(unpack bindings-two))]
-                [`(,matched? ,(unpack bindings-two)) the-actual-body])))))
+                [`(,(unpack bindings)) `(values ,(unpack bindings-mangled))]
+                [`(,matched? ,(unpack bindings-mangled)) pre-bindings])))))
 
 (fn match-pattern [vals pattern unifications opts top-level?]
   "Take the AST of values and a single pattern and returns a condition
@@ -197,45 +196,37 @@ introduce for the duration of the body if it does match."
         ;; literal value
         (values `(= ,val ,pattern) []))))
 
-;; TODO: this isn't quite working yet, but I think it's nicer without the var
-(fn pre-binding-tail [tail pre-bindings]
+(fn add-pre-bindings [out pre-bindings]
   (if (= nil pre-bindings)
-      tail
-      (. tail 2)
-      (let [newtail `()]
-        (table.insert tail newtail)
-        (pre-binding-tail newtail pre-bindings))
-      (let [newtail `(if)]
-        (tset tail 1 `let)
-        (tset tail 2 pre-bindings)
-        (tset tail 3 newtail)
-        newtail)))
+      out
+      (let [out (if (= nil (. out 2))
+                 out
+                 (let [tail (list)]
+                   (table.insert out tail)
+                   tail))
+            tail `(if)]
+        ;; mutate `out` to be a `let` expression that introduces the pre-bindings
+        (tset out 1 `let)
+        (tset out 2 pre-bindings)
+        (tset out 3 tail)
+        tail)))
 
 (fn match-condition [vals clauses unification?]
   "Construct the actual `if` AST for the given match values and clauses."
-  (let [out `(if)]
-    (for [i 1 (length clauses) 2]
+  (let [root `(if)]
+    (faccumulate [out root
+                  i 1 (length clauses) 2]
       (let [pattern (. clauses i)
             body (. clauses (+ i 1))
             (condition bindings pre-bindings) (match-pattern vals pattern {}
                                                              {:top? true : unification?} true)
-            tail (pre-binding-tail out pre-bindings)]
-        ;; it's unclear what this when block does, and this function is already
-        ;; long enough; can we factor this out?
-        ;; (when pre-bindings
-        ;;   (if (. tail 2)
-        ;;     (let [newtail `()]
-        ;;       (table.insert tail newtail)
-        ;;       (set tail newtail)))
-        ;;   (let [newtail `(if)]
-        ;;     (tset tail 1 `let)
-        ;;     (tset tail 2 pre-bindings)
-        ;;     (tset tail 3 newtail)
-        ;;     (set tail newtail)))
-        (table.insert tail condition)
-        (table.insert tail `(let ,bindings
-                              ,body))))
-    out))
+            ;; pre-bindings may provide a new `out` list to keep building.
+            out (add-pre-bindings out pre-bindings)]
+        (table.insert out condition)
+        (table.insert out `(let ,bindings
+                            ,body))
+        out))
+    root))
 
 (fn count-match-multival [pattern]
   (if (and (list? pattern) (= (. pattern 2) `?))

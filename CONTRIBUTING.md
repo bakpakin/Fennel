@@ -123,7 +123,8 @@ code from here on out will have to pay; an addition to the API is not.
 
 If you want to contribute code to the project, please [send patches][1] to the
 [mailing list][2]. (Note that you do not need to subscribe to the mailing list
-in order to post to it.) We also accept code contributions on the [GitHub
+in order to post to it. To send a patch use the [actual email][4] and not the 
+url) We also accept code contributions on the [GitHub
 mirror](https://github.com/bakpakin/Fennel) if you prefer not to use email. For
 smaller changes, you can also push your changes to a branch on a public git
 remote hosted anywhere you like and ask someone on IRC or the mailing list to
@@ -167,3 +168,4 @@ something that may not be able to get merged.
 [1]: https://man.sr.ht/git.sr.ht/send-email.md
 [2]: https://lists.sr.ht/%7Etechnomancy/fennel
 [3]: https://todo.sr.ht/~technomancy/fennel
+[4]: mailto:~technomancy/fennel@lists.sr.ht

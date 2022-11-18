@@ -122,13 +122,16 @@ code from here on out will have to pay; an addition to the API is not.
 ## Contributing Changes
 
 If you want to contribute code to the project, please [send patches][1] to the
-[mailing list][2]. (Note that you do not need to subscribe to the mailing list
-in order to post to it. To send a patch use the [actual email][4] and not the 
-url) We also accept code contributions on the [GitHub
-mirror](https://github.com/bakpakin/Fennel) if you prefer not to use email. For
-smaller changes, you can also push your changes to a branch on a public git
-remote hosted anywhere you like and ask someone on IRC or the mailing list to
-take a look.
+[mailing list][4]. Note that you do not need to subscribe to the mailing list
+in order to post to it. When sending patches to the mailing list, it's usually
+nicer to squash everything down to a single commit so that it will be sent as
+a single email rather than a series of messages, unless there really are two
+relatively unrelated changes.
+
+We also accept code contributions on the [GitHub mirror][5] if you
+prefer not to use email. For smaller changes, you can also push your
+changes to a branch on a public git remote hosted anywhere you like
+and ask someone on IRC or the mailing list to take a look.
 
 Note that if you submit thru GitHub, your pull request will be incorrectly
 marked as closed when it is merged due to a bug in GitHub's ability to detect
@@ -169,3 +172,4 @@ something that may not be able to get merged.
 [2]: https://lists.sr.ht/%7Etechnomancy/fennel
 [3]: https://todo.sr.ht/~technomancy/fennel
 [4]: mailto:~technomancy/fennel@lists.sr.ht
+[5]: https://github.com/bakpakin/Fennel

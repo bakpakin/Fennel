@@ -109,8 +109,9 @@
                   (- (or (utf8.offset str (+ end 1)) (+ (utf8.len str) 1)) 1))
       (string.sub str start (math.min end (str:len)))))
 
-(fn highlight-line [codeline col ?endcol {: error-pinpoint}]
-  (let [endcol (or ?endcol col)
+(fn highlight-line [codeline col ?endcol opts]
+  (let [{: error-pinpoint} (or opts {})
+        endcol (or ?endcol col)
         eol (if utf8-ok? (utf8.len codeline) (string.len codeline))
         [head tail] (or error-pinpoint ["\027[7m" "\027[0m"])]
     (.. (sub codeline 1 col) head

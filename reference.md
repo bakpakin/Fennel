@@ -860,6 +860,7 @@ LuaJIT. The integer division operator (`//`) is only available in Lua 5.3+.
 They all take any number of arguments, as long as that number is fixed
 at compile-time. For instance, `(= 2 2 (unpack [2 5]))` will evaluate
 to `true` because the compile-time number of values being compared is 3.
+Multiple values at runtime will not be taken into account.
 
 Note that these are all special forms which cannot be used as
 higher-order functions.
@@ -875,6 +876,8 @@ Example:
 (.. "Hello" " " "world" 7 "!!!") ; => "Hello world7!!!"
 ```
 
+String concatenation is subject to the same compile-time limit as the
+operators above; it is not aware of multiple values at runtime.
 
 ### `length` string or table length
 

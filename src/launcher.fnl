@@ -83,7 +83,7 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
 (fn handle-lua [i]
   (table.remove arg i) ; remove the --lua flag from args
   (let [tgt-lua (table.remove arg i)
-        cmd [(string.format "%s %s" tgt-lua (. arg 0))]]
+        cmd [(string.format "%s %s" tgt-lua (or (. arg 0) "fennel"))]]
     (for [i 1 (length arg)] ; quote args to prevent shell escapes when executing
       (table.insert cmd (string.format "%q" (. arg i))))
     (let [ok (os.execute (table.concat cmd " "))]
@@ -237,7 +237,9 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
     (set options.filename filename)
     (set options.requireAsInclude true)
     (bin.compile filename out static-lua lua-include-dir options args))
-  [:--compile-binary] (print (. (require :fennel.binary) :help))
+  [:--compile-binary] (let [cmd (or (. arg 0) "fennel")]
+                        (print (: (. (require :fennel.binary) :help)
+                                  :format cmd cmd cmd)))
   [:--eval form] (eval form)
   [:-e form] (eval form)
   ([a] ? (or (= a :-v) (= a :--version)))

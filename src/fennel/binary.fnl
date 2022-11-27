@@ -296,7 +296,7 @@ int main(int argc, char *argv[]) {
     (compile-binary (write-c filename modules opts) executable-name static-lua
                     lua-include-dir libraries)))
 
-(local help (: "
+(local help "
 Usage: %s --compile-binary FILE OUT STATIC_LUA_LIB LUA_INCLUDE_DIR
 
 Compile a binary from your Fennel program.
@@ -351,6 +351,6 @@ so (this is assuming that program.fnl requires the Lua bindings):
         /usr/lib/x86_64-linux-gnu/liblua5.3.a /usr/include/lua5.3 \\
         --native-module C-readline.so \\
         --rename-native-module readline C-readline
-" :format (. arg 0) (. arg 0) (. arg 0)))
+")
 
 {: compile : help}

@@ -276,7 +276,7 @@ Syntax:
     ;; many values as we ever match against in the clauses.
     (list `let [vals val] (match-condition vals clauses true))))
 
-(fn matchless* [val ...]
+(fn case* [val ...]
   "Perform pattern matching on val, without unifying on variables in local scope. See reference for details.
 
 Syntax:
@@ -334,5 +334,5 @@ returned as the value of the entire expression."
     (match-try-step expr catch (unpack clauses))))
 
 {:match match*
- :matchless matchless*
+ :case case*
  :match-try match-try*}

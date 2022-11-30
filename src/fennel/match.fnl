@@ -12,7 +12,7 @@
         bindings []]
     (each [i pat (ipairs pattern)]
       (let [(subcondition subbindings) (match-pattern [(. vals i)] pat
-                                                      unifications (without opts :top?))]
+                                                      unifications (without opts :multival?))]
         (table.insert condition subcondition)
         (icollect [_ b (ipairs subbindings) &into bindings] b)))
     (values condition bindings)))
@@ -26,7 +26,7 @@
                 rest-val `(select ,k ((or table.unpack _G.unpack) ,val))
                 subcondition (match-table `(pick-values 1 ,rest-val)
                                           rest-pat unifications match-pattern
-                                          (without opts :top?))]
+                                          (without opts :multival?))]
             (if (not (sym? rest-pat))
                 (table.insert condition subcondition))
             (assert (= nil (. pattern (+ k 2)))
@@ -49,7 +49,7 @@
           (let [subval `(. ,val ,k)
                 (subcondition subbindings) (match-pattern [subval] pat
                                                           unifications
-                                                          (without opts :top?))]
+                                                          (without opts :multival?))]
             (table.insert condition subcondition)
             (icollect [_ b (ipairs subbindings) &into bindings] b))))
     (values condition bindings)))
@@ -188,7 +188,7 @@ introduce for the duration of the body if it does match."
         ;; multi-valued patterns (represented as lists)
         (list? pattern)
         (do
-          (assert-compile opts.top? "can't nest multi-value destructuring" pattern)
+          (assert-compile opts.multival? "can't nest multi-value destructuring" pattern)
           (match-values vals pattern unifications match-pattern opts))
         ;; table patterns
         (= (type pattern) :table)
@@ -219,8 +219,7 @@ introduce for the duration of the body if it does match."
       (let [pattern (. clauses i)
             body (. clauses (+ i 1))
             (condition bindings pre-bindings) (match-pattern vals pattern {}
-                                                             {:top? true : unification?} true)
-            ;; pre-bindings may provide a new `out` list to keep building.
+                                                             {:multival? true : unification?} true)
             out (add-pre-bindings out pre-bindings)]
         (table.insert out condition)
         (table.insert out `(let ,bindings

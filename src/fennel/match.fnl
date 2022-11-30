@@ -197,22 +197,23 @@ introduce for the duration of the body if it does match."
         (values `(= ,val ,pattern) []))))
 
 (fn add-pre-bindings [out pre-bindings]
-  (if (= nil pre-bindings)
-      out
-      (let [out (if (= nil (. out 2))
-                 out
-                 (let [tail (list)]
-                   (table.insert out tail)
-                   tail))
-            tail `(if)]
-        ;; mutate `out` to be a `let` expression that introduces the pre-bindings
-        (tset out 1 `let)
-        (tset out 2 pre-bindings)
-        (tset out 3 tail)
-        tail)))
+  "Decide when to switch from the current `if` AST to a new one"
+  (if pre-bindings
+      ;; `out` no longer needs to grow.
+      ;; Instead, a new tail `if` AST is introduced, which is where the rest of
+      ;; the clauses will get appended. This way, all future clauses have the
+      ;; pre-bindings in scope.
+      (let [tail `(if)]
+        (table.insert out true)
+        (table.insert out `(let ,pre-bindings ,tail))
+        tail)
+      ;; otherwise, keep growing the current `if` AST.
+      out))
 
 (fn match-condition [vals clauses unification?]
   "Construct the actual `if` AST for the given match values and clauses."
+  ;; root is the original `if` AST.
+  ;; out is the `if` AST that is currently being grown.
   (let [root `(if)]
     (faccumulate [out root
                   i 1 (length clauses) 2]
@@ -221,6 +222,7 @@ introduce for the duration of the body if it does match."
             (condition bindings pre-bindings) (match-pattern vals pattern {}
                                                              {:multival? true : unification?} true)
             out (add-pre-bindings out pre-bindings)]
+        ;; grow the `if` AST by one extra condition
         (table.insert out condition)
         (table.insert out `(let ,bindings
                             ,body))
@@ -228,6 +230,7 @@ introduce for the duration of the body if it does match."
     root))
 
 (fn count-match-multival [pattern]
+  "Identify the amount of multival values that a pattern requires."
   (if (and (list? pattern) (= (. pattern 2) `?))
       (count-match-multival (. pattern 1))
       (and (list? pattern) (= (. pattern 1) `where))

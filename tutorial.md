@@ -784,7 +784,7 @@ current module name string (`...`).
 [8]: https://p.hagelb.org/equal-rights-for-functional-objects.html
 [10]: https://www.lua.org/manual/5.1/manual.html#5
 [11]: https://leafo.net/posts/itchio-and-coroutines.html
-[12]: http://nova-fusion.com/2011/06/30/lua-metatables-tutorial/
+[12]: https://www.lua.org/pil/13.html
 [13]: https://love2d.org
 [14]: https://fennel-lang.org/lua-primer
 [15]: https://www.lua.org/manual/5.3/manual.html#6.5

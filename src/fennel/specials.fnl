@@ -753,7 +753,9 @@ Method name doesn't have to be known at compile-time; if it is, use
           (do
             (tset parent-node idx (utils.varg))
             (set f-scope.vararg true))
-          (or (utils.list? node) (utils.table? node))))
+          (and (= :table (type node))
+               (not= (utils.sym :hashfn) (. node 1))
+               (or (utils.list? node) (utils.table? node)))))
 
     (utils.walk-tree (. ast 2) walker)
     ;; compile body

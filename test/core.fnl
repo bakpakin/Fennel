@@ -271,6 +271,8 @@
                "(+ (#$ 1) (#$2 2 3))" 4
                "(let [f #(+ $ $1 $2)] (f 1 2))" 4
                "(let [f #(+ $1 45)] (f 1))" 46
+               ;; nested $...
+               "(let [f #(do #(values $...))] (table.concat [((f) 1 2 3)]))" "123"
                "(let [f #(do (local a 1) (local b (+ $1 $1 a)) (+ a b))] (f 1))" 4}]
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))))

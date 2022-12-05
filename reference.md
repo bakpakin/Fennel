@@ -148,9 +148,9 @@ Note that the Lua runtime will fill in missing arguments with nil when
 they are not provided by the caller, so an explicit nil argument is no
 different than omitting an argument.
 
-The `lambda` and `match` forms are the only place where the `?foo`
-notation is used by the compiler to indicate that a nil value is
-allowed, but it is a useful notation to communicate intent anywhere a
+The `lambda`, `case`, `case-try`, `match` and `match-try` forms are the only
+place where the `?foo` notation is used by the compiler to indicate that a nil
+value is allowed, but it is a useful notation to communicate intent anywhere a
 new local is introduced.
 
 The `λ` form is an alias for `lambda` and behaves identically.
@@ -422,10 +422,9 @@ Example:
 
 Supports destructuring and multiple-value binding.
 
+### `case` pattern matching
 
-### `match` pattern matching
-
-*(Since 0.2.0)*
+*(Since 1.2.2)*
 
 Evaluates its first argument, then searches thru the subsequent
 pattern/body clauses to find one where the pattern matches the value,
@@ -439,31 +438,93 @@ two distinct concepts with similar names.
 Example:
 
 ```fennel
-(match mytable
+(case mytable
   59      :will-never-match-hopefully
   [9 q 5] (print :q q)
   [1 a b] (+ a b))
 ```
 
 In the example above, we have a `mytable` value followed by three
-pattern/body clauses. The first clause will only match if `mytable`
-is 59. The second clause will match if `mytable` is a table with 9 as
-its first element and 5 as its third element; if it matches, then it
-evaluates `(print :q q)` with `q` bound to the second element of
-`mytable`. The final clause will only match if `mytable` has 1 as its
-first element; if so then it will add up the second and third elements.
+pattern/body clauses.
 
-Patterns can be tables, literal values, or symbols.
+The first clause will only match if `mytable` is 59.
 
-Tables can be nested, and they may be either sequential (`[]` style)
-or key/value (`{}` style) tables. Sequential tables will match if they
-have at least as many elements as the pattern. (To allow an element to
-be nil, use a symbol like `?this`.) Tables will never fail to match
-due to having too many elements. You can use `&` to  capture all the
-remaining elements of a sequential table, just like `let`.
+The second clause will match if `mytable` is a table with 9 as its first
+element, any non-nil value as its second value and 5 as its third element; if
+it matches, then it evaluates `(print :q q)` with `q` bound to the second
+element of `mytable`.
+
+The final clause will only match if `mytable` has 1 as its first element and
+two non-nil values after it; if so then it will add up the second and third
+elements.
+
+If no clause matches, the form evaluates to nil.
+
+Patterns can be tables, literal values, or symbols. Any symbol is implicitly
+checked to be not `nil`. Symbols can be repeated in an expression to check for
+the same value.
+
+Example:
 
 ```fennel
-(match mytable
+(case mytable
+  ;; the first and second values of mytable are not nil and are the same value
+  [a a] (* a 2)
+  ;; the first and second values are not nil and are not the same value
+  [a b] (+ a b))
+```
+
+It's important to note that expressions are checked *in order!* In the above
+example, since `[a a]` is checked first, we can be confident that when `[a b]`
+is checked, the two values must be different. Had the order been reversed,
+`[a b]` would always match as long as they're not `nil` - even if they have the
+same value!
+
+You may allow a symbol to optionally be `nil` by prefixing it with `?`.
+
+Example:
+
+```fennel
+(case mytable
+  ;; not-nil, maybe-nil
+  [a ?b] :maybe-one-maybe-two-values
+  ;; maybe-nil == maybe-nil, both are nil or both are the same value
+  [?a ?a] :maybe-none-maybe-two-same-values
+  ;; maybe-nil, maybe-nil
+  [?a ?b] :maybe-none-maybe-one-maybe-two-values)
+```
+
+Symbols prefixed by an `_` are ignored and may stand in as positional
+placeholders or markers for "any" value - including a `nil` value. A single `_`
+is also often used at the end of a `case` expression to define an "else" style
+fall-through value.
+
+Example:
+
+```fennel
+(case mytable
+  ;; not-nil, anything
+  [a _b] :maybe-one-maybe-two-values
+  ;; anything, anything (different to the previous ?a example!)
+  ;; note this is effectively the same as []
+  [_a _a] :maybe-none-maybe-one-maybe-two-values
+  ;; anything, anything
+  ;; this is identical to [_a _a] and in this example would never actually match.
+  [_a _b] :maybe-none-maybe-one-maybe-two-values
+  ;; when no other clause matched, in this case any non-table value
+  _ :no-match)
+```
+
+Tables can be nested, and they may be either sequential (`[]` style) or
+key/value (`{}` style) tables. Sequential tables will match if they have at
+least as many elements as the pattern. (To allow an element to be nil, see `?`
+and `_` as above.) Tables will *never* fail to match due to having too many
+elements - this means `[]` matches *any* table, not an *empty* table. You can
+use `&` to  capture all the remaining elements of a sequential table, just like
+`let`.
+
+```fennel
+(case mytable
   {:subtable [a b ?c] :depth depth} (* b depth)
   _ :unknown)
 ```
@@ -473,33 +534,18 @@ parentheses. (These cannot be nested, but they can contain tables.)
 This can be useful for error checking.
 
 ```fennel
-(match (io.open "/some/file")
+(case (io.open "/some/file")
   (nil msg) (report-error msg)
   f (read-file f))
 ```
 
-Pattern matching performs unification, meaning that if `x` has an
-existing binding, clauses which attempt to bind it to a different
-value will not match:
-
-```fennel
-(let [x 95]
- (match [52 85 95]
-   [b a a] :no ; because a=85 and a=95
-   [x y z] :no ; because x=95 and x=52
-   [a b x] :yes)) ; a and b are fresh values while x=95 and x=95
-```
-
-There is a special case for symbols beginning with `_`; they are never
-bound and always act as a wildcards.
-
-If no clause matches, the form evaluates to nil.
+#### Guard Clauses
 
 Sometimes you need to match on something more general than a structure
 or specific value. In these cases you can use guard clauses:
 
 ```fennel
-(match [91 12 53]
+(case [91 12 53]
   (where [a b c] (= 5 a)) :will-not-match
   (where [a b c] (= 0 (math.fmod (+ a b c) 2)) (= 91 a)) c) ; -> 53
 ```
@@ -514,7 +560,7 @@ If several patterns share the same body and guards, such patterns can
 be combined with `or` special in the `where` clause:
 
 ```fennel
-(match [5 1 2]
+(case [5 1 2]
   (where (or [a 3 9] [a 1 2]) (= 5 a)) "Either [5 3 9] or [5 1 2]"
   _ "anything else")
 ```
@@ -522,7 +568,7 @@ be combined with `or` special in the `where` clause:
 This is essentially equivalent to:
 
 ```fennel
-(match [5 1 2]
+(case [5 1 2]
   (where [a 3 9] (= 5 a)) "Either [5 3 9] or [5 1 2]"
   (where [a 1 2] (= 5 a)) "Either [5 3 9] or [5 1 2]"
   _ "anything else")
@@ -534,16 +580,102 @@ variables are missing:
 
 ``` fennel
 ;; bad
-(match [1 2 3]
+(case [1 2 3]
   ;; Will throw an error because `b' is nil for the first
   ;; pattern but the guard still uses it.
   (where (or [a 1 2] [a b 3]) (< a 0) (< b 1))
   :body)
 
 ;; ok
-(match [1 2 3]
+(case [1 2 3]
   (where (or [a b 2] [a b 3]) (< a 0) (<= b 1))
   :body)
+```
+
+#### Binding Pinning
+
+Symbols bound inside a `case` pattern are independent from any existing
+symbols in the current scope, that is - names may be re-used without
+consequence.
+
+Example:
+
+```fennel
+(let [x 1]
+  (case [:hello]
+    ;; `x` is simply bound to the first value of [:hello]
+    [x] x)) ; -> :hello
+```
+
+Sometimes it may be desirable to match against an existing value in the outer
+scope. To do this we can "pin" a binding inside the pattern with an existing
+outer binding with the unary `(= binding-name)` form. The unary `(= binding-name)`
+form is *only* valid in a `case` pattern and *must* be inside a `(where)`
+guard.
+
+Example:
+
+```fennel
+(let [x 1]
+  (case [:hello]
+    ;; 1 != :hello
+    (where [(= x)]) x
+    _ :no-match)) ; -> no-match
+
+(let [x 1]
+  (case [1]
+    ;; 1 == 1
+    (where [(= x)]) x
+    _ :no-match)) ; -> 1
+
+(let [pass :hunter2]
+  (case (user-input)
+    (where (= pass)) :login
+    _ :try-again!))
+```
+
+Pinning is only required inside the pattern. Outer bindings are automatically
+available inside guards and bodies as long as the name has not been rebound in
+the pattern.
+
+**Note:** The `case` macro can be used in place of the `if-let` macro
+from Clojure. The reason Fennel doesn't have `if-let` is that `case`
+makes it redundant.
+
+### `match` pattern matching
+
+*(since 0.2.0)*
+
+`match` is conceptually equivalent to `case`, except symbols in the patterns are
+always pinned with outer-scope symbols if they exist.
+
+It supports all the same syntax as described in `case` except the pin
+(`(= binding-name)`) expression, as it is always performed.
+
+> Be careful when using `match` that your symbols are not accidentally the same
+> as any existing symbols! If you know you don't intend to pin any existing
+> symbols you should use the `case` expression.
+
+```fennel
+(let [x 95]
+ (match [52 85 95]
+   [b a a] :no ; because a=85 and a=95
+   [x y z] :no ; because x=95 and x=52
+   [a b x] :yes)) ; a and b are fresh values while x=95 and x=95
+```
+
+Unlike in `case`, if an existing binding has the value `nil`, the `?` prefix is
+not necessary - it would instead create a new un-pinned binding!
+
+Example:
+
+```fennel
+(let [name nil
+      get-input (fn [] "Dave")]
+  (match (get-input)
+    ;; name already exists as nil, "Dave" != nil so this *wont* match
+    name (.. "Hello " name)
+    ?no-input (.. "Hello anonymous"))) ; -> "Hello anonymous"
 ```
 
 **Note:** The `match` macro can be used in place of the `if-let` macro
@@ -560,22 +692,24 @@ still supported, `where` should be preferred instead:
   ([a 2 3] ? (< 0 a)) "obsolete guard syntax")
 ```
 
-### `match-try` for matching multiple steps
+### `case-try` for matching multiple steps
 
 Evaluates a series of pattern matching steps. The value from the first
 expression is matched against the first pattern. If it matches, the first
 body is evaluated and its value is matched against the second pattern, etc.
 
-If there is a `(catch pat1 body1 pat2 body2 ...)` form at the end, any
-mismatch from the steps will be tried against these patterns in sequence as a
-fallback just like a normal match. If there is no catch, the mismatched value
-will be returned as the value of the entire expression.
+If there is a `(catch pat1 body1 pat2 body2 ...)` form at the end, any mismatch
+from the steps will be tried against these patterns in sequence as a fallback
+just like a normal `case`. If no `catch` pattern matches, nil is returned.
+
+If there is no catch, the mismatched value will be returned as the value of the
+entire expression.
 
 ```fennel
-(fn handle [conn]
-  (match-try (conn:receive :*l)
+(fn handle [conn token]
+  (case-try (conn:receive :*l)
     input (parse input)
-    (command-name params) (commands.get command-name)
+    (command-name params (= token)) (commands.get command-name)
     command (pcall command (table.unpack params))
     (catch
      (_ :timeout) nil
@@ -590,6 +724,25 @@ using the `assert`/`error` functions or returning nil followed by some data
 representing the failure. This form only works on the latter, but you can use
 `pcall` to transform `error` calls into values.
 
+### `match-try` for matching multiple steps
+
+Equivalent to `case-try` but uses `match` internally. See `case` and `match`
+for details on the differences between these two forms.
+
+Unlike `case-try`, `match-try` will pin values in a given `catch` block with
+those in the original steps.
+
+```fennel
+(fn handle [conn token]
+  (match-try (conn:receive :*l)
+    input (parse input)
+    (command-name params token) (commands.get command-name)
+    command (pcall command (table.unpack params))
+    (catch
+      (_ :timeout) nil
+      (_ :closed) (pcall disconnect conn "connection closed")
+      (_ msg) (print "Error handling input" msg))))
+```
 
 ### `var` declare local variable
 
@@ -979,11 +1132,13 @@ Example:
 
 *(Since 0.8.0)*
 
-The `icollect` macro takes a "iterator binding table" in the format
-that `each` takes, and returns a sequential table containing all the
-values produced by each iteration of the macro's body. If the value is
-nil, it is omitted from the return table. This is similar to how `map`
-works in several other languages, but it is a macro, not a function.
+The `icollect` macro takes a "iterator binding table" in the format that `each`
+takes, and returns a sequential table containing all the values produced by
+each iteration of the macro's body. This is similar to how `map` works in
+several other languages, but it is a macro, not a function.
+
+If the value is nil, it is omitted from the return table. This is analogous to
+`filter` in other languages.
 
 ```fennel
 (icollect [_ v (ipairs [1 2 3 4 5 6])]

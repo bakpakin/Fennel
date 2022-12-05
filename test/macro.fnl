@@ -125,6 +125,401 @@
         expected "(if (= 1 1) (do (let [x \"X\"] {:x x})))"]
     (l.assertEquals (eval-normalize code) expected)))
 
+;; many of these are copied wholesale from test-match, pending implementation,
+;; if match is implemented via case then it should be reasonable to remove much
+;; of test-match except for those tests that unify bindings
+;;
+;; See NEW-CASE-TESTS for new case specific tests
+(fn test-case []
+  (== (case false
+        false false
+        _ true)
+      false)
+  (== (case [:a {:b 8}]
+        [a b :c] :no
+        [:a {:b b}] b)
+      8)
+  (== (case (values 1 2 3 4 :ok)
+        (where (a b c d e) (= 1 a)) e
+        _ :not-ok) "ok")
+  (== (case [:a :b :c]
+        [a b c] (.. b :eee))
+      "beee")
+
+  ;; can't expand blind multi sym
+  (let [(_ msg1) (pcall fennel.eval "(let [x {:y :z}] (case :z x.y 1 _ 0))")]
+    (l.assertStrMatches msg1 ".*unexpected multi symbol x.y.*")
+  ;; but can unify with a multi sym
+  (== (let [x {:y :z}]
+        (case :z
+          (where (= x.y)) 1
+          _ 0)
+        )
+      1)
+
+  (== (case (io.open "/does/not/exist")
+        (nil msg) :err
+        f f)
+      "err")
+
+  (== (let [k :k]
+        (case [5 :k]
+          :b :no
+          ;; k will rebind to the same value, but it has no effect on result
+          [n k] n))
+      5)
+
+  (== (let [k :k]
+        (case [5 :k]
+          :b :no
+          ;; should check unified value and match
+          (where [n (= k)]) n))
+      5)
+
+  (== (case true
+        (where (or false true)) :true
+        _ :nil)
+      "true")
+
+  (== (case [1 2 1]
+        [x y x] :yes)
+      "yes")
+
+  (== (case false
+        (where (or false true)) :false
+        _ :nil)
+      "false")
+
+  (== (case [1 2 3]
+        ;; case will check el 1 and el 3 are the same
+        [x y x] :no
+        [x y z] :yes)
+      "yes")
+
+  (== (case [1 2 3]
+        [3 2 1] :no
+        [2 9 1] :NO
+        _ :default)
+      "default")
+
+  (== (case [1 2 [[3]]]
+        [x y [[x]]] :no
+        [x y z] :yes)
+      "yes")
+
+  (== (case [9 5]
+        [a b c] :three
+        [a b] (+ a b))
+      14)
+
+  (== (let [s :hey]
+        (case s
+          :wat :no
+          :hey :yes))
+      "yes")
+
+  (== (case nil
+        (where (or nil false true))
+        :ok
+        _ :not-ok)
+      "ok")
+
+  (== (case [1]
+        [a & b] (length b))
+      0)
+
+  (== (case (+ 1 6)
+        7 8)
+      8)
+
+  ;; legacy not supported
+  (let [(_ msg1) (pcall fennel.eval "(case [1 2] ([a 2] ? (> a 10)) :error-please)")]
+    (l.assertStrMatches msg1 ".*legacy guard clause not supported in case.*"))
+
+  ;; new syntax -- general case
+  (== (case [1 2 3 4]
+        (where (or [1 2 4] [4 5 6])) :nope1
+        (where [a 2 3 4] (> a 0)) :success1
+        (where [a 2 3 4] (> a 10)) :nope3
+        (where [a 2 3 4] (= a 1)) :success2) "success1")
+
+  (== (case {:a 1 :b 2}
+        {:c 3} :no
+        {:a n} n)
+      1)
+
+  (== (case [1 2]
+        [a & [b c]] (+ a b c)
+        _ :subrest)
+      "subrest")
+
+  (== (case nil
+        (where (1 2 3 4) true) :nope1
+        (where {:a 1 :b 2} true) :nope2
+        (where [a b c d] (= 100 (* a b c d))) :nope3
+        _ :success)
+      "success")
+
+  (== (case (values nil :nonnil)
+        (true _) :no
+        (nil b) b)
+      "nonnil")
+
+  (== (case [1 2 3]
+        [a b &as t] (+ a b (. t 3)))
+      6)
+
+  (== (case {:a 1 :b 2}
+        {: a &as t} (+ a t.b))
+      3)
+
+  (== (case [1 2 3]
+        [a & b] (+ a (. b 1) (. b 2)))
+      6)
+
+  (== (case [{:sieze :him} 5]
+        (where [f 4] f.sieze (= f.sieze :him)) 4
+        (where [f 5] f.sieze (= f.sieze :him)) 5)
+      5)
+
+  (== (case true
+        (where (or nil false true)) :ok
+        _ :not-ok)
+      "ok")
+
+  (== (case [1 2]
+        [_ _] :wildcard)
+      "wildcard")
+
+  (== (case (+ 1 6)
+        7 8
+        8 1
+        9 2)
+      8)
+
+  (== (case nil
+        false false
+        _ true)
+      true)
+
+  (== (case [1]
+        [a & b] (# b))
+      0)
+
+  (== (case {:sieze :him}
+        (where tbl tbl.sieze tbl.no) :no
+        (where tbl tbl.sieze (= tbl.sieze :him)) :siezed2)
+      "siezed2")
+
+  (== (case {:sieze :him}
+        (where tbl (. tbl :no)) :no
+        (where tbl (. tbl :sieze)) :siezed)
+      "siezed")
+
+  (== (case [1 2 [[1]]]
+        [x y [z]] (. z 1))
+      1)
+
+  ;; Booleans are ORed as patterns
+  (== (case false
+        (where (or nil false true)) :ok
+        _ :not-ok)
+      "ok")
+
+  (== (case [1 2 3 4]
+        (1 2 3 4) :nope1
+        {:a 1 :b 2} :nope2
+        (where [a b c d] (= 100 (* a b c d))) :nope3
+        _ :success)
+      "success")
+
+  (== (case [:a :b :c]
+        [1 t d] :no
+        [a b :d] :NO
+        [a b :c] b)
+      "b")
+
+  ;; nil matching
+  (== (case nil
+        1 :nope1
+        1.2 :nope2
+        :2 :nope3
+        "3 4" :nope4
+        [1] :nope5
+        [1 2] :nope6
+        (1) :nope7
+        (1 2) :nope8
+        {:a 1} :nope9
+        [[1 2] [3 4]] :nope10
+        nil :success
+        _ :nope11)
+      "success")
+
+  (== (case [1 2 3 4]
+        (where (or [1 2 4] [4 5 6])) :nope1
+        (where [a 2 3 4] (> a 10)) :nope2
+        (where [a 2 3 4] (= a 1)) :success)
+      "success")
+
+  (== (case (values 1 [1 2])
+        (x [x x]) :no
+        (x [x y]) :yes)
+      "yes")
+
+  (== (case [1 2 3 4]
+        1 :nope1
+        [1 2 4] :nope2
+        (where [1 2 4]) :nope3
+        (where (or [1 2 4] [4 5 6])) :nope4
+        (where [a 1 2] (> a 0)) :nope5
+        (where [a b c] (> a 2) (> b 0) (> c 0)) :nope6
+        (where (or [a 1] [a -2 -3] [a 2 3 4]) (> a 0)) :success
+        _ :nope7)
+      "success")
+
+  (== (case [:a [:b :c]]
+        [a b :c] :no
+        [:a [:b c]] c)
+      "c")
+
+  (== (do
+        (var x 1)
+        (fn i []
+          (set x (+ x 1))
+          x)
+        (case (i)
+          4 :N
+          3 :n
+          2 :y))
+      "y")
+
+  ;; should not unify x
+  (== (let [x 95]
+        (case [52 85 95]
+          [x y z] :nope
+          [a b x] :yes))
+      "nope")
+
+  ;; unify x
+  (== (let [x 95]
+        (case [52 85 95]
+          (where [(= x) y z]) :nope
+          (where [a b (= x)]) :yes))
+      "yes")
+
+  (== (case (values 5 9)
+        9 :no
+        (a b) (+ a b))
+      14)
+
+  (== (let [x 3
+            res (case x
+                  1 :ONE
+                  2 :TWO
+                  _ :???)]
+        res)
+      "???")
+
+  (== (case [9 5]
+        [a b ?c] :three
+        [a b] (+ a b))
+      "three")
+
+  (== (case nil
+        _ :yes
+        nil :no)
+      "yes")
+
+  (== (let [_ :bar]
+        (case :foo
+          _ :should-match
+          :foo :no))
+      "should-match")
+
+  ;; NEW-CASE-TESTS
+
+  (== (let [x 1]
+         (case [:hello]
+           [x] x))
+       :hello)
+
+  (== (let [x 1]
+        (case [:hello]
+          ;; 1 != :hello
+          (where [(= x)]) x
+          _ :no-match))
+      :no-match)
+
+  (== (let [x 1]
+        (case [1]
+          ;; 1 == 1
+          (where [(= x)]) x
+          _ :no-match))
+     1)
+
+  (== (let [pass :hunter2
+            user-input #:hunter2]
+        (case (user-input)
+          (where (= pass)) :login
+          _ :try-again!))
+      :login)
+
+  (== (let [limit 10]
+        (case [5 6]
+          (where [a b] (<= limit (+ a b))) :over-the-limit
+          [a b] (+ a b limit)))
+      :over-the-limit)
+
+  (== (let [x 99]
+        (case [10 20]
+          ;; x is not unified, so it's a new binding
+          [x y] (+ x y)))
+     (+ 10 20))
+
+  (== (let [x 99]
+        (case [10 20]
+          ;; x was not rebound, so the existing symbol is used
+          [a b] (+ a x)))
+     (+ 10 99))
+
+  (== (let [x 99]
+        (case [99 20]
+          ;; [99 20] = [99 b]
+          (where [(= x) b]) (+ x b)))
+     (+ 99 20))
+
+  (== (let [x 99]
+        (case [99 20]
+          ;; [99 20] = [99 x]
+          ;; note that x is bound in the pattern, so the body uses that value
+          (where [(= x) x]) (+ x x)))
+     (+ 20 20))))
+
+(fn test-case-try []
+  ;; ensure we do not unify in a sucess path
+  ;; these can be sense checked by running match-try with fresh bindings at
+  ;; each step
+  (== (case-try 10
+        a [(+ a a) (+ 1 1)]
+        ;; should rebind, not unify up
+        (where [a b] (<= a 20)) true
+        (catch
+          a :ay ;; should not get here
+          _ :nothing))
+     true)
+
+  ;; ensure we do not unify in a catch
+  ;; these can be sense checked by running match-try with fresh bindings at
+  ;; each step
+  (== (case-try 20
+        a [(+ a a) (+ 1 1)]
+        ;; fail this match
+        (where [a b] (<= a 20)) true
+        (catch
+          [a _] :we-can-work-it-out
+          _ :nothing))
+      :we-can-work-it-out))
+
 (fn test-match []
   (== (match false false false _ true) false)
   (== (match [:a {:b 8}] [a b :c] :no [:a {:b b}] b) 8)
@@ -341,8 +736,10 @@
  : test-macrodebug
  : test-macro-path
  : test-match
+ : test-case
  : test-lua-module
  : test-disabled-sandbox-searcher
  : test-expand
  : test-match-try
+ : test-case-try
  : test-literal}

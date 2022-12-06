@@ -7,25 +7,25 @@
 (fn without [opts k]
   (doto (copy opts) (tset k nil)))
 
-(fn match-values [vals pattern unifications match-pattern opts]
+(fn case-values [vals pattern unifications case-pattern opts]
   (let [condition `(and)
         bindings []]
     (each [i pat (ipairs pattern)]
-      (let [(subcondition subbindings) (match-pattern [(. vals i)] pat
+      (let [(subcondition subbindings) (case-pattern [(. vals i)] pat
                                                       unifications (without opts :multival?))]
         (table.insert condition subcondition)
         (icollect [_ b (ipairs subbindings) &into bindings] b)))
     (values condition bindings)))
 
-(fn match-table [val pattern unifications match-pattern opts]
+(fn case-table [val pattern unifications case-pattern opts]
   (let [condition `(and (= (_G.type ,val) :table))
         bindings []]
     (each [k pat (pairs pattern)]
       (if (= pat `&)
           (let [rest-pat (. pattern (+ k 1))
                 rest-val `(select ,k ((or table.unpack _G.unpack) ,val))
-                subcondition (match-table `(pick-values 1 ,rest-val)
-                                          rest-pat unifications match-pattern
+                subcondition (case-table `(pick-values 1 ,rest-val)
+                                          rest-pat unifications case-pattern
                                           (without opts :multival?))]
             (if (not (sym? rest-pat))
                 (table.insert condition subcondition))
@@ -47,17 +47,17 @@
           (or (not= :number (type k)) (and (not= `&as (. pattern (- k 1)))
                                            (not= `& (. pattern (- k 1)))))
           (let [subval `(. ,val ,k)
-                (subcondition subbindings) (match-pattern [subval] pat
+                (subcondition subbindings) (case-pattern [subval] pat
                                                           unifications
                                                           (without opts :multival?))]
             (table.insert condition subcondition)
             (icollect [_ b (ipairs subbindings) &into bindings] b))))
     (values condition bindings)))
 
-(fn match-guard [vals condition guards unifications match-pattern opts]
+(fn case-guard [vals condition guards unifications case-pattern opts]
   (if (= 0 (length guards))
-    (match-pattern vals condition unifications opts)
-    (let [(pcondition bindings) (match-pattern vals condition unifications opts)
+    (case-pattern vals condition unifications opts)
+    (let [(pcondition bindings) (case-pattern vals condition unifications opts)
           condition `(and ,(unpack guards))]
        (values `(and ,pcondition
                      (let ,bindings
@@ -104,7 +104,7 @@
       (if (not (and unification? (in-scope? symbol)))
         symbol))))
 
-(fn match-or [vals pattern guards unifications match-pattern opts]
+(fn case-or [vals pattern guards unifications case-pattern opts]
   ;; if guards is present, this is a (where (or)) shape
   (let [bindings (symbols-in-every-pattern [(unpack pattern 2)] opts.unification?)]
     (if (= 0 (length bindings))
@@ -112,7 +112,7 @@
       (let [condition
             (fcollect [i 2 (length pattern) &into `(or)]
               (let [subpattern (. pattern i)
-                    (subcondition subbindings) (match-pattern vals subpattern unifications opts)]
+                    (subcondition subbindings) (case-pattern vals subpattern unifications opts)]
                 subcondition))]
         (values
           (if (= 0 (length guards))
@@ -126,7 +126,7 @@
             pre-bindings `(if)]
         (for [i 2 (length pattern)]
           (let [subpattern (. pattern i)
-                (subcondition subbindings) (match-guard vals subpattern guards {} match-pattern opts)]
+                (subcondition subbindings) (case-guard vals subpattern guards {} case-pattern opts)]
             (table.insert pre-bindings subcondition)
             (table.insert pre-bindings `(let ,subbindings
                                           (values true ,(unpack bindings))))))
@@ -134,7 +134,7 @@
                 [`(,(unpack bindings)) `(values ,(unpack bindings-mangled))]
                 [`(,matched? ,(unpack bindings-mangled)) pre-bindings])))))
 
-(fn match-pattern [vals pattern unifications opts top-level?]
+(fn case-pattern [vals pattern unifications opts top-level?]
   "Take the AST of values and a single pattern and returns a condition
 to determine if it matches as well as a list of bindings to
 introduce for the duration of the body if it does match."
@@ -145,8 +145,8 @@ introduce for the duration of the body if it does match."
   ;; a "bindings", which bind all of the symbols used in a pattern
   ;; an optional "pre-bindings", which is a list of bindings that happen
   ;;   before the condition and bindings are evaluated. These should only
-  ;;   come from a (match-or). In this case there should be no recursion:
-  ;;   the call stack should be match-condition > match-pattern > match-or
+  ;;   come from a (case-or). In this case there should be no recursion:
+  ;;   the call stack should be case-condition > case-pattern > case-or
 
   ;; we have to assume we're matching against multiple values here until we
   ;; know we're either in a multi-valued clause (in which case we know the #
@@ -171,28 +171,28 @@ introduce for the duration of the body if it does match."
         (and (list? pattern) (= (. pattern 1) `where) (list? (. pattern 2)) (= (. pattern 2 1) `or))
         (do
           (assert-compile top-level? "can't nest (where) pattern" pattern)
-          (match-or vals (. pattern 2) [(unpack pattern 3)] unifications match-pattern opts))
+          (case-or vals (. pattern 2) [(unpack pattern 3)] unifications case-pattern opts))
         ;; or clause
         (and (list? pattern) (= (. pattern 1) `or))
         (do
           (assert-compile top-level? "can't nest (or) pattern" pattern)
-          (match-or vals pattern [] unifications match-pattern opts))
+          (case-or vals pattern [] unifications case-pattern opts))
         ;; where clause
         (and (list? pattern) (= (. pattern 1) `where))
         (do
           (assert-compile top-level? "can't nest (where) pattern" pattern)
-          (match-guard vals (. pattern 2) [(unpack pattern 3)] unifications match-pattern opts))
+          (case-guard vals (. pattern 2) [(unpack pattern 3)] unifications case-pattern opts))
         ;; guard clause
         (and (list? pattern) (= (. pattern 2) `?))
-        (match-guard vals (. pattern 1) [(unpack pattern 3)] unifications match-pattern opts)
+        (case-guard vals (. pattern 1) [(unpack pattern 3)] unifications case-pattern opts)
         ;; multi-valued patterns (represented as lists)
         (list? pattern)
         (do
           (assert-compile opts.multival? "can't nest multi-value destructuring" pattern)
-          (match-values vals pattern unifications match-pattern opts))
+          (case-values vals pattern unifications case-pattern opts))
         ;; table patterns
         (= (type pattern) :table)
-        (match-table val pattern unifications match-pattern opts)
+        (case-table val pattern unifications case-pattern opts)
         ;; literal value
         (values `(= ,val ,pattern) []))))
 
@@ -210,7 +210,7 @@ introduce for the duration of the body if it does match."
       ;; otherwise, keep growing the current `if` AST.
       out))
 
-(fn match-condition [vals clauses unification?]
+(fn case-condition [vals clauses unification?]
   "Construct the actual `if` AST for the given match values and clauses."
   ;; root is the original `if` AST.
   ;; out is the `if` AST that is currently being grown.
@@ -219,8 +219,10 @@ introduce for the duration of the body if it does match."
                   i 1 (length clauses) 2]
       (let [pattern (. clauses i)
             body (. clauses (+ i 1))
-            (condition bindings pre-bindings) (match-pattern vals pattern {}
-                                                             {:multival? true : unification?} true)
+            (condition bindings pre-bindings) (case-pattern vals pattern {}
+                                                             {:multival? true
+                                                              : unification?}
+                                                             true)
             out (add-pre-bindings out pre-bindings)]
         ;; grow the `if` AST by one extra condition
         (table.insert out condition)
@@ -229,36 +231,38 @@ introduce for the duration of the body if it does match."
         out))
     root))
 
-(fn count-match-multival [pattern]
+(fn count-case-multival [pattern]
   "Identify the amount of multival values that a pattern requires."
   (if (and (list? pattern) (= (. pattern 2) `?))
-      (count-match-multival (. pattern 1))
+      (count-case-multival (. pattern 1))
       (and (list? pattern) (= (. pattern 1) `where))
-      (count-match-multival (. pattern 2))
+      (count-case-multival (. pattern 2))
       (and (list? pattern) (= (. pattern 1) `or))
       (accumulate [longest 0
                    _ child-pattern (ipairs pattern)]
-        (math.max longest (count-match-multival child-pattern)))
+        (math.max longest (count-case-multival child-pattern)))
       (list? pattern)
       (length pattern)
       1))
 
-(fn match-val-syms [clauses]
-  "What is the length of the largest multi-valued clause? return a list of that many gensyms."
+(fn case-val-syms [clauses]
+  "What is the length of the largest multi-valued clause? return a list of that
+many gensyms."
   (let [patterns (fcollect [i 1 (length clauses) 2]
                    (. clauses i))
         sym-count (accumulate [longest 0
                                _ pattern (ipairs patterns)]
-                    (math.max longest (count-match-multival pattern)))]
+                    (math.max longest (count-case-multival pattern)))]
     (fcollect [i 1 sym-count &into (list)]
       (gensym))))
 
-(fn match* [val ...]
+
+(fn case* [val ...]
   "Perform pattern matching on val. See reference for details.
 
 Syntax:
 
-(match data-expression
+(case data-expression
   pattern body
   (where pattern guards*) body
   (or pattern patterns*) body
@@ -271,13 +275,14 @@ Syntax:
   (assert (not= 0 (select :# ...))
           "expected at least one pattern/body pair")
   (let [clauses [...]
-        vals (match-val-syms clauses)]
+        vals (case-val-syms clauses)]
     ;; protect against multiple evaluation of the value, bind against as
     ;; many values as we ever match against in the clauses.
-    (list `let [vals val] (match-condition vals clauses true))))
+    (list `let [vals val] (case-condition vals clauses false))))
 
-(fn case* [val ...]
-  "Perform pattern matching on val, without unifying on variables in local scope. See reference for details.
+(fn match* [val ...]
+  "Perform pattern matching on val, automatically unifying on variables in
+local scope. See reference for details.
 
 Syntax:
 
@@ -294,22 +299,47 @@ Syntax:
   (assert (not= 0 (select :# ...))
           "expected at least one pattern/body pair")
   (let [clauses [...]
-        vals (match-val-syms clauses)]
+        vals (case-val-syms clauses)]
     ;; protect against multiple evaluation of the value, bind against as
     ;; many values as we ever match against in the clauses.
-    (list `let [vals val] (match-condition vals clauses false))))
+    (list `let [vals val] (case-condition vals clauses true))))
 
-(fn match-try-step [expr else pattern body ...]
+(fn case-try-step [how expr else pattern body ...]
   (if (= nil pattern body)
       expr
       ;; unlike regular match, we can't know how many values the value
       ;; might evaluate to, so we have to capture them all in ... via IIFE
       ;; to avoid double-evaluation.
       `((fn [...]
-          (match ...
-            ,pattern ,(match-try-step body else ...)
+          (,how ...
+            ,pattern ,(case-try-step how body else ...)
             ,(unpack else)))
         ,expr)))
+
+(fn case-try-impl [how expr pattern body ...]
+  (let [clauses [pattern body ...]
+        last (. clauses (length clauses))
+        catch (if (= `catch (and (= :table (type last)) (. last 1)))
+                 (let [[_ & e] (table.remove clauses)] e) ; remove `catch sym
+                 [`_# `...])]
+    (assert (= 0 (math.fmod (length clauses) 2))
+            "expected every pattern to have a body")
+    (assert (= 0 (math.fmod (length catch) 2))
+            "expected every catch pattern to have a body")
+    (case-try-step how expr catch (unpack clauses))))
+
+(fn case-try* [expr pattern body ...]
+  "Perform chained pattern matching for a sequence of steps which might fail.
+
+The values from the initial expression are matched against the first pattern.
+If they match, the first body is evaluated and its values are matched against
+the second pattern, etc.
+
+If there is a (catch pat1 body1 pat2 body2 ...) form at the end, any mismatch
+from the steps will be tried against these patterns in sequence as a fallback
+just like a normal match. If there is no catch, the mismatched values will be
+returned as the value of the entire expression."
+  (case-try-impl `case expr pattern body ...))
 
 (fn match-try* [expr pattern body ...]
   "Perform chained pattern matching for a sequence of steps which might fail.
@@ -322,17 +352,9 @@ If there is a (catch pat1 body1 pat2 body2 ...) form at the end, any mismatch
 from the steps will be tried against these patterns in sequence as a fallback
 just like a normal match. If there is no catch, the mismatched values will be
 returned as the value of the entire expression."
-  (let [clauses [pattern body ...]
-        last (. clauses (length clauses))
-        catch (if (= `catch (and (= :table (type last)) (. last 1)))
-                 (let [[_ & e] (table.remove clauses)] e) ; remove `catch sym
-                 [`_# `...])]
-    (assert (= 0 (math.fmod (length clauses) 2))
-            "expected every pattern to have a body")
-    (assert (= 0 (math.fmod (length catch) 2))
-            "expected every catch pattern to have a body")
-    (match-try-step expr catch (unpack clauses))))
+  (case-try-impl `match expr pattern body ...))
 
-{:match match*
- :case case*
+{:case case*
+ :case-try case-try*
+ :match match*
  :match-try match-try*}

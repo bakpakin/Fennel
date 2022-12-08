@@ -25,7 +25,8 @@
         "expected a function.* to call" ["removing the empty parentheses"
                                          "using square brackets if you want an empty table"]
         "cannot call literal value" ["checking for typos"
-                                     "checking for a missing function name"]
+                                     "checking for a missing function name"
+                                     "making sure to use prefix operators, not infix"]
         "unexpected vararg" ["putting \"...\" at the end of the fn parameters if the vararg was intended"]
         "multisym method calls may only be in call position" ["using a period instead of a colon to reference a table's fields"
                                                               "putting parens around this"]
@@ -65,8 +66,9 @@
                                          "removing segments after the colon"
                                          "making the method call, then looking up the field on the result"]
         "$ and $... in hashfn are mutually exclusive" ["modifying the hashfn so it only contains $... or $, $1, $2, $3, etc"]
-        "tried to reference a macro at runtime" ["renaming the macro so as not to conflict with locals"]
-        "tried to reference a special form at runtime" ["wrapping the special in a function if you need it to be first class"]
+        "tried to reference a macro without calling it" ["renaming the macro so as not to conflict with locals"]
+        "tried to reference a special form without calling it" ["making sure to use prefix operators, not infix"
+                                                                "wrapping the special in a function if you need it to be first class"]
         "missing subject" ["adding an item to operate on"]
         "expected even number of pattern/body pairs" ["checking that every pattern has a body to go with it"
                                                       "adding _ before the final body"]
@@ -80,17 +82,11 @@
 (local unpack (or table.unpack _G.unpack))
 
 (fn suggest [msg]
-  (var suggestion nil)
-  (each [pat sug (pairs suggestions)]
+  (accumulate [s nil pat sug (pairs suggestions) :until s]
     (let [matches [(msg:match pat)]]
       (when (< 0 (length matches))
-        (set suggestion (if (= :table (type sug))
-                            (let [out []]
-                              (each [_ s (ipairs sug)]
-                                (table.insert out (s:format (unpack matches))))
-                              out)
-                            (sug matches))))))
-  suggestion)
+        (icollect [_ s (ipairs sug)]
+          (s:format (unpack matches)))))))
 
 (fn read-line [filename line ?source]
   (if ?source

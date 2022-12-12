@@ -282,6 +282,18 @@ many gensyms."
     (fcollect [i 1 sym-count &into (list)]
       (gensym))))
 
+(fn case-impl [match? val ...]
+  "The shared implementation of case and match."
+  (assert (not= val nil) "missing subject")
+  (assert (= 0 (math.fmod (select :# ...) 2))
+          "expected even number of pattern/body pairs")
+  (assert (not= 0 (select :# ...))
+          "expected at least one pattern/body pair")
+  (let [clauses [...]
+        vals (case-val-syms clauses)]
+    ;; protect against multiple evaluation of the value, bind against as
+    ;; many values as we ever match against in the clauses.
+    (list `let [vals val] (case-condition vals clauses match?))))
 
 (fn case* [val ...]
   "Perform pattern matching on val. See reference for details.
@@ -295,16 +307,7 @@ Syntax:
   (where (or pattern patterns*) guards*) body
   ;; legacy:
   (pattern ? guards*) body)"
-  (assert (not= val nil) "missing subject")
-  (assert (= 0 (math.fmod (select :# ...) 2))
-          "expected even number of pattern/body pairs")
-  (assert (not= 0 (select :# ...))
-          "expected at least one pattern/body pair")
-  (let [clauses [...]
-        vals (case-val-syms clauses)]
-    ;; protect against multiple evaluation of the value, bind against as
-    ;; many values as we ever match against in the clauses.
-    (list `let [vals val] (case-condition vals clauses false))))
+  (case-impl false val ...))
 
 (fn match* [val ...]
   "Perform pattern matching on val, automatically unifying on variables in
@@ -319,16 +322,7 @@ Syntax:
   (where (or pattern patterns*) guards*) body
   ;; legacy:
   (pattern ? guards*) body)"
-  (assert (not= val nil) "missing subject")
-  (assert (= 0 (math.fmod (select :# ...) 2))
-          "expected even number of pattern/body pairs")
-  (assert (not= 0 (select :# ...))
-          "expected at least one pattern/body pair")
-  (let [clauses [...]
-        vals (case-val-syms clauses)]
-    ;; protect against multiple evaluation of the value, bind against as
-    ;; many values as we ever match against in the clauses.
-    (list `let [vals val] (case-condition vals clauses true))))
+  (case-impl true val ...))
 
 (fn case-try-step [how expr else pattern body ...]
   (if (= nil pattern body)

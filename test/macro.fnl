@@ -239,20 +239,20 @@
   (== (match nil _ :yes nil :no) "yes")
   (== (let [_ :bar] (match :foo _ :should-match :foo :no)) "should-match")
   ;; match (or) without bindings
-  (== (let [x 10 y 9] (match 9 (or x 1 2 3) :a (or x y) :b)) :b)
+  (== (let [x 10 y 9] (match 9 (where (or x 1 2 3)) :a (where (or x y)) :b)) :b)
   (== (let [x 3] (match x (where (or 1 2 3) true false) :a (where (or 1 2 3) true) :b)) :b)
   (== (match 4 (where (or 1 3)) :odd (where (or 2 4)) :even) :even)
   (== (match [3] (where (or [1] [3])) :odd (where (or [2] [4])) :even) :odd)
-  (== (match (values 1 2) (or (1 1) (2 2)) :bad (or (2 1) (1 2)) :good) :good)
+  (== (match (values 1 2) (where (or (1 1) (2 2))) :bad (where (or (2 1) (1 2))) :good) :good)
   ;; match (or) with bindings
   (== (match [1 2] (where (or [x y] [y x]) (< y x)) x) 2)
-  (== (let [x 10] (match [10 5] (or [y x] [x y]) y)) 5)
-  (== (let [x 5] (match [10 5] (or [y x] [x y]) y)) 10)
-  (== (match [:a] (or [x] x) (x:upper)) :A)
-  (== (match :a (or [x] x) (x:upper)) :A)
-  (== (match nil (or [x] x) (x:upper)) nil)
-  (== (match (values 1 2) (or (y y x) (x y) (y x)) [x y]) [1 2])
-  (== (do (var x 5) (match 5 (or x x) (set x 6)) x) 6))
+  (== (let [x 10] (match [10 5] (where (or [y x] [x y])) y)) 5)
+  (== (let [x 5] (match [10 5] (where (or [y x] [x y])) y)) 10)
+  (== (match [:a] (where (or [x] x)) (x:upper)) :A)
+  (== (match :a (where (or [x] x)) (x:upper)) :A)
+  (== (match nil (where (or [x] x)) (x:upper)) nil)
+  (== (match (values 1 2) (where (or (y y x) (x y) (y x))) [x y]) [1 2])
+  (== (do (var x 5) (match 5 (where (or x x)) (set x 6)) x) 6))
 
 (fn test-match-try []
   (== (match-try [1 2 1]

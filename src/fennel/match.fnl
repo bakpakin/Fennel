@@ -4,6 +4,9 @@
 
 (fn copy [t] (collect [k v (pairs t)] k v))
 
+(fn with [opts k]
+  (doto (copy opts) (tset k true)))
+
 (fn without [opts k]
   (doto (copy opts) (tset k nil)))
 
@@ -88,7 +91,7 @@
         result)
       {}))
 
-(fn symbols-in-every-pattern [pattern-list unification?]
+(fn symbols-in-every-pattern [pattern-list infer-unification?]
   "gives a list of symbols that are present in every pattern in the list"
   (let [?symbols (accumulate [?symbols nil
                               _ pattern (ipairs pattern-list)]
@@ -101,18 +104,18 @@
                          ?symbols)
                        in-pattern)))]
     (icollect [_ symbol (pairs (or ?symbols {}))]
-      (if (not (and unification? (in-scope? symbol)))
+      (if (not (and infer-unification?
+                    (in-scope? symbol)))
         symbol))))
 
 (fn case-or [vals pattern guards unifications case-pattern opts]
-  ;; if guards is present, this is a (where (or)) shape
-  (let [bindings (symbols-in-every-pattern [(unpack pattern 2)] opts.unification?)]
+  (let [pattern [(unpack pattern 2)]
+        bindings (symbols-in-every-pattern pattern opts.infer-unification?)] ;; TODO opts.infer-unification instead of opts.unification?
     (if (= 0 (length bindings))
       ;; no bindings special case generates simple code
       (let [condition
-            (fcollect [i 2 (length pattern) &into `(or)]
-              (let [subpattern (. pattern i)
-                    (subcondition subbindings) (case-pattern vals subpattern unifications opts)]
+            (icollect [i subpattern (ipairs pattern) &into `(or)]
+              (let [(subcondition subbindings) (case-pattern vals subpattern unifications opts)]
                 subcondition))]
         (values
           (if (= 0 (length guards))
@@ -124,9 +127,8 @@
             bindings-mangled (icollect [_ binding (ipairs bindings)]
                                (gensym (tostring binding)))
             pre-bindings `(if)]
-        (for [i 2 (length pattern)]
-          (let [subpattern (. pattern i)
-                (subcondition subbindings) (case-guard vals subpattern guards {} case-pattern opts)]
+        (each [i subpattern (ipairs pattern)]
+          (let [(subcondition subbindings) (case-guard vals subpattern guards {} case-pattern opts)]
             (table.insert pre-bindings subcondition)
             (table.insert pre-bindings `(let ,subbindings
                                           (values true ,(unpack bindings))))))
@@ -147,15 +149,24 @@ introduce for the duration of the body if it does match."
   ;;   before the condition and bindings are evaluated. These should only
   ;;   come from a (case-or). In this case there should be no recursion:
   ;;   the call stack should be case-condition > case-pattern > case-or
+  ;;
+  ;; Here are the expected flags in the opts table:
+  ;;   :infer-unification? boolean - if the pattern should guess when to unify  (ie, match -> true, case -> false)
+  ;;   :multival? boolean - if the pattern can contain multivals  (in order to disallow patterns like [(1 2)])
+  ;;   :in-where? boolean - if the pattern is surrounded by (where)  (where opts into more pattern features)
 
   ;; we have to assume we're matching against multiple values here until we
   ;; know we're either in a multi-valued clause (in which case we know the #
   ;; of vals) or we're not, in which case we only care about the first one.
   (let [[val] vals]
-    (if (or (and (sym? pattern) ; unification with outer locals (or nil)
-                 (not= "_" (tostring pattern)) ; never unify _
-                 (or (and opts.unification? (in-scope? pattern)) (= :nil (tostring pattern))))
-            (and (multi-sym? pattern) opts.unification? (in-scope? (. (multi-sym? pattern) 1))))
+    (if (and (sym? pattern)
+             (or (= pattern `nil)
+                 (and opts.infer-unification?
+                      (in-scope? pattern)
+                      (not= pattern `_))
+                 (and opts.infer-unification?
+                      (multi-sym? pattern)
+                      (in-scope? (. (multi-sym? pattern) 1)))))
         (values `(= ,val ,pattern) [])
         ;; unify a local we've seen already
         (and (sym? pattern) (. unifications (tostring pattern)))
@@ -166,22 +177,33 @@ introduce for the duration of the body if it does match."
           (if (not wildcard?) (tset unifications (tostring pattern) val))
           (values (if (or wildcard? (string.find (tostring pattern) "^?")) true
                       `(not= ,(sym :nil) ,val)) [pattern val]))
-
+        ;; opt-in unify with (=)
+        (and (list? pattern)
+             (= (. pattern 1) `=)
+             (sym? (. pattern 2)))
+        (let [bind (. pattern 2)]
+          (assert-compile (= 2 (length pattern)) "(=) should take only one argument" pattern)
+          (assert-compile (not opts.infer-unification?) "(=) cannot be used inside of match" pattern)
+          (assert-compile opts.in-where? "(=) must be used in (where) patterns" pattern)
+          (assert-compile (and (sym? bind) (not= bind `nil) "= has to bind to a symbol" bind))
+          (values `(= ,val ,bind) []))
         ;; where-or clause
         (and (list? pattern) (= (. pattern 1) `where) (list? (. pattern 2)) (= (. pattern 2 1) `or))
         (do
           (assert-compile top-level? "can't nest (where) pattern" pattern)
-          (case-or vals (. pattern 2) [(unpack pattern 3)] unifications case-pattern opts))
-        ;; or clause
-        (and (list? pattern) (= (. pattern 1) `or))
-        (do
-          (assert-compile top-level? "can't nest (or) pattern" pattern)
-          (case-or vals pattern [] unifications case-pattern opts))
+          (case-or vals (. pattern 2) [(unpack pattern 3)] unifications case-pattern (with opts :in-where?)))
         ;; where clause
         (and (list? pattern) (= (. pattern 1) `where))
         (do
           (assert-compile top-level? "can't nest (where) pattern" pattern)
-          (case-guard vals (. pattern 2) [(unpack pattern 3)] unifications case-pattern opts))
+          (case-guard vals (. pattern 2) [(unpack pattern 3)] unifications case-pattern (with opts :in-where?)))
+        ;; or clause (not allowed on its own)
+        (and (list? pattern) (= (. pattern 1) `or))
+        (do
+          (assert-compile top-level? "can't nest (or) pattern" pattern)
+          ;; This assertion can be removed to make patterns more permissive
+          (assert-compile false "(or) must be used in (where) patterns" pattern)
+          (case-or vals pattern [] unifications case-pattern opts))
         ;; guard clause
         (and (list? pattern) (= (. pattern 2) `?))
         (case-guard vals (. pattern 1) [(unpack pattern 3)] unifications case-pattern opts)
@@ -210,7 +232,7 @@ introduce for the duration of the body if it does match."
       ;; otherwise, keep growing the current `if` AST.
       out))
 
-(fn case-condition [vals clauses unification?]
+(fn case-condition [vals clauses match?]
   "Construct the actual `if` AST for the given match values and clauses."
   ;; root is the original `if` AST.
   ;; out is the `if` AST that is currently being grown.
@@ -220,9 +242,9 @@ introduce for the duration of the body if it does match."
       (let [pattern (. clauses i)
             body (. clauses (+ i 1))
             (condition bindings pre-bindings) (case-pattern vals pattern {}
-                                                             {:multival? true
-                                                              : unification?}
-                                                             true)
+                                                            {:multival? true
+                                                             :infer-unification? match?}
+                                                            true)
             out (add-pre-bindings out pre-bindings)]
         ;; grow the `if` AST by one extra condition
         (table.insert out condition)

@@ -154,6 +154,7 @@ introduce for the duration of the body if it does match."
   ;;   :infer-unification? boolean - if the pattern should guess when to unify  (ie, match -> true, case -> false)
   ;;   :multival? boolean - if the pattern can contain multivals  (in order to disallow patterns like [(1 2)])
   ;;   :in-where? boolean - if the pattern is surrounded by (where)  (where opts into more pattern features)
+  ;;   :legacy-guard-allowed? boolean - if the pattern should allow `(a ? b) patterns
 
   ;; we have to assume we're matching against multiple values here until we
   ;; know we're either in a multi-valued clause (in which case we know the #
@@ -206,7 +207,9 @@ introduce for the duration of the body if it does match."
           (case-or vals pattern [] unifications case-pattern opts))
         ;; guard clause
         (and (list? pattern) (= (. pattern 2) `?))
-        (case-guard vals (. pattern 1) [(unpack pattern 3)] unifications case-pattern opts)
+        (do
+          (assert-compile opts.legacy-guard-allowed? "legacy guard clause not supported in case" pattern)
+          (case-guard vals (. pattern 1) [(unpack pattern 3)] unifications case-pattern opts))
         ;; multi-valued patterns (represented as lists)
         (list? pattern)
         (do
@@ -243,7 +246,8 @@ introduce for the duration of the body if it does match."
             body (. clauses (+ i 1))
             (condition bindings pre-bindings) (case-pattern vals pattern {}
                                                             {:multival? true
-                                                             :infer-unification? match?}
+                                                             :infer-unification? match?
+                                                             :legacy-guard-allowed? match?}
                                                             true)
             out (add-pre-bindings out pre-bindings)]
         ;; grow the `if` AST by one extra condition

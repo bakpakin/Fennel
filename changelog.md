@@ -8,8 +8,12 @@ deprecated forms.
 
 ## 1.3.0 / ???
 
+### New Forms
+* Add `case` which does pattern matching without unifying existing locals
+* Add `case-try` which works like `match-try` without unifying locals
+* Add `faccumulate` macro as range analog to `accumulate`
+
 ### New Features
-* Add `faccumulate` macro as range analog to `accumulate`.
 * Add `error-pinpoint` option to support custom error highlighting
 
 ## 1.2.1 / 2022-10-15

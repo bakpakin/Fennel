@@ -158,45 +158,80 @@ the number of expected arguments."
 (doc-special :values ["..."]
              "Return multiple values from a function. Must be in tail position.")
 
-;; TODO: use view here?
-(fn deep-tostring [x key?]
-  "Tostring for literal tables created with {}, [] or ().
-Recursively transforms tables into one-line string representation.
-Main purpose to print function argument list in docstring."
-  (if (utils.list? x)
-      (.. "(" (table.concat (icollect [_ v (ipairs x)]
-                              (deep-tostring v))
-                            " ") ")")
-      (utils.sequence? x)
-      (.. "[" (table.concat (icollect [_ v (ipairs x)]
-                              (deep-tostring v))
-                            " ") "]")
-      (utils.table? x)
-      (.. "{" (table.concat (icollect [k v (utils.stablepairs x)]
-                              (.. (deep-tostring k true) " "
-                                  (deep-tostring v)))
-                            " ") "}")
-      (and key? (utils.string? x) (x:find "^[-%w?\\^_!$%&*+./@:|<=>]+$"))
-      (.. ":" x)
-      (utils.string? x)
-      (-> (string.format "%q" x)
-          (: :gsub "\\\"" "\\\\\"")
-          (: :gsub "\"" "\\\""))
-      (tostring x)))
+(fn ->stack [stack tbl]
+  ;; append all keys and values of the table to the stack
+  (each [k v (pairs tbl)]
+    (doto stack (table.insert k) (table.insert v)))
+  stack)
 
-(fn set-fn-metadata [arg-list docstring parent fn-name]
+(fn literal? [val]
+  ;; checks if value doesn't contain any list expr.  Lineriazes nested
+  ;; tables into a stack, traversing it unil it meets a list or the
+  ;; stack is exhausted.
+  (var res true)
+  (if (utils.list? val)
+      (set res false)
+      (utils.table? val)
+      (let [stack (->stack [] val)]
+        (each [_ elt (ipairs stack)
+               :until (not res)]
+          (if (utils.list? elt)
+              (set res false)
+              (utils.table? elt)
+              (->stack stack elt)))))
+  res)
+
+(fn compile-value [v]
+  ;; compiles literal value to a string
+  (let [opts {:nval 1 :tail false}
+        scope (compiler.make-scope)
+        chunk []
+        [[v]] (compiler.compile1 v scope chunk opts)]
+    v))
+
+(fn insert-meta [meta k v]
+  ;; prepares the key and compiles the value if necessary and inserts
+  ;; it to the metadata sequence: (insert-meta [] :foo {:bar [1 2 3]})
+  ;; produces ["\"foo\"" "{bar = {1, 2, 3}}"]
+  (let [view-opts {:escape-newlines? true
+                   :line-length math.huge
+                   :one-line? true}]
+    (compiler.assert
+     (= (type k) :string)
+     (: "expected string keys in metadata table, got: %s"
+        :format (view k view-opts)))
+    (compiler.assert
+     (literal? v)
+     (: "expected literal value in metadata table, got: %s %s"
+        :format (view k view-opts) (view v view-opts)))
+    (doto meta
+      (table.insert (view k))
+      (table.insert (if (= :string (type v))
+                        (view v view-opts)
+                        (compile-value v))))))
+
+(fn insert-arglist [meta arg-list]
+  ;; Inserts a properly formatted arglist to the metadata table.  Does
+  ;; double viewing to quote the resulting string after first view
+  (let [view-opts {:one-line? true
+                   :escape-newlines? true
+                   :line-length math.huge}]
+    (doto meta
+      (table.insert "\"fnl/arglist\"")
+      (table.insert
+       (.. "{"
+           (-> arg-list
+               (utils.map #(view (view $ view-opts)))
+               (table.concat ", "))
+           "}")))))
+
+(fn set-fn-metadata [f-metadata parent fn-name]
   (when utils.root.options.useMetadata
-    (let [args (utils.map arg-list #(: "\"%s\"" :format (deep-tostring $)))
-          meta-fields ["\"fnl/arglist\"" (.. "{" (table.concat args ", ") "}")]]
-      (when docstring
-        (table.insert meta-fields "\"fnl/docstring\"")
-        (table.insert meta-fields (.. "\""
-                                      (-> docstring
-                                          (: :gsub "%s+$" "")
-                                          (: :gsub "\\" "\\\\")
-                                          (: :gsub "\n" "\\n")
-                                          (: :gsub "\"" "\\\""))
-                                      "\"")))
+    (let [meta-fields []]
+      (each [k v (utils.stablepairs f-metadata)]
+        (if (= k :fnl/arglist)
+            (insert-arglist meta-fields v)
+            (insert-meta meta-fields k v)))
       (let [meta-str (: "require(\"%s\").metadata" :format
                         (or utils.root.options.moduleName :fennel))]
         (compiler.emit parent
@@ -224,8 +259,7 @@ Main purpose to print function argument list in docstring."
                  ast)
   (compiler.emit parent f-chunk ast)
   (compiler.emit parent :end ast)
-  (set-fn-metadata f-metadata.fnl/arglist f-metadata.fnl/docstring
-                   parent fn-name)
+  (set-fn-metadata f-metadata parent fn-name)
   (utils.hook :fn ast f-scope)
   (utils.expr fn-name :sym))
 
@@ -240,6 +274,12 @@ Main purpose to print function argument list in docstring."
     (compile-named-fn ast f-scope f-chunk parent index fn-name true
                       arg-name-list f-metadata)))
 
+(fn assoc-table? [t]
+  ;; Check if table is associative and not empty
+  (let [len (length t)
+        (nxt t k) (pairs t)]
+    (not= nil (nxt t (if (= len 0) k len)))))
+
 (fn get-function-metadata [ast arg-list index]
   ;; Get function metadata from ast and put it in a table.  Detects if
   ;; the next expression after a argument list is either a string or a
@@ -253,7 +293,8 @@ Main purpose to print function argument list in docstring."
                   (tset :fnl/docstring expr))
                 index*)
         (and (utils.table? expr)
-             (< index* (length ast)))
+             (< index* (length ast))
+             (assoc-table? expr))
         (values (collect [k v (pairs expr) :into f-metadata]
                   (values k v))
                 index*)

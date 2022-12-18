@@ -321,7 +321,7 @@
             (list (sym :table.concat)
                   (icollect [_ x (ipairs (macroexpand f))] (tostring x))))
           (expand-string (when true (fn [] :x))))
-      "iftrue(do (fn {} \"x\"))"))
+      "iftrue(do (fn [] \"x\"))"))
 
 (fn test-literal []
   (== (do (macro splice [t] (doto t (tset :hello :world)))

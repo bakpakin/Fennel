@@ -177,7 +177,7 @@
 
 (fn test-byteoffset []
   (let [send (wrap-repl)
-        _ (send "(macro b [x] (view (getmetatable x)))")
+        _ (send "(macro b [x] (view (doto (getmetatable x) (tset :__fennelview nil))))")
         _ (send "(macro f [x] (assert-compile false :lol-no x))")
         out (table.concat (send "(b [1])"))
         out2 (table.concat (send "(b [1])"))
@@ -227,16 +227,23 @@
         ;; ["(fn ew [] \"so \\\"gross\\\" \\\\\\\"I\\\\\\\" can't even\" 1) ,doc ew"  "(ew)\n  so \"gross\" \\\"I\\\" can't even" "docstrings should be auto-escaped" ]
         ["(fn foo [a] :C 1) ,doc foo"  "(foo a)\n  C" "for named functions, doc shows name, args invocation, docstring" ]
         ["(fn foo! [-kebab- {:x x}] 1) ,doc foo!"  "(foo! -kebab- {:x x})\n  #<undocumented>" "fn-name and args pretty-printing" ]
-        ["(fn foo! [-kebab- [a b {: x} [x y]]] 1) ,doc foo!"  "(foo! -kebab- [a b {:x x} [x y]])\n  #<undocumented>" "fn-name and args deep pretty-printing" ]
-        ["(fn foo! [-kebab- [a b {\"a b c\" a-b-c} [x y]]] 1) ,doc foo!"  "(foo! -kebab- [a b {\"a b c\" a-b-c} [x y]])\n  #<undocumented>" "fn-name and args deep pretty-printing" ]
-        ["(fn foo! [-kebab- [a b {\"a \\\"b\\\" c\" a-b-c} [x y]]] 1) ,doc foo!"  "(foo! -kebab- [a b {\"a \\\"b\\\" c\" a-b-c} [x y]])\n  #<undocumented>" "fn-name and args deep pretty-printing" ]
-        ["(fn foo! [-kebab- [a b {\"a \\\"b \\\\\\\"c\\\\\\\" d\\\" e\" a-b-c-d-e} [x y]]] 1) ,doc foo!"  "(foo! -kebab- [a b {\"a \\\"b \\\\\"c\\\\\" d\\\" e\" a-b-c-d-e} [x y]])\n  #<undocumented>" "fn-name and args deep pretty-printing" ]
+        ["(fn foo! [-kebab- [a b {: x} [x y]]] 1) ,doc foo!"  "(foo! -kebab- [a b {:x x} [x y]])\n  #<undocumented>" "fn-name and args deep pretty-printing 1" ]
+        ["(fn foo! [-kebab- [a b {\"a b c\" a-b-c} [x y]]] 1) ,doc foo!"  "(foo! -kebab- [a b {\"a b c\" a-b-c} [x y]])\n  #<undocumented>" "fn-name and args deep pretty-printing 2" ]
+        ["(fn foo! [-kebab- [a b {\"a \\\"b\\\" c\" a-b-c} [x y]]] 1) ,doc foo!"  "(foo! -kebab- [a b {\"a \\\"b\\\" c\" a-b-c} [x y]])\n  #<undocumented>" "fn-name and args deep pretty-printing 3" ]
+        ["(fn foo! [-kebab- [a b {\"a \\\"b \\\\\\\"c\\\\\\\" d\\\" e\" a-b-c-d-e} [x y]]] 1) ,doc foo!"  "(foo! -kebab- [a b {\"a \\\"b \\\\\\\"c\\\\\\\" d\\\" e\" a-b-c-d-e} [x y]])\n  #<undocumented>" "fn-name and args deep pretty-printing 4" ]
         ["(fn ml [] \"a\nmultiline\ndocstring\" :result) ,doc ml"  "(ml)\n  a\n  multiline\n  docstring" "multiline docstrings work correctly" ]
         ["(local fennel (require :fennel)) (local {: generate} (fennel.dofile \"test/generate.fnl\" {:useMetadata true})) ,doc generate"  "(generate depth ?choice)\n  Generate a random piece of data." "docstrings from required module." ]
         ["(macro abc [x y z] \"this is a macro.\" :123) ,doc abc"  "(abc x y z)\n  this is a macro." "docstrings for user-defined macros" ]
         ["(macro ten [] \"[ten]\" 10) ,doc ten" "(ten)\n  [ten]" "macro docstrings with brackets"]
         ["(λ foo [] :D 1) ,doc foo"  "(foo)\n  D" ",doc fnname for named lambdas appear like named functions" ]
         ["(fn foo [...] {:fnl/arglist [a b c] :fnl/docstring \"D\"} 1) ,doc foo"  "(foo a b c)\n  D" ",doc arglist should be taken from function metadata table" ]
+        ["(fn foo [...] {:fnl/arglist [a b c]} 1) ,doc foo"  "(foo a b c)\n  #<undocumented>" ",doc arglist should be taken from function metadata table" ]
+        ["(fn foo [...] {:fnl/docstring \"D\"} 1) ,doc foo"  "(foo ...)\n  D" ",doc arglist should be taken from function metadata table" ]
+        ["(fn foo [...] {:fnl/arglist [([a]) ([a b])] :fnl/docstring \"clojure-like multiarity arglist\"} 1) ,doc foo"  "(foo ([a]) ([a b]))\n  clojure-like multiarity arglist" ",doc arglist should support lists" ]
+        ["(macro boo [] '(fn foo [...] {:fnl/dostring \"D\"} 1)) (macrodebug (boo) true)" "(fn foo [...] {:fnl/dostring \"D\"} 1)" "metadata table should be left as is if it contains invalid keys" ]
+        ["(macro boo [] '(fn foo [...] {:fnl/arlist [a b c]} 1)) (macrodebug (boo) true)" "(fn foo [...] {:fnl/arlist [a b c]} 1)" "metadata table should be left as is if it contains invalid keys" ]
+        ["(macro boo [] '(fn foo [...] [] 1)) (macrodebug (boo) true)" "(fn foo [...] {} 1)" "non-metadata tables are not removed" ]
+        ["(macro boo [] (let [mt [1 2 3]] '(fn foo [...] ,mt 1))) (macrodebug (boo) true)" "(fn foo [...] [1 2 3] 1)" "non-static non-metadata tables are not removed" ]
         [",doc macro-doesnt-exist" "macro-doesnt-exist not found" ",doc should report when failing to look up a sym"]
         ["(import-macros m :test.macros) ,doc m.inc" "(m.inc n)\n  Increments n by 1" ",doc should work on macro tables"]])
 
@@ -256,6 +263,42 @@
           (l.assertString docstring)
           (l.assertNil (docstring:find "undocumented")
                        (.. "Missing docstring for " name)))))))
+
+(fn test-custom-metadata []
+  (let [send (wrap-repl)
+        _ (send "(local {: view : metadata} (require :fennel))")
+        cases [["(fn foo [] {:foo :some-data} nil)
+                 (view (metadata:get foo :foo))"
+                "\"some-data\""
+                "expected ordinary string metadata to work"]
+               ["(fn bar [] {:bar [:seq]} nil)
+                 (view (metadata:get bar :bar))"
+                "[\"seq\"]"
+                "expected sequential table metadata to work"]
+               ["(fn baz [] {:baz {:table :table}} nil)
+                 (view (metadata:get baz :baz))"
+                "{:table \"table\"}"
+                "expected associative table metadata to work"]
+               ["(fn qux [] {:qux {:compound [:seq {:table :table}]}} nil)
+                 (view (metadata:get qux :qux))"
+                "{:compound [\"seq\" {:table \"table\"}]}"
+                "expected compound metadata to work"]]
+        err-cases [["(fn foo [] {:foo (fn [] nil)} nil)"
+                    "expected literal value in metadata table, got: \"foo\" (fn [] nil)"
+                    "lists are not allowed as metadata fields"]
+                   ["(fn foo [] {:foo [(fn [] nil)]} nil)"
+                    "expected literal value in metadata table, got: \"foo\" [(fn [] nil)]"
+                    "nested lists are not allowed as metadata fields"]
+                   ["(fn foo [] {:foo {:foo [(fn [] nil)]}} nil)"
+                    "expected literal value in metadata table, got: \"foo\" {:foo [(fn [] nil)]}"
+                    "nested lists as values are not allowed as metadata fields"]
+                   ["(fn foo [] {:foo {[(fn [] nil)] :foo}} nil)"
+                    "expected literal value in metadata table, got: \"foo\" {[(fn [] nil)] \"foo\"}"
+                    "nested lists as keys are not allowed as metadata fields"]]]
+    (each [_ [code expected msg] (ipairs cases)]
+      (l.assertEquals (table.concat (send code)) expected msg))
+    (each [_ [code err-msg msg] (ipairs err-cases)]
+      (l.assertStrContains (table.concat (send code)) err-msg false msg))))
 
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
@@ -278,5 +321,6 @@
      : test-code
      : test-locals-saving
      : test-docstrings
-     : test-no-undocumented}
+     : test-no-undocumented
+     : test-custom-metadata}
     {})

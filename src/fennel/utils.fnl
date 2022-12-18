@@ -233,7 +233,15 @@ except when certain macros need to look for binding forms, etc specifically."
   ;; the other types without giving up the ability to set source metadata
   ;; on a sequence, (which we need for error reporting) so embed a marker
   ;; value in the metatable instead.
-  (setmetatable [...] {:sequence sequence-marker}))
+  (setmetatable [...] {:sequence sequence-marker
+                       :__fennelview
+                       (fn [seq view inspector indent]
+                         (if (= 0 (length seq)) "[]"
+                             (let [{: __fennelview &as mt} (getmetatable seq)
+                                   _ (set mt.__fennelview nil)
+                                   (ok? res) (pcall view seq)]
+                               (set mt.__fennelview __fennelview)
+                               (if ok? res (error res)))))}))
 
 (fn expr [strcode etype]
   "Create a new expression. etype should be one of:

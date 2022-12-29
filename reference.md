@@ -213,8 +213,43 @@ command in the REPL prints specified argument list:
   Add arbitrary amount of numbers.
 ```
 
-Fennel itself uses the metadata keys `fnl/docstring` and `fnl/arglist`
-but third-party code can make use of arbitrary keys.
+*(Since 1.3.0)*
+
+Arbitrary metadata keys are allowed in the metadata table syntax:
+
+```fennel
+(fn foo []
+  {:deprecated "v1.9.0"
+   :fnl/docstring "*DEPRECATED* use foo2"}
+  ;; old way to do stuff
+  )
+
+(fn foo2 [x]
+  {:added "v2.0.0"
+   :fnl/docstring "Incompatible but better version of foo!"}
+  ;; do stuff better, now with x!
+  x)
+```
+
+In this example, the `deprecated` and `added` keys are used to store a
+version of a hypothetical library on which the functions were
+deprecated or added.  External tooling then can leverage this
+information by using Fennel's metadata API:
+
+```
+>> (local {: metadata} (require :fennel))
+>> (metadata:get foo :deprecated)
+"v1.9.0"
+>> (metadata:get foo2 :added)
+"v2.0.0"
+```
+
+Such metadata can be any data literal, including tables, with the only
+restriction that there are no side effects. Fennel's lists are
+disallowed as metadata values.
+
+Fennel itself only uses the `fnl/docstring` and `fnl/arglist` metadata
+keys but third-party code can make use of arbitrary keys.
 
 ### Hash function literal shorthand
 

@@ -15,6 +15,8 @@ deprecated forms.
 
 ### New Features
 * Add `error-pinpoint` option to support custom error highlighting
+* The `fn` special now allows arbitrary compiler metadata keys via the
+  metadata table syntax
 
 ## 1.2.1 / 2022-10-15
 

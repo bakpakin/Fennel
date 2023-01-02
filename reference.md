@@ -458,7 +458,10 @@ The final clause will only match if `mytable` has 1 as its first element and
 two non-nil values after it; if so then it will add up the second and third
 elements.
 
-If no clause matches, the form evaluates to nil.
+If no clause matches, the form *raises an error*.
+
+`case` clauses must be exhaustive. A "catch all" clause may be defined with the
+`_` symbol, explained in detail below.
 
 Patterns can be tables, literal values, or symbols. Any symbol is implicitly
 checked to be not `nil`. Symbols can be repeated in an expression to check for
@@ -496,8 +499,8 @@ Example:
 
 Symbols prefixed by an `_` are ignored and may stand in as positional
 placeholders or markers for "any" value - including a `nil` value. A single `_`
-is also often used at the end of a `case` expression to define an "else" style
-fall-through value.
+is also often used at the end of a `case` expression to define an "else" or
+"catch all" style fall-through value.
 
 Example:
 
@@ -509,9 +512,10 @@ Example:
   ;; note this is effectively the same as []
   [_a _a] :maybe-none-maybe-one-maybe-two-values
   ;; anything, anything
-  ;; this is identical to [_a _a] and in this example would never actually match.
+  ;; this is identical to [_a _a] and in this example would never actually match
   [_a _b] :maybe-none-maybe-one-maybe-two-values
   ;; when no other clause matched, in this case any non-table value
+  ;; without this, case would raise an error for values such as numbers or strings
   _ :no-match)
 ```
 
@@ -646,8 +650,12 @@ makes it redundant.
 
 *(since 0.2.0)*
 
-`match` is conceptually equivalent to `case`, except symbols in the patterns are
-always pinned with outer-scope symbols if they exist.
+`match` is conceptually equivalent to `case`, except:
+
+- symbols in the patterns are always pinned with outer-scope symbols if they
+  exist.
+- clauses can be *non-exhaustive* and `match` returns `nil` instead of raising
+  an error.
 
 It supports all the same syntax as described in `case` except the pin
 (`(= binding-name)`) expression, as it is always performed.
@@ -700,10 +708,8 @@ body is evaluated and its value is matched against the second pattern, etc.
 
 If there is a `(catch pat1 body1 pat2 body2 ...)` form at the end, any mismatch
 from the steps will be tried against these patterns in sequence as a fallback
-just like a normal `case`. If no `catch` pattern matches, nil is returned.
-
-If there is no catch, the mismatched value will be returned as the value of the
-entire expression.
+just like a normal `case`. If no `catch` pattern matches, or no `catch` form is
+present, an error is raised.
 
 ```fennel
 (fn handle [conn token]
@@ -726,11 +732,14 @@ representing the failure. This form only works on the latter, but you can use
 
 ### `match-try` for matching multiple steps
 
-Equivalent to `case-try` but uses `match` internally. See `case` and `match`
-for details on the differences between these two forms.
+Similar to `case-try` except:
 
-Unlike `case-try`, `match-try` will pin values in a given `catch` block with
-those in the original steps.
+- Uses `match` internally. See `case` and `match` for details on the
+  differences between these two forms, particularly, `match-try` will pin
+  values in a given `catch` block with those in the original steps.
+- If no `catch` pattern matches, nil is returned.
+- If there is no catch, the mismatched value will be returned as the value of
+  the entire expression.
 
 ```fennel
 (fn handle [conn token]

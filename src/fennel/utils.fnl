@@ -239,8 +239,8 @@ except when certain macros need to look for binding forms, etc specifically."
                        (fn [seq view inspector indent]
                          (if (= 0 (length seq)) "[]"
                              (let [{: __fennelview &as mt} (getmetatable seq)
-                                   _ (set mt.__fennelview nil)
-                                   (ok? res) (pcall view seq)]
+                                   _ (set mt.__fennelview nil) ; TODO: test
+                                   (ok? res) (pcall view seq inspector indent)]
                                (set mt.__fennelview __fennelview)
                                (if ok? res (error res)))))}))
 

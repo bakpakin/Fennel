@@ -9,8 +9,8 @@ deprecated forms.
 ## 1.3.0 / ???
 
 ### New Forms
-* Add `case` which does pattern matching without unifying existing locals
-* Add `case-try` which works like `match-try` without unifying locals
+* Add `case` which does pattern matching without pinning existing locals
+* Add `case-try` which works like `match-try` without pinning locals
 * Add `faccumulate` macro as range analog to `accumulate`
 
 ### New Features

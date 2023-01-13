@@ -116,6 +116,32 @@
                                    "" {:comments true}))]
     (l.assertEquals (view ast) "(print [1\n ;hi\n 2])")))
 
+(fn test-once-skip-opts []
+  (l.assertEquals (view "a" {:prefer-colon? {:once true}}) ":a")
+  (l.assertEquals (view ["a"] {:prefer-colon? {:once true}}) "[\"a\"]")
+  (l.assertEquals (view ["a" ["b"] "c"]
+                        {:prefer-colon? {:once true :after {:once true}}})
+                  "[:a [\"b\"] :c]")
+  (l.assertEquals (view ["a" ["b" ["c"]] "d"]
+                        {:prefer-colon? {:once true :after {:once true :after {:once true}}}})
+                  "[:a [:b [\"c\"]] :d]")
+  (l.assertEquals (view ["a" ["b" ["c" ["d"] "e"] "f"] "g"]
+                        {:prefer-colon? {:once true :after {:once true :after {:once true}}}})
+                  "[:a [:b [\"c\" [\"d\"] \"e\"] :f] :g]")
+  (let [vector (fn [...]
+                 (->> {:__fennelview
+                       (fn [t view opts indent]
+                         (view t (doto opts
+                                   (tset :metamethod?
+                                         {:once false :after opts.metamethod?})
+                                   (tset :empty-as-sequence?
+                                         {:once true :after opts.empty-as-sequence?}))
+                               indent))}
+                      (setmetatable [...])))]
+    (l.assertEquals (view (vector)) "[]")
+    (l.assertEquals (view (vector [])) "[{}]")
+    (l.assertEquals (view (vector (vector))) "[[]]")))
+
 {: test-generated
  : test-newline
  : test-fennelview-userdata-handling
@@ -123,4 +149,5 @@
  : test-escapes
  : test-gaps
  : test-utf8
- : test-seq-comments}
+ : test-seq-comments
+ : test-once-skip-opts}

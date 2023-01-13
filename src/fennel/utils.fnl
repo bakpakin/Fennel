@@ -238,12 +238,12 @@ except when certain macros need to look for binding forms, etc specifically."
   (setmetatable [...] {:sequence sequence-marker
                        :__fennelview
                        (fn [seq view inspector indent]
-                         (if (= 0 (length seq)) "[]"
-                             (let [{: __fennelview &as mt} (getmetatable seq)
-                                   _ (set mt.__fennelview nil) ; TODO: test
-                                   (ok? res) (pcall view seq inspector indent)]
-                               (set mt.__fennelview __fennelview)
-                               (if ok? res (error res)))))}))
+                         (let [opts (doto inspector
+                                      (tset :empty-as-sequence?
+                                            {:once true :after inspector.empty-as-sequence?})
+                                      (tset :metamethod?
+                                            {:once false :after inspector.metamethod?}))]
+                           (view seq opts indent)))}))
 
 (fn expr [strcode etype]
   "Create a new expression. etype should be one of:

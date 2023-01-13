@@ -17,6 +17,9 @@ deprecated forms.
 * Add `error-pinpoint` option to support custom error highlighting
 * The `fn` special now allows arbitrary compiler metadata keys via the
   metadata table syntax
+* Options in fennelview can be altered for the next invocation of the
+  pretty-printer by setting them to `{:once val}` or `{:once val
+  :after other-val}`. See `fennel.view` docstring for more info
 
 ## 1.2.1 / 2022-10-15
 

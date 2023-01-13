@@ -8,6 +8,17 @@
                    :userdata 6
                    :thread 7})
 
+(local default-opts {:one-line? false
+                     :detect-cycles? true
+                     :empty-as-sequence? false
+                     :metamethod? true
+                     :prefer-colon? false
+                     :escape-newlines? false
+                     :utf8? true
+                     :line-length 80
+                     :depth 128
+                     :max-sparse-gap 10})
+
 ;; Pairs, ipairs and length functions that respect metamethods
 
 (local lua-pairs pairs)
@@ -27,6 +38,28 @@
   (match (getmetatable t)
     {:__len l} (l t)
     _ (length t)))
+
+(fn get-default [key]
+  (match (. default-opts key)
+    nil (error (: "option '%s' doesn't have a default value, use the :after key to set it"
+                  :format (tostring key)))
+    v v))
+
+(fn getopt [options key]
+  "Get an option with the respect to `:once` syntax."
+  (let [val (. options key)]
+    (match val
+      {:once val*} val*
+      _ val)))
+
+(fn normalize-opts [options]
+  "Prepare options for a nested invocation of the pretty printer."
+  (collect [k v (pairs options)]
+    (->> (match v
+           {:once v* :after val} val
+           {:once v*} (get-default k)
+           _ v)
+         (values k))))
 
 (fn sort-keys [[a] [b]]
   ;; Sort keys depending on the `type-order`.
@@ -120,7 +153,7 @@
   ;; Detect cycle, save table's ID in seen tables, and determine if
   ;; cycle is visible.  Exposed via options table to use in
   ;; __fennelview metamethod implementations
-  (and options.detect-cycles? (detect-cycle t {}) (save-table t options.seen)
+  (and (getopt options :detect-cycles?) (detect-cycle t {}) (save-table t options.seen)
        (< 1 (or (. options.appearances t) 0))))
 
 (fn table-indent [indent id]
@@ -148,7 +181,7 @@
         open (.. (or prefix "") (if (= :seq table-type) "[" "{"))
         close (if (= :seq table-type) "]" "}")
         oneline (.. open (table.concat elements " ") close)]
-    (if (and (not options.one-line?)
+    (if (and (not (getopt options :one-line?))
              (or multiline?
                  (< options.line-length (+ indent (length* oneline)))
                  last-comment?))
@@ -173,18 +206,19 @@
   (var multiline? false)
   (let [id (. options.seen t)]
     (if (<= options.depth options.level) "{...}"
-        (and id options.detect-cycles?) (.. "@" id "{...}")
+        (and id (getopt options :detect-cycles?)) (.. "@" id "{...}")
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
               indent (table-indent indent id)
-              slength (if options.utf8? utf8-len #(length $))
+              slength (if (getopt options :utf8?) utf8-len #(length $))
               prefix (if visible-cycle? (.. "@" id) "")
-              items (icollect [_ [k v] (ipairs kv)]
-                      (let [k (pp k options (+ indent 1) true)
-                            v (pp v options (+ indent (slength k) 1))]
-                        (set multiline?
-                             (or multiline? (k:find "\n") (v:find "\n")))
-                        (.. k " " v)))]
+              items (let [options (normalize-opts options)]
+                      (icollect [_ [k v] (ipairs kv)]
+                        (let [k (pp k options (+ indent 1) true)
+                              v (pp v options (+ indent (slength k) 1))]
+                          (set multiline?
+                               (or multiline? (k:find "\n") (v:find "\n")))
+                          (.. k " " v))))]
           (concat-table-lines items options multiline? indent :table prefix
                               false)))))
 
@@ -192,27 +226,28 @@
   (var multiline? false)
   (let [id (. options.seen t)]
     (if (<= options.depth options.level) "[...]"
-        (and id options.detect-cycles?) (.. "@" id "[...]")
+        (and id (getopt options :detect-cycles?)) (.. "@" id "[...]")
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
               indent (table-indent indent id)
               prefix (if visible-cycle? (.. "@" id) "")
               last-comment? (comment? (. t (length t)))
-              items (icollect [_ [_ v] (ipairs kv)]
-                      (let [v (pp v options indent)]
-                        (set multiline?
-                             (or multiline? (v:find "\n") (v:find "^;")))
-                        v))]
+              items (let [options (normalize-opts options)]
+                      (icollect [_ [_ v] (ipairs kv)]
+                        (let [v (pp v options indent)]
+                          (set multiline?
+                               (or multiline? (v:find "\n") (v:find "^;")))
+                          v)))]
           (concat-table-lines items options multiline? indent :seq prefix
                               last-comment?)))))
 
 (fn concat-lines [lines options indent force-multi-line?]
   (if (= (length* lines) 0)
-      (if options.empty-as-sequence? "[]" "{}")
+      (if (getopt options :empty-as-sequence?) "[]" "{}")
       (let [oneline (-> (icollect [_ line (ipairs lines)]
                           (line:gsub "^%s+" ""))
                         (table.concat " "))]
-        (if (and (not options.one-line?)
+        (if (and (not (getopt options :one-line?))
                  (or force-multi-line? (oneline:find "\n")
                      (< options.line-length (+ indent (length* oneline)))))
             (table.concat lines (.. "\n" (string.rep " " indent)))
@@ -220,9 +255,11 @@
 
 (fn pp-metamethod [t metamethod options indent]
   (if (<= options.depth options.level)
-      (if options.empty-as-sequence? "[...]" "{...}")
+      (if (getopt options :empty-as-sequence?) "[...]" "{...}")
       (let [_ (set options.visible-cycle? #(visible-cycle? $ options))
-            (lines force-multi-line?) (metamethod t pp options indent)]
+            (lines force-multi-line?)
+            (let [options (normalize-opts options)]
+              (metamethod t pp options indent))]
         (set options.visible-cycle? nil)
         ;; TODO: assuming that a string result is already a single line
         (match (type lines)
@@ -235,10 +272,10 @@
   ;; sequential tables, as well as tables, that contain __fennelview
   ;; metamethod.
   (set options.level (+ options.level 1))
-  (let [x (match (if options.metamethod? (-?> x getmetatable (. :__fennelview)))
+  (let [x (match (if (getopt options :metamethod?) (-?> x getmetatable (. :__fennelview)))
             metamethod (pp-metamethod x metamethod options indent)
             _ (match (table-kv-pairs x options)
-                (_ :empty) (if options.empty-as-sequence? "[]" "{}")
+                (_ :empty) (if (getopt options :empty-as-sequence?) "[]" "{}")
                 (kv :table) (pp-associative x kv options indent)
                 (kv :seq) (pp-sequence x kv options indent)))]
     (set options.level (- options.level 1))
@@ -318,28 +355,20 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                             "\t" "\\t"
                             :\ "\\\\"
                             "\"" "\\\""
-                            "\n" (if (and options.escape-newlines?
+                            "\n" (if (and (getopt options :escape-newlines?)
                                           (< (length* str)
                                              (- options.line-length indent)))
                                      "\\n" "\n")}
                            {:__index #(: "\\%03d" :format ($2:byte))})
         str (.. "\"" (str:gsub "[%c\\\"]" escs) "\"")]
-    (if options.utf8?
+    (if (getopt options :utf8?)
         (utf8-escape str)
         str)))
 
 (fn make-options [t options]
   (let [;; defaults are used when options are not provided
-        defaults {:line-length 80
-                  :one-line? false
-                  :depth 128
-                  :detect-cycles? true
-                  :empty-as-sequence? false
-                  :metamethod? true
-                  :prefer-colon? false
-                  :escape-newlines? false
-                  :utf8? true
-                  :max-sparse-gap 10}
+        defaults (collect [k v (pairs default-opts)]
+                   (values k v))
         ;; overrides can't be accessed via options
         overrides {:level 0
                    :appearances (count-table-appearances t {})
@@ -365,7 +394,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                 (and (= tv :string) (colon-string? x)
                      (if (not= colon? nil) colon?
                          (= :function (type options.prefer-colon?)) (options.prefer-colon? x)
-                         options.prefer-colon?))
+                         (getopt options :prefer-colon?)))
                 (.. ":" x)
                 (= tv :string)
                 (pp-string x options indent)
@@ -393,6 +422,13 @@ Can take an options table with these keys:
 * :preprocess (function) if present, called on x (and recursively on each value
   in x), and the result is used for pretty printing; takes the same arguments as
   `fennel.view`
+
+All options can be set to `{:once some-value}` to force their
+value to be `some-value` but only for the current
+level. After that, such option is reset to its default value.
+Alternatively, `{:once value :after other-value}` can be used, with the
+difference that after first use, the options will be set to `other-value`
+instead of the default value.
 
 The `__fennelview` metamethod should take the table being serialized as its
 first argument, a function as its second argument, options table as third

@@ -124,6 +124,10 @@ Optionally takes a target table to insert the mapped values into."
     nil nil
     _ (member? x tbl (+ (or ?n 1) 1))))
 
+(fn maxn [tbl]
+  (accumulate [max 0 k (pairs tbl)]
+    (if (= :number (type k)) (math.max max k) max)))
+
 (fn allpairs [tbl]
   "Like pairs, but if the table has an __index metamethod, it will recurisvely
 traverse upwards, skipping duplicates, to iterate all inherited properties"
@@ -167,11 +171,8 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 ;; the list's contents will also show as being fennelviewed.
 (fn list->string [self ?view ?options ?indent]
   (let [safe []
-        view (if ?view #(?view $ ?options ?indent) view)]
-    (var max 0)
-    (each [k (pairs self)]
-      (when (and (= (type k) :number) (< max k))
-        (set max k)))
+        view (if ?view #(?view $ ?options ?indent) view)
+        max (maxn self)]
     (for [i 1 max]
       (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
     (.. "(" (table.concat (map safe view) " " 1 max) ")")))
@@ -423,6 +424,7 @@ handlers will be skipped."
  : map
  : walk-tree
  : member?
+ : maxn
  : list
  : sequence
  : sym

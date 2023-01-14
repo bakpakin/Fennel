@@ -552,10 +552,11 @@ if opts contains the nval option."
     (handle-compile-opts [(utils.expr (serialize ast) :literal)] parent opts)))
 
 (fn compile-table [ast scope parent opts compile1]
-  (let [buffer []]
+  (let [buffer []
+        max (if (= nil (. ast 1)) 0 (utils.maxn ast))]
     (fn write-other-values [k]
       (when (or (not= (type k) :number) (not= (math.floor k) k) (< k 1)
-                (< (length ast) k))
+                (< max k))
         (if (and (= (type k) :string) (utils.valid-lua-identifier? k)) [k k]
             (let [[compiled] (compile1 k scope parent {:nval 1})
                   kstr (.. "[" (tostring compiled) "]")]
@@ -569,8 +570,9 @@ if opts contains the nval option."
                      (string.format "%s = %s" k1 (tostring v))))
                  buffer))
 
-    (for [i 1 (length ast)] ; write numeric keyed values
-      (let [nval (and (not= i (length ast)) 1)]
+    ;; write numeric keyed values
+    (for [i 1 max]
+      (let [nval (and (not= i max) 1)]
         (table.insert buffer
                       (exprs1 (compile1 (. ast i) scope parent {: nval})))))
 

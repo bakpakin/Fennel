@@ -56,8 +56,8 @@
   "Prepare options for a nested invocation of the pretty printer."
   (collect [k v (pairs options)]
     (->> (match v
-           {:once v* :after val} val
-           {:once v*} (get-default k)
+           {:after val} val
+           (where {} v.once) (get-default k)
            _ v)
          (values k))))
 

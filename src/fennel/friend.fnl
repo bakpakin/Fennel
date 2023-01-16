@@ -131,7 +131,7 @@
   "A drop-in replacement for the internal assert-compile with friendly messages."
   (when (not condition)
     (let [{: filename : line : col} (utils.ast-source ast)]
-      (error (friendly-msg (: "Compile error in %s:%s:%s\n  %s" :format
+      (error (friendly-msg (: "%s:%s:%s Compile error: %s" :format
                               ;; still need fallbacks because backtick erases
                               ;; source and macros can generate source-less ast
                               (or filename :unknown) (or line "?")
@@ -141,7 +141,7 @@
 
 (fn parse-error [msg filename line col source opts]
   "A drop-in replacement for the internal parse-error with friendly messages."
-  (error (friendly-msg (: "Parse error in %s:%s:%s\n  %s" :format
+  (error (friendly-msg (: "%s:%s:%s Parse error: %s" :format
                           filename line col msg)
                        {: filename : line : col} source opts) 0))
 

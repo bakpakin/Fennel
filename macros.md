@@ -70,7 +70,7 @@ programs can apply to macros. You want to use `table.remove` on a list
 that represents code? Go for it. You can use `each`/`ipairs` to step
 thru the contents of the lists. Destructuring and even pattern
 matching work as you'd expect. A list is just a special kind of table
-which prints with parens instead of square brackets.
+(with a metatable) which prints with parens instead of square brackets.
 
 ## Details
 
@@ -145,20 +145,20 @@ with a loop if you prefer; that's not important. The important thing
 is: tables go in, and a table comes out.
 
 ```fennel
-(fn thrice-if* [condition body]
+(fn thrice-if* [condition result]
   (fn step [i]
     (if (< 0 i)
-        [:if condition [:do body (step (- i 1))]]))
+        [:if condition [:do result (step (- i 1))]]))
   (step 3))
 ```
 
 Now that we have this function, what does it take to turn it into a macro?
 
 ```fennel
-(macro thrice-if [condition body]
+(macro thrice-if [condition result]
   (fn step [i]
     (if (< 0 i)
-        (list (sym :if) condition (list (sym :do) body (step (- i 1))))))
+        (list (sym :if) condition (list (sym :do) result (step (- i 1))))))
   (step 3))
 ```
 
@@ -188,15 +188,15 @@ character to unquote. This is similar to how string interpolation
 works in languages like Ruby.
 
 ```fennel
-(macro thrice-if [condition body]
+(macro thrice-if [condition result]
   (fn step [i]
     (if (< 0 i)
-        `(if ,condition (do ,body ,(step (- i 1))))))
+        `(if ,condition (do ,result ,(step (- i 1))))))
   (step 3))
 ```
 
 Symbols inside a quoted form remain as symbols. Symbols in an unquoted
-form (like `,condition` and `,body` above) are **evaluated** meaning
+form (like `,condition` and `,result` above) are **evaluated** meaning
 they are replaced with whatever value they have in the code at that point.
 
 Unquoting doesn't just apply to symbols; you can unquote lists too:
@@ -236,16 +236,17 @@ any assumptions about the code. For example:
 ```fennel
 (local engines (require :engines))
 
-(macro when-weapons-safe [body]
+(macro with-weapons-check [...]
   `(let [phasers (require :phasers)
          overloaded? (phasers.overloaded?)]
      (when (not overloaded?)
-       ,body)))
+       ,...)))
 
 (let [overloaded? (engines.overloaded?)]
-  (when-weapons-safe (if overloaded?
-                         (print "Engines overloaded")
-                         (go-to-warp!))))
+  (with-weapons-check
+    (if overloaded?
+        (print "Engines overloaded")
+        (go-to-warp!))))
 ```
 
 This program will not behave as expected, because the outer
@@ -273,11 +274,11 @@ different symbol which is guaranteed to be unique and can never
 conflict with an existing local value.
 
 ```fennel
-(macro when-weapons-safe [body]
+(macro with-weapons-check [...]
   `(let [phasers# (require :phasers)
          overloaded?# (phasers#.overloaded?)]
      (when (not overloaded?#)
-       ,body)))
+       ,...)))
 ```
 
 Above we said that there is no difference between using `list`/`sym`
@@ -309,6 +310,12 @@ is bound to a file that gets closed automatically at the end of the body.
 In a case like this, the macro should accept symbols for the locals as
 arguments. It is convention to take these arguments in square brackets, but
 the macro system does not enforce this.
+
+Note that the `with-weapons-check` and `with-open2` examples above
+take an arbitrary number of arguments using `...` which get treated as
+the "body" of the macro. Picking a name that begins with `with-` or
+`def` for macros like this will make it clearer that their bodies
+should be indented with two spaces instead of like normal function calls.
 
 ### AST quirks
 
@@ -379,10 +386,10 @@ available, see the "Compiler Environment" section of [the reference][3].
 
 ```fennel
 ;; thrice.fnl
-(fn thrice-if [condition body]
+(fn thrice-if [condition result]
   (fn step [i]
     (if (< 0 i)
-        `(if ,condition (do ,body ,(step (- i 1))))))
+        `(if ,condition (do ,result ,(step (- i 1))))))
   (step 3))
 
 {: thrice-if}
@@ -412,11 +419,11 @@ table types, and symbols have file and line number metadata attached to them, wh
 means the compiler can pinpoint the source of the problem in the error message.
 
 ```fennel
-(macro thrice-if [condition body]
-  (assert-compile (list? body) "expected list for body" body)
+(macro thrice-if [condition result]
+  (assert-compile (list? result) "expected list for result" result)
   (fn step [i]
     (if (< 0 i)
-        `(if ,condition (do ,body ,(step (- i 1))))))
+        `(if ,condition (do ,result ,(step (- i 1))))))
   (step 3))
 
 (thrice-if true abc)
@@ -425,7 +432,7 @@ means the compiler can pinpoint the source of the problem in the error message.
 ```shell
 $ fennel scratch.fnl
 Compile error in scratch.fnl:8
-  expected list for body
+  expected list for result
 
 (thrice-if true abc)
                 ^^^

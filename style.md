@@ -113,11 +113,11 @@ maintenance of the data and clarifies version diffs. For example:
 
 ## Indentation and Alignment
 
-For any call to a function, macro, or special form, the callee following the
-opening paren determines the rules for indenting or aligning the remaining
-forms.  Certain names in this position indicate special alignment or
-indentation rules; these are special forms and macros that accept a "body"
-argument or arguments.
+For any call to a macro or special form, the callee following the
+opening paren determines the rules for indenting or aligning the
+remaining forms. Certain names in this position indicate special
+alignment or indentation rules; these are special forms and macros
+that accept a "body" argument or arguments.
 
 ```fennel
 ;; Don't:
@@ -129,13 +129,24 @@ argument or arguments.
 (when condition
   (print "Running the thing!")
   (run :the-thing))
+
+(with-connection [s "https://fennel-lang.org"]
+  (parse (read-body s))
 ```
 
-If the callee is not a special name, however, then if the first argument is
-on the same line, align the starting column of all following arguments with
-that of the first argument.  If the first argument is on the following line,
-align its starting column with that of the callee, and do the same for
-all remaining arguments.
+This raises the question of how to tell whether a given macro takes a
+body or not. For the forms which are part of Fennel, you can use the
+`(fennel.syntax)` function in Fennel's API: it will give you a table
+of form names, some of which have `:body? true`. For things that don't
+come with Fennel, picking a name that starts with `with-` or `def`
+will make it clearer to 3rd-party tools like text editors and `fnlfmt`
+that it's a macro which takes a body.
+
+If the callee is not like that, then if the first argument is on the
+same line, align the starting column of all following arguments with
+that of the first argument.  If the first argument is on the following
+line, align its starting column with that of the callee, and do the
+same for all remaining arguments.
 
 ```fennel
 ;; Don't:
@@ -268,7 +279,7 @@ Pronounce the question mark as "huh".  For example, to read the fragment
 Do not name functions `is-foo`; the use of the `is` prefix comes from
 languages which are not allowed to use question marks in identifier names and
 has no place in Fennel. Exception: the `is` prefix can be used when
-naming functions that are intended to be called from Lua code.
+exporting functions that are intended to be called from Lua code.
 
 #### Exclamation Marks: Destructive Operations
 
@@ -365,7 +376,8 @@ When writing a multi-file library where one module relies on another, use
 relative requires so that the code can be relocated inside the directory
 structure of an application which uses your library.
 
-Avoid sequential tables which have gaps in them; these frequently cause bugs.
+Where possible, avoid sequential tables which have gaps (nils) in
+them; these frequently cause bugs.
 
 If you can separate out side-effecting functions from value-returning
 functions, do so. Counter-example: the `setmetatable` function in Lua
@@ -401,8 +413,8 @@ your code.
 
 Only use the `(. foo :bar)` special form when the shorter `foo.bar` syntax
 cannot be used due to the field name not being known at compile-time or the
-table not being a symbol. Similarly do not call `:` when `(foo:bar)` would
-work.
+table not being a symbol. Similarly do not call `(: foo :bar)` when `(foo:bar)`
+would work.
 
 Remember that returning multiple values can make your functions less reusable
 in certain contexts:
@@ -507,17 +519,21 @@ repl for interactive development, but your program should never use that
 global except in order to preserve state during reloads. Avoid the `global`
 special form, preferring table access on `_G` instead.
 
-If you have more than a few files of code, place your module files in a
-`src/` directory. If you have scripts meant to be launched from a shell,
-place them in a `bin/` directory. Tests should go in a `test/` directory.
+If you have more than a few files of code, place your module files in
+a `src/` directory. Tests should go in a `test/` directory. If you
+have scripts meant to be launched from a shell, place them in a `bin/`
+directory. Some languages have a construct to allow a single file to
+both be loaded as a library and to be run as a command from a
+shell. There is no reason to do this in Fennel because you can already
+use `--require-as-include` to create single-file scripts.
 
 ### Error handling
 
 Lua and thus Fennel have two ways of indicating errors. The first is the
 convention of returning multiple values, nil followed by a message describing
 the error. This should be preferred in cases where a failure is to be
-expected, such as a file not being found, or a socket closing
-unexpectedly. Functions which use this style should usually be called inside
+expected, such as a file not being found, or a socket closing.
+Functions which use this style should usually be called inside
 a `match` form so the success and failure cases can be side by side.
 
 Errors raised using the `error` or `assert` functions should be preferred

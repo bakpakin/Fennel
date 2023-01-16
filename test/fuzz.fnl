@@ -24,7 +24,7 @@
 
 (local marker {})
 
-(fn fuzz [verbose?]
+(fn fuzz [verbose? seed]
   (let [code (fennel.view (generate.generators.list generate.generate 1))
         (ok err) (xpcall #(fennel.compile-string code {:useMetadata true
                                                        :compiler-env :strict})
@@ -35,18 +35,20 @@
         (print code)
         (io.write "."))
     (when (not ok)
+      (print "Fuzzing seed:" seed)
       ;; if we get an error, it must come from assert-compile; if we get
       ;; a non-assertion error then it must be a compiler bug!
       (l.assertEquals err marker (.. code "\n" (tostring err))))))
 
 (fn test-fuzz []
   (let [verbose? (os.getenv "VERBOSE")
-        {: assert-compile : parse-error} friend]
-    (math.randomseed (os.time))
+        {: assert-compile : parse-error} friend
+        seed (os.time)]
+    (math.randomseed seed)
     (set friend.assert-compile #(error marker))
     (set friend.parse-error #(error marker))
     (for [_ 1 (tonumber (or (os.getenv "FUZZ_COUNT") 256))]
-      (fuzz verbose?))
+      (fuzz verbose? seed))
     (print)
     (set friend.assert-compile assert-compile)
     (set friend.parse-error parse-error)))

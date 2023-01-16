@@ -191,8 +191,8 @@
         (_ msg7) (pcall fennel.eval "(match) ;; msg7")
         (_ msg-custom-pinpoint) (pcall fennel.eval "(asdf 123)" {:error-pinpoint [">>>" "<<<"]})]
     ;; use the standard prefix
-    (l.assertStrMatches msg "^%g+:%d+:%d+ Compile error: .+")
-    (l.assertStrMatches parse-msg "^%g+:%d+:%d+ Parse error: .+")
+    (l.assertStrMatches msg "^%S+:%d+:%d+ Compile error: .+")
+    (l.assertStrMatches parse-msg "^%S+:%d+:%d+ Parse error: .+")
     ;; show the raw error message
     (l.assertStrContains msg "expected var x")
     ;; offer suggestions

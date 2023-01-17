@@ -35,10 +35,10 @@
         (print code)
         (io.write "."))
     (when (not ok)
-      (print "Fuzzing seed:" seed)
       ;; if we get an error, it must come from assert-compile; if we get
       ;; a non-assertion error then it must be a compiler bug!
-      (l.assertEquals err marker (.. code "\n" (tostring err))))))
+      (l.assertEquals err marker (.. code "\n" (tostring err)
+                                     "\nSeed: " seed)))))
 
 (fn test-fuzz []
   (let [verbose? (os.getenv "VERBOSE")

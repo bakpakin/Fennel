@@ -1328,8 +1328,8 @@ Lua output. The module must be a string literal and resolvable at compile time."
         opts (utils.copy utils.root.options)]
     (set opts.scope (compiler.make-scope compiler.scopes.compiler))
     (set opts.allowedGlobals (current-global-names env))
-    ((load-code (compiler.compile ast opts) (wrap-env env)) opts.module-name
-                                                            ast.filename)))
+    (assert (load-code (compiler.compile ast opts) (wrap-env env))
+            opts.module-name ast.filename)))
 
 (fn SPECIALS.macros [ast scope parent]
   (compiler.assert (= (length ast) 2) "Expected one table argument" ast)

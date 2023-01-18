@@ -189,7 +189,9 @@
     (each [code expected (pairs cases)]
       (l.assertEquals (fennel.eval code {:correlate true}) expected code))
     (when (not _G.getfenv)
-      (l.assertEquals (fennel.eval "(type _ENV)") :table))))
+      (l.assertEquals (fennel.eval "(type _ENV)") :table))
+    ;; ensure sparse tables don't print with a ton of nils in them
+    (l.assertNil (string.find (fennel.compileString "{1 :a 999999 :b}") :nil))))
 
 (fn test-if []
   (let [cases {"(do (fn myfn [x y z] (+ x y z)) (myfn 1 (if 1 (values 2 5) 3) 4))" 7

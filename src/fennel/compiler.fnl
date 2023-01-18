@@ -414,18 +414,10 @@ if opts contains the nval option."
       (set (src.bytestart src.byteend) (values bytestart byteend))))
   (= :table (type node)))
 
-(fn max-n [t]
-  "A hacky way to obtain semi-real lable length."
-  (var n 0)
-  (each [k (pairs t)]
-    (when (and (= :number (type k)))
-      (set n (math.max k n))))
-  n)
-
 (fn quote-literal-nils [index node parent]
   "Replaces literal `nil` values with quoted version."
   (when (and parent (utils.list? parent))
-    (for [i 1 (max-n parent)]
+    (for [i 1 (utils.maxn parent)]
       (match (. parent i)
         nil (tset parent i (utils.sym "nil")))))
   (values index node parent))
@@ -552,29 +544,20 @@ if opts contains the nval option."
     (handle-compile-opts [(utils.expr (serialize ast) :literal)] parent opts)))
 
 (fn compile-table [ast scope parent opts compile1]
-  (let [buffer []
-        max (if (= nil (. ast 1)) 0 (utils.maxn ast))]
-    (fn write-other-values [k]
-      (when (or (not= (type k) :number) (not= (math.floor k) k) (< k 1)
-                (< max k))
-        (if (and (= (type k) :string) (utils.valid-lua-identifier? k)) [k k]
-            (let [[compiled] (compile1 k scope parent {:nval 1})
-                  kstr (.. "[" (tostring compiled) "]")]
-              [kstr k]))))
+  (fn escape-key [k]
+    (if (and (= (type k) :string) (utils.valid-lua-identifier? k))
+        k
+        (let [[compiled] (compile1 k scope parent {:nval 1})]
+          (.. "[" (tostring compiled) "]"))))
 
-    (let [keys (icollect [k v (utils.stablepairs ast)]
-                 (write-other-values k v))]
-      (utils.map keys
-                 (fn [[k1 k2]]
-                   (let [[v] (compile1 (. ast k2) scope parent {:nval 1})]
-                     (string.format "%s = %s" k1 (tostring v))))
-                 buffer))
+  (let [buffer (icollect [i elem (ipairs ast)]
+                 (let [nval (and (not= nil (. ast (+ i 1))) 1)]
+                   (exprs1 (compile1 elem scope parent {: nval}))))]
 
-    ;; write numeric keyed values
-    (for [i 1 max]
-      (let [nval (and (not= i max) 1)]
-        (table.insert buffer
-                      (exprs1 (compile1 (. ast i) scope parent {: nval})))))
+    (icollect [k v (utils.stablepairs ast) :into buffer]
+      (if (not (. buffer k)) ; not part of the sequence section above
+          (let [[v] (compile1 (. ast k) scope parent {:nval 1})]
+            (string.format "%s = %s" (escape-key k) (tostring v)))))
 
     (handle-compile-opts [(utils.expr (.. "{" (table.concat buffer ", ") "}")
                                       :expression)]

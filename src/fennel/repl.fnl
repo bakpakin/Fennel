@@ -389,8 +389,11 @@ For more information about the language, see https://fennel-lang.org/reference")
       (each [k (pairs chars)]
         (tset chars k nil))
       (reset)
-      (let [(ok not-eof? x) (pcall read)
-            src-string (string.char (unpack chars))]
+      (let [(ok parser-not-eof? x) (pcall read)
+            src-string (string.char (unpack chars))
+            ;; Readline returns "(null)" on C-d.
+            readline-not-eof? (or (not readline) (not= src-string "(null)"))
+            not-eof? (and parser-not-eof? readline-not-eof?)]
         (if (not ok)
             (do
               (on-error :Parse not-eof?)

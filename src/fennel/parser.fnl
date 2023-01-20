@@ -141,7 +141,7 @@ Also returns a second function to clear the buffer in the byte stream"
           comments
           (do (ungetb 10)
               (dispatch (utils.comment (table.concat contents)
-                                       {:line (- line 1) :filename filename})))))
+                                       {: line : filename})))))
 
     (fn open-table [b]
       (when (not whitespace-since-dispatch)

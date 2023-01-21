@@ -71,8 +71,10 @@
 (fn syntax []
   "Return a table describing the callable forms known by Fennel."
   (let [body? [:when :with-open :collect :icollect :fcollect :lambda :λ
-               :macro :match :match-try :case :case-try :accumulate :doto]
-        binding? [:collect :icollect :fcollect :each :for :let :with-open :accumulate]
+               :macro :match :match-try :case :case-try :accumulate
+               :faccumulate :doto]
+        binding? [:collect :icollect :fcollect :each :for :let :with-open
+                  :accumulate :faccumulate]
         define? [:fn :lambda :λ :var :local :macro :macros :global]
         out {}]
     (each [k v (pairs compiler.scopes.global.specials)]

@@ -347,7 +347,10 @@
   "This is a more complicated version of string.format %q.
 However, we can't use that functionality because it always emits control codes
 as numeric escapes rather than letter-based escapes, which is ugly."
-  (let [escs (setmetatable {"\a" "\\a"
+  (let [len (length* str)
+        esc-newline? (or (< len 2) (and (getopt options :escape-newlines?)
+                                        (< len (- options.line-length indent))))
+        escs (setmetatable {"\a" "\\a"
                             "\b" "\\b"
                             "\f" "\\f"
                             "\v" "\\v"
@@ -355,10 +358,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                             "\t" "\\t"
                             :\ "\\\\"
                             "\"" "\\\""
-                            "\n" (if (and (getopt options :escape-newlines?)
-                                          (< (length* str)
-                                             (- options.line-length indent)))
-                                     "\\n" "\n")}
+                            "\n" (if esc-newline? "\\n" "\n")}
                            {:__index #(: "\\%03d" :format ($2:byte))})
         str (.. "\"" (str:gsub "[%c\\\"]" escs) "\"")]
     (if (getopt options :utf8?)

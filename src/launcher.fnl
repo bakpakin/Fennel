@@ -66,13 +66,12 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
       (os.exit 1))
     (unpack result 2 result.n)))
 
-(fn allow-globals [global-names globals]
-  (if (= global-names "*")
+(fn allow-globals [names actual-globals]
+  (if (= names "*")
       (set options.allowedGlobals false)
       (do
-        (set options.allowedGlobals
-             (icollect [g (global-names:gmatch "([^,]+),?")] g))
-        (each [global-name (pairs globals)]
+        (set options.allowedGlobals (icollect [g (names:gmatch "([^,]+),?")] g))
+        (each [global-name (pairs actual-globals)]
           (table.insert options.allowedGlobals global-name)))))
 
 (fn handle-load [i]

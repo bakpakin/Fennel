@@ -897,8 +897,8 @@ which we have to do if we don't know."
 Use with xpcall to produce fennel specific stacktraces. Skips frames from the
 compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
   (let [msg (tostring (or ?msg ""))]
-    (if (and (or (msg:find "^%g+:%d+:%d+ Compile error:.*\\* Try")
-                 (msg:find "^%g+:%d+:%d+ Parse error:.*\\* Try"))
+    (if (and (or (msg:find "^%g+:%d+:%d+ Compile error:.*")
+                 (msg:find "^%g+:%d+:%d+ Parse error:.*"))
              (not (utils.debug-on? :trace)))
         msg ; skip the trace because it's compiler internals.
         (let [lines []]

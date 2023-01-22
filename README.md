@@ -117,11 +117,11 @@ Copyright © 2016-2022 Calvin Rose and contributors
 Released under the [MIT license](LICENSE).
 
 [1]: https://fennel-lang.org
-[2]: https://github.com/bakpakin/Fennel/wiki/Cookbook
+[2]: https://wiki.fennel-lang.org/Cookbook
 [3]: https://fennel-lang.org/see
 [4]: http://luajit.org/ext_ffi_tutorial.html
 [5]: https://lists.sr.ht/%7Etechnomancy/fennel
-[7]: https://github.com/bakpakin/Fennel/wiki
+[7]: https://wiki.fennel-lang.org/
 [8]: https://builds.sr.ht/~technomancy/fennel
 [9]: https://libera.chat
 [10]: https://matrix.to/#/!rnpLWzzTijEUDhhtjW:matrix.org?via=matrix.org

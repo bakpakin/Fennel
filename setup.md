@@ -18,7 +18,7 @@ compile to Lua. You have a few options for how to install Fennel.
 
 Depending on what package manager you use on your system, you may be
 able to use it to install Fennel. See [the
-wiki](https://github.com/bakpakin/Fennel/wiki/Packaging) for a list of
+wiki](https://wiki.fennel-lang.org/Packaging) for a list of
 packaging systems which offer Fennel. Packaged versions of Fennel may
 lag behind the official releases and often only support one version at
 a time, but they tend to be the most convenient.
@@ -87,7 +87,7 @@ Lua during the build process and including the Lua output in the
 application may be easier.
 
 There are so many ways to distribute your code that we can't cover
-them all here; please [see the wiki page on distribution for details](https://github.com/bakpakin/Fennel/wiki/Distribution).
+them all here; please [see the wiki page on distribution for details](https://wiki.fennel-lang.org/Distribution).
 
 
 ### Embedding the Fennel compiler in a Lua application
@@ -161,7 +161,7 @@ Other editors support advanced features like an integrated REPL, live
 reloading while you edit the program, documentation lookups, and
 jumping to source definitions.
 
-See [the wiki](https://github.com/bakpakin/Fennel/wiki/Editors)
+See [the wiki](https://wiki.fennel-lang.org/Editors)
 for a list of editors that have Fennel support.
 
 
@@ -284,7 +284,7 @@ Both TIC-80 and LÖVE offer cross-platform support across Windows, Mac,
 and Linux systems, but TIC-80 games can be played in the browser and
 LÖVE games cannot without more complex 3rd-party tools.
 
-The [Fennel wiki](https://github.com/bakpakin/Fennel/wiki#games) links
+The [Fennel wiki](https://wiki.fennel-lang.org/Codebases) links
 to many games made in both systems you can study.
 
 

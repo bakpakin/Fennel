@@ -42,19 +42,18 @@
         ;; has a comment
         ;; with multiple lines in it!!!
         :and \"we don't want to lose the comments\"
-        ;; so let's keep them; all the comments are good and we want them
-        ;; to be kept
+        ;; so let's keep em; all the comments are
+        : good ; and we want them to be kept
         }"
         (ok? ast) ((fennel.parser (fennel.string-stream code)
                                   "" {:comments true}))]
     (l.assertTrue ok? ast)
     (== (. (getmetatable ast) :comments :keys)
         {:and [(fennel.comment ";; has a comment")
-               (fennel.comment ";; with multiple lines in it!!!")]})
+               (fennel.comment ";; with multiple lines in it!!!")]
+         :good [(fennel.comment ";; so let's keep em; all the comments are")]})
     (== (. (getmetatable ast) :comments :last)
-        [(fennel.comment (.. ";; so let's keep them; all the comments "
-                             "are good and we want them"))
-         (fennel.comment ";; to be kept")]))
+        [(fennel.comment "; and we want them to be kept")]))
   (let [(_ ast) ((fennel.parser "(do\n; a\n(print))" "-" {:comments true}))]
     (== ["do" "; a" "(print)"] (icollect [_ x (ipairs ast)] (tostring x)))
     ;; top-level version

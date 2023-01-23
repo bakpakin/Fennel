@@ -169,8 +169,8 @@ Also returns a second function to clear the buffer in the byte stream"
         _ (tset comments index [node])))
 
     (fn next-noncomment [tbl i]
-      (if (utils.comment? (. tbl i))
-          (next-noncomment tbl (+ i 1))
+      (if (utils.comment? (. tbl i)) (next-noncomment tbl (+ i 1))
+          (= (utils.sym ":") (. tbl i)) (tostring (. tbl (+ i 1)))
           (. tbl i)))
 
     (fn extract-comments [tbl]

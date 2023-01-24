@@ -393,7 +393,7 @@ For more information about the language, see https://fennel-lang.org/reference")
             src-string (string.char (unpack chars))
             ;; Work around a bug introduced in lua-readline 3.2
             readline-not-eof? (or (not readline) (not= src-string "(null)"))
-            not-eof? (and parser-not-eof? readline-not-eof?)]
+            not-eof? (and readline-not-eof? parser-not-eof?)]
         (if (not ok)
             (do
               (on-error :Parse not-eof?)

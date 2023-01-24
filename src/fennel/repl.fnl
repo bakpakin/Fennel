@@ -391,7 +391,7 @@ For more information about the language, see https://fennel-lang.org/reference")
       (reset)
       (let [(ok parser-not-eof? x) (pcall read)
             src-string (string.char (unpack chars))
-            ;; Readline returns "(null)" on C-d.
+            ;; Work around a bug introduced in lua-readline 3.2
             readline-not-eof? (or (not readline) (not= src-string "(null)"))
             not-eof? (and parser-not-eof? readline-not-eof?)]
         (if (not ok)

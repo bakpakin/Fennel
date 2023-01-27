@@ -200,7 +200,7 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
                        (pcall require :readline))]
     (set searcher-opts.useMetadata (not= false options.useMetadata))
     (when (not= false options.fennelrc)
-      (load-initfile))
+      (tset options :fennelrc load-initfile))
     (print (.. "Welcome to " (fennel.runtime-version) "!"))
     (print "Use ,help to see available commands.")
     (when (and (not readline?) (not= "dumb" (os.getenv "TERM")))

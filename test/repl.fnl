@@ -214,6 +214,9 @@
     (send "(fn abc [] nil)")
     (l.assertEquals (send "x-y") [:5])
     (l.assertEquals (send "(type abc)") ["function"]))
+  (let [(send comp) (wrap-repl {:correlate true})]
+    (send "(local x 1)")
+    (l.assertEquals (send "x") [:1]))
   ;; now let's try with an env
   (let [(send comp) (wrap-repl {:env {: debug}})]
     (send "(local xyz 55)")

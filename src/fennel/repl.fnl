@@ -32,23 +32,19 @@
      "Runtime" (.. (compiler.traceback (tostring err) 4) "\n")
      _ (: "%s error: %s\n" :format errtype (tostring err)))))
 
-(local save-source " ___replLocals___['%s'] = %s")
-
 (fn splice-save-locals [env lua-source scope]
-  (let [spliced-source []
-        bind "local %s = ___replLocals___['%s']"]
-    (each [line (lua-source:gmatch "([^\n]+)\n?")]
-      (table.insert spliced-source line))
-    (each [name (pairs env.___replLocals___)]
-      (table.insert spliced-source 1 (bind:format name name)))
-    (when (and (< 1 (length spliced-source))
-               (: (. spliced-source (length spliced-source)) :match
-                  "^ *return .*$"))
-      (each [_ name (pairs scope.manglings)]
-        (when (not (. scope.gensyms name))
-          (table.insert spliced-source (length spliced-source)
-                        (save-source:format name name)))))
-    (table.concat spliced-source "\n")))
+  (let [saves (icollect [name (pairs env.___replLocals___)]
+                (: "local %s = ___replLocals___['%s']"
+                   :format name name))
+        binds (icollect [_ name (pairs scope.manglings)]
+                (when (not (. scope.gensyms name))
+                  (: "___replLocals___['%s'] = %s"
+                     :format name name)))
+        gap (if (lua-source:find "\n") "\n" " ")]
+    (.. (if (next saves) (.. (table.concat saves " ") gap) "")
+        (match (lua-source:match "^(.*)[\n ](return .*)$")
+          (body return) (.. body gap (table.concat binds " ") gap return)
+          _ lua-source))))
 
 (fn completer [env scope text]
   (let [max-items 2000 ; to stop explosion on too mny items

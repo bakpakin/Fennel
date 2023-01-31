@@ -123,7 +123,10 @@
         (let [f (fn [] (set a (+ a 2)))]
           (f) (f) a))
       15)
-  (== [(pick-values 4 :a :b :c (values :d :e))] ["a" "b" "c" "d"]))
+  (== [(pick-values 4 :a :b :c (values :d :e))] ["a" "b" "c" "d"])
+  (== ((fn [a & [b {: c}]] (string.format a (+ b c))) "haha %s" 4 {:c 3})
+      "haha 7")
+  (== ((fn [& {1 _ 2 _ 3 x}] x) :one :two :three) "three"))
 
 (fn test-conditionals []
   (== (if _G.non-existent 1 (* 3 9)) 27)

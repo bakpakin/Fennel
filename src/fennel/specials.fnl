@@ -312,30 +312,46 @@ the number of expected arguments."
     (compiler.assert (or (not multi) (not multi.multi-sym-method-call))
                      (.. "unexpected multi symbol " (tostring fn-name)) fn-sym)
 
-    (fn get-arg-name [arg]
-      (if (utils.varg? arg)
+    (fn destructure-arg [arg]
+      (let [raw (utils.sym (compiler.gensym scope))
+            declared (compiler.declare-local raw [] f-scope ast)]
+        (compiler.destructure arg raw ast f-scope f-chunk
+                              {:declaration true
+                               :nomulti true
+                               :symtype :arg})
+        declared))
+
+    (fn destructure-amp [i]
+      (compiler.assert (= i (- (length arg-list) 1))
+                       "expected rest argument before last parameter"
+                       (. arg-list (+ i 1)) arg-list)
+      (set f-scope.vararg true)
+      (compiler.destructure (. arg-list (length arg-list)) [(utils.varg)]
+                            ast f-scope f-chunk
+                            {:declaration true
+                             :nomulti true
+                             :symtype :arg})
+      "...")
+
+    (fn get-arg-name [arg i]
+      (if f-scope.vararg nil ; if we already handled & rest
+          (utils.varg? arg)
           (do
             (compiler.assert (= arg (. arg-list (length arg-list)))
                              "expected vararg as last parameter" ast)
             (set f-scope.vararg true)
             "...")
+          (= (utils.sym :&) arg) (destructure-amp i)
           (and (utils.sym? arg) (not= (tostring arg) :nil)
                (not (utils.multi-sym? (tostring arg))))
           (compiler.declare-local arg [] f-scope ast)
-          (utils.table? arg)
-          (let [raw (utils.sym (compiler.gensym scope))
-                declared (compiler.declare-local raw [] f-scope ast)]
-            (compiler.destructure arg raw ast f-scope f-chunk
-                                  {:declaration true
-                                   :nomulti true
-                                   :symtype :arg})
-            declared)
+          (utils.table? arg) (destructure-arg arg)
           (compiler.assert false
                            (: "expected symbol for function parameter: %s"
                               :format (tostring arg))
                            (. ast index))))
 
-    (let [arg-name-list (utils.map arg-list get-arg-name)
+    (let [arg-name-list (icollect [i a (ipairs arg-list)] (get-arg-name a i))
           (f-metadata index) (get-function-metadata ast arg-list index)]
       (if fn-name
           (compile-named-fn ast f-scope f-chunk parent index fn-name local?

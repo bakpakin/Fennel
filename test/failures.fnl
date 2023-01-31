@@ -52,7 +52,9 @@
     "(lambda x)" "expected arg list"
     "(fn abc:def [x] (+ x 2))" "unexpected multi symbol abc:def"
     "#[$ $...] 1 2 3" "$ and $... in hashfn are mutually exclusive"
-    "#(values ...)" "use $... in hashfn"}))
+    "#(values ...)" "use $... in hashfn"
+    "(fn [a & b c] nil)" "expected rest argument before last parameter"
+    "(fn [a & {3 3}] nil)" "unable to bind number 3"}))
 
 (fn test-macro-fails []
   (test-failures

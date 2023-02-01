@@ -375,6 +375,7 @@ Example:
 (let [[a b & c] [1 2 3 4 5 6]]
   (table.concat c ",")) ; => "3,4,5,6"
 ```
+*(Since 1.3.0)*: This also works with function argument lists.
 
 If a table implements `__fennelrest` metamethod it is used to capture the
 remainder of the table. It can be used with custom data structures
@@ -424,7 +425,7 @@ Supports destructuring and multiple-value binding.
 
 ### `case` pattern matching
 
-*(Since 1.2.2)*
+*(Since 1.3.0)*
 
 Evaluates its first argument, then searches thru the subsequent
 pattern/body clauses to find one where the pattern matches the value,

@@ -14,6 +14,7 @@ deprecated forms.
 * Add `faccumulate` macro as range analog to `accumulate`
 
 ### New Features
+* Support `&` for rest args in function arglists for consistency with `let`
 * Add `error-pinpoint` option to support custom error highlighting
 * The `fn` special now allows arbitrary compiler metadata keys via the
   metadata table syntax

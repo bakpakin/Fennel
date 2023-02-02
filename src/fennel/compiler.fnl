@@ -231,8 +231,7 @@ if they have already been declared via declare-local"
       ;; then we need to check for allowed globals
       (assert-compile (or (not ?reference?) local? (= :_ENV (. parts 1))
                           (global-allowed? (. parts 1)))
-                      (.. "unknown identifier in strict mode: "
-                          (tostring (. parts 1))) symbol)
+                      (.. "unknown identifier: " (tostring (. parts 1))) symbol)
       (when (and allowed-globals (not local?) scope.parent)
         (tset scope.parent.refedglobals (. parts 1) true))
       (utils.expr (combine-parts parts scope) etype))))

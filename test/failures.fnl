@@ -35,9 +35,9 @@
     "(local a-b 1) (global [a_b] [2])" "global a_b conflicts with local"
     "(local a-b 1) (global a_b 2)" "global a_b conflicts with local"
     "((fn [] (require-macros \"test.macros\") (global x1 (->1 99 (+ 31)))))
-      (->1 23 (+ 1))" "unknown identifier in strict mode"
+      (->1 23 (+ 1))" "unknown identifier"
     ;; strict mode applies to macro modules too
-    "(import-macros t :test.bad.unknown-global)" "unknown identifier in strict mode"}))
+    "(import-macros t :test.bad.unknown-global)" "unknown identifier"}))
 
 
 (fn test-fn-fails []
@@ -163,8 +163,8 @@
     "(case :subject (= x) :body)" "(=) must be used in (where) patterns"
     "(match :subject [(or pattern)] :body)" "can't nest (or) pattern"
     "(match :subject ((or pattern)) :body)" "can't nest (or) pattern"
-    "(match [1] (where (or [_ a] [a b]) b) :body)" "unknown identifier in strict mode"
-    "(match [1] (where (or [_ a] [a b])) b)" "unknown identifier in strict mode"}))
+    "(match [1] (where (or [_ a] [a b]) b) :body)" "unknown identifier"
+    "(match [1] (where (or [_ a] [a b])) b)" "unknown identifier"}))
 
 (fn test-macro []
   (let [code "(import-macros {: fail-one} :test.macros) (fail-one 1)"

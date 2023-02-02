@@ -5,6 +5,7 @@
 (local utils (require :fennel.utils))
 (local (utf8-ok? utf8) (pcall require :utf8))
 
+;; fnlfmt: skip
 (local suggestions
        {"unexpected multi symbol (.*)" ["removing periods or colons from %s"]
         "use of global (.*) is aliased by a local" ["renaming local %s"
@@ -18,10 +19,10 @@
                                               "avoid defining nested macro tables"]
         "macro not found in macro module" ["checking the keys of the imported macro module's returned table"]
         "macro tried to bind (.*) without gensym" ["changing to %s# when introducing identifiers inside macros"]
-        "unknown identifier in strict mode: (.*)" ["looking to see if there's a typo"
-                                                   "using the _G table instead, eg. _G.%s if you really want a global"
-                                                   "moving this code to somewhere that %s is in scope"
-                                                   "binding %s as a local in the scope of this code"]
+        "unknown identifier: (.*)" ["looking to see if there's a typo"
+                                    "using the _G table instead, eg. _G.%s if you really want a global"
+                                    "moving this code to somewhere that %s is in scope"
+                                    "binding %s as a local in the scope of this code"]
         "expected a function.* to call" ["removing the empty parentheses"
                                          "using square brackets if you want an empty table"]
         "cannot call literal value" ["checking for typos"

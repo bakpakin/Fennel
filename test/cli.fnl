@@ -18,9 +18,8 @@
 (fn test-cli []
   ;; skip this if we haven't compiled the CLI
   (when (file-exists? "./fennel")
-    (l.assertEquals [(peval "(+ 1 2 3)")] [true "6"])
-    (l.assertEquals [(peval "(values 1 2)")] [true "1\t2"])
-    (l.assertEquals [(peval "(values 1 nil 2 nil nil)")] [true "1\tnil\t2\tnil\tnil"])))
+    (l.assertEquals [(peval "(values 1 nil 2 nil nil)")]
+                    [true "1\tnil\t2\tnil\tnil"])))
 
 (fn test-lua-flag []
   ;; skip this when cli is not compiled or not running tests with `make testall`

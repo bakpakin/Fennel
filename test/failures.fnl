@@ -191,7 +191,10 @@
         (_ msg5) (pcall fennel.eval "(let {:a 1}) ;; msg5")
         (_ msg6) (pcall fennel.eval "(for [:abc \n \"def t\"] nil)")
         (_ msg7) (pcall fennel.eval "(match) ;; msg7")
-        (_ msg-custom-pinpoint) (pcall fennel.eval "(asdf 123)" {:error-pinpoint [">>>" "<<<"]})]
+        (_ msg-custom-pinpoint) (pcall fennel.eval "(asdf 123)"
+                                       {:error-pinpoint [">>>" "<<<"]})
+        (_ msg-custom-pinpoint2) (pcall fennel.eval "(asdf]"
+                                        {:error-pinpoint [">>>" "<<<"]})]
     ;; use the standard prefix
     (l.assertStrMatches msg "^%S+:%d+:%d+ Compile error: .+")
     (l.assertStrMatches parse-msg "^%S+:%d+:%d+ Parse error: .+")
@@ -211,7 +214,8 @@
     (l.assertStrContains msg6 "unable to bind string abc")
     (l.assertStrContains msg7 "msg7")
     ;; custom error pinpointing works
-    (l.assertStrContains msg-custom-pinpoint ">>>asdf<<<")))
+    (l.assertStrContains msg-custom-pinpoint ">>>asdf<<<")
+    (l.assertStrContains msg-custom-pinpoint2 ">>>]<<<")))
 
 (fn doer []
   ;; this plugin does not detach in subsequent tests, so we must check that

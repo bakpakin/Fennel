@@ -840,6 +840,8 @@ Method name doesn't have to be known at compile-time; if it is, use
   (let [call (and (utils.list? ast) (tostring (. ast 1)))]
     (if (and (or (= :or name) (= :and name)) (< 1 i)
              ;; dangerous specials (or a macro which could be anything)
+             ;; TODO: this misses a ton of things
+             ;; https://github.com/bakpakin/Fennel/issues/422
              (or (. mac call) (= :set call) (= :tset call) (= :global call)))
         (utils.list (utils.sym :do) ast)
         ast)))

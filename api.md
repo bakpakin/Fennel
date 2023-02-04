@@ -47,6 +47,10 @@ Note that only the `fennel` module is part of the public API. The
 other modules (`fennel.utils`, `fennel.compiler`, etc) should be
 considered compiler internals subject to change.
 
+If you are embedding Fennel in a context where ANSI escape codes are
+not interpreted, you can set `error-pinpoint` to `false` to disable
+the highlighting of compiler and parse errors.
+
 ## Start a configurable repl
 
 ```lua

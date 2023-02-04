@@ -14,6 +14,7 @@ deprecated forms.
 * Add `faccumulate` macro as range analog to `accumulate`
 
 ### New Features
+* Omit escape codes highlighting errors when `NO_COLOR` env var is set
 * Support `&` for rest args in function arglists for consistency with `let`
 * Add `error-pinpoint` option to support custom error highlighting
 * The `fn` special now allows arbitrary compiler metadata keys via the
@@ -23,8 +24,7 @@ deprecated forms.
   :after other-val}`. See `fennel.view` docstring for more info
 
 ### Bug Fixes
-* Fix bug introduced in 1.2.0 causing the REPL's lua-readline integration to save
-REPL history to ~/.rl_lua_history instead of expected no-persistence-by-default
+* Fix bug where readline repl history would be saved to the wrong file
 
 ## 1.2.1 / 2022-10-15
 

@@ -107,13 +107,16 @@
       (string.sub str start (math.min end (str:len)))))
 
 (fn highlight-line [codeline col ?endcol opts]
-  (let [{: error-pinpoint} (or opts {})
-        endcol (or ?endcol col)
-        eol (if utf8-ok? (utf8.len codeline) (string.len codeline))
-        [head tail] (or error-pinpoint ["\027[7m" "\027[0m"])]
-    (.. (sub codeline 1 col) head
-        (sub codeline (+ col 1) (+ endcol 1))
-        tail (sub codeline (+ endcol 2) eol))))
+  (if (or (and opts (= false opts.error-pinpoint))
+          (and os os.getenv (os.getenv "NO_COLOR")))
+      codeline
+      (let [{: error-pinpoint} (or opts {})
+            endcol (or ?endcol col)
+            eol (if utf8-ok? (utf8.len codeline) (string.len codeline))
+            [open close] (or error-pinpoint ["\027[7m" "\027[0m"])]
+        (.. (sub codeline 1 col) open
+            (sub codeline (+ col 1) (+ endcol 1))
+            close (sub codeline (+ endcol 2) eol)))))
 
 (fn friendly-msg [msg {: filename : line : col : endcol} source opts]
   (let [(ok codeline) (pcall read-line filename line source)

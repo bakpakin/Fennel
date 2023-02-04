@@ -22,9 +22,10 @@ Also returns a second function to clear the buffer in the byte stream"
                                               (c:byte))
                     _ (set done? true))))) #(set c "")))
 
-(fn string-stream [str]
+(fn string-stream [str ?options]
   "Convert a string into a stream of bytes."
   (let [str (str:gsub "^#!" ";;")] ; replace shebang with comment
+    (when ?options (set ?options.source str))
     (var index 1)
     (fn []
       (let [r (str:byte index)]
@@ -356,7 +357,7 @@ On success, returns true and the AST node. Returns nil when it reaches the end."
     (assert (= :string (type filename))
             "expected filename as second argument to parser")
     (if (= :string (type stream-or-string))
-        (parser-fn (string-stream stream-or-string) filename options)
+        (parser-fn (string-stream stream-or-string options) filename options)
         (parser-fn stream-or-string filename options))))
 
 {: granulate : parser : string-stream : sym-char?}

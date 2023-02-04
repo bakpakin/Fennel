@@ -846,8 +846,9 @@ which we have to do if we don't know."
     (utils.root.reset)
     (flatten chunk opts)))
 
-(fn compile-string [str opts]
-  (compile-stream (parser.string-stream str) (or opts {})))
+(fn compile-string [str ?opts]
+  (let [opts (or ?opts {})]
+    (compile-stream (parser.string-stream str opts) opts)))
 
 (fn compile [ast opts]
   (let [opts (utils.copy opts)

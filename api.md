@@ -347,13 +347,14 @@ inline would imbalance these or cause keys to be considered as values
 and vice versa. So the comments are stored on the `comments` field of
 metatable instead, keyed by the key or value they were attached to.
 
-## Serialization
+## Serialization (view)
 
 The `fennel.view` function takes any Fennel data and turns it into a
 representation suitable for feeding back to Fennel's parser. In addition to
 tables, strings, numbers, and booleans, it can produce reasonable output from
 ASTs that come from the parser. It will emit an unreadable placeholder for
-coroutines, compiled functions, and userdata though.
+coroutines, compiled functions, and userdata, which cannot be understood by the
+parser.
 
 ```lua
 print(fennel.view({abc=123}[, options])
@@ -363,22 +364,124 @@ print(fennel.view({abc=123}[, options])
 The list of common options at the top of this document do not apply here;
 instead these options are accepted:
 
-* `one-line?` (boolean: default: false) keep the output string as a one-liner
+* `one-line?` (default: false) keep the output string as a one-liner
 * `depth` (number, default: 128) limit how many levels to go (default: 128)
-* `detect-cycles?` (boolean, default: true) don't try to traverse a looping table
-* `metamethod?` (boolean: default: true) use the __fennelview metamethod if found
-* `empty-as-sequence?` (boolean, default: false) render empty tables as []
+* `detect-cycles?` (default: true) don't try to traverse a looping table
+* `metamethod?` (default: true) use the __fennelview metamethod if found
+* `empty-as-sequence?` (default: false) render empty tables as []
 * `line-length` (number, default: 80) length of the line at which
   multi-line output for tables is forced
 * `escape-newlines?` (default: false) emit strings with \\n instead of newline
 * `prefer-colon?` (default: false) emit strings in colon notation when possible
-* `utf8?` (boolean, default true) whether to use utf8 module to compute string
-  lengths
+* `utf8?` (default true) whether to use utf8 module to compute string lengths
 * `max-sparse-gap` (integer, default 10) maximum gap to fill in with nils in
   sparse sequential tables.
 * `preprocess` (function) if present, called on x (and recursively on each value
   in x), and the result is used for pretty printing; takes the same arguments as
   `fennel.view`
+
+All options can be set to `{:once some-value}` to force their value to be
+`some-value` but only for the current level. After that, such option is reset
+to its default value.  Alternatively, `{:once value :after other-value}` can
+be used, with the difference that after first use, the options will be set to
+`other-value` instead of the default value.
+
+You can set a `__fennelview` metamethod on a table to override its
+serialization behavior. It should take the table being serialized as its first
+argument, a function as its second argument, options table as third argument,
+and current amount of indentation as its last argument:
+
+    (fn [t view options indent] ...)
+
+`view` function contains a pretty printer that can be used to serialize
+elements stored within the table being serialized. If your metamethod produces
+indented representation, you should pass `indent` parameter to `view` increased
+by the amount of additional indentation you've introduced. This function has
+the same interface as `__fennelview` metamethod, but in addition accepts
+`colon-string?` as last argument. If `colon?` is `true`, strings will be printed
+as colon-strings when possible, and if its value is `false`, strings will be
+always printed in double quotes. If omitted or `nil` will default to value of
+`:prefer-colon?` option.
+
+`options` table contains options described above, and also `visible-cycle?`
+function, that takes a table being serialized, detects and saves information
+about possible reachable cycle.  Should be used in `__fennelview` to implement
+cycle detection.
+
+`__fennelview` metamethod should always return a table of correctly indented
+lines when producing multi-line output, or a string when always returning
+single-line item.  `fennel.view` will transform your data structure to correct
+multi-line representation when needed.  There's no need to concatenate table
+manually ever - `fennel.view` will apply general rules for your data structure,
+depending on current options.  By default multiline output is produced only when
+inner data structures contains newlines, or when returning table of lines as
+single line results in width greater than `line-size` option.
+
+Multi-line representation can be forced by returning two values from
+`__fennelview` - a table of indented lines as first value, and `true` as second
+value, indicating that multi-line representation should be forced.
+
+There's no need to incorporate indentation beyond needed to correctly align
+elements within the printed representation of your data structure.  For example,
+if you want to print a multi-line table, like this:
+
+```
+@my-table[1
+          2
+          3]
+```
+
+`__fennelview` should return a sequence of lines:
+
+```
+["@my-table[1"
+ "          2"
+ "          3]"]
+```
+
+Note, since we've introduced inner indent string of length 10, when calling
+`view` function from within `__fennelview` metamethod, in order to keep inner
+tables indented correctly, `indent` must be increased by this amount of extra
+indentation.
+
+Here's an implementation of such pretty-printer for an arbitrary sequential
+table:
+
+```fennel
+(fn pp-doc-example [t view options indent]
+  (let [lines (icollect [i v (ipairs t)]
+                (let [v (view v options (+ 10 indent))]
+                  (if (= i 1) v
+                      (.. "          " v))))]
+    (doto lines
+      (tset 1 (.. "@my-table[" (or (. lines 1) "")))
+      (tset (length lines) (.. (. lines (length lines)) "]")))))
+```
+
+Setting table's `__fennelview` metamethod to this function will provide correct
+results regardless of nesting:
+
+```
+>> {:my-table (setmetatable [[1 2 3 4 5]
+                             {:smalls [6 7 8 9 10 11 12]
+                              :bigs [500 1000 2000 3000 4000]}]
+                            {:__fennelview pp-doc-example})
+    :normal-table [{:c [1 2 3] :d :some-data} 4]}
+{:my-table @my-table[[1 2 3 4 5]
+                     {:bigs [500 1000 2000 3000 4000]
+                      :smalls [6 7 8 9 10 11 12]}]
+ :normal-table [{:c [1 2 3] :d "some-data"} 4]}
+```
+
+Note that even though we've only indented inner elements of our table with 10
+spaces, the result is correctly indented in terms of outer table, and inner
+tables also remain indented correctly.
+
+When using the `:preprocess` option or `__fennelview` method, avoid modifying
+any tables in-place in the passed function. Since Lua tables are mutable and
+passed in without copying, any modification done in these functions will be
+visible outside of `fennel.view`.
+
 
 ## Work with docstrings and metadata
 

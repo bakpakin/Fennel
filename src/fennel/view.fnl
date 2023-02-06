@@ -406,118 +406,28 @@ as numeric escapes rather than letter-based escapes, which is ugly."
   "Return a string representation of x.
 
 Can take an options table with these keys:
-* :one-line? (boolean: default: false) keep the output string as a one-liner
+* :one-line? (default: false) keep the output string as a one-liner
 * :depth (number, default: 128) limit how many levels to go (default: 128)
-* :detect-cycles? (boolean, default: true) don't try to traverse a looping table
-* :metamethod? (boolean: default: true) use the __fennelview metamethod if found
-* :empty-as-sequence? (boolean, default: false) render empty tables as []
+* :detect-cycles? (default: true) don't try to traverse a looping table
+* :metamethod? (default: true) use the __fennelview metamethod if found
+* :empty-as-sequence? (default: false) render empty tables as []
 * :line-length (number, default: 80) length of the line at which
   multi-line output for tables is forced
 * :escape-newlines? (default: false) emit strings with \\n instead of newline
 * :prefer-colon? (default: false) emit strings in colon notation when possible
-* :utf8? (boolean, default true) whether to use utf8 module to compute string
-  lengths
+* :utf8? (default: true) whether to use utf8 module to compute string lengths
 * :max-sparse-gap (integer, default 10) maximum gap to fill in with nils in
   sparse sequential tables.
 * :preprocess (function) if present, called on x (and recursively on each value
   in x), and the result is used for pretty printing; takes the same arguments as
   `fennel.view`
 
-All options can be set to `{:once some-value}` to force their
-value to be `some-value` but only for the current
-level. After that, such option is reset to its default value.
-Alternatively, `{:once value :after other-value}` can be used, with the
-difference that after first use, the options will be set to `other-value`
-instead of the default value.
+All options can be set to `{:once some-value}` to force their value to be
+`some-value` but only for the current level. After that, such option is reset
+to its default value.  Alternatively, `{:once value :after other-value}` can
+be used, with the difference that after first use, the options will be set to
+`other-value` instead of the default value.
 
-The `__fennelview` metamethod should take the table being serialized as its
-first argument, a function as its second argument, options table as third
-argument, and current amount of indentation as its last argument:
-
-(fn [t view inspector indent] ...)
-
-`view` function contains a pretty printer, that can be used to serialize
-elements stored within the table being serialized.  If your metamethod produces
-indented representation, you should pass `indent` parameter to `view` increased
-by the amount of additional indentation you've introduced.  This function has
-the same interface as `__fennelview` metamethod, but in addition accepts
-`colon-string?` as last argument. If `colon?` is `true`, strings will be printed
-as colon-strings when possible, and if its value is `false`, strings will be
-always printed in double quotes. If omitted or `nil` will default to value of
-`:prefer-colon?` option.
-
-`inspector` table contains options described above, and also `visible-cycle?`
-function, that takes a table being serialized, detects and saves information
-about possible reachable cycle.  Should be used in `__fennelview` to implement
-cycle detection.
-
-`__fennelview` metamethod should always return a table of correctly indented
-lines when producing multi-line output, or a string when always returning
-single-line item.  `fennel.view` will transform your data structure to correct
-multi-line representation when needed.  There's no need to concatenate table
-manually ever - `fennel.view` will apply general rules for your data structure,
-depending on current options.  By default multiline output is produced only when
-inner data structures contains newlines, or when returning table of lines as
-single line results in width greater than `line-size` option.
-
-Multi-line representation can be forced by returning two values from
-`__fennelview` - a table of indented lines as first value, and `true` as second
-value, indicating that multi-line representation should be forced.
-
-There's no need to incorporate indentation beyond needed to correctly align
-elements within the printed representation of your data structure.  For example,
-if you want to print a multi-line table, like this:
-
-@my-table[1
-          2
-          3]
-
-`__fennelview` should return a sequence of lines:
-
-[\"@my-table[1\"
- \"          2\"
- \"          3]\"]
-
-Note, since we've introduced inner indent string of length 10, when calling
-`view` function from within `__fennelview` metamethod, in order to keep inner
-tables indented correctly, `indent` must be increased by this amount of extra
-indentation.
-
-`view` function also accepts additional boolean argument, which controls if
-strings should be printed as a colon-strings when possible.  Set it to `true`
-when `view` is being called on the key of a table.
-
-Here's an implementation of such pretty-printer for an arbitrary sequential
-table:
-
-(fn pp-doc-example [t view inspector indent]
-  (let [lines (icollect [i v (ipairs t)]
-                (let [v (view v inspector (+ 10 indent))]
-                  (if (= i 1) v
-                      (.. \"          \" v))))]
-    (doto lines
-      (tset 1 (.. \"@my-table[\" (or (. lines 1) \"\")))
-      (tset (length lines) (.. (. lines (length lines)) \"]\")))))
-
-Setting table's `__fennelview` metamethod to this function will provide correct
-results regardless of nesting:
-
->> {:my-table (setmetatable [[1 2 3 4 5]
-                             {:smalls [6 7 8 9 10 11 12]
-                              :bigs [500 1000 2000 3000 4000]}]
-                            {:__fennelview pp-doc-example})
-    :normal-table [{:c [1 2 3] :d :some-data} 4]}
-{:my-table @my-table[[1 2 3 4 5]
-                     {:bigs [500 1000 2000 3000 4000]
-                      :smalls [6 7 8 9 10 11 12]}]
- :normal-table [{:c [1 2 3] :d \"some-data\"} 4]}
-
-Note that even though we've only indented inner elements of our table
-with 10 spaces, the result is correctly indented in terms of outer
-table, and inner tables also remain indented correctly.
-
-When using the `:preprocess` option, avoid modifying any tables in-place in the
-passed function. Since Lua tables are mutable and provided to `:preprocess`
-without copying, any modification done in `:preprocess` will be visible outside
-of `fennel.view`."
+You can set a `__fennelview` metamethod on a table to override its serialization
+behavior; see the API reference for details."
   (pp x (make-options x ?options) 0))

@@ -946,6 +946,22 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
         [rhs] (compiler.compile1 rhs-ast scope parent {:nval 1})]
     (string.format "(%s %s %s)" (tostring lhs) op (tostring rhs))))
 
+(fn idempotent-comparator [op chain-op ast scope parent]
+  "Compile a multi-arity comparison to a binary Lua comparison. Optimized
+  variant for values not at risk of double-eval."
+  (let [comparisons []
+        vals []
+        chain (string.format " %s " (or chain-op :and))]
+    (for [i 2 (length ast)]
+      (table.insert vals (tostring (. (compiler.compile1 (. ast i) scope parent
+                                                         {:nval 1})
+                                      1))))
+    (for [i 1 (- (length vals) 1)]
+      (table.insert comparisons
+                    (string.format "(%s %s %s)" (. vals i) op
+                                   (. vals (+ i 1)))))
+    (table.concat comparisons chain)))
+
 (fn double-eval-protected-comparator [op chain-op ast scope parent]
   "Compile a multi-arity comparison to a binary Lua comparison."
   (let [arglist []
@@ -976,6 +992,8 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
       (compiler.assert (< 2 (length ast)) "expected at least two arguments" ast)
       (if (= 3 (length ast))
           (native-comparator op ast scope parent)
+          (utils.every utils.idempotent-expr? (table.pack (table.unpack ast 2)))
+          (idempotent-comparator op ?chain-op ast scope parent)
           (double-eval-protected-comparator op ?chain-op ast scope parent)))
 
     (tset SPECIALS name opfn))

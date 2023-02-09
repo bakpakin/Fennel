@@ -301,7 +301,7 @@ A multi-sym refers to a table field reference like tbl.x or access.channel:deny.
 Returns nil if passed something other than a multi-sym."
   (if (sym? str) (multi-sym? (tostring str))
       (not= (type str) :string) false
-      (and (or (: str :match "%.") (: str :match ":"))
+      (and (: str :match ":")
            (not (str:match "%.%."))
            (not= (str:byte) (string.byte "."))
            (not= (str:byte (- 1)) (string.byte "."))

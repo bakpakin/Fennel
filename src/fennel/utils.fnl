@@ -301,17 +301,20 @@ A multi-sym refers to a table field reference like tbl.x or access.channel:deny.
 Returns nil if passed something other than a multi-sym."
   (if (sym? str) (multi-sym? (tostring str))
       (not= (type str) :string) false
-      (let [parts []]
-        (each [part (str:gmatch "[^%.%:]+[%.%:]?")]
-          (let [last-char (part:sub (- 1))]
-            (when (= last-char ":")
-              (set parts.multi-sym-method-call true))
-            (if (or (= last-char ":") (= last-char "."))
-                (tset parts (+ (length parts) 1) (part:sub 1 (- 2)))
-                (tset parts (+ (length parts) 1) part))))
-        (and (< 0 (length parts)) (or (: str :match "%.") (: str :match ":"))
-             (not (str:match "%.%.")) (not= (str:byte) (string.byte "."))
-             (not= (str:byte (- 1)) (string.byte ".")) parts))))
+      (and (or (: str :match "%.") (: str :match ":"))
+           (not (str:match "%.%."))
+           (not= (str:byte) (string.byte "."))
+           (not= (str:byte (- 1)) (string.byte "."))
+           (let [parts []]
+             (each [part (str:gmatch "[^%.%:]+[%.%:]?")]
+                   (let [last-char (part:sub (- 1))]
+                     (when (= last-char ":")
+                       (set parts.multi-sym-method-call true))
+                     (if (or (= last-char ":") (= last-char "."))
+                       (tset parts (+ (length parts) 1) (part:sub 1 (- 2)))
+                       (tset parts (+ (length parts) 1) part))))
+             (and (< 0 (length parts))
+                  parts)))))
 
 (fn quoted? [symbol]
   symbol.quoted)

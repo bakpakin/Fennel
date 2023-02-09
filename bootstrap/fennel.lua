@@ -4614,10 +4614,12 @@ do
   ;; TODO: some of these macros modify their arguments; we should stop doing that,
   ;; but in a way that preserves file/line metadata.
   
+  (fn copy [t]
+    (let [out []]
+      (each [_ v (ipairs t)] (table.insert out v))
+      (setmetatable out (getmetatable t))))
+
   (fn ->* [val ...]
-    "Thread-first macro.
-  Take the first value and splice it into the second form as its first argument.
-  The value of the second form is spliced into the first arg of the third, etc."
     (var x val)
     (each [_ e (ipairs [...])]
       (let [elt (if (list? e) e (list e))]
@@ -4626,9 +4628,6 @@ do
     x)
   
   (fn ->>* [val ...]
-    "Thread-last macro.
-  Same as ->, except splices the value into the last position of each form
-  rather than the first."
     (var x val)
     (each [_ e (ipairs [...])]
       (let [elt (if (list? e) e (list e))]
@@ -4637,8 +4636,6 @@ do
     x)
   
   (fn -?>* [val ...]
-    "Nil-safe thread-first macro.
-  Same as -> except will short-circuit with nil when it encounters a nil value."
     (if (= 0 (select "#" ...))
         val
         (let [els [...]
@@ -4652,8 +4649,6 @@ do
                  ,tmp)))))
   
   (fn -?>>* [val ...]
-    "Nil-safe thread-last macro.
-  Same as ->> except will short-circuit with nil when it encounters a nil value."
     (if (= 0 (select "#" ...))
         val
         (let [els [...]
@@ -4667,9 +4662,6 @@ do
                  ,tmp)))))
   
   (fn ?dot [tbl ...]
-    "Nil-safe table look up.
-  Same as . (dot), except will short-circuit with nil when it encounters
-  a nil value in any of subsequent keys."
     (let [head (gensym :t)
           lookups `(do (var ,head ,tbl) ,head)]
       (each [_ k (ipairs [...])]
@@ -4680,7 +4672,6 @@ do
       lookups))
   
   (fn doto* [val ...]
-    "Evaluates val and splices it into the first argument of subsequent forms."
     (let [name (gensym)
           form `(let [,name ,val])]
       (each [_ elt (ipairs [...])]
@@ -4691,7 +4682,6 @@ do
       form))
   
   (fn when* [condition body1 ...]
-    "Evaluate body for side-effects only when condition is truthy."
     (assert body1 "expected body")
     `(if ,condition
          (do
@@ -4699,9 +4689,6 @@ do
            ,...)))
   
   (fn with-open* [closable-bindings ...]
-    "Like `let`, but invokes (v:close) on each binding after evaluating the body.
-  The body is evaluated inside `xpcall` so that bound values will be closed upon
-  encountering an error before propagating it."
     (let [bodyfn `(fn []
                     ,...)
           closer `(fn close-handlers# [ok# ...]
@@ -4729,89 +4716,86 @@ do
             "expected table, function call, or symbol in :into clause")
     (or into []))
   
-  (fn collect* [iter-tbl key-value-expr ...]
-    "Returns a table made by running an iterator and evaluating an expression
-  that returns key-value pairs to be inserted sequentially into the table.
-  This can be thought of as a \"table comprehension\". The provided key-value
-  expression must return either 2 values, or nil.
-  
-  For example,
-    (collect [k v (pairs {:apple \"red\" :orange \"orange\"})]
-      (values v k))
-  returns
-    {:red \"apple\" :orange \"orange\"}
-  
-  Supports an :into clause after the iterator to put results in an existing table.
-  Supports early termination with an :until clause."
-    (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
+  (fn extract-into [iter-tbl]
+    (var (into iter-out found?) (values [] (copy iter-tbl)))
+    (for [i (length iter-tbl) 2 -1]
+      (let [item (. iter-tbl i)]
+        (if (or (= `&into item)
+                (= :into  item))
+            (do
+              (assert (not found?) "expected only one &into clause")
+              (set found? true)
+              (set into (. iter-tbl (+ i 1)))
+              (table.remove iter-out i)
+              (table.remove iter-out i)))))
+    (assert (or (not found?) (sym? into) (table? into) (list? into))
+            "expected table, function call, or symbol in &into clause")
+    (values into iter-out))
+
+  (fn collect* [iter-tbl key-expr value-expr ...]
+    (assert (and (sequence? iter-tbl) (<= 2 (length iter-tbl)))
             "expected iterator binding table")
-    (assert (not= nil key-value-expr) "expected key-value expression")
+    (assert (not= nil key-expr) "expected key and value expression")
     (assert (= nil ...)
-            "expected exactly one body expression. Wrap multiple expressions with do")
-    `(let [tbl# ,(into-val iter-tbl)]
-       (each ,iter-tbl
-         (match ,key-value-expr
-           (k# v#) (tset tbl# k# v#)))
-       tbl#))
-  
-  (fn icollect* [iter-tbl value-expr ...]
-    "Returns a sequential table made by running an iterator and evaluating an
-  expression that returns values to be inserted sequentially into the table.
-  This can be thought of as a \"list comprehension\".
-  
-  For example,
-    (icollect [_ v (ipairs [1 2 3 4 5])] (when (> v 2) (* v v)))
-  returns
-    [9 16 25]
-  
-  Supports an :into clause after the iterator to put results in an existing table.
-  Supports early termination with an :until clause."
-    (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 2))
-            "expected iterator binding table")
+            "expected 1 or 2 body expressions; wrap multiple expressions with do")
+    (let [kv-expr (if (= nil value-expr) key-expr `(values ,key-expr ,value-expr))
+          (into iter) (extract-into iter-tbl)]
+      `(let [tbl# ,into]
+         (each ,iter
+           (let [(k# v#) ,kv-expr]
+             (if (and (not= k# nil) (not= v# nil))
+                 (tset tbl# k# v#))))
+         tbl#)))
+
+  (fn seq-collect [how iter-tbl value-expr ...]
     (assert (not= nil value-expr) "expected table value expression")
     (assert (= nil ...)
-            "expected exactly one body expression. Wrap multiple expressions with do")
-    `(let [tbl# ,(into-val iter-tbl)]
-       ;; believe it or not, using a var here has a pretty good performance boost:
-       ;; https://p.hagelb.org/icollect-performance.html
-       (var i# (length tbl#))
-       (each ,iter-tbl
-         (let [val# ,value-expr]
-           (when (not= nil val#)
-             (set i# (+ i# 1))
-             (tset tbl# i# val#))))
-       tbl#))
+            "expected exactly one body expression. Wrap multiple expressions in do")
+    (let [(into iter) (extract-into iter-tbl)]
+      `(let [tbl# ,into]
+         ;; believe it or not, using a var here has a pretty good performance
+         ;; boost: https://p.hagelb.org/icollect-performance.html
+         (var i# (length tbl#))
+         (,how ,iter
+               (let [val# ,value-expr]
+                 (when (not= nil val#)
+                   (set i# (+ i# 1))
+                   (tset tbl# i# val#))))
+         tbl#)))
   
-  (fn accumulate* [iter-tbl accum-expr ...]
-    "Accumulation macro.
-  It takes a binding table and an expression as its arguments.
-  In the binding table, the first symbol is bound to the second value, being an
-  initial accumulator variable. The rest are an iterator binding table in the
-  format `each` takes.
-  It runs through the iterator in each step of which the given expression is
-  evaluated, and its returned value updates the accumulator variable.
-  It eventually returns the final value of the accumulator variable.
-  
-  For example,
-    (accumulate [total 0
-                 _ n (pairs {:apple 2 :orange 3})]
-      (+ total n))
-  returns
-    5"
-    (assert (and (sequence? iter-tbl) (>= (length iter-tbl) 4))
+  (fn icollect* [iter-tbl value-expr ...]
+      (assert (and (sequence? iter-tbl) (<= 2 (length iter-tbl)))
+              "expected iterator binding table")
+      (seq-collect 'each iter-tbl value-expr ...))
+
+  (fn fcollect* [iter-tbl value-expr ...]
+    (assert (and (sequence? iter-tbl) (< 2 (length iter-tbl)))
+            "expected range binding table")
+    (seq-collect 'for iter-tbl value-expr ...))
+
+  (fn accumulate-impl [for? iter-tbl body ...]
+    (assert (and (sequence? iter-tbl) (<= 4 (length iter-tbl)))
             "expected initial value and iterator binding table")
-    (assert (not= nil accum-expr) "expected accumulating expression")
+    (assert (not= nil body) "expected body expression")
     (assert (= nil ...)
             "expected exactly one body expression. Wrap multiple expressions with do")
-    (let [accum-var (table.remove iter-tbl 1)
-          accum-init (table.remove iter-tbl 1)]
-      `(do (var ,accum-var ,accum-init)
-           (each ,iter-tbl
-             (set ,accum-var ,accum-expr))
-           ,accum-var)))
+    (let [[accum-var accum-init] iter-tbl
+          iter (sym (if for? "for" "each"))] ; accumulate or faccumulate?
+      `(do
+         (var ,accum-var ,accum-init)
+         (,iter ,[(unpack iter-tbl 3)]
+                (set ,accum-var ,body))
+         ,(if (list? accum-var)
+            (list (sym :values) (unpack accum-var))
+            accum-var))))
+  
+  (fn accumulate* [iter-tbl body ...]
+    (accumulate-impl false iter-tbl body ...))
+
+  (fn faccumulate* [iter-tbl body ...]
+    (accumulate-impl true iter-tbl body ...))
   
   (fn partial* [f ...]
-    "Returns a function with all arguments partially applied to f."
     (assert f "expected a function to partially apply")
     (let [bindings []
           args []]
@@ -4832,12 +4816,6 @@ do
              ,body)))))
   
   (fn pick-args* [n f]
-    "Creates a function of arity n that applies its arguments to f.
-  
-  For example,
-    (pick-args 2 func)
-  expands to
-    (fn [_0_ _1_] (func _0_ _1_))"
     (if (and _G.io _G.io.stderr)
         (_G.io.stderr:write
          "-- WARNING: pick-args is deprecated and will be removed in the future.\n"))
@@ -4850,13 +4828,6 @@ do
          (,f ,(unpack bindings)))))
   
   (fn pick-values* [n ...]
-    "Like the `values` special, but emits exactly n values.
-  
-  For example,
-    (pick-values 2 ...)
-  expands to
-    (let [(_0_ _1_) ...]
-      (values _0_ _1_))"
     (assert (and (= :number (type n)) (>= n 0) (= n (math.floor n)))
             (.. "Expected n to be an integer >= 0, got " (tostring n)))
     (let [let-syms (list)
@@ -4868,9 +4839,6 @@ do
              (values ,(unpack let-syms))))))
   
   (fn lambda* [...]
-    "Function literal with nil-checked arguments.
-  Like `fn`, but will throw an exception if a declared argument is passed in as
-  nil, unless that argument's name begins with a question mark."
     (let [args [...]
           has-internal-name? (sym? (. args 1))
           arglist (if has-internal-name? (. args 2) (. args 1))
@@ -4902,23 +4870,15 @@ do
       `(fn ,(unpack args))))
   
   (fn macro* [name ...]
-    "Define a single macro."
     (assert (sym? name) "expected symbol for macro name")
     (local args [...])
     `(macros {,(tostring name) (fn ,(unpack args))}))
   
   (fn macrodebug* [form return?]
-    "Print the resulting form after performing macroexpansion.
-  With a second argument, returns expanded form as a string instead of printing."
     (let [handle (if return? `do `print)]
       `(,handle ,(view (macroexpand form _SCOPE)))))
   
   (fn import-macros* [binding1 module-name1 ...]
-    "Binds a table of macros from each macro module according to a binding form.
-  Each binding form can be either a symbol or a k/v destructuring table.
-  Example:
-    (import-macros mymacros                 :my-macros    ; bind to symbol
-                   {:macro1 alias : macro2} :proj.macros) ; import by name"
     (assert (and binding1 module-name1 (= 0 (% (select "#" ...) 2)))
             "expected even number of binding/modulename pairs")
     (for [i 1 (select "#" binding1 module-name1 ...) 2]
@@ -4987,9 +4947,6 @@ do
       (values condition bindings)))
   
   (fn match-pattern [vals pattern unifications]
-    "Takes the AST of values and a single pattern and returns a condition
-  to determine if it matches as well as a list of bindings to
-  introduce for the duration of the body if it does match."
     ;; we have to assume we're matching against multiple values here until we
     ;; know we're either in a multi-valued clause (in which case we know the #
     ;; of vals) or we're not, in which case we only care about the first one.
@@ -5026,7 +4983,6 @@ do
           (values `(= ,val ,pattern) []))))
   
   (fn match-condition [vals clauses]
-    "Construct the actual `if` AST for the given match values and clauses."
     (if (not= 0 (% (length clauses) 2)) ; treat odd final clause as default
         (table.insert clauses (length clauses) (sym "_")))
     (let [out `(if)]
@@ -5040,7 +4996,6 @@ do
       out))
   
   (fn match-val-syms [clauses]
-    "How many multi-valued clauses are there? return a list of that many gensyms."
     (let [syms (list (gensym))]
       (for [i 1 (length clauses) 2]
         (let [clause (if (and (list? (. clauses i)) (= `? (. clauses i 2)))
@@ -5111,14 +5066,6 @@ do
         [cond]))
   
   (fn match-where [val ...]
-    "Perform pattern matching on val. See reference for details.
-  
-  Syntax:
-  
-  (match data-expression
-    pattern body
-    (where pattern guard guards*) body
-    (where (or pattern patterns*) guard guards*) body)"
     (let [conds-bodies (partition-2 [...])
           else-branch (if (not= 0 (% (select "#" ...) 2))
                           (select (select "#" ...) ...))
@@ -5162,7 +5109,9 @@ do
    :with-open with-open*
    :collect collect*
    :icollect icollect*
+   :fcollect fcollect*
    :accumulate accumulate*
+   :faccumulate faccumulate*
    :partial partial*
    :lambda lambda*
    :pick-args pick-args*

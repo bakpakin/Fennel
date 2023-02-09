@@ -952,15 +952,15 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
   (let [comparisons []
         vals []
         chain (string.format " %s " (or chain-op :and))]
-    (for [i 2 (length ast)]
-      (table.insert vals (tostring (. (compiler.compile1 (. ast i) scope parent
-                                                         {:nval 1})
-                                      1))))
-    (for [i 1 (- (length vals) 1)]
-      (table.insert comparisons
-                    (string.format "(%s %s %s)" (. vals i) op
-                                   (. vals (+ i 1)))))
-    (table.concat comparisons chain)))
+    (fcollect [i 2 (length ast) :into vals]
+      (tostring (. (compiler.compile1 (. ast i) scope parent
+                                      {:nval 1})
+                   1)))
+    (fcollect [i 1 (- (length vals) 1) :into comparisons]
+                            (string.format "(%s %s %s)"
+                                           (. vals i) op (. vals (+ i 1))))
+    (table.concat comparisons
+                  chain)))
 
 (fn double-eval-protected-comparator [op chain-op ast scope parent]
   "Compile a multi-arity comparison to a binary Lua comparison."
@@ -973,10 +973,9 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
       (table.insert vals (tostring (. (compiler.compile1 (. ast i) scope parent
                                                          {:nval 1})
                                       1))))
-    (for [i 1 (- (length arglist) 1)]
-      (table.insert comparisons
-                    (string.format "(%s %s %s)" (. arglist i) op
-                                   (. arglist (+ i 1)))))
+    (fcollect [i 1 (- (length arglist) 1) :into comparisons]
+      (string.format "(%s %s %s)" (. arglist i) op
+                     (. arglist (+ i 1))))
     ;; The function call here introduces some overhead, but it is the only way
     ;; to compile this safely while preventing both double-evaluation of
     ;; side-effecting values and early evaluation of values which should never

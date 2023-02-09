@@ -131,7 +131,7 @@ Optionally takes a target table to insert the mapped values into."
 (fn every? [predicate seq]
   (accumulate [result true
                _ item (ipairs seq)
-               &until (not result)]
+               :until (not result)]
     (predicate item)))
 
 (fn allpairs [tbl]

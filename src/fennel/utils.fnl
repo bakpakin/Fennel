@@ -128,12 +128,11 @@ Optionally takes a target table to insert the mapped values into."
   (accumulate [max 0 k (pairs tbl)]
     (if (= :number (type k)) (math.max max k) max)))
 
-(fn every [predicate seq]
-  (each [_ item (ipairs seq)]
-        (when (not (predicate item))
-          ;; use escape hatch for early return optimization
-          (lua "return false")))
-  true)
+(fn every? [predicate seq]
+  (accumulate [result true
+               _ item (ipairs seq)
+               &until (not result)]
+    (predicate item)))
 
 (fn allpairs [tbl]
   "Like pairs, but if the table has an __index metamethod, it will recurisvely
@@ -443,7 +442,7 @@ handlers will be skipped."
  : walk-tree
  : member?
  : maxn
- : every
+ : every?
  : list
  : sequence
  : sym

@@ -2,14 +2,10 @@
 (local fennel (require :fennel))
 (local compiler (require :fennel.compiler))
 
-(comment (print (string.format "  (== %s %s)" code (fennel.view expected))))
-
 (macro == [form expected ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
      (l.assertTrue ok# val#)
      (l.assertEquals val# ,expected)))
-
-(set _G.tbl [])
 
 (fn test-calculations []
   (== (% 1 2 (- 1 2)) 0)

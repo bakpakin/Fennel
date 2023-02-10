@@ -1,6 +1,8 @@
 local runner = require("test.luaunit").LuaUnit:new()
 runner:setOutputType(os.getenv("FNL_TEST_OUTPUT") or "tap")
 
+_G.tbl = {}
+
 local function loadfennel()
    -- We want to make sure the compiler can load under strict mode
    local strict = function(_, k) if k then error("STRICT YALL: " .. k) end end
@@ -14,10 +16,12 @@ local function loadfennel()
 end
 
 local function testall(suites)
-    loadfennel()
+    loadfennel(oldfennel)
     -- We have to load the tests with the old version of Fennel; otherwise
     -- bugs in the current implementation will prevent the tests from loading!
     local oldfennel = require("bootstrap.fennel")
+    -- TODO: removing this double-load causes spurious failures; investigate
+    oldfennel.dofile("src/fennel.fnl", {compilerEnv=_G})
 
     local instances = {}
     for _, test in ipairs(suites) do

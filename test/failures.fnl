@@ -2,59 +2,64 @@
 (local fennel (require :fennel))
 (local friend (require :fennel.friend))
 
-;; TODO: use this macro below where possible
-(macro assert-fail-msg [form expected]
+;; This can only be used to assert failures on special forms; macros will be
+;; expanded before this code ever sees it.
+(macro assert-fail [form expected]
   `(let [(ok# msg#) (pcall fennel.compile-string (macrodebug ,form true)
-                           {:allowedGlobals ,(icollect [k# (pairs _G)] k#)})]
-     (l.assertFalse ok#)
+                           {:allowedGlobals ["pairs" "next" "ipairs" "_G"]})]
+     (l.assertFalse ok# (.. "Expected failure: " ,(tostring form)))
      (l.assertStrContains msg# ,expected)))
 
-(fn test-names []
-  (assert-fail-msg (local + 6) "overshadowed by a special form")
-  (assert-fail-msg (macro if [] "wat") "overshadowed by a special form")
-  (assert-fail-msg (do each) "tried to reference a special form"))
-
+;; use this only when you can't use the above macro
 (fn test-failures [failures]
   (each [code expected-msg (pairs failures)]
-    (let [(ok? msg) (pcall fennel.compileString code
-                           {:allowedGlobals ["pairs" "next" "ipairs"]
+    (let [(ok? msg) (pcall fennel.compile-string code
+                           {:allowedGlobals ["pairs" "next" "ipairs" "_G"]
                             :unfriendly true})]
       (l.assertFalse ok? (.. "Expected compiling " code " to fail."))
       (l.assertStrContains msg expected-msg))))
 
-(fn test-global-fails []
-  (test-failures
-   {"(fn global [] 1)" "overshadowed"
-    "(fn global-caller [] (hey))" "unknown identifier"
-    "(global 48 :forty-eight)" "unable to bind number 48"
-    "(global good (fn [] nil)) (good) (BAD)" "BAD"
-    "(global let 1)" "tried to reference a special form"
-    "(hey)" "unknown identifier"
-    "(let [bl 8 a bcd] nil)" "unknown identifier"
-    "(let [global 1] 1)" "overshadowed"
-    "(local a-b 1) (global [a_b] [2])" "global a_b conflicts with local"
-    "(local a-b 1) (global a_b 2)" "global a_b conflicts with local"
-    "((fn [] (require-macros \"test.macros\") (global x1 (->1 99 (+ 31)))))
-      (->1 23 (+ 1))" "unknown identifier"
-    ;; strict mode applies to macro modules too
-    "(import-macros t :test.bad.unknown-global)" "unknown identifier"}))
+(fn test-names []
+  (assert-fail (local + 6) "overshadowed by a special form")
+  (assert-fail (macro if [] "wat") "overshadowed by a special form")
+  (assert-fail (do each) "tried to reference a special form"))
 
+(fn test-global-fails []
+  (assert-fail (fn global [] 1) "overshadowed")
+  (assert-fail (fn global-caller [] (hey)) "unknown identifier")
+  (assert-fail (global 48 :forty-eight) "unable to bind number 48")
+  (assert-fail (do (global good (fn [] nil)) (good) (BAD)) "BAD")
+  (assert-fail (global let 1) "tried to reference a special form")
+  (assert-fail (hey) "unknown identifier")
+  (assert-fail (let [bl 8 a bcd] nil) "unknown identifier")
+  (assert-fail (let [global 1] 1) "overshadowed")
+  (assert-fail (do (local a-b 1) (global [a_b] [2]))
+               "global a_b conflicts with local")
+  (assert-fail (do (local a-b 1) (global a_b 2))
+               "global a_b conflicts with local")
+  (assert-fail (do ((fn []
+                      (require-macros :test.macros)
+                      (global x1 (->1 99 (+ 31)))))
+                   (->1 23 (+ 1)))
+               "unknown identifier")
+  ;; strict mode applies to macro modules too
+  (test-failures {"(import-macros t :test.bad.unknown-global)"
+                  "unknown identifier"}))
 
 (fn test-fn-fails []
-  (test-failures
-   {"(fn [12])" "expected symbol for function parameter"
-    "(fn [:huh] 4)" "expected symbol for function parameter"
-    "(fn []\n(for [32 34 32] 21))" "unknown:2:"
-    "(fn [] [...])" "unexpected vararg"
-    "(fn [false] 4)" "expected symbol for function parameter"
-    "(fn [nil] 4)" "expected symbol for function parameter"
-    "(fn)" "expected parameters"
-    "(lambda x)" "expected arg list"
-    "(fn abc:def [x] (+ x 2))" "unexpected multi symbol abc:def"
-    "#[$ $...] 1 2 3" "$ and $... in hashfn are mutually exclusive"
-    "#(values ...)" "use $... in hashfn"
-    "(fn [a & b c] nil)" "expected rest argument before last parameter"
-    "(fn [a & {3 3}] nil)" "unable to bind number 3"}))
+  (assert-fail (fn [12]) "expected symbol for function parameter")
+  (assert-fail (fn [:huh] 4) "expected symbol for function parameter")
+  (assert-fail (fn [] [...]) "unexpected vararg")
+  (assert-fail (fn [false] 4) "expected symbol for function parameter")
+  (assert-fail (fn [nil] 4) "expected symbol for function parameter")
+  (assert-fail (fn) "expected parameters")
+  (assert-fail (fn abc:def [x] (+ x 2)) "unexpected multi symbol abc:def")
+  (assert-fail #[$ $...] "$ and $... in hashfn are mutually exclusive")
+  (assert-fail #(values ...) "use $... in hashfn")
+  (assert-fail (fn [a & b c] nil)
+               "expected rest argument before last parameter")
+  (test-failures {"(lambda x)" "expected arg list"
+                  "(fn [a & {3 3}] nil)" "unable to bind number 3"}))
 
 (fn test-macro-fails []
   (test-failures
@@ -79,36 +84,36 @@
     "expected macros to be table"}))
 
 (fn test-binding-fails []
-  (test-failures
-   {"(let [:x 1] 1)" "unable to bind"
-    "(let [[a & c d] [1 2]] c)" "rest argument before last parameter"
-    "(let [b 9\nq (.)] q)" "unknown:2:2 Compile error in '.': expected table"
-    "(let [false 1] 9)" "unable to bind boolean false"
-    "(let [next #(next $)] print)" "aliased by a local"
-    "(let [nil 1] 9)" "unable to bind"
-    "(let [pairs #(pairs $)] pairs)" "aliased by a local"
-    "(let [t []] (set t.:x :y))" "malformed multisym: t.:x"
-    "(let [t []] (set t:.x :y))" "malformed multisym: t:.x"
-    "(let [t []] (set t::x :y))" "malformed multisym: t::x"
-    "(let [t {:a 1}] (+ t.a BAD))" "BAD"
-    "(let [x 1 y] 8)" "expected even number of name/value bindings"
-    "(let [x 1] (set-forcibly! x 2) (set x 3) x)" "expected var"
-    "(let [x 1])" "expected body"
-    "(local 47 :forty-seven)" "unable to bind number 47"
-    "(local a~b 3)" "invalid character: ~"
-    "(local ipairs #(ipairs $))" "aliased by a local"
-    "(set [a b c] [1 2 3]) (+ a b c)" "expected local"
-    "(set a 19)" "error in 'a': expected local"
-    "(set)" "Compile error in 'set': expected name and value"
-    "(local abc&d 19)" "invalid character: &"
-    "(let [t []] (set t.47 :forty-seven))"
-    "can't start multisym segment with a digit: t.47"
-    "(let [x {:foo (fn [self] self.bar) :bar :baz}] x:foo)"
-    "multisym method calls may only be in call position"
-    "(let [x {:y {:foo (fn [self] self.bar) :bar :baz}}] x:y:foo)"
-    "method must be last component of multisym: x:y:foo"
-    "(set abc:def 2)" "cannot set method sym"
-    "(local () 1)" "at least one value"}))
+  (assert-fail (let [x {:foo (fn [self] self.bar) :bar :baz}] x:foo)
+               "multisym method calls may only be in call position")
+  (assert-fail (local () 1) "at least one value")
+  (assert-fail (set abc:def 2) "cannot set method sym")
+  (assert-fail (let [nil 1] 9) "unable to bind")
+  (assert-fail (let [[a & c d] [1 2]] c)
+               "rest argument before last parameter")
+  (assert-fail (local abc&d 19) "invalid character: &")
+  (assert-fail (set a 19) "expected local a")
+  (assert-fail (let [pairs #(pairs $)] pairs) "aliased by a local")
+  (assert-fail (let [x 1] (set-forcibly! x 2) (set x 3) x) "expected var")
+  (assert-fail (set) "Compile error: expected name and value")
+  (assert-fail (do (set [a b c] [1 2 3]) (+ a b c)) "expected local")
+  (assert-fail (let [:x 1] 1) "unable to bind")
+  (assert-fail (let [next #(next $)] print) "aliased by a local")
+  (assert-fail (let [x 1 y] 8) "expected even number of name/value bindings")
+  (assert-fail (let [false 1] 9) "unable to bind boolean false")
+  (assert-fail (let [b 9 q (.)] q) "Compile error: expected table")
+  (assert-fail (local ipairs #(ipairs $)) "aliased by a local")
+  (assert-fail (let [x 1]) "expected body")
+  (assert-fail (let [t {:a 1}] (+ t.a BAD)) "BAD")
+  (assert-fail (local 47 :forty-seven) "unable to bind number 47")
+  (test-failures {"(local a~b 3)" "invalid character: ~"
+                  "(let [t []] (set t.47 :forty-seven))"
+                  "can't start multisym segment with a digit: t.47"
+                  "(let [t []] (set t.:x :y))" "malformed multisym: t.:x"
+                  "(let [t []] (set t::x :y))" "malformed multisym: t::x"
+                  "(let [t []] (set t:.x :y))" "malformed multisym: t:.x"
+                  "(let [x {:y {:foo (fn [self] self.bar) :bar :baz}}] x:y:foo)"
+                  "method must be last component of multisym: x:y:foo"}))
 
 (fn test-parse-fails []
   (test-failures

@@ -949,16 +949,14 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (fn idempotent-comparator [op chain-op ast scope parent]
   "Compile a multi-arity comparison to a binary Lua comparison. Optimized
   variant for values not at risk of double-eval."
-  (let [comparisons []
-        vals []
+  (let [vals (fcollect [i 2 (length ast)]
+               (tostring (. (compiler.compile1 (. ast i) scope parent
+                                               {:nval 1})
+                            1)))
+        comparisons (fcollect [i 1 (- (length vals) 1)]
+                      (string.format "(%s %s %s)"
+                                     (. vals i) op (. vals (+ i 1))))
         chain (string.format " %s " (or chain-op :and))]
-    (fcollect [i 2 (length ast) :into vals]
-      (tostring (. (compiler.compile1 (. ast i) scope parent
-                                      {:nval 1})
-                   1)))
-    (fcollect [i 1 (- (length vals) 1) :into comparisons]
-                            (string.format "(%s %s %s)"
-                                           (. vals i) op (. vals (+ i 1))))
     (table.concat comparisons
                   chain)))
 

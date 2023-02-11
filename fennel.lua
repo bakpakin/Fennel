@@ -229,24 +229,24 @@ local utils = (function()
             return isMultiSym(tostring(str))
         end
         if type(str) ~= 'string' then return end
-        local parts = {}
-        for part in str:gmatch('[^%.%:]+[%.%:]?') do
-            local lastChar = part:sub(-1)
-            if lastChar == ":" then
-                parts.multiSymMethodCall = true
-            end
-            if lastChar == ":" or lastChar == "." then
-                parts[#parts + 1] = part:sub(1, -2)
-            else
-                parts[#parts + 1] = part
-            end
-        end
-        return #parts > 0 and
-            (str:match('%.') or str:match(':')) and
+        if((str:match('%.') or str:match(':')) and
             (not str:match('%.%.')) and
             str:byte() ~= string.byte '.' and
-            str:byte(-1) ~= string.byte '.' and
-            parts
+            str:byte(-1) ~= string.byte '.') then
+            local parts = {}
+            for part in str:gmatch('[^%.%:]+[%.%:]?') do
+                local lastChar = part:sub(-1)
+                if lastChar == ":" then
+                    parts.multiSymMethodCall = true
+                end
+                if lastChar == ":" or lastChar == "." then
+                    parts[#parts + 1] = part:sub(1, -2)
+                else
+                    parts[#parts + 1] = part
+                end
+            end
+            return #parts > 0 and parts
+        end
     end
 
     local function isQuoted(symbol) return symbol.quoted end

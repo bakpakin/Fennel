@@ -2,8 +2,9 @@
 
 ## 0.4.3 / ???
 
+* Backport new `match` rewrite as well as `case`, `case-try`, and `match-try`
 * Backport `&as` destructuring
-* Backport `accumulate` macro
+* Backport `accumulate`, `faccumulate`, and `fcollect` macros
 * Backport `?.` macro
 * Backport `collect` and `icollect` macros
 * Backport `:until` support in `each` and other loops.

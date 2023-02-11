@@ -100,7 +100,7 @@
 
 (fn sub [str start end]
   "Try to take the substring based on characters, not bytes."
-  (if (< end start) ""
+  (if (or (< end start) (< (length str) start) (< (length str) end)) ""
       utf8-ok?
       (string.sub str (utf8.offset str start)
                   (- (or (utf8.offset str (+ end 1)) (+ (utf8.len str) 1)) 1))

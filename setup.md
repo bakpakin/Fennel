@@ -7,6 +7,8 @@ edit configuration files in a UNIX-like environment.
 **Note**: Fennel can be used in non-UNIX environments, but those environments
 will mostly not be covered in this document.
 
+Fennel does not contain any telemetry/spyware and never will.
+
 
 ## Downloading Fennel
 

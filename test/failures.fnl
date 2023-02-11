@@ -93,6 +93,7 @@
                "rest argument before last parameter")
   (assert-fail (local abc&d 19) "invalid character: &")
   (assert-fail (set a 19) "expected local a")
+  (assert-fail (set a.b 2) "expected local a")
   (assert-fail (let [pairs #(pairs $)] pairs) "aliased by a local")
   (assert-fail (let [x 1] (set-forcibly! x 2) (set x 3) x) "expected var")
   (assert-fail (set) "Compile error: expected name and value")

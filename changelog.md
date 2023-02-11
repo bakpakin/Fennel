@@ -14,6 +14,7 @@ deprecated forms.
 * Add `faccumulate` macro as range analog to `accumulate`
 
 ### New Features
+* Reduced compiler memory footprint
 * Omit escape codes highlighting errors when `NO_COLOR` env var is set
 * Support `&` for rest args in function arglists for consistency with `let`
 * Add `error-pinpoint` option to support custom error highlighting
@@ -24,7 +25,9 @@ deprecated forms.
   :after other-val}`. See `fennel.view` docstring for more info
 
 ### Bug Fixes
-* Fix bug where readline repl history would be saved to the wrong file
+* Fix a bug where readline repl history would be saved to the wrong file
+* Fix a bug where `set` did not catch unknown locals when setting table fields
+
 
 ## 1.2.1 / 2022-10-15
 
@@ -39,6 +42,7 @@ deprecated forms.
 * Ensure `(values)` consistently evaluates to zero values
 * Fix bug preventing new macros from shadowing other macros
 * Ensure macros use stable `pairs` table traversal for reproducible builds
+
 
 ## 1.2.0 / 2022-08-27
 
@@ -64,6 +68,7 @@ deprecated forms.
   was calculated incorrectly
 * Fix a REPL bug where `,doc m.foo` did not resolve multisym to macro for macro
   modules loaded as macro table via `(import-macros m :my.macro.module)`
+
 
 ## 1.1.0 / 2022-04-09
 

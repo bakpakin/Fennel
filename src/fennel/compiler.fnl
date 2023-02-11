@@ -645,9 +645,10 @@ which we have to do if we don't know."
                                                (tostring symbol))
                                 symbol)
                 (assert-compile (not (and meta (not meta.var)))
-                                (.. "expected var " raw) symbol)
-                (assert-compile (or meta (not opts.noundef))
-                                (.. "expected local " (. parts 1)) symbol))
+                                (.. "expected var " raw) symbol))
+              (assert-compile (or meta (not opts.noundef)
+                                  (global-allowed? (. parts 1)))
+                              (.. "expected local " (. parts 1)) symbol)
               (when forceglobal
                 (assert-compile (not (. scope.symmeta (. scope.unmanglings raw)))
                                 (.. "global " raw " conflicts with local")

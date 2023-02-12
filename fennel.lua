@@ -2874,7 +2874,7 @@ local module = {
 
     eval = eval,
     dofile = compiler.dofileFennel,
-    version = "0.4.3-dev",
+    version = "0.4.3",
 }
 
 utils.fennelModule = module -- yet another circular dependency =(

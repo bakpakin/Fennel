@@ -3,6 +3,7 @@
 /lua-5.*
 /fennelview.lua
 /fennelfriend.lua
+/bootstrap/view.lua
 
 # Created by https://www.gitignore.io/api/lua
 

@@ -1,6 +1,6 @@
 # Summary of user-visible changes
 
-## 0.4.3 / ???
+## 0.4.3 / 2023-02-12
 
 * Backport new `match` rewrite as well as `case`, `case-try`, and `match-try`
 * Backport `&as` destructuring

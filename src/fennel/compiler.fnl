@@ -551,12 +551,14 @@ if opts contains the nval option."
         (let [[compiled] (compile1 k scope parent {:nval 1})]
           (.. "[" (tostring compiled) "]"))))
 
-  (let [buffer (icollect [i elem (ipairs ast)]
+  (let [keys []
+        buffer (icollect [i elem (ipairs ast)]
                  (let [nval (and (not= nil (. ast (+ i 1))) 1)]
+                   (tset keys i true)
                    (exprs1 (compile1 elem scope parent {: nval}))))]
 
     (icollect [k v (utils.stablepairs ast) :into buffer]
-      (if (not (. buffer k)) ; not part of the sequence section above
+      (if (not (. keys k)) ; not part of the sequence section above
           (let [[v] (compile1 (. ast k) scope parent {:nval 1})]
             (string.format "%s = %s" (escape-key k) (tostring v)))))
 

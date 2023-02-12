@@ -134,11 +134,19 @@
     (l.assertFalse (fennel.eval method-code))
     (l.assertFalse (fennel.eval comparator-code))))
 
+(fn test-table []
+  (let [code "{:transparent 0 :sky 0 :sun 1 :stem 2 :cloud 3 :star 3 :moon 3
+ :cloud-2 4 :gray 4 :rain 5 :butterfly-body 6 :bee-body-1 6 :white 3
+ :butterfly-eye 7 :bee-body-2 7 :dying-plant 7 8 8 9 9}"
+        tbl (fennel.eval code)]
+    (l.assertEquals (. tbl 8) 8)))
+
 {: test-empty-values
  : test-env-iteration
  : test-global-mangling
  : test-include
  : test-leak
+ : test-table
  : test-runtime-quote
  : test-traceback
  : test-short-circuit}

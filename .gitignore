@@ -5,6 +5,7 @@
 /scratch
 /scratch.fnl
 /chroot
+/bootstrap/view.lua
 
 /lua-5.*
 

@@ -715,8 +715,8 @@
   (== (do (macro expand-string [f]
             (list (sym :table.concat)
                   (icollect [_ x (ipairs (macroexpand f))] (tostring x))))
-          (expand-string (when true (fn [] :x))))
-      "iftrue(do (fn [] \"x\"))"))
+          (expand-string (when true #x)))
+      "iftrue(do (hashfn x))"))
 
 (fn test-literal []
   (== (do (macro splice [t] (doto t (tset :hello :world)))

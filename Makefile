@@ -35,18 +35,18 @@ count: ; cloc $(MINI_SRC); cloc $(LIB_SRC) ; cloc $(SRC)
 # install https://git.sr.ht/~technomancy/fnlfmt manually for this:
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 
-# Avoid chicken/egg situation using the old Lua launcher.
-LAUNCHER=$(LUA) bootstrap/launcher.lua --no-compiler-sandbox --add-fennel-path src/?.fnl --globals _G
-
 # All-in-one pure-lua script:
-fennel: src/launcher.fnl $(SRC)
+fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
 	echo "#!/usr/bin/env $(LUA)" > $@
-	$(LAUNCHER) --no-metadata --require-as-include --compile $< >> $@
+	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< >> $@
 	chmod 755 $@
 
 # Library file
-fennel.lua: $(SRC)
-	$(LAUNCHER) --no-metadata --require-as-include --compile $< > $@
+fennel.lua: $(SRC) bootstrap/view.lua
+	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@
+
+bootstrap/view.lua: src/fennel/view.fnl
+	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@
 
 # A lighter version of the compiler that excludes some features; experimental.
 minifennel.lua: $(MINI_SRC) fennel

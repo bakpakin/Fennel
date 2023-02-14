@@ -23,7 +23,9 @@ Given a filename as its first argument, it runs that file and passes
 it the subsequent arguments. Ahead-of-time compilation can be invoked
 with the
 .B --compile
-flag.
+flag, while short snippets can be evaluated with the
+.B --eval
+argument.
 
 .SH OPTIONS
 A summary of options is included below.
@@ -46,10 +48,6 @@ is installed by default so that the
 function can load Fennel files in addition to Lua files. This flag
 disables that behavior. Has no effect for ahead-of-time compilation.
 .TP
-.B \-\-indent \fIval\fP
-When compiling, use the given string as indentation for the compiler
-output. This should consist of whitespace.
-.TP
 .B \-\-add-package-path \fIpath\fP
 Add the given path to
 .B package.path
@@ -68,7 +66,7 @@ compilation where it otherwise would be disabled. Use "*" to disable
 globals checking.
 .TP
 .B \-\-globals-only \fIVAR1[,VAR2...]\fP
-Same as above, but without the addition of the standard set of globals.
+Same as above, but without the inclusion of the standard set of globals.
 .TP
 .B \-\-require-as-include
 Instead of loading required modules at runtime, compile them inline
@@ -96,6 +94,8 @@ Print a help message and exit
 .TP
 .B \-v, \-\-version
 Print the version number and exit
+.PP
+Use the NO_COLOR environment variable to disable escape codes in error messages.
 
 .SH DOCUMENTATION
 
@@ -115,4 +115,4 @@ Calvin Rose and Phil Hagelberg and contributors:
 https://github.com/bakpakin/Fennel/graphs/contributors
 
 .SH LICENSE
-Copyright © 2016-2021, Released under the MIT/X11 license
+Copyright © 2016-2023, Released under the MIT/X11 license

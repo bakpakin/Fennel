@@ -375,7 +375,9 @@ Example:
 (let [[a b & c] [1 2 3 4 5 6]]
   (table.concat c ",")) ; => "3,4,5,6"
 ```
-*(Since 1.3.0)*: This also works with function argument lists.
+*(Since 1.3.0)*: This also works with function argument lists, but it
+has a small performance cost, so it's recommended to use `...` instead
+in cases that are sensitive to overhead.
 
 If a table implements `__fennelrest` metamethod it is used to capture the
 remainder of the table. It can be used with custom data structures

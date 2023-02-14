@@ -48,6 +48,8 @@ for production. It is used for docstrings and enabled by default in the REPL.
 When not given a command, runs the file given as the first argument.
 When given neither command nor file, launches a repl.
 
+Use the NO_COLOR environment variable to disable escape codes in error messages.
+
 If ~/.fennelrc exists, it will be loaded before launching a repl.")
 
 (local options {:plugins []})

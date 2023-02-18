@@ -989,7 +989,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
       (compiler.assert (< 2 (length ast)) "expected at least two arguments" ast)
       (if (= 3 (length ast))
           (native-comparator op ast scope parent)
-          (utils.every? utils.idempotent-expr? [(unpack ast 2)])
+          (utils.every? [(unpack ast 2)] utils.idempotent-expr?)
           (idempotent-comparator op ?chain-op ast scope parent)
           (double-eval-protected-comparator op ?chain-op ast scope parent)))
 

@@ -128,9 +128,9 @@ Optionally takes a target table to insert the mapped values into."
   (accumulate [max 0 k (pairs tbl)]
     (if (= :number (type k)) (math.max max k) max)))
 
-(fn every? [predicate seq]
+(fn every? [t predicate]
   (accumulate [result true
-               _ item (ipairs seq)
+               _ item (ipairs t)
                :until (not result)]
     (predicate item)))
 

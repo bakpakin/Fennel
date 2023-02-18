@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2016-2022 Calvin Rose and contributors
+Copyright (c) 2016-2023 Calvin Rose and contributors
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
@@ -15,6 +15,11 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]
+
+-- Changelog: (since 0.4.3)
+
+-- * backport idempotency checks in 3+ arity operator calls
+
 
 -- Make global variables local.
 local setmetatable = setmetatable
@@ -69,6 +74,13 @@ local utils = (function()
             if korv and v then out[korv] = v end
         end
         return out
+    end
+
+    local function every(t, f)
+       for _,v in ipairs(t) do
+          if(not f(v)) then return false end
+       end
+       return true
     end
 
     -- Returns a shallow copy of its table argument. Returns an empty table on nil.
@@ -251,6 +263,12 @@ local utils = (function()
 
     local function isQuoted(symbol) return symbol.quoted end
 
+    local function isIdempotent(expr)
+       local t = type(expr)
+       return t == "string" or t == "integer" or t == "number" or
+          (isSym(expr) and not isMultiSym(expr))
+    end
+
     local function astSource(ast)
        if (isTable(ast) or isSequence(ast)) then
           return (getmetatable(ast) or {})
@@ -319,13 +337,13 @@ local utils = (function()
     return {
         -- basic general table functions:
         stablepairs=stablepairs, allpairs=allpairs, map=map, kvmap=kvmap,
-        copy=copy, walkTree=walkTree,
+        every=every, copy=copy, walkTree=walkTree,
 
         -- AST functions:
         list=list, sym=sym, sequence=sequence, expr=expr, varg=varg,
-        isVarg=isVarg, isList=isList, isSym=isSym, isTable=isTable,
+        isVarg=isVarg, isList=isList, isSym=isSym, isTable=isTable, deref=deref,
         isSequence=isSequence, isMultiSym=isMultiSym, isQuoted=isQuoted,
-        isExpr=isExpr, deref=deref, astSource=astSource,
+        isExpr=isExpr, astSource=astSource, isIdempotent=isIdempotent,
 
         -- other functions:
         isValidLuaIdentifier=isValidLuaIdentifier, luaKeywords=luaKeywords,
@@ -2514,6 +2532,20 @@ local specials = (function()
         return string.format("(%s %s %s)", tostring(lhs), op, tostring(rhs))
     end
 
+    local function idempotent_comparator(op, chain_op, ast, scope, parent)
+       local vals, comparisons = {}, {}
+       local chain = string.format(" %s ", chain_op or "and")
+       for i=2, #ast do
+          local val = compiler.compile1(ast[i], scope, parent, {nval=1})[1]
+          table.insert(vals, tostring(val))
+       end
+       for i=1,#vals-1 do
+          local comparison = string.format("(%s %s %s)", vals[i], op, vals[i+1])
+          table.insert(comparisons, comparison)
+       end
+       return "(" .. table.concat(comparisons, chain) .. ")"
+    end
+
     local function double_eval_protected_comparator(op, chain_op, ast, scope, parent)
         local arglist, comparisons, vals = {}, {}, {}
         local chain = string.format(" %s ", (chain_op or "and"))
@@ -2538,6 +2570,8 @@ local specials = (function()
             compiler.assert((2 < #ast), "expected at least two arguments", ast)
             if (3 == #ast) then
                 return native_comparator(op, ast[2], ast[3], scope, parent)
+            elseif(utils.every({unpack(ast, 2)}, utils.isIdempotent)) then
+                return idempotent_comparator(op, chain_op, ast, scope, parent)
             else
                 return double_eval_protected_comparator(op, chain_op, ast, scope, parent)
             end
@@ -2874,7 +2908,7 @@ local module = {
 
     eval = eval,
     dofile = compiler.dofileFennel,
-    version = "0.4.3-dev",
+    version = "0.4.4-dev",
 }
 
 utils.fennelModule = module -- yet another circular dependency =(

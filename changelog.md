@@ -310,6 +310,26 @@ self-hosted and written entirely in Fennel!
 * Fix a bug where top-level expressions in `include` would get skipped
 
 
+## 0.4.3 / 2023-02-12
+
+This release backports all the features from the 1.3.0 release to the
+pre-self-hosted version of the compiler for bootstrapping purposes. There
+should be no reason to use this, other than to build a newer version.
+
+### New Forms
+* Backport new `match` rewrite as well as `case`, `case-try`, and `match-try`
+* Backport `accumulate`, `faccumulate`, and `fcollect` macros
+* Backport `?.` macro
+* Backport `collect` and `icollect` macros
+* Backport `:until` support in `each` and other loops.
+* Backport `&as` destructuring
+
+### Bug fixes
+* Backport a bug fix where comparison operators could double-eval args
+* Backport a bug fix where expressions would not get evaluated
+* Backport a bug fix where long arglists would get reordered
+
+
 ## 0.4.2 / 2020-07-11
 
 This release mostly includes small bug fixes but also adds the

@@ -7,6 +7,7 @@
 /chroot
 /bootstrap/view.lua
 
+/lua
 /lua-5.*
 
 /rockspecs/*asc

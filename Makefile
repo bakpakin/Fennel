@@ -101,7 +101,7 @@ fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
 		--compile-binary $< $@  $(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
 
 $(BIN_LUA_DIR)/src/liblua-x86_64.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a CC=x86_64-linux-gnu-gcc
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean posix liblua.a
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
 # Cross-compilation here doesn't work from arm64; need to do it on x86_64
@@ -110,7 +110,7 @@ $(BIN_LUA_DIR)/src/liblua-mingw.a: $(BIN_LUA_DIR)
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
 $(BIN_LUA_DIR)/src/liblua-arm32.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a CC=arm-linux-gnueabihf-gcc
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean posix liblua.a CC=arm-linux-gnueabihf-gcc
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
 ci: testall lint fuzz fennel

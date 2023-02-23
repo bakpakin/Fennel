@@ -96,7 +96,7 @@ Also returns a second function to clear the buffer in the byte stream"
                                (or line "?") col
                                source utils.root.reset))
         (utils.root.reset)
-        (if (or unfriendly (not _G.io) (not _G.io.read))
+        (if unfriendly
             (error (string.format "%s:%s:%s Parse error: %s"
                                   filename (or line "?") col msg) 0)
             (friend.parse-error msg filename (or line "?") col source options)))))

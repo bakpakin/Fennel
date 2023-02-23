@@ -54,7 +54,7 @@ The ast arg should be unmodified so that its first element is the form called."
       (when (= nil (utils.hook :assert-compile condition msg ast
                                utils.root.reset))
         (utils.root.reset)
-        (if (or unfriendly (not friend) (not _G.io) (not _G.io.read))
+        (if unfriendly
             ;; if we use regular `assert' we can't set level to 0
             (error (assert-msg ast msg) 0)
             (friend.assert-compile condition msg ast source {: error-pinpoint})))))

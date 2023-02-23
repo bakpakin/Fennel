@@ -94,7 +94,7 @@
       (let [matcher (string.gmatch (.. ?source "\n") "(.-)(\r?\n)")]
         (for [_ 2 line] (matcher))
         (matcher))
-      (with-open [f (assert (io.open filename))]
+      (with-open [f (assert (_G.io.open filename))]
         (for [_ 2 line] (f:read))
         (f:read))))
 

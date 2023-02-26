@@ -271,16 +271,13 @@ introduce for the duration of the body if it does match."
       (length pattern)
       1))
 
-(fn case-val-syms [clauses]
-  "What is the length of the largest multi-valued clause? return a list of that
-many gensyms."
+(fn case-count-syms [clauses]
+  "Find the length of the largest multi-valued clause"
   (let [patterns (fcollect [i 1 (length clauses) 2]
-                   (. clauses i))
-        sym-count (accumulate [longest 0
-                               _ pattern (ipairs patterns)]
-                    (math.max longest (count-case-multival pattern)))]
-    (fcollect [i 1 sym-count &into (list)]
-      (gensym))))
+                   (. clauses i))]
+    (accumulate [longest 0
+                 _ pattern (ipairs patterns)]
+      (math.max longest (count-case-multival pattern)))))
 
 (fn case-impl [match? val ...]
   "The shared implementation of case and match."
@@ -290,10 +287,14 @@ many gensyms."
   (assert (not= 0 (select :# ...))
           "expected at least one pattern/body pair")
   (let [clauses [...]
-        vals (case-val-syms clauses)]
-    ;; protect against multiple evaluation of the value, bind against as
-    ;; many values as we ever match against in the clauses.
-    (list `let [vals val] (case-condition vals clauses match?))))
+        vals-count (case-count-syms clauses)
+        skips-multiple-eval-protection? (and (= vals-count 1) (sym? val) (not (multi-sym? val)))]
+    (if skips-multiple-eval-protection?
+      (case-condition (list val) clauses match?)
+      ;; protect against multiple evaluation of the value, bind against as
+      ;; many values as we ever match against in the clauses.
+      (let [vals (fcollect [i 1 vals-count &into (list)] (gensym))]
+        (list `let [vals val] (case-condition vals clauses match?))))))
 
 (fn case* [val ...]
   "Perform pattern matching on val. See reference for details.

@@ -15,6 +15,8 @@ Run fennel, a lisp programming language for the Lua runtime.
   --no-searcher           : Skip installing package.searchers entry
   --indent VAL            : Indent compiler output with VAL
   --add-package-path PATH : Add PATH to package.path for finding Lua modules
+  --add-package-cpath PATH
+                          : Add PATH to package.cpath for finding Lua modules
   --add-fennel-path  PATH : Add PATH to fennel.path for finding Fennel modules
   --add-macro-path   PATH : Add PATH to fennel.macro-path for macro modules
   --globals G1[,G2...]    : Allow these globals in addition to standard ones
@@ -122,6 +124,9 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
       :--add-package-path (let [entry (table.remove arg (+ i 1))]
                             (set package.path (.. entry ";" package.path))
                             (table.remove arg i))
+      :--add-package-cpath (let [entry (table.remove arg (+ i 1))]
+                             (set package.cpath (.. entry ";" package.cpath))
+                             (table.remove arg i))
       :--add-fennel-path (let [entry (table.remove arg (+ i 1))]
                           (set fennel.path (.. entry ";" fennel.path))
                           (table.remove arg i))

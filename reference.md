@@ -1233,8 +1233,6 @@ Example:
 
 ```fennel
 (faccumulate [n 0 i 1 5] (+ n i)) ; => 15
-
-(#(faccumulate [n 1 i 1 $] (* n i)) 5) ; => 120 (factorial!)
 ```
 
 ### `fcollect` range comprehension macro

@@ -248,7 +248,9 @@ For more information about the language, see https://fennel-lang.org/reference")
                        "Print all documentations matching a pattern in function name")
 
 (fn resolve [identifier {: ___replLocals___ &as env} scope]
-  (let [e (setmetatable {} {:__index #(or (. ___replLocals___ $2) (. env $2))})]
+  (let [e (setmetatable {} {:__index #(or (. ___replLocals___
+                                             (. scope.unmanglings $2))
+                                          (. env $2))})]
     (match (pcall compiler.compile-string (tostring identifier) {: scope})
       (true code) ((specials.load-code code e)))))
 
@@ -273,7 +275,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                                                (resolve name env scope)))]
                   (if ok?
                       (on-values [(specials.doc target name)])
-                      (on-error :Repl "Could not resolve value for docstring lookup")))))
+                      (on-error :Repl (.. "Could not find " name " for docs."))))))
 
 (compiler.metadata:set commands.doc :fnl/docstring
                        "Print the docstring and arglist for a function, macro, or special form.")

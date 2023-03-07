@@ -225,8 +225,8 @@
 (local doc-cases
        [[",doc doto" "(doto val ...)\n  Evaluate val and splice it into the first argument of subsequent forms." "docstrings for built-in macros" ]
         [",doc table.concat"  "(table.concat #<unknown-arguments>)\n  #<undocumented>" "docstrings for built-in Lua functions" ]
-        [",doc foo.bar" "error: Could not resolve value for docstring lookup"]
-        [",doc (bork)" "error: Could not resolve value for docstring lookup"]
+        [",doc foo.bar" "error: Could not find foo.bar for docs."]
+        [",doc (bork)" "error: Could not find (bork) for docs."]
         ;; ["(fn ew [] \"so \\\"gross\\\" \\\\\\\"I\\\\\\\" can't even\" 1) ,doc ew"  "(ew)\n  so \"gross\" \\\"I\\\" can't even" "docstrings should be auto-escaped" ]
         ["(fn foo [a] :C 1) ,doc foo"  "(foo a)\n  C" "for named functions, doc shows name, args invocation, docstring" ]
         ["(fn foo! [[] {} {:x []} [{}]] 1) ,doc foo!"  "(foo! [] {} {:x []} [{}])\n  #<undocumented>" "empty tables in arglist printed as defined" ]

@@ -35,11 +35,11 @@
 (fn splice-save-locals [env lua-source scope]
   (let [saves (icollect [name (pairs env.___replLocals___)]
                 (: "local %s = ___replLocals___['%s']"
-                   :format name name))
-        binds (icollect [_ name (pairs scope.manglings)]
+                   :format (. scope.manglings name) name))
+        binds (icollect [raw name (pairs scope.manglings)]
                 (when (not (. scope.gensyms name))
                   (: "___replLocals___['%s'] = %s"
-                     :format name name)))
+                     :format raw name)))
         gap (if (lua-source:find "\n") "\n" " ")]
     (.. (if (next saves) (.. (table.concat saves " ") gap) "")
         (match (lua-source:match "^(.*)[\n ](return .*)$")
@@ -367,7 +367,7 @@ For more information about the language, see https://fennel-lang.org/reference")
     (load-plugin-commands opts.plugins)
 
     (when save-locals?
-      (fn newindex [t k v] (when (. opts.scope.unmanglings k) (rawset t k v)))
+      (fn newindex [t k v] (when (. opts.scope.manglings k) (rawset t k v)))
       (set env.___replLocals___ (setmetatable {} {:__newindex newindex})))
 
     (fn print-values [...]

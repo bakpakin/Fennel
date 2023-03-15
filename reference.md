@@ -1160,14 +1160,14 @@ body should return two things: a key and a value.
 
 ```fennel
 (collect [k v (pairs {:apple "red" :orange "orange" :lemon "yellow"})]
-  (if (not= k "yellow")
+  (if (not= v "yellow")
       (values (.. "color-" v) k)))
 ;; -> {:color-orange "orange" :color-red "apple"}
 
 ;; equivalent to:
 (let [tbl {}]
   (each [k v (pairs {:apple "red" :orange "orange"})]
-    (if (not= k "yellow")
+    (if (not= v "yellow")
       (match (values (.. "color-" v) k)
         (key value) (tset tbl key value))))
   tbl)

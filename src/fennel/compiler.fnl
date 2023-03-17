@@ -22,6 +22,7 @@ implement nesting. "
      :manglings (setmetatable [] {:__index (and parent parent.manglings)})
      :specials (setmetatable [] {:__index (and parent parent.specials)})
      :symmeta (setmetatable [] {:__index (and parent parent.symmeta)})
+     :gensym-base (setmetatable [] {:__index (and parent parent.gensym-base)})
      :unmanglings (setmetatable [] {:__index (and parent parent.unmanglings)})
      :gensyms (setmetatable [] {:__index (and parent parent.gensyms)})
      :autogensyms (setmetatable [] {:__index (and parent parent.autogensyms)})
@@ -103,7 +104,7 @@ and compile-stream."
   (or (not allowed-globals) (utils.member? name allowed-globals)))
 
 (fn unique-mangling [original mangling scope append]
-  (if (and (. scope.unmanglings mangling) (not (. scope.gensyms mangling)))
+  (if (. scope.unmanglings mangling)
       (unique-mangling original (.. original append) scope (+ append 1))
       mangling))
 
@@ -120,7 +121,7 @@ symbol is unique if the input string is unique in the scope."
                      (string.gsub "-" "_")
                      (string.gsub "[^%w_]" #(string.format "_%02x" ($:byte))))
         unique (unique-mangling mangling mangling scope 0)]
-    (tset scope.unmanglings unique str)
+    (tset scope.unmanglings unique (or (. scope.gensym-base str) str))
     (let [manglings (or ?temp-manglings scope.manglings)]
       (tset manglings str unique))
     unique))
@@ -153,7 +154,8 @@ these new manglings instead of the current manglings."
   (var mangling (.. (or ?base "") (next-append) (or ?suffix "")))
   (while (. scope.unmanglings mangling)
     (set mangling (.. (or ?base "") (next-append) (or ?suffix ""))))
-  (tset scope.unmanglings mangling (or ?base true))
+  (when (and ?base (< 0 (length ?base)))
+    (tset scope.gensym-base mangling ?base))
   (tset scope.gensyms mangling true)
   mangling)
 

@@ -21,4 +21,8 @@
                        y# {:one 1}]
                    (+ (x#:abc) y#.one)))
  :unsandboxed (fn [] (view [:no :sandbox]))
- :fail-one (fn [x] (when (= x 1) (abc)) true)}
+ :fail-one (fn [x] (when (= x 1) (abc)) true)
+ :gensym-shadow (fn []
+                  (let [g (gensym)]
+                    `(let [,g (let [,g 1] 2)]
+                       ,g)))}

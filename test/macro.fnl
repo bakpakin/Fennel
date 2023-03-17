@@ -77,7 +77,8 @@
   (== (do (import-macros {: unsandboxed} :test.macros) (unsandboxed))
       "[\"no\" \"sandbox\"]" {:compiler-env _G})
   (let [not-unqualified "(import-macros hi :test.macros) (print (inc 1))"]
-    (l.assertFalse (pcall fennel.eval not-unqualified))))
+    (l.assertFalse (pcall fennel.eval not-unqualified)))
+  (== 2 (do (import-macros {: gensym-shadow} :test.macros) (gensym-shadow))))
 
 (fn test-macro-path []
   (== (do (import-macros m :test.other-macros) (m.m)) "testing macro path"))

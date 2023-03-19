@@ -228,7 +228,8 @@ Also returns a second function to clear the buffer in the byte stream"
             (close-curly-table top))))
 
     (fn parse-string-loop [chars b state]
-      (table.insert chars b)
+      (when b
+        (table.insert chars (string.char b)))
       (let [state (match [state b]
                     [:base 92] :backslash
                     [:base 34] :done
@@ -245,11 +246,11 @@ Also returns a second function to clear the buffer in the byte stream"
 
     (fn parse-string []
       (table.insert stack {:closer 34})
-      (let [chars [34]]
+      (let [chars ["\""]]
         (when (not (parse-string-loop chars (getb) :base))
           (badend))
         (table.remove stack)
-        (let [raw (string.char (unpack chars))
+        (let [raw (table.concat chars)
               formatted (raw:gsub "[\a-\r]" escape-char)]
           (match ((or (rawget _G :loadstring) load) (.. "return " formatted))
             load-fn (dispatch (load-fn))
@@ -270,7 +271,7 @@ Also returns a second function to clear the buffer in the byte stream"
     (fn parse-sym-loop [chars b]
       (if (and b (sym-char? b))
           (do
-            (table.insert chars b)
+            (table.insert chars (string.char b))
             (parse-sym-loop chars (getb)))
           (do
             (when b
@@ -316,7 +317,7 @@ Also returns a second function to clear the buffer in the byte stream"
 
     (fn parse-sym [b] ; not just syms actually...
       (let [source {:bytestart byteindex : filename : line :col (- col 1)}
-            rawstr (string.char (unpack (parse-sym-loop [b] (getb))))]
+            rawstr (table.concat (parse-sym-loop [(string.char b)] (getb)))]
         (set-source-fields source)
         (if (= rawstr :true)
             (dispatch true)

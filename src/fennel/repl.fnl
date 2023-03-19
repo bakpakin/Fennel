@@ -172,7 +172,7 @@ For more information about the language, see https://fennel-lang.org/reference")
 
 (fn commands.complete [env read on-values on-error scope chars]
   (run-command read on-error
-               #(on-values (completer env scope (-> (string.char (unpack chars))
+               #(on-values (completer env scope (-> (table.concat chars)
                                                     (: :gsub ",complete +" "")
                                                     (: :sub 1 -2))))))
 
@@ -356,9 +356,10 @@ For more information about the language, see https://fennel-lang.org/reference")
         (byte-stream clear-stream) (parser.granulate read-chunk)
         chars []
         (read reset) (parser.parser (fn [parser-state]
-                                      (let [c (byte-stream parser-state)]
-                                        (table.insert chars c)
-                                        c)))]
+                                      (let [b (byte-stream parser-state)]
+                                        (when b
+                                          (table.insert chars (string.char b)))
+                                        b)))]
     (set (opts.env opts.scope) (values env (compiler.make-scope)))
     ;; use metadata unless we've specifically disabled it
     (set opts.useMetadata (not= opts.useMetadata false))
@@ -386,7 +387,7 @@ For more information about the language, see https://fennel-lang.org/reference")
         (tset chars k nil))
       (reset)
       (let [(ok parser-not-eof? x) (pcall read)
-            src-string (string.char (unpack chars))
+            src-string (table.concat chars)
             ;; Work around a bug introduced in lua-readline 3.2
             readline-not-eof? (or (not readline) (not= src-string "(null)"))
             not-eof? (and readline-not-eof? parser-not-eof?)]

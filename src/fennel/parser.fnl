@@ -155,14 +155,16 @@ Also returns a second function to clear the buffer in the byte stream"
       (dispatch (setmetatable list (getmetatable (utils.list)))))
 
     (fn close-sequence [tbl]
-      (let [val (utils.sequence (unpack tbl))]
+      (let [mt (getmetatable (utils.sequence))]
         ;; for table literals we can't store file/line/offset source
         ;; data in fields on the table itself, because the AST node
         ;; *is* the table, and the fields would show up in the
         ;; compiled output. keep them on the metatable instead.
         (each [k v (pairs tbl)]
-          (tset (getmetatable val) k v))
-        (dispatch val)))
+          (when (not= :number (type k))
+            (tset mt k v)
+            (tset tbl k nil)))
+        (dispatch (setmetatable tbl mt))))
 
     (fn add-comment-at [comments index node]
       (match (. comments index)

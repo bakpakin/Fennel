@@ -148,6 +148,11 @@ Note that the Lua runtime will fill in missing arguments with nil when
 they are not provided by the caller, so an explicit nil argument is no
 different than omitting an argument.
 
+Programmers coming from other languages in which it is an error to
+call a function with a different number of arguments than it is
+defined with often get tripped up by the behavior of `fn`. This is
+where `lambda` is most useful.
+
 The `lambda`, `case`, `case-try`, `match` and `match-try` forms are the only
 place where the `?foo` notation is used by the compiler to indicate that a nil
 value is allowed, but it is a useful notation to communicate intent anywhere a
@@ -273,7 +278,8 @@ of the below functions are functionally equivalent:
 ```
 
 This style of anonymous function is useful as a parameter to higher
-order functions. It's recommended only for simple one-line functions.
+order functions. It's recommended only for simple one-line functions
+that get passed as arguments to other functions.
 
 The current implementation only allows for hash functions to use up to
 9 arguments, each named `$1` through `$9`, or those with varargs,

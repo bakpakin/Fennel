@@ -1727,20 +1727,23 @@ accomplish this:
 Lua code inside the string can refer to locals which are in scope;
 however note that it must refer to the names after mangling has been
 done, because the identifiers must be valid Lua. The Fennel compiler
-will emit `foo-bar` as `foo_bar` in the Lua output in order for it to
-be valid. When in doubt, inspect the compiler output to see what it
-looks like. For example the following Fennel code:
+will change `foo-bar` to `foo_bar` in the Lua output in order for it
+to be valid, as well as other transformations. When in doubt, inspect
+the compiler output to see what it looks like. For example the
+following Fennel code:
 
 ```fennel
+(local foo-bar 3)
 (let [foo-bar :hello]
-  (lua "print(foo_bar .. \" world\")"))
+  (lua "print(foo_bar0 .. \" world\")"))
 ```
 
 will produce this Lua code:
 
 ```lua
-local foo_bar = "hello"
-print(foo_bar .. " world")
+local foo_bar = 3
+local foo_bar0 = "hello"
+print(foo_bar0 .. " world")
 return nil
 ```
 

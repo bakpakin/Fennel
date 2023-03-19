@@ -305,6 +305,12 @@
     (each [_ [code err-msg msg] (ipairs err-cases)]
       (l.assertStrContains (table.concat (send code)) err-msg false msg))))
 
+(fn test-long-string []
+  (let [send (wrap-repl)
+        long (fcollect [_ 1 8000 :into [":"]] "-")
+        [back] (send (table.concat long))]
+    (l.assertEquals 8000 (length back))))
+
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -327,5 +333,6 @@
      : test-locals-saving
      : test-docstrings
      : test-no-undocumented
-     : test-custom-metadata}
+     : test-custom-metadata
+     : test-long-string}
     {})

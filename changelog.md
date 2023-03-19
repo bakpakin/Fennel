@@ -8,7 +8,8 @@ deprecated forms.
 
 ## 1.3.1 / ???
 
-* ???
+### Bug Fixes
+* Fix a bug where very long individual lines in the repl would be truncated
 
 
 ## 1.3.0 / 2023-02-13

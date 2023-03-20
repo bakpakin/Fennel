@@ -1121,8 +1121,8 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (local [dirsep pathsep pathmark]
        (icollect [c (string.gmatch (or package.config "") "([^\n]+)")] c))
 (local pkg-config {:dirsep (or dirsep "/")
-                   :pathmark (or pathmark ";")
-                   :pathsep (or pathsep "?")})
+                   :pathmark (or pathmark "?")
+                   :pathsep (or pathsep ";")})
 
 (fn escapepat [str]
   "Escape a string for safe use in a Lua pattern."

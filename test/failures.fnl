@@ -200,6 +200,9 @@
         (_ msg-custom-pinpoint) (pcall fennel.eval "(asdf 123)"
                                        {:error-pinpoint [">>>" "<<<"]})
         (_ msg-custom-pinpoint2) (pcall fennel.eval "(asdf]"
+                                        {:error-pinpoint [">>>" "<<<"]})
+        (_ msg-custom-pinpoint3) (pcall fennel.eval
+                                        "(icollect [_ _ \n(pairs [])]\n)"
                                         {:error-pinpoint [">>>" "<<<"]})]
     ;; use the standard prefix
     (l.assertStrMatches msg "^%S+:%d+:%d+ Compile error: .+")
@@ -221,7 +224,8 @@
     (l.assertStrContains msg7 "msg7")
     ;; custom error pinpointing works
     (l.assertStrContains msg-custom-pinpoint ">>>asdf<<<")
-    (l.assertStrContains msg-custom-pinpoint2 ">>>]<<<")))
+    (l.assertStrContains msg-custom-pinpoint2 ">>>]<<<")
+    (l.assertStrContains msg-custom-pinpoint3 ">>>(icollect")))
 
 (fn doer []
   ;; this plugin does not detach in subsequent tests, so we must check that

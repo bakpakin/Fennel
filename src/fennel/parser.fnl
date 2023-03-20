@@ -105,7 +105,8 @@ Also returns a second function to clear the buffer in the byte stream"
     (var (whitespace-since-dispatch done? retval) true)
 
     (fn set-source-fields [source]
-      (set (source.byteend source.endcol) (values byteindex (- col 1))))
+      (set (source.byteend source.endcol source.endline)
+           (values byteindex (- col 1) line)))
 
     (fn dispatch [v]
       "Dispatch when we complete a value"

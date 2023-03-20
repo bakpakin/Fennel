@@ -100,7 +100,7 @@
 
 (fn sub [str start end]
   "Try to take the substring based on characters, not bytes."
-  (if (or (< end start) (< (length str) start) (< (length str) end)) ""
+  (if (or (< end start) (< (length str) start)) ""
       utf8-ok?
       (string.sub str (utf8.offset str start)
                   (- (or (utf8.offset str (+ end 1)) (+ (utf8.len str) 1)) 1))
@@ -118,8 +118,11 @@
             (sub codeline (+ col 1) (+ endcol 1))
             close (sub codeline (+ endcol 2) eol)))))
 
-(fn friendly-msg [msg {: filename : line : col : endcol} source opts]
+(fn friendly-msg [msg {: filename : line : col : endcol : endline} source opts]
   (let [(ok codeline) (pcall read-line filename line source)
+        endcol (if (not= line endline)
+                   (length codeline)
+                   endcol)
         out [msg ""]]
     ;; don't assume the file can be read as-is
     ;; (when (not ok) (print :err codeline))

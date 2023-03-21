@@ -4,7 +4,7 @@ DESTDIR ?=
 PREFIX ?= /usr/local
 BIN_DIR ?= $(PREFIX)/bin
 LUA_LIB_DIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
-MAN_DIR ?= $(PREFIX)/man/man1
+MAN_DIR ?= $(PREFIX)/share/man
 
 MINI_SRC=src/fennel.fnl src/fennel/parser.fnl src/fennel/specials.fnl \
 		src/fennel/utils.fnl src/fennel/compiler.fnl  src/fennel/macros.fnl \
@@ -127,7 +127,7 @@ coverage: fennel
 install: fennel fennel.lua fennel.1
 	mkdir -p $(DESTDIR)$(BIN_DIR) && cp fennel $(DESTDIR)$(BIN_DIR)/
 	mkdir -p $(DESTDIR)$(LUA_LIB_DIR) && cp fennel.lua $(DESTDIR)$(LUA_LIB_DIR)/
-	mkdir -p $(DESTDIR)$(MAN_DIR) && cp fennel.1 $(DESTDIR)$(MAN_DIR)/
+	mkdir -p $(DESTDIR)$(MAN_DIR) && cp fennel.1 $(DESTDIR)$(MAN_DIR)/man1/
 
 # Release-related tasks:
 

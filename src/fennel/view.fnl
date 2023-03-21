@@ -387,7 +387,9 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                 tv (type x)]
             (if (or (= tv :table)
                     (and (= tv :userdata)
-                         (-?> (getmetatable x) (. :__fennelview))))
+                         ;; ensure x is a table, not just non-nil to prevent
+                         ;; {:__metatable true} edge case seen in e.g. pandoc-lua
+                         (case (getmetatable x) {: __fennelview} __fennelview)))
                 (pp-table x options indent)
                 (= tv :number)
                 (number->string x)

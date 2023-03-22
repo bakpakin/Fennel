@@ -480,20 +480,12 @@ local parser = (function()
             local done, retval
             local whitespaceSinceDispatch = true
             local function dispatch(v)
-                -- this is a workaround for a specific bug in LuaJIT which is
-                -- causing build failures like this:
-                -- https://builds.sr.ht/~technomancy/job/960668
-                local stacktop = stack[#stack]
-                for k, v in pairs(stack) do
-                   if(type(k) == "number" and k > 1) then
-                      assert(stack[k-1], "sparse!")
-                   end
-                end
                 if #stack == 0 then
                     retval = v
                     done = true
-                elseif stacktop and stacktop.prefix then
-                    table.remove(stack)
+                elseif stack[#stack].prefix then
+                    local stacktop = stack[#stack]
+                    stack[#stack] = nil
                     return dispatch(utils.list(utils.sym(stacktop.prefix), v))
                 else
                     table.insert(stack[#stack], v)

@@ -47,10 +47,9 @@
 
 (fn getopt [options key]
   "Get an option with the respect to `:once` syntax."
-  (let [val (. options key)]
-    (match val
-      {:once val*} val*
-      _ val)))
+  (case (. options key)
+    {:once val*} val*
+    ?val ?val))
 
 (fn normalize-opts [options]
   "Prepare options for a nested invocation of the pretty printer."
@@ -307,7 +306,11 @@
     :min-code 0x10000 :max-code 0x10ffff
     :len 4}])
 
-(fn utf8-escape [str]
+;; for control chars and UTF8 escaping, use to Lua's default decimal escape
+(fn default-byte-escape [byte _options]
+  (: "\\%03d" :format byte))
+
+(fn utf8-escape [str options]
   ;; return nil if invalid utf8, if not return the length
   ;; TODO: use native utf8 library if possible
   (fn validate-utf8 [str index]
@@ -335,13 +338,14 @@
                (not (<= 0xd800 code 0xdfff)))
           init.len)))
   (var index 1)
-  (let [output []]
+  (let [output []
+        byte-escape (or (getopt options :byte-escape) default-byte-escape)]
     (while (<= index (length str))
       (let [nexti (or (string.find str "[\128-\255]" index) (+ (length str) 1))
             len (validate-utf8 str nexti)]
         (table.insert output (string.sub str index (+ nexti (or len 0) -1)))
         (when (and (not len) (<= nexti (length str)))
-          (table.insert output (string.format "\\%03d" (string.byte str nexti))))
+          (table.insert output (byte-escape (str:byte nexti) options)))
         (set index (if len (+ nexti len) (+ nexti 1)))))
     (table.concat output)))
 
@@ -352,6 +356,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
   (let [len (length* str)
         esc-newline? (or (< len 2) (and (getopt options :escape-newlines?)
                                         (< len (- options.line-length indent))))
+        byte-escape (or (getopt options :byte-escape) default-byte-escape)
         escs (setmetatable {"\a" "\\a"
                             "\b" "\\b"
                             "\f" "\\f"
@@ -361,10 +366,10 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                             :\ "\\\\"
                             "\"" "\\\""
                             "\n" (if esc-newline? "\\n" "\n")}
-                           {:__index #(: "\\%03d" :format ($2:byte))})
+                           {:__index #(byte-escape ($2:byte) options)})
         str (.. "\"" (str:gsub "[%c\\\"]" escs) "\"")]
     (if (getopt options :utf8?)
-        (utf8-escape str)
+        (utf8-escape str options)
         str)))
 
 (fn make-options [t options]

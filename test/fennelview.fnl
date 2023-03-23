@@ -67,7 +67,13 @@
 
 (fn test-escapes []
   (t.= (view ["\a" "\t"]) "[\"\\a\" \"\\t\"]")
-  (t.= (view "[\7-\13]") "\"[\\a-\\r]\""))
+  (t.= (view "[\7-\13]") "\"[\\a-\\r]\"")
+  (t.= (view (string.char 27)) "\"\\027\""
+       "view should default string escapes to decimal")
+  (t.= (view ["\027" "\a"] {:byte-escape #(: "\\x%2x" :format $)})
+       "[\"\\x1b\" \"\\a\"]")
+  (t.= (view ["\027" "\a"] {:byte-escape #(: "\\%03o" :format $)})
+       "[\"\\033\" \"\\a\"]"))
 
 (fn test-gaps []
   (t.= (view {967216353 788}) "{967216353 788}"))

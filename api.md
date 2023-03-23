@@ -371,6 +371,9 @@ instead these options are accepted:
 * `empty-as-sequence?` (default: false) render empty tables as []
 * `line-length` (number, default: 80) length of the line at which
   multi-line output for tables is forced
+* `byte-escape` (function) If present, overrides default behavior of escaping special
+characters in decimal format (e.g. `<ESC>` -> `\027`). Called with the signature
+`(byte-escape byte view-opts)`, where byte is the char code for a special character
 * `escape-newlines?` (default: false) emit strings with \\n instead of newline
 * `prefer-colon?` (default: false) emit strings in colon notation when possible
 * `utf8?` (default true) whether to use utf8 module to compute string lengths
@@ -481,6 +484,20 @@ When using the `:preprocess` option or `__fennelview` method, avoid modifying
 any tables in-place in the passed function. Since Lua tables are mutable and
 passed in without copying, any modification done in these functions will be
 visible outside of `fennel.view`.
+
+Using `:byte-escape` to override the special character escape format is
+intended for use-cases where it's known that the output will be consumed by
+something other than Lua/Fennel, and may result in output that Fennel can no
+longer parse. For example, to force the use of hex escapes:
+
+```fennel
+(print (fennel.view {:clear-screen "\027[H\027[2J"}
+                    {:byte-escape #(: "\\x%2x" :format $)}))
+;; > {:clear-screen "\x1b[H\x1b[2J"}
+```
+
+While Lua 5.2+ supports hex escapes, PUC Lua 5.1 does not, so compiling this
+with Fennel later would result in an incorrect escape code in Lua 5.1.
 
 
 ## Work with docstrings and metadata

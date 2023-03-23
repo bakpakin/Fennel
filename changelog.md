@@ -28,6 +28,7 @@ deprecated forms.
   redefinition at runtime.
 * Allow following docstring with a metadata table syntax.
 * Return whole metadata table when `metadata.get` is called without a key.
+* Add `:byte-escape` option to `fennel.view` for overriding default char escapes
 
 ## 1.3.0 / 2023-02-13
 

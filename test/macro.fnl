@@ -116,7 +116,9 @@
       {:compiler-env _G})
   (== (do (macro n [] 1) (local x (n)) (macro n [] 2) (values x (n)))
       (values 1 2)
-      nil "macro-macro shadowing should be allowed"))
+      nil "macro-macro shadowing should be allowed")
+  (== (do (macros (let [noop #nil] {: noop})) (noop))
+      nil nil "(macros) should accept an expr that returns a table"))
 
 (fn test-macrodebug []
   (let [eval-normalize #(-> (pick-values 1 (fennel.eval $1 $2))

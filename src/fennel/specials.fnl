@@ -1365,9 +1365,11 @@ Lua output. The module must be a string literal and resolvable at compile time."
              opts.module-name ast.filename))))
 
 (fn SPECIALS.macros [ast scope parent]
-  (compiler.assert (and (= (length ast) 2) (utils.table? (. ast 2)))
+  (compiler.assert (= (length ast) 2)
                    "Expected one table argument" ast)
-  (add-macros (eval-compiler* (. ast 2) scope parent) ast scope parent))
+  (let [macro-table (eval-compiler* (. ast 2) scope parent)]
+    (assert (utils.table? macro-table) "Expected one table argument")
+    (add-macros macro-table ast scope parent)))
 
 (doc-special :macros
              ["{:macro-name-1 (fn [...] ...) ... :macro-name-N macro-body-N}"]

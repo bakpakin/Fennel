@@ -11,6 +11,7 @@ deprecated forms.
 ### Bug Fixes
 * Fix a bug where very long individual lines in the repl would be truncated
 * Fix an edge case where `{:__metatable true}` (as in pandoc-lua) breaks fennel.view
+* Fix a 1.3.0 bug where `macros` only accepts table literals, not table-returning exprs
 
 
 ## 1.3.0 / 2023-02-13

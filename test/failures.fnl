@@ -81,7 +81,9 @@
     "(import-macros {: asdf} :test.macros)"
     "macro asdf not found in module test.macros"
     "(import-macros m :test.bad.macro-no-return-table)"
-    "expected macros to be table"}))
+    "expected macros to be table"
+    "(macros {:noop #nil} {:identity #$})" "Expected one table argument"
+    "(macros (do :BORK))" "Expected one table argument"}))
 
 (fn test-binding-fails []
   (assert-fail (let [x {:foo (fn [self] self.bar) :bar :baz}] x:foo)

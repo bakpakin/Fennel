@@ -32,8 +32,11 @@
       (fengari-vm?) (fengari-vm-version)
       (.. "PUC " _VERSION)))
 
-(fn runtime-version []
-  (.. "Fennel " version " on " (lua-vm-version)))
+(fn runtime-version [?as-table]
+  (if ?as-table
+      {:fennel version
+       :lua (lua-vm-version)}
+      (.. "Fennel " version " on " (lua-vm-version))))
 
 ;;; General-purpose helper functions
 

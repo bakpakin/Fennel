@@ -493,7 +493,7 @@ declared with `fn` or `λ/lambda` will use the created function as a key on
 The metadata table is weakly-referenced by key, so each function's metadata will
 be garbage collected along with the function itself.
 
-You can work with the API to view or modify this metadata yourself, or use the 
+You can work with the API to view or modify this metadata yourself, or use the
 `,doc` repl command to view function documentation.
 
 In addition to direct access to the metadata tables, you can use the following methods:
@@ -581,6 +581,16 @@ print(fennel.runtimeVersion())
 ```
 
 The `fennel.version` field will give you the version of just Fennel itself.
+
+*(since 1.3.1)*
+
+If an optional argument is given, returns version information as a
+table:
+
+```fennel
+(fennel.runtime-version :as-table)
+;; > {:fennel "1.3.1" :lua "PUC Lua 5.4"}
+```
 
 ## Plugins
 

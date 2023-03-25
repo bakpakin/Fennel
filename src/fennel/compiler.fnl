@@ -641,7 +641,8 @@ which we have to do if we don't know."
             ;; out the meta table and setting it later works around the problem.
             (declare-local symbol nil scope symbol new-manglings)
             (let [parts (or (utils.multi-sym? raw) [raw])
-                  meta (. scope.symmeta (. parts 1))]
+                  [first] parts
+                  meta (. scope.symmeta first)]
               (assert-compile (not (raw:find ":")) "cannot set method sym" symbol)
               (when (and (= (length parts) 1) (not forceset))
                 (assert-compile (not (and forceglobal meta))
@@ -651,9 +652,9 @@ which we have to do if we don't know."
                 (assert-compile (not (and meta (not meta.var)))
                                 (.. "expected var " raw) symbol))
               (assert-compile (or meta (not opts.noundef)
-                                  (and scope.hashfn (raw:find "^%$"))
-                                  (global-allowed? (. parts 1)))
-                              (.. "expected local " (. parts 1)) symbol)
+                                  (and scope.hashfn (= :$ first))
+                                  (global-allowed? first))
+                              (.. "expected local " first) symbol)
               (when forceglobal
                 (assert-compile (not (. scope.symmeta (. scope.unmanglings raw)))
                                 (.. "global " raw " conflicts with local")

@@ -332,7 +332,8 @@
   (== (let [f #(do #(values $...))]
         (table.concat [((f) 1 2 3)])) "123")
   (== (let [f #(do (local a 1) (local b (+ $1 $1 a)) (+ a b))]
-        (f 1)) 4))
+        (f 1)) 4)
+  (== (let [t {:x 41} f #(set $.x 86)] (f t) t.x) 86))
 
 (fn test-method-calls []
   (== (: :hello :find :e) 2)

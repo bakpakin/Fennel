@@ -651,6 +651,7 @@ which we have to do if we don't know."
                 (assert-compile (not (and meta (not meta.var)))
                                 (.. "expected var " raw) symbol))
               (assert-compile (or meta (not opts.noundef)
+                                  (and scope.hashfn (raw:find "^%$"))
                                   (global-allowed? (. parts 1)))
                               (.. "expected local " (. parts 1)) symbol)
               (when forceglobal

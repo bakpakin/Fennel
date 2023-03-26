@@ -9,6 +9,7 @@ deprecated forms.
 ## 1.4.0 / ???
 
 ### New Forms
+* Add `tail!` which asserts that the argument is called in tail position.
 * Add `assert-repl` to make an assertion which opens a repl when it fails.
 
 ### New Features

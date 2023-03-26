@@ -1350,8 +1350,8 @@ Consider using import-macros instead as it is more flexible.")
                   ;; will be nil and we will not be able to successfully
                   ;; compile relative requires into includes, but we can still
                   ;; emit a runtime relative require.
-                  (true modname) (utils.expr (string.format "%q" modname) :literal)
-                  _ (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))]
+                  (true modname) (utils.expr (string.format "%q" modname) :literal))]
+    (compiler.compile1 (. ast 2) scope parent {:nval 1})
     (if (or (not= modexpr.type :literal) (not= (: (. modexpr 1) :byte) 34))
         (if opts.fallback
             (opts.fallback modexpr)
@@ -1394,6 +1394,15 @@ Lua output. The module must be a string literal and resolvable at compile time."
 (doc-special :macros
              ["{:macro-name-1 (fn [...] ...) ... :macro-name-N macro-body-N}"]
              "Define all functions in the given table as macros local to the current scope.")
+
+(fn SPECIALS.tail! [ast scope parent {: tail}]
+  (compiler.assert (= (length ast) 2) "Expected one argument" ast)
+  (compiler.assert (utils.list? (. ast 2)) "Expected a call as argument" ast)
+  (compiler.assert tail "Must be in tail position" ast)
+  (compiler.compile (. ast 2) {:nval 1 : scope}))
+
+(doc-special :tail! ["body"]
+             "Assert that the body being called is in tail position.")
 
 (fn SPECIALS.eval-compiler [ast scope parent]
   (let [old-first (. ast 1)]

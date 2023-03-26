@@ -1434,6 +1434,19 @@ the next form.
 The first form becomes the return value for the whole expression, and
 subsequent forms are evaluated solely for side-effects.
 
+### `tail!`
+
+The `tail!` form asserts that its argument is called in a tail position.
+
+```fennel
+(macro not-last [f]
+  `(do ,f nil))
+
+(fn abc []
+  (not-last (tail! (print :lol))))
+;;           ^^^^^ Compile error: Must be in tail position
+```
+
 ### `include`
 
 ```fennel

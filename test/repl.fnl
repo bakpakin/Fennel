@@ -287,7 +287,11 @@
                ["(fn qux [] {:qux {:compound [:seq {:table :table}]}} nil)
                  (view (metadata:get qux :qux))"
                 "{:compound [\"seq\" {:table \"table\"}]}"
-                "expected compound metadata to work"]]
+                "expected compound metadata to work"]
+               ["(λ a-lambda [x ...] {:fnl/arglist [x y z]} nil)
+                 (view (metadata:get a-lambda :fnl/arglist))"
+                "[\"x\" \"y\" \"z\"]"
+                "expected lambda metadata literal to work"]]
         err-cases [["(fn foo [] {:foo (fn [] nil)} nil)"
                     "expected literal value in metadata table, got: \"foo\" (fn [] nil)"
                     "lists are not allowed as metadata fields"]

@@ -274,27 +274,19 @@ the number of expected arguments."
     (compile-named-fn ast f-scope f-chunk parent index fn-name true
                       arg-name-list f-metadata)))
 
-(fn assoc-table? [t]
-  ;; Check if table is associative and not empty
-  (let [len (length t)
-        (nxt t k) (pairs t)]
-    (not= nil (nxt t (if (= len 0) k len)))))
-
 (fn get-function-metadata [ast arg-list index]
   ;; Get function metadata from ast and put it in a table.  Detects if
   ;; the next expression after a argument list is either a string or a
   ;; table, and copies values into function metadata table.
   (let [f-metadata {:fnl/arglist arg-list}
         index* (+ index 1)
+        index*-before-ast-end? (< index* (length ast))
         expr (. ast index*)]
-    (if (and (utils.string? expr)
-             (< index* (length ast)))
+    (if (and index*-before-ast-end? (utils.string? expr))
         (values (doto f-metadata
-                  (tset :fnl/docstring expr))
+                      (tset :fnl/docstring expr))
                 index*)
-        (and (utils.table? expr)
-             (< index* (length ast))
-             (assoc-table? expr))
+        (and index*-before-ast-end? (utils.kv-table? expr))
         (values (collect [k v (pairs expr) :into f-metadata]
                   (values k v))
                 index*)

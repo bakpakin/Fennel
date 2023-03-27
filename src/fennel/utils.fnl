@@ -302,6 +302,14 @@ except when certain macros need to look for binding forms, etc specifically."
   (and (= (type x) :table) (not (varg? x)) (not= (getmetatable x) list-mt)
        (not= (getmetatable x) symbol-mt) (not (comment? x)) x))
 
+(fn kv-table? [t]
+  "Checks if t is an associative table and not empty"
+  (when (table? t)
+    (let [(nxt t k) (pairs t)
+          len (length t)
+          next-state (if (= 0 len) k len)]
+      (and (not= nil (nxt t next-state)) t))))
+
 (fn string? [x] (= (type x) :string))
 
 (fn multi-sym? [str]
@@ -459,6 +467,7 @@ handlers will be skipped."
  : sequence?
  : sym?
  : table?
+ : kv-table?
  : varg?
  : quoted?
  : string?

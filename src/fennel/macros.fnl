@@ -315,18 +315,19 @@ expands to
 Like `fn`, but will throw an exception if a declared argument is passed in as
 nil, unless that argument's name begins with a question mark."
   (let [args [...]
+        args-len (length args)
         has-internal-name? (sym? (. args 1))
         arglist (if has-internal-name? (. args 2) (. args 1))
-        docstring-position (if has-internal-name? 3 2)
-        has-docstring? (and (< docstring-position (length args))
-                            (= :string (type (. args docstring-position))))
+        metadata-position (if has-internal-name? 3 2)
+        has-metadata? (and (< metadata-position args-len)
+                           (or (= :string (type (. args metadata-position)))
+                               (utils.kv-table? (. args metadata-position))))
         arity-check-position (- 4 (if has-internal-name? 0 1)
-                                (if has-docstring? 0 1))
-        empty-body? (< (length args) arity-check-position)]
+                                (if has-metadata? 0 1))
+        empty-body? (< args-len arity-check-position)]
     (fn check! [a]
       (if (table? a)
-          (each [_ a (pairs a)]
-            (check! a))
+          (each [_ a (pairs a)] (check! a))
           (let [as (tostring a)]
             (and (not (as:match "^?")) (not= as "&") (not= as "_")
                  (not= as "...") (not= as "&as")))
@@ -338,8 +339,7 @@ nil, unless that argument's name begins with a question mark."
                                         (or a.line "?"))))))
 
     (assert (= :table (type arglist)) "expected arg list")
-    (each [_ a (ipairs arglist)]
-      (check! a))
+    (each [_ a (ipairs arglist)] (check! a))
     (if empty-body?
         (table.insert args (sym :nil)))
     `(fn ,(unpack args))))

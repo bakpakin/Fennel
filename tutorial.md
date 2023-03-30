@@ -32,8 +32,8 @@ simply an anonymous value.
 > Underscores (`_`) are often used to name a variable that we don't plan
 > on using.
 
-The argument list is provided in square brackets. The final value is
-returned.
+The argument list is provided in square brackets. The final value in
+the body is returned.
 
 (If you've never used a lisp before, the main thing to note is that
 the function or macro being called goes *inside* the parens, not
@@ -46,12 +46,9 @@ outside.)
 ```
 
 Functions can take an optional docstring in the form of a string that
-immediately follows the arglist. Under normal compilation, this
-is removed from the emitted Lua, but in the REPL, or when compiling with
-metadata enabled (`fennel --metadata <tgt-files>`), the docstring and
-function usage can be viewed with the `doc` macro:
-
-*Note: Enabling metadata is only recommended for development purposes.*
+immediately follows the arglist. Under normal compilation, this is
+removed from the emitted Lua, but during development in the REPL the
+docstring and function usage can be viewed with the `,doc` command:
 
 ```fennel
 (fn print-sep [sep ...]

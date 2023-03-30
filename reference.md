@@ -115,14 +115,31 @@ Example:
 ```
 
 Giving it a name is optional; if one is provided it will be bound to
-it as a local. Providing a name that's a table field will cause it
-to be inserted in a table instead of bound as a local:
+it as a local. The following mean exactly the same thing; the first is
+preferred mostly for indentation reasons, but also because it allows
+recursion:
+
+```fennel
+(fn pxy [x y]
+  (print (+ x y)))
+  
+(local pxy (fn [x y]
+             (print (+ x y))))
+```
+
+
+Providing a name that's a table field will cause it to be inserted in
+a table instead of bound as a local:
 
 ```fennel
 (local functions {})
 
 (fn functions.p [x y z]
   (print (* x (+ y z))))
+
+;; equivalent to:
+(set functions.p (fn [x y z]
+                   (print (* x (+ y z)))))
 ```
 
 Like Lua, functions in Fennel support tail-call optimization, allowing

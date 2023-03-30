@@ -348,18 +348,20 @@ For more information about the language, see https://fennel-lang.org/reference")
                       (try-readline! opts (pcall require :readline)))
         _ (when ?fennelrc (?fennelrc))
         env (specials.wrap-env (or opts.env (rawget _G :_ENV) _G))
+        callbacks {:readChunk (or opts.readChunk default-read-chunk)
+                   :onValues (or opts.onValues default-on-values)
+                   :onError (or opts.onError default-on-error)
+                   :pp (or opts.pp view)
+                   :env env}
         save-locals? (not= opts.saveLocals false)
-        read-chunk (or opts.readChunk default-read-chunk)
-        on-values (or opts.onValues default-on-values)
-        on-error (or opts.onError default-on-error)
-        pp (or opts.pp view)
-        (byte-stream clear-stream) (parser.granulate read-chunk)
+        (byte-stream clear-stream) (parser.granulate #(callbacks.readChunk $))
         chars []
         (read reset) (parser.parser (fn [parser-state]
                                       (let [b (byte-stream parser-state)]
                                         (when b
                                           (table.insert chars (string.char b)))
                                         b)))]
+    (set env.___repl___ callbacks)
     (set (opts.env opts.scope) (values env (compiler.make-scope)))
     ;; use metadata unless we've specifically disabled it
     (set opts.useMetadata (not= opts.useMetadata false))
@@ -375,12 +377,13 @@ For more information about the language, see https://fennel-lang.org/reference")
 
     (fn print-values [...]
       (let [vals [...]
-            out []]
+            out []
+            pp callbacks.pp]
         (set (env._ env.__) (values (. vals 1) vals))
         ;; utils.map won't work here because of sparse tables
         (for [i 1 (select "#" ...)]
           (table.insert out (pp (. vals i))))
-        (on-values out)))
+        (callbacks.onValues out)))
 
     (fn loop []
       (each [k (pairs chars)]
@@ -393,27 +396,27 @@ For more information about the language, see https://fennel-lang.org/reference")
             not-eof? (and readline-not-eof? parser-not-eof?)]
         (if (not ok)
             (do
-              (on-error :Parse not-eof?)
+              (callbacks.onError :Parse not-eof?)
               (clear-stream)
               (loop))
             (command? src-string)
-            (run-command-loop src-string read loop env on-values on-error
+            (run-command-loop src-string read loop env callbacks.onValues callbacks.onError
                               opts.scope chars)
             (when not-eof?
               (match (pcall compiler.compile x (doto opts
                                                  (tset :source src-string)))
                 (false msg) (do
                               (clear-stream)
-                              (on-error :Compile msg))
+                              (callbacks.onError :Compile msg))
                 (true src) (let [src (if save-locals?
                                          (splice-save-locals env src opts.scope)
                                          src)]
                              (match (pcall specials.load-code src env)
                                (false msg) (do
                                              (clear-stream)
-                                             (on-error "Lua Compile" msg src))
+                                             (callbacks.onError "Lua Compile" msg src))
                                (_ chunk) (xpcall #(print-values (chunk))
-                                                 (partial on-error :Runtime)))))
+                                                 (partial callbacks.onError :Runtime)))))
               (set utils.root.options old-root-options)
               (loop)))))
 

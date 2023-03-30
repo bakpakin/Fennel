@@ -13,11 +13,15 @@ deprecated forms.
 * Fix an edge case where `{:__metatable true}` (as in pandoc-lua) breaks fennel.view
 * Fix a 1.3.0 bug where `macros` only accepts table literals, not table-returning exprs
 * Fix a bug where metadata tables with different arglists break lambdas
+* Fix a bug with detecting cycles for tables that have custom
+  `__pairs` metamethod in fennel.view
 
 ### New Features
 
 * `fennel.runtime-version` will return version information as a table
   if given optional argument
+* Expose REPL's methods in the `___repl___` table, allowing method
+  redefinition at runtime.
 
 ## 1.3.0 / 2023-02-13
 

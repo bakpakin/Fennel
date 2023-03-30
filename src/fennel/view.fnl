@@ -141,13 +141,15 @@
       (set seen.len id))
     seen))
 
-(fn detect-cycle [t seen ?k]
+(fn detect-cycle [t seen]
   "Return `true` if table `t` appears in itself."
   (when (= :table (type t))
     (tset seen t true)
-    (match (next t ?k)
-      (k v) (or (. seen k) (detect-cycle k seen) (. seen v)
-                (detect-cycle v seen) (detect-cycle t seen k)))))
+    (accumulate [res nil
+                 k v (pairs t)
+                 :until res]
+      (or (. seen k) (detect-cycle k seen)
+          (. seen v) (detect-cycle v seen)))))
 
 (fn visible-cycle? [t options]
   ;; Detect cycle, save table's ID in seen tables, and determine if

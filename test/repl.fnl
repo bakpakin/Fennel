@@ -315,6 +315,24 @@
         [back] (send (table.concat long))]
     (l.assertEquals 8000 (length back))))
 
+(fn test-decorating-repl []
+  ;; overriding REPL methods from within the REPL via decoration.
+  (let [send (wrap-repl)]
+    (let [_ (send "(let [readChunk ___repl___.readChunk]
+                     (fn ___repl___.readChunk [parser-state]
+                       (string.format \"(- %s)\" (readChunk parser-state))))")
+          [res] (send "(+ 1 2 3)")]
+      (l.assertEquals res "-6" "expected the result to be negated by the new readChunk"))
+    (let [_ (send "(let [onValues ___repl___.onValues]
+                     (fn ___repl___.onValues [vals]
+                       (onValues (icollect [_ v (ipairs vals)]
+                          (.. \"res: \" v)))))")
+          [res] (send "(+ 1 2 3 4)")]
+      (l.assertEquals res "res: -10" "expected result to include \"res: \" preffix"))
+    (let [_ (send "(fn ___repl___.onError [errtype err lua-source] nil)")
+          [res] (send "(error :foo)")]
+      (l.assertEquals res nil "expected error to be ignored"))))
+
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
@@ -338,5 +356,6 @@
      : test-docstrings
      : test-no-undocumented
      : test-custom-metadata
-     : test-long-string}
+     : test-long-string
+     : test-decorating-repl}
     {})

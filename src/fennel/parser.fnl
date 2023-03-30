@@ -7,7 +7,7 @@
 
 (fn granulate [getchunk]
   "Convert a stream of chunks to a stream of bytes.
-Also returns a second function to clear the buffer in the byte stream"
+Also returns a second function to clear the buffer in the byte stream."
   (var (c index done?) (values "" 1 false))
   (values (fn [parser-state]
             (when (not done?)

@@ -78,7 +78,9 @@
         "unexpected arguments" ["removing an argument"
                                 "checking for typos"]
         "unexpected iterator clause" ["removing an argument"
-                                      "checking for typos"]})
+                                      "checking for typos"]
+        "tried to use unquote outside quote" ["moving the form to inside a quoted form"
+                                              "removing the comma"]})
 
 (local unpack (or table.unpack _G.unpack))
 

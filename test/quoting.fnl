@@ -12,8 +12,6 @@
 
 (fn test-quote []
   (l.assertEquals (c "`:abcde") "return \"abcde\"" "simple string quoting")
-  (l.assertEquals (c ",a") "return unquote(a)"
-                  "unquote outside quote is simply passed thru")
   (l.assertEquals (v "`[1 2 ,(+ 1 2) 4]") "[1 2 3 4]"
                   "unquote inside quote leads to evaluation")
   (l.assertEquals (v "(let [a (+ 2 3)] `[:hey ,(+ a a)])") "[\"hey\" 10]"

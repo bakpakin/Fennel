@@ -1377,6 +1377,11 @@ Lua output. The module must be a string literal and resolvable at compile time."
              "Evaluate the body at compile-time. Use the macro system instead if possible."
              true)
 
+(fn SPECIALS.unquote [ast]
+  (compiler.assert false "tried to use unquote outside quote" ast))
+
+(doc-special :unquote ["..."] "Evaluate the argument even if it's in a quoted form.")
+
 {:doc doc*
  : current-global-names
  : load-code

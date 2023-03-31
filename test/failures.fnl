@@ -83,6 +83,7 @@
     "(import-macros m :test.bad.macro-no-return-table)"
     "expected macros to be table"
     "(macros {:noop #nil} {:identity #$})" "Expected one table argument"
+    "(macro xyz [t] ,t)" "tried to use unquote outside quote"
     "(macros (do :BORK))" "Expected one table argument"}))
 
 (fn test-binding-fails []

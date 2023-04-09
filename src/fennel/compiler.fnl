@@ -826,56 +826,42 @@ which we have to do if we don't know."
 
   (scopes.global.specials.include ast scope parent opts))
 
-(fn compile-stream [strm options]
-  (let [opts (utils.copy options)
-        old-globals allowed-globals
-        scope (or opts.scope (make-scope scopes.global))
-        vals []
-        chunk []]
-    (utils.root:set-reset)
+(fn opts-for-compile [options]
+  (let [opts (utils.copy options)]
+    (set opts.indent (or opts.indent "  "))
     (set allowed-globals opts.allowedGlobals)
-    (when (= opts.indent nil)
-      (set opts.indent "  "))
+    opts))
+
+(fn compile-asts [asts options]
+  (let [old-globals allowed-globals
+        opts (opts-for-compile options)
+        scope (or opts.scope (make-scope scopes.global))
+        chunk []]
     (when opts.requireAsInclude
       (set scope.specials.require require-include))
+    (utils.root:set-reset)
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))
-    (each [_ val (parser.parser strm opts.filename opts)]
-      (table.insert vals val))
-    (for [i 1 (length vals)]
-      (let [exprs (compile1 (. vals i) scope chunk
-                            {:nval (or (and (< i (length vals)) 0) nil)
-                             :tail (= i (length vals))})]
-        (keep-side-effects exprs chunk nil (. vals i))
-        (when (= i (length vals))
-          (utils.hook :chunk (. vals i) scope))))
+    (for [i 1 (length asts)]
+      (let [exprs (compile1 (. asts i) scope chunk
+                            {:nval (or (and (< i (length asts)) 0) nil)
+                             :tail (= i (length asts))})]
+        (keep-side-effects exprs chunk nil (. asts i))
+        (when (= i (length asts))
+          (utils.hook :chunk (. asts i) scope))))
     (set allowed-globals old-globals)
     (utils.root.reset)
     (flatten chunk opts)))
 
+(fn compile-stream [stream opts]
+  (let [asts (icollect [_ ast (parser.parser stream opts.filename opts)] ast)]
+    (compile-asts asts opts)))
+
 (fn compile-string [str ?opts]
-  (let [opts (or ?opts {})]
-    (compile-stream (parser.string-stream str opts) opts)))
+  (compile-stream (parser.string-stream str (or ?opts {})) (or ?opts {})))
 
 (fn compile [ast opts]
-  (let [opts (utils.copy opts)
-        old-globals allowed-globals
-        chunk []
-        scope (or opts.scope (make-scope scopes.global))]
-    (utils.root:set-reset)
-    (set allowed-globals opts.allowedGlobals)
-    (when (= opts.indent nil)
-      (set opts.indent "  "))
-    (when opts.requireAsInclude
-      (set scope.specials.require require-include))
-    (set (utils.root.chunk utils.root.scope utils.root.options)
-         (values chunk scope opts))
-    (let [exprs (compile1 ast scope chunk {:tail true})]
-      (keep-side-effects exprs chunk nil ast)
-      (utils.hook :chunk ast scope)
-      (set allowed-globals old-globals)
-      (utils.root.reset)
-      (flatten chunk opts))))
+  (compile-asts [ast] opts))
 
 (fn traceback-frame [info]
   (if (and (= info.what :C) info.name)

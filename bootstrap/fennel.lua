@@ -592,7 +592,7 @@ local parser = (function()
                     local raw = string.char(unpack(chars))
                     local formatted = raw:gsub("[\1-\31]", function (c)
                                                    return '\\' .. c:byte() end)
-                    local loadFn = (loadstring or load)(('return %s'):format(formatted))
+                    local loadFn = assert((loadstring or load)(('return %s'):format(formatted)))
                     dispatch(loadFn())
                 elseif prefixes[b] then
                     -- expand prefix byte into wrapping form eg. '`a' into '(quote a)'

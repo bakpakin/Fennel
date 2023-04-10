@@ -129,6 +129,22 @@
     (l.assertEquals abc "123")
     (l.assertEquals abc2 "")))
 
+(fn test-find []
+  (let [send (wrap-repl)
+        _ (send "(local f (require :fennel))")
+        result (table.concat (send ",find f.view"))
+        err (table.concat (send ",find f.viewwwww"))]
+    (l.assertStrMatches result "^fennel.lua:[0-9]+$")
+    (l.assertEquals "error: Unknown value" err)))
+
+(fn test-compile []
+  (let [send (wrap-repl)
+        result (table.concat (send ",compile (fn abc [] (+ 43 9))"))
+        f "local function abc()\n  return (43 + 9)\nend\nreturn abc"
+        err (table.concat (send ",compile (fn ]"))]
+    (l.assertEquals f result)
+    (l.assertEquals "error: Couldn't parse input." err)))
+
 (fn set-boo [env]
   "Set boo to exclaimation points."
   (tset env :boo "!!!"))
@@ -225,8 +241,8 @@
 (local doc-cases
        [[",doc doto" "(doto val ...)\n  Evaluate val and splice it into the first argument of subsequent forms." "docstrings for built-in macros" ]
         [",doc table.concat"  "(table.concat #<unknown-arguments>)\n  #<undocumented>" "docstrings for built-in Lua functions" ]
-        [",doc foo.bar" "error: Could not find foo.bar for docs."]
-        [",doc (bork)" "error: Could not find (bork) for docs."]
+        [",doc foo.bar" "foo.bar not found"]
+        [",doc (bork)" "(bork) not found"]
         ;; ["(fn ew [] \"so \\\"gross\\\" \\\\\\\"I\\\\\\\" can't even\" 1) ,doc ew"  "(ew)\n  so \"gross\" \\\"I\\\" can't even" "docstrings should be auto-escaped" ]
         ["(fn foo [a] :C 1) ,doc foo"  "(foo a)\n  C" "for named functions, doc shows name, args invocation, docstring" ]
         ["(fn foo! [[] {} {:x []} [{}]] 1) ,doc foo!"  "(foo! [] {} {:x []} [{}])\n  #<undocumented>" "empty tables in arglist printed as defined" ]
@@ -346,6 +362,8 @@
      : test-reload
      : test-reload-macros
      : test-reset
+     : test-find
+     : test-compile
      : test-plugins
      : test-options
      : test-apropos

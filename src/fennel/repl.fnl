@@ -153,8 +153,9 @@ For more information about the language, see https://fennel-lang.org/reference")
                     (on-error :Runtime (pick-values 1 (msg:gsub "\n.*" ""))))))
 
 (fn run-command [read on-error f]
-  (match (pcall read)
-    (true true val) (f val)
+  (case (pcall read)
+    (true true val) (case (pcall f val)
+                      (false msg) (on-error :Runtime msg))
     false (on-error :Parse "Couldn't parse input.")))
 
 (fn commands.reload [env read on-values on-error]
@@ -251,8 +252,10 @@ For more information about the language, see https://fennel-lang.org/reference")
   (let [e (setmetatable {} {:__index #(or (. ___replLocals___
                                              (. scope.unmanglings $2))
                                           (. env $2))})]
-    (match (pcall compiler.compile-string (tostring identifier) {: scope})
-      (true code) ((specials.load-code code e)))))
+    (case-try (pcall compiler.compile-string (tostring identifier) {: scope})
+      (true code) (pcall (specials.load-code code e))
+      (true val) val
+      (catch _ nil))))
 
 (fn commands.find [env read on-values on-error scope]
   (run-command read on-error

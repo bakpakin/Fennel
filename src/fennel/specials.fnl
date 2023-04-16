@@ -1228,6 +1228,9 @@ modules in the compiler environment."
     (compiler.assert (= (type v) :function)
                      "expected each macro to be function" ast)
     (compiler.check-binding-valid (utils.sym k) scope ast {:macro? true})
+    (tset scope.manglings k nil)
+    (tset scope.unmanglings k nil)
+    (tset scope.symmeta k nil)
     (tset scope.macros k v)))
 
 (fn resolve-module-name [{: filename 2 second} _scope _parent opts]

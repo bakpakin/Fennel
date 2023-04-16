@@ -186,9 +186,8 @@ rather than generating new one."
     ;; we can't block in the parser because & is still ok in symbols like &as
     (assert-compile (not (name:find "&")) "invalid character: &" symbol)
     (assert-compile (not (name:find "^%.")) "invalid character: ." symbol)
-    (assert-compile (not (or (. scope.specials name)
-                             (and (not macro?) (. scope.macros name))))
-                    (: "local %s was overshadowed by a special form or macro"
+    (assert-compile (or macro? (not (. scope.specials name)))
+                    (: "%s conflicts with a special form"
                        :format name) ast)
     (assert-compile (not (utils.quoted? symbol))
                     (string.format "macro tried to bind %s without gensym" name)
@@ -201,6 +200,7 @@ rather than generating new one."
     (assert-compile (not (utils.multi-sym? name))
                     (.. "unexpected multi symbol " name) ast)
     (tset scope.symmeta name meta)
+    (tset scope.macros name nil)
     (local-mangling name scope ast ?temp-manglings)))
 
 (fn hashfn-arg-name [name multi-sym-parts scope]
@@ -212,31 +212,57 @@ rather than generating new one."
                           (tset multi-sym-parts 1 :$1))
                         (table.concat multi-sym-parts "."))))
 
+(fn assert-type [x t msg] (assert (= t (type x)) msg) x)
+
+(fn find-macro [scope name ?ast]
+  (fn seek-macro [scope name]
+    (or (rawget scope.macros name)
+        ;; don't continue looking for a macro if it's defined as a local!
+        (if (and (not (rawget scope.manglings name)) scope.parent)
+            (seek-macro scope.parent name))))
+
+  (let [[head & rest] (or (utils.multi-sym? name) [name])
+        macro* (seek-macro scope head)]
+    ;; if it's a multi-sym, descend into the resolved macro
+    (if (and macro* (next rest))
+        (assert-type (utils.get-in macro* rest) :function
+                     "macro not found in imported macro module" ?ast)
+        macro*)))
+
+(fn find-special [scope name]
+  (and (. scope.specials name)
+       ;; specials can only be at the root, so finding *any* macro
+       ;; with that name should be enough to shadow the special.
+       (not (find-macro scope name))
+       (. scope.specials name)))
+
 (fn symbol-to-expression [symbol scope ?reference?]
   "Convert symbol to Lua code. Will only work for local symbols
 if they have already been declared via declare-local"
   (utils.hook :symbol-to-expression symbol scope ?reference?)
   (let [name (. symbol 1)
         multi-sym-parts (utils.multi-sym? name)
-        name (or (hashfn-arg-name name multi-sym-parts scope) name)]
-    (let [parts (or multi-sym-parts [name])
-          etype (or (and (< 1 (length parts)) :expression) :sym)
-          local? (. scope.manglings (. parts 1))]
-      (when (and local? (. scope.symmeta (. parts 1)))
-        (tset (. scope.symmeta (. parts 1)) :used true))
-      (assert-compile (not (. scope.macros (. parts 1)))
+        name (or (hashfn-arg-name name multi-sym-parts scope) name)
+        parts (or multi-sym-parts [name])
+        etype (or (and (< 1 (length parts)) :expression) :sym)
+        macro? (find-macro scope (. parts 1))
+        local? (and (not macro?) (. scope.manglings (. parts 1)))]
+    (when (and local? (. scope.symmeta (. parts 1)))
+      (tset (. scope.symmeta (. parts 1)) :used true))
+    (when ?reference?
+      (assert-compile (not macro?)
                       (.. "tried to reference a macro without calling it") symbol)
       (assert-compile (or (not (. scope.specials (. parts 1)))
                           (= :require (. parts 1)))
-                      (.. "tried to reference a special form without calling it") symbol)
-      ;; if it's a reference and not a symbol which introduces a new binding
-      ;; then we need to check for allowed globals
-      (assert-compile (or (not ?reference?) local? (= :_ENV (. parts 1))
-                          (global-allowed? (. parts 1)))
-                      (.. "unknown identifier: " (tostring (. parts 1))) symbol)
-      (when (and allowed-globals (not local?) scope.parent)
-        (tset scope.parent.refedglobals (. parts 1) true))
-      (utils.expr (combine-parts parts scope) etype))))
+                      (.. "tried to reference a special form without calling it") symbol))
+    ;; if it's a reference and not a symbol which introduces a new binding
+    ;; then we need to check for allowed globals
+    (assert-compile (or (not ?reference?) local? (= :_ENV (. parts 1))
+                        (global-allowed? (. parts 1)))
+                    (.. "unknown identifier: " (tostring (. parts 1))) symbol)
+    (when (and allowed-globals (not local?) scope.parent)
+      (tset scope.parent.refedglobals (. parts 1) true))
+    (utils.expr (combine-parts parts scope) etype)))
 
 (fn emit [chunk out ?ast]
   "Emit Lua code."
@@ -398,17 +424,6 @@ if opts contains the nval option."
       {:returned true}
       (doto exprs (tset :returned true))))
 
-(fn find-macro [ast scope]
-  (let [macro* (-?>> (utils.sym? (. ast 1)) (tostring) (. scope.macros))
-        multi-sym-parts (utils.multi-sym? (. ast 1))]
-    (if (and (not macro*) multi-sym-parts)
-        (let [nested-macro (utils.get-in scope.macros multi-sym-parts)]
-          (assert-compile (or (not (. scope.macros (. multi-sym-parts 1)))
-                              (= (type nested-macro) :function))
-                          "macro not found in imported macro module" ast)
-          nested-macro)
-        macro*)))
-
 (fn propagate-trace-info [{: filename : line : bytestart : byteend} _index node]
   "The stack trace info should be based on the macro caller, not the macro AST."
   (let [src (utils.ast-source node)]
@@ -434,7 +449,8 @@ if opts contains the nval option."
 
 (fn macroexpand* [ast scope ?once]
   "Expand macros in the ast. Only do one level if once is true."
-  (match (if (utils.list? ast) (find-macro ast scope))
+  (match (if (and (utils.list? ast) (utils.sym? (. ast 1)))
+             (find-macro scope (tostring (. ast 1)) ast))
     false ast
     macro* (let [old-scope scopes.macro
                  _ (set scopes.macro scope)
@@ -496,7 +512,7 @@ if opts contains the nval option."
   (let [len (length ast)
         first (. ast 1)
         multi-sym-parts (utils.multi-sym? first)
-        special (and (utils.sym? first) (. scope.specials (tostring first)))]
+        special (and (utils.sym? first) (find-special scope (tostring first)))]
     (assert-compile (< 0 len) "expected a function, macro, or special to call"
                     ast)
     (if special

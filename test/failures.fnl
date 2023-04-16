@@ -20,19 +20,19 @@
       (l.assertStrContains msg expected-msg))))
 
 (fn test-names []
-  (assert-fail (local + 6) "overshadowed by a special form")
-  (assert-fail (macro if [] "wat") "overshadowed by a special form")
+  (assert-fail (local + 6) "conflicts with a special form")
+  (assert-fail (fn if [] "wat") "conflicts with a special form")
   (assert-fail (do each) "tried to reference a special form"))
 
 (fn test-global-fails []
-  (assert-fail (fn global [] 1) "overshadowed")
+  (assert-fail (fn global [] 1) "conflicts with a special form")
   (assert-fail (fn global-caller [] (hey)) "unknown identifier")
   (assert-fail (global 48 :forty-eight) "unable to bind number 48")
   (assert-fail (do (global good (fn [] nil)) (good) (BAD)) "BAD")
-  (assert-fail (global let 1) "tried to reference a special form")
+  (assert-fail (global let 1) "conflicts with a special form")
   (assert-fail (hey) "unknown identifier")
   (assert-fail (let [bl 8 a bcd] nil) "unknown identifier")
-  (assert-fail (let [global 1] 1) "overshadowed")
+  (assert-fail (let [global 1] 1) "conflicts with a special form")
   (assert-fail (do (local a-b 1) (global [a_b] [2]))
                "global a_b conflicts with local")
   (assert-fail (do (local a-b 1) (global a_b 2))

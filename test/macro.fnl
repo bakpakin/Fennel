@@ -6,6 +6,36 @@
      (l.assertTrue ok# val#)
      (l.assertEquals val# ,expected ,?msg)))
 
+(fn test-shadow []
+  (== (do (macro + [a b] (+ a b b))
+          (+ 1 2))
+      5
+      "should shadow a special with a macro")
+  (== (do (macro collect [x] (+ x 9))
+          (collect 3))
+      12
+      "should shadow a macro with another macro")
+  (== (do (macro m [] :from-macro)
+          (fn m [] :from-fn)
+          (m))
+      :from-fn
+      "should shadow a macro with a local (same level)")
+  (== (do (fn m [] :from-fn)
+          (macro m [] :from-macro)
+          (m))
+      :from-macro
+      "should shadow a local with a macro (same level)")
+  (== (do (macro m [] :from-macro)
+          (let [m (fn [] :from-fn)]
+            (m)))
+      :from-fn
+      "should shadow a macro with a local (different level)")
+  (== (do (fn m [] :from-fn)
+          (do (macro m [] :from-macro)
+              (m)))
+      :from-macro
+      "should shadow a local with a macro (different level)"))
+
 (fn test-arrows []
   (== (-> (+ 85 21) (+ 1) (- 99)) 8)
   (== (-> 1234 (string.reverse) (string.upper)) "4321")
@@ -725,7 +755,8 @@
           (splice {:greetings "comrade"}))
       {:hello "world" :greetings "comrade"}))
 
-{: test-arrows
+{: test-shadow
+ : test-arrows
  : test-doto
  : test-?.
  : test-import-macros

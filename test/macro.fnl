@@ -1,7 +1,7 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
 
-(macro == [form expected ?opts ?msg]
+(macro == [form expected ?msg ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
      (l.assertTrue ok# val#)
      (l.assertEquals val# ,expected ,?msg)))
@@ -62,7 +62,7 @@
   (== (eval-compiler true) true)
   (let [env (setmetatable {:tbl {}} {:__index _G})]
     (== (do (eval-compiler (set tbl.nest ``nest)) (tostring tbl.nest))
-        "(quote nest)"
+        "(quote nest)" ""
         {:compiler-env env :env env})))
 
 (fn test-import-macros []
@@ -75,7 +75,7 @@
           (join :: :num (->1 5 (* 2) (+ 8))))
       "num:18")
   (== (do (import-macros {: unsandboxed} :test.macros) (unsandboxed))
-      "[\"no\" \"sandbox\"]" {:compiler-env _G})
+      "[\"no\" \"sandbox\"]" "should disable sandbox" {:compiler-env _G})
   (let [not-unqualified "(import-macros hi :test.macros) (print (inc 1))"]
     (l.assertFalse (pcall fennel.eval not-unqualified)))
   (== 2 (do (import-macros {: gensym-shadow} :test.macros) (gensym-shadow))))
@@ -113,12 +113,11 @@
           (when2 true :when2)) "when2")
   (== (do (macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)) 18)
   (== (do (macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided) 952
-      {:compiler-env _G})
+      "should disable sandbox" {:compiler-env _G})
   (== (do (macro n [] 1) (local x (n)) (macro n [] 2) (values x (n)))
-      (values 1 2)
-      nil "macro-macro shadowing should be allowed")
+      (values 1 2) "macro-macro shadowing should be allowed")
   (== (do (macros (let [noop #nil] {: noop})) (noop))
-      nil nil "(macros) should accept an expr that returns a table"))
+      nil "(macros) should accept an expr that returns a table"))
 
 (fn test-macrodebug []
   (let [eval-normalize #(-> (pick-values 1 (fennel.eval $1 $2))
@@ -657,33 +656,33 @@
         [1 a b] [b a]
         [1 & rest] rest)
       [2]
-      nil "matching all the way thru")
+      "matching all the way thru")
   (== (match-try [1 2 3]
         [1 a b] [b a]
         [1 & rest] rest)
       [3 2]
-      nil "stopping on the second clause")
+      "stopping on the second clause")
   (== [(match-try (values nil "whatever")
          [1 a b] [b a]
          [1 & rest] rest)]
       [nil :whatever]
-      nil "nil, msg failure representation stops immediately")
+      "nil, msg failure representation stops immediately")
   (== (select 2 (match-try "hey"
                   x (values nil "error")
                   y nil))
       "error"
-      nil "all values are in fact propagated even on a mid-chain mismatch")
+      "all values are in fact propagated even on a mid-chain mismatch")
   (== (select :# (match-try "hey"
                    x (values nil "error" nil nil)
                    y nil))
       4
-      nil "trailing nils are preserved")
+      "trailing nils are preserved")
   (== (match-try {:a "abc" :x "xyz"}
         {: b} :son-of-a-b!
         (catch
          {: a : x} (.. a x)))
       "abcxyz"
-      nil "catch clause works")
+      "catch clause works")
   (== (match-try {:a "abc" :x "xyz"}
         {: a} {:abc "whatever"}
         {: b} :son-of-a-b!
@@ -691,7 +690,7 @@
          [hey] :idunno
          {: abc} (.. abc "yo")))
       "whateveryo"
-      nil "multiple catch clauses works")
+      "multiple catch clauses works")
   (let [(_ msg1) (pcall fennel.eval "(match-try abc def)")
         (_ msg2) (pcall fennel.eval "(match-try abc {} :def _ :wat (catch 55))")]
     (l.assertStrMatches msg1 ".*expected every pattern to have a body.*")

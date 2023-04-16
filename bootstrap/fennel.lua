@@ -480,15 +480,16 @@ local parser = (function()
             local done, retval
             local whitespaceSinceDispatch = true
             local function dispatch(v)
-                if #stack == 0 then
+                local len = #stack
+                local stacktop = stack[len]
+                if len == 0 then
                     retval = v
                     done = true
-                elseif stack[#stack].prefix then
-                    local stacktop = stack[#stack]
-                    stack[#stack] = nil
+                elseif stack[len].prefix then
+                    stack[len] = nil
                     return dispatch(utils.list(utils.sym(stacktop.prefix), v))
                 else
-                    table.insert(stack[#stack], v)
+                    table.insert(stack[len], v)
                 end
                 whitespaceSinceDispatch = false
             end

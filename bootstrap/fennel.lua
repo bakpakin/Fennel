@@ -293,12 +293,13 @@ local utils = (function()
     end
 
     local luaKeywords = {
-        'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
-        'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return',
-        'then', 'true', 'until', 'while'
+        ["and"] = true, ["break"] = true, ["do"] = true, ["else"] = true,
+        ["elseif"] = true, ["end"] = true, ["false"] = true, ["for"] = true,
+        ["function"] = true, ["if"] = true, ["in"] = true, ["local"] = true,
+        ["nil"] = true, ["not"] = true, ["or"] = true, ["repeat"] = true,
+        ["return"] = true, ["then"] = true, ["true"] = true, ["until"] = true,
+        ["while"] = true, ["goto"] = true,
     }
-
-    for i, v in ipairs(luaKeywords) do luaKeywords[v] = i end
 
     local function isValidLuaIdentifier(str)
         return (str:match('^[%a_][%w_]*$') and not luaKeywords[str])

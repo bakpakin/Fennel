@@ -2,15 +2,22 @@ local server_port = (os.getenv("IRC_HOST_PORT") or "irc.libera.chat 6667")
 local channel = os.getenv("IRC_CHANNEL")
 local url = os.getenv("JOB_URL") or "???"
 
+local origin_job_prefix = 'https://builds.sr.ht/technomancy/job/'
+local is_origin = url:sub(1, #origin_job_prefix) == origin_job_prefix
+
+local branch = io.popen("git rev-parse --abbrev-ref HEAD"):read('*a')
+local is_main = branch == 'main'
+
 -- This may fail in future if libera chat once again blocks builds.sr.ht
 -- from connecting; it currently works after we asked them to look into it
 return function(failure_count)
-    if ((0 ~= tonumber(failure_count)) and channel) then
+    if  (0 ~= tonumber(failure_count)) and is_main and is_origin and channel then
         print("Announcing failure on", server_port, channel)
 
-        local git = io.popen("git log --oneline -n 1 HEAD")
+        local git_log = io.popen("git log --oneline -n 1 HEAD")
+        local log = git_log:read("*a"):gsub("\n", " "):gsub("\n", " ")
+
         local nc = io.popen(string.format("nc %s > /dev/null", server_port), "w")
-        local log = git:read("*a"):gsub("\n", " ")
 
         nc:write("NICK fennel-build\n")
         nc:write("USER fennel-build 8 x : fennel-build\n")

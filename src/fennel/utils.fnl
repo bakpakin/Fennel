@@ -363,31 +363,28 @@ When f returns a truthy value, recursively walks the children."
   (walk (or ?custom-iterator pairs) nil nil root)
   root)
 
-(local lua-keywords [:and
-                     :break
-                     :do
-                     :else
-                     :elseif
-                     :end
-                     :false
-                     :for
-                     :function
-                     :if
-                     :in
-                     :local
-                     :nil
-                     :not
-                     :or
-                     :repeat
-                     :return
-                     :then
-                     :true
-                     :until
-                     :while
-                     :goto])
-
-(each [i v (ipairs lua-keywords)]
-  (tset lua-keywords v i))
+(local lua-keywords {:and true
+                     :break true
+                     :do true
+                     :else true
+                     :elseif true
+                     :end true
+                     :false true
+                     :for true
+                     :function true
+                     :if true
+                     :in true
+                     :local true
+                     :nil true
+                     :not true
+                     :or true
+                     :repeat true
+                     :return true
+                     :then true
+                     :true true
+                     :until true
+                     :while true
+                     :goto true})
 
 (fn valid-lua-identifier? [str]
   (and (str:match "^[%a_][%w_]*$") (not (. lua-keywords str))))

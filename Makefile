@@ -16,7 +16,7 @@ SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
 build: fennel fennel.lua
 
-test: fennel.lua ; $(LUA) test/init.lua $(TESTS)
+test: fennel.lua fennel; $(LUA) test/init.lua $(TESTS)
 
 testall: export FNL_TEST_OUTPUT=text
 testall: export FNL_TESTALL=yes
@@ -42,7 +42,7 @@ fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
 	chmod 755 $@
 
 # Library file
-fennel.lua: $(SRC) bootstrap/view.lua
+fennel.lua: $(SRC) bootstrap/aot.lua bootstrap/view.lua
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@
 
 bootstrap/view.lua: src/fennel/view.fnl

@@ -9,6 +9,9 @@ deprecated forms.
 ## 1.3.1 / ???
 
 ### Bug Fixes
+* Fix a bug where tables like `{:true 1 true 2}` emit with unstable key order
+* Fix a bug where table literals mutated by a macro emit with unstable key
+  order when AOT-compiled in Lua > 5.2 
 * Fix a bug where very long individual lines in the repl would be truncated
 * Fix an edge case where `{:__metatable true}` (as in pandoc-lua) breaks fennel.view
 * Fix a 1.3.0 bug where `macros` only accepts table literals, not table-returning exprs

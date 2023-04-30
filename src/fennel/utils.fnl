@@ -49,33 +49,43 @@
              (true utf8) utf8.len
              _ string.len))
 
-(fn mt-keys-in-order [t out used-keys]
-  ;; the metatable keys list gives us ordering; it is not canonical for what
-  ;; keys actually exist in the table. for instance a macro can modify a k/v
-  ;; table that came from the parser.
-  (each [_ k (ipairs (. (getmetatable t) :keys))]
-    (when (and (. t k) (not (. used-keys k)))
-      (tset used-keys k true)
-      (table.insert out k)))
-  (each [k (pairs t)]
-    (when (not (. used-keys k))
-      (table.insert out k)))
-  out)
+;; The following sort comparator is used for stablepairs below.
+;; Need more than (< (tostring ) (tostring )) due to edge cases like {"1" x 1 y}
+(local kv-order {:number 1 :boolean 2 :string 3 :table 4})
+(fn kv-compare [a b]
+  (case (values (type a) (type b))
+    (where (or (:number :number) (:string :string))) (< a b)
+    (where (a-t b-t) (not= a-t b-t)) (< (or (. kv-order a-t) 5)
+                                        (or (. kv-order b-t) 5))
+    _ (< (tostring a) (tostring b))))
+
+(fn add-stable-keys [succ prev-key src ?pred]
+  (var first prev-key)
+  (let [last (accumulate [prev prev-key _ k (ipairs src)]
+               ;; Skip any keys we've already seen, or that fail ?pred
+               (if (or (= prev k) (not= (. succ k) nil)
+                       (and ?pred (not (?pred k))))
+                 prev
+                 (if (= first nil) (do (set first k) k)
+                     (not= prev nil) (do (tset succ prev k) k)
+                     k)))]
+    (values succ last first)))
 
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
   pairs is already stable, but on 5.3+ every run gives different ordering. Gives
   the same order as parsed in the AST when present in the metatable."
-  (let [keys (if (?. (getmetatable t) :keys)
-                 (mt-keys-in-order t [] {})
-                 (doto (icollect [k (pairs t)] k)
-                   (table.sort #(< (tostring $1) (tostring $2)))))
-        succ (collect [i k (ipairs keys)]
-               (values k (. keys (+ i 1))))]
-
+  (let [mt-keys (?. (getmetatable t) :keys)
+        ;; Generate a table of successor keys to guarantee stable order.
+        ;; First, use order from the :keys mt, but only for keys present in t
+        (succ prev first-mt) (add-stable-keys {} nil (or mt-keys []) #(. t $))
+        ;; Sort any keys unspecified by :keys metatable
+        pairs-keys (doto (icollect [k (pairs t)] k) (table.sort kv-compare))
+        (succ _ first-after-mt) (add-stable-keys succ prev pairs-keys)
+        first (if (= first-mt nil) first-after-mt first-mt)]
     (fn stablenext [tbl key]
-      (let [next-key (if (= key nil) (. keys 1) (. succ key))]
-        (values next-key (. tbl next-key))))
+      (case (if (= key nil) first (. succ key))
+        next-key (-?>> (. tbl next-key) (values next-key))))
 
     (values stablenext t nil)))
 

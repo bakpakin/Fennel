@@ -381,6 +381,21 @@
                   (fennel.compile-string
                    "(eval-compiler (string.format \"%q\" (view `f#.foo:bar)))")))
 
+(fn test-stable-kv-output []
+  (let [add-keys "(macro add-keys [t ...]
+  (faccumulate [t t i 1 (select :# ...) 2]
+    (let [(k v) (select i ...)] (doto t (tset k v)))))"
+        cases [["{:a 1 :b 2 :2 :s2 2 :n2 true :btrue :true :strue}"
+                "{a = 1, b = 2, [\"2\"] = \"s2\", [2] = \"n2\", [true] = \"btrue\", [\"true\"] = \"strue\"}"
+                "original table literal key order should be preserved"]
+               [(.. add-keys "\n"
+                    "(add-keys {:c 3 :a 1} :b 2 :d 4 :2 :b 2 :b1 [9] :tbl9 true :t :true :t1)")
+                "{c = 3, a = 1, [2] = \"b1\", [true] = \"t\", [\"2\"] = \"b\", b = 2, d = 4, [\"true\"] = \"t1\", [{9}] = \"tbl9\"}"
+                "added keys should be sorted: numbers>booleans>strings>tables>other"]]]
+    (each [_ [input expected msg] (ipairs cases)]
+      (l.assertEquals (: (fennel.compile-string input) :gsub "^return%s*" "")
+                      expected msg))))
+
 {: test-booleans
  : test-calculations
  : test-comparisons
@@ -396,4 +411,5 @@
  : test-comment
  : test-nest
  : test-sym
+ : test-stable-kv-output
 }

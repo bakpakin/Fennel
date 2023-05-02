@@ -1,6 +1,5 @@
 (local l (require :test.luaunit))
 (local fennel (require :fennel))
-(local compiler (require :fennel.compiler))
 
 (macro == [form expected ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]

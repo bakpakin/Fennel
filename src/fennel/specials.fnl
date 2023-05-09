@@ -274,23 +274,32 @@ the number of expected arguments."
     (compile-named-fn ast f-scope f-chunk parent index fn-name true
                       arg-name-list f-metadata)))
 
-(fn get-function-metadata [ast arg-list index]
-  ;; Get function metadata from ast and put it in a table.  Detects if
-  ;; the next expression after a argument list is either a string or a
-  ;; table, and copies values into function metadata table.
-  (let [f-metadata {:fnl/arglist arg-list}
-        index* (+ index 1)
+(fn maybe-metadata [ast pred handler mt index]
+  ;; check if conditions for metadata literal are met.  The index must
+  ;; not be the last in the ast, and the expression at the index must
+  ;; conform to pred.  If conditions are met the handler is called
+  ;; with metadata table and expression.  Returns metadata table and
+  ;; an index.
+  (let [index* (+ index 1)
         index*-before-ast-end? (< index* (length ast))
         expr (. ast index*)]
-    (if (and index*-before-ast-end? (utils.string? expr))
-        (values (doto f-metadata
-                      (tset :fnl/docstring expr))
-                index*)
-        (and index*-before-ast-end? (utils.kv-table? expr))
-        (values (collect [k v (pairs expr) :into f-metadata]
-                  (values k v))
-                index*)
-        (values f-metadata index))))
+    (if (and index*-before-ast-end? (pred expr))
+        (values (handler mt expr) index*)
+        (values mt index))))
+
+(fn get-function-metadata [ast arg-list index]
+  ;; Get function metadata from ast and put it in a table.  Detects if
+  ;; the next expression after the argument list is either a string or
+  ;; a table, and copies values into function metadata table.  If it
+  ;; is a string, checks if the next one is a table and combines them.
+  (->> (values {:fnl/arglist arg-list} index)
+       (maybe-metadata
+        ast utils.string?
+        #(doto $1 (tset :fnl/docstring $2)))
+       (maybe-metadata
+        ast utils.kv-table?
+        #(collect [k v (pairs $2) :into $1]
+           (values k v)))))
 
 (fn SPECIALS.fn [ast scope parent]
   (let [f-scope (doto (compiler.make-scope scope)

@@ -329,9 +329,11 @@ Tab is what is used to indent a block."
 
 (fn make-metadata []
   "Make module-wide state table for metadata."
-  (setmetatable [] {:__index {:get (fn [self tgt key]
+  (setmetatable [] {:__index {:get (fn [self tgt ?key]
                                      (when (. self tgt)
-                                       (. (. self tgt) key)))
+                                       (if (not= nil ?key)
+                                           (. (. self tgt) ?key)
+                                           (. self tgt))))
                               :set (fn [self tgt key value]
                                      (tset self tgt (or (. self tgt) []))
                                      (tset (. self tgt) key value)

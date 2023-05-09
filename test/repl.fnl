@@ -302,10 +302,22 @@
                  (view (metadata:get qux :qux))"
                 "{:compound [\"seq\" {:table \"table\"}]}"
                 "expected compound metadata to work"]
+               ["(fn quux [] \"docs\" {:foo :some-data} nil)
+                 (view [(metadata:get quux :foo) (metadata:get quux :fnl/docstring)])"
+                "[\"some-data\" \"docs\"]"
+                "expected combined docstring and ordinary string metadata to work"]
                ["(λ a-lambda [x ...] {:fnl/arglist [x y z]} nil)
                  (view (metadata:get a-lambda :fnl/arglist))"
                 "[\"x\" \"y\" \"z\"]"
-                "expected lambda metadata literal to work"]]
+                "expected lambda metadata literal to work"]
+               ["(λ b-lambda [] \"docs\" {:fnl/arglist [x y z]} nil)
+                 (view [(metadata:get b-lambda :fnl/arglist) (metadata:get b-lambda :fnl/docstring)])"
+                "[[\"x\" \"y\" \"z\"] \"docs\"]"
+                "expected combined docstring and ordinary string metadata to work"]
+               ["(fn whole [x] nil)
+                 (view (metadata:get whole))"
+                "{:fnl/arglist [\"x\"]}"
+                "expected whole metadata table when no key is asked"]]
         err-cases [["(fn foo [] {:foo (fn [] nil)} nil)"
                     "expected literal value in metadata table, got: \"foo\" (fn [] nil)"
                     "lists are not allowed as metadata fields"]

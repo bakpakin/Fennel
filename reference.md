@@ -122,7 +122,7 @@ recursion:
 ```fennel
 (fn pxy [x y]
   (print (+ x y)))
-  
+
 (local pxy (fn [x y]
              (print (+ x y))))
 ```
@@ -269,6 +269,34 @@ information by using Fennel's metadata API:
 Such metadata can be any data literal, including tables, with the only
 restriction that there are no side effects. Fennel's lists are
 disallowed as metadata values.
+
+*(Since 1.3.1)*
+
+For editing convenience, the metadata table literals are allowed after docstrings:
+
+``` fennel
+(fn some-function [x ...]
+  "Docstring for some-function."
+  {:fnl/arglist [x & xs]
+   :other :metadata}
+  (let [xs [...]]
+    ;; ...
+    ))
+```
+
+In this case, the documentation string is automatically inserted to
+the metadata table by the compiler.
+
+The whole metadata table can be obtained by calling `metadata:get`
+without the `key` argument:
+
+```
+>> (local {: metadata} (require :fennel))
+>> (metadata:get some-function)
+{:fnl/arglist ["x" "&" "xs"]
+ :fnl/docstring "Docstring for some-function."
+ :other "metadata"}
+```
 
 Fennel itself only uses the `fnl/docstring` and `fnl/arglist` metadata
 keys but third-party code can make use of arbitrary keys.

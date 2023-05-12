@@ -43,7 +43,7 @@ fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
 
 # Library file
 fennel.lua: $(SRC) bootstrap/aot.lua bootstrap/view.lua
-	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@
+	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include > $@
 
 bootstrap/view.lua: src/fennel/view.fnl
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@

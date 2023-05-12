@@ -5,9 +5,12 @@ local opts = {
    ["compiler-env"]=_G,
    allowedGlobals={},
    useMetadata=false,
-   requireAsInclude=true,
    filename=assert(arg[1]),
 }
+
+for i=2,#arg do
+   if arg[i] == "--require-as-include" then opts.requireAsInclude = true end
+end
 
 for k in pairs(_G) do table.insert(opts.allowedGlobals, k) end
 

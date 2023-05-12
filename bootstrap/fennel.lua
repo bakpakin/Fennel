@@ -2259,7 +2259,8 @@ local specials = (function()
                    .. "\nthe condition evaluates to truthy. Similar to cond in other lisps.")
 
     local function remove_until_condition(bindings)
-       if ("until" == bindings[(#bindings - 1)]) then
+       if ("until" == bindings[(#bindings - 1)] or
+           "&until" == tostring(bindings[(#bindings - 1)])) then
           table.remove(bindings, (#bindings - 1))
           return table.remove(bindings)
        end
@@ -2341,6 +2342,7 @@ local specials = (function()
 
     SPECIALS["for"] = function(ast, scope, parent)
         local ranges = compiler.assert(utils.isTable(ast[2]), "expected binding table", ast)
+        local until_condition = remove_until_condition(ast[2])
         local bindingSym = table.remove(ast[2], 1)
         local subScope = compiler.makeScope(scope)
         compiler.assert(utils.isSym(bindingSym),
@@ -2355,6 +2357,7 @@ local specials = (function()
                  compiler.declareLocal(bindingSym, {}, subScope, ast),
                  table.concat(rangeArgs, ', ')), ast)
         local chunk = {}
+        compile_until(until_condition, subScope, chunk)
         compileDo(ast, subScope, chunk, 3)
         compiler.emit(parent, chunk, ast)
         compiler.emit(parent, 'end', ast)

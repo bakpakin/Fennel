@@ -1,10 +1,10 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
 
 (fn test-searcher-error-contains-fnl-files []
   (let [(ok error) (pcall require :notreal)]
-    (l.assertEquals ok false)
-    (l.assertEquals (string.match error :notreal.fnl) :notreal.fnl)))
+    (t.= ok false)
+    (t.= (string.match error :notreal.fnl) :notreal.fnl)))
 
 (fn with-preserve-searchers [f]
   (let [searchers-tbl (or package.searchers package.loaders)
@@ -19,7 +19,7 @@
   (tset package.loaded :test.searcher nil)
   (with-preserve-searchers
    #(do (fennel.install {})
-        (l.assertTrue (pcall require :test.searcher)))))
+        (t.is (pcall require :test.searcher)))))
 
 {: test-searcher-error-contains-fnl-files
  : test-install}

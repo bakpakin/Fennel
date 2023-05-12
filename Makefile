@@ -16,7 +16,7 @@ SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
 build: fennel fennel.lua
 
-test: fennel.lua fennel; $(LUA) test/init.lua $(TESTS)
+test: fennel.lua fennel test/faith.lua; $(LUA) test/init.lua $(TESTS)
 
 testall: export FNL_TEST_OUTPUT=text
 testall: export FNL_TESTALL=yes
@@ -27,7 +27,7 @@ testall: fennel # recursive make considered not really a big deal; calm down
 	$(MAKE) test LUA=lua5.4
 	$(MAKE) test LUA=luajit
 
-fuzz: fennel.lua; $(LUA) test/init.lua fuzz
+fuzz: ; $(MAKE) test TESTS=test.fuzz
 
 # older versions of cloc might need --force-lang=lisp
 count: ; cloc $(MINI_SRC); cloc $(LIB_SRC) ; cloc $(SRC)
@@ -38,7 +38,7 @@ format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 # All-in-one pure-lua script:
 fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
 	echo "#!/usr/bin/env $(LUA)" > $@
-	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua --require-as-include $< >> $@
+	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include >> $@
 	chmod 755 $@
 
 # Library file
@@ -47,6 +47,9 @@ fennel.lua: $(SRC) bootstrap/aot.lua bootstrap/view.lua
 
 bootstrap/view.lua: src/fennel/view.fnl
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@
+
+test/faith.lua: test/faith.fnl
+	$(LUA) bootstrap/aot.lua $< > $@
 
 # A lighter version of the compiler that excludes some features; experimental.
 minifennel.lua: $(MINI_SRC) fennel

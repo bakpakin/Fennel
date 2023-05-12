@@ -1,6 +1,5 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
-(local compiler (require :fennel.compiler))
 (local generate (require :test.generate))
 (local friend (require :fennel.friend))
 (local unpack (or table.unpack _G.unpack))
@@ -31,14 +30,12 @@
                          #(if (= $ marker)
                               marker
                               (.. (tostring $) "\n" (debug.traceback))))]
-    (if verbose?
-        (print code)
-        (io.write "."))
+    (when verbose?
+      (print code))
     (when (not ok)
       ;; if we get an error, it must come from assert-compile; if we get
       ;; a non-assertion error then it must be a compiler bug!
-      (l.assertEquals err marker (.. code "\n" (tostring err)
-                                     "\nSeed: " seed)))))
+      (t.= err marker (.. code "\n" (tostring err) "\nSeed: " seed)))))
 
 (fn test-fuzz []
   (let [verbose? (os.getenv "VERBOSE")
@@ -49,7 +46,6 @@
     (set friend.parse-error #(error marker))
     (for [_ 1 (tonumber (or (os.getenv "FUZZ_COUNT") 256))]
       (fuzz verbose? seed))
-    (print)
     (set friend.assert-compile assert-compile)
     (set friend.parse-error parse-error)))
 

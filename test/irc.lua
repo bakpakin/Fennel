@@ -27,4 +27,5 @@ return function(failure_count)
         nc:write("QUIT\n")
         nc:close()
     end
+    if(failure_count ~= 0) then os.exit(1) end
 end

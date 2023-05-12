@@ -1,10 +1,10 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
 
 (macro == [form expected ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
-     (l.assertTrue ok# val#)
-     (l.assertEquals val# ,expected)))
+     (t.is ok# val#)
+     (t.= val# ,expected)))
 
 (fn test-each []
   (== (each [x (pairs [])] nil) nil)
@@ -47,12 +47,12 @@
       [11 22 33])
   (let [code "(icollect [_ x (ipairs [2 3]) &into \"oops\"] x)"
         (ok? msg) (pcall fennel.compileString code)]
-    (l.assertFalse ok?)
-    (l.assertStrContains msg "&into clause"))
+    (t.is (not ok?))
+    (t.match "&into clause" msg))
   (let [code "(icollect [_ x (ipairs [2 3]) &into 2] x)"
         (ok? msg) (pcall fennel.compileString code)]
-    (l.assertFalse ok?)
-    (l.assertStrContains msg "&into clause"))
+    (t.is (not ok?))
+    (t.match "&into clause" msg))
   (== (do (macro twice [expr] `(do ,expr ,expr))
           (twice (icollect [i v (ipairs [:a :b :c])] v)))
       [:a :b :c])
@@ -102,12 +102,10 @@
       :ab))
 
 (fn test-faccumulate []
-  (== (faccumulate [sum 0 i 1 5] (+ sum i)) 15)
-  (== (faccumulate [sum 0 i 1 5 &until (= i 4)] (+ sum i)) 10
-      "facummulate should respect &until")
-  (== (faccumulate [alphabet "" i 4 0 -1]
-                   (... alphabet (string.char (+ i 65))))
-      "EDCBA"))
+  (== 15 (faccumulate [sum 0 i 1 5] (+ sum i)))
+  (== 6 (faccumulate [sum 0 i 1 5 &until (= i 4)] (+ sum i)))
+  (== "EDCBA" (faccumulate [alphabet "" i 4 0 -1]
+                (.. alphabet (string.char (+ i 65))))))
 
 (fn test-conditions []
   (== (do (var x 0) (for [i 1 10 &until (= i 5)] (set x i)) x) 4)
@@ -120,4 +118,5 @@
  : test-for
  : test-comprehensions
  : test-accumulate
+ : test-faccumulate
  : test-conditions}

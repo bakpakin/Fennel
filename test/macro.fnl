@@ -1,10 +1,10 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
 
 (macro == [form expected ?msg ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
-     (l.assertTrue ok# val#)
-     (l.assertEquals val# ,expected ,?msg)))
+     (t.is ok# val#)
+     (t.= val# ,expected ,?msg)))
 
 (fn test-arrows []
   (== (-> (+ 85 21) (+ 1) (- 99)) 8)
@@ -77,7 +77,7 @@
   (== (do (import-macros {: unsandboxed} :test.macros) (unsandboxed))
       "[\"no\" \"sandbox\"]" "should disable sandbox" {:compiler-env _G})
   (let [not-unqualified "(import-macros hi :test.macros) (print (inc 1))"]
-    (l.assertFalse (pcall fennel.eval not-unqualified)))
+    (t.is (not (pcall fennel.eval not-unqualified))))
   (== 2 (do (import-macros {: gensym-shadow} :test.macros) (gensym-shadow))))
 
 (fn test-macro-path []
@@ -92,8 +92,8 @@
 (fn test-relative-filename []
   ;; manual pcall instead of == macro for smaller failure message
   (let [(ok? val) (pcall require :test.relative-filename)]
-    (l.assertTrue ok? "... had bad filename")
-    (l.assertEquals val 2)))
+    (t.is ok? "... had bad filename")
+    (t.= val 2)))
 
 (fn test-require-macros []
   (== (do (require-macros :test.macros) (->1 9 (+ 2) (* 11))) 121)
@@ -125,7 +125,7 @@
                             (: :gsub "\n%s*" " "))
         code "(macrodebug (when (= 1 1) (let [x :X] {: x})) true)"
         expected "(if (= 1 1) (do (let [x \"X\"] {:x x})))"]
-    (l.assertEquals (eval-normalize code) expected)))
+    (t.= (eval-normalize code) expected)))
 
 ;; many of these are copied wholesale from test-match, pending implementation,
 ;; if match is implemented via case then it should be reasonable to remove much
@@ -150,7 +150,7 @@
 
   ;; can't expand blind multi sym
   (let [(_ msg1) (pcall fennel.eval "(let [x {:y :z}] (case :z x.y 1 _ 0))")]
-    (l.assertStrMatches msg1 ".*unexpected multi symbol x.y.*")
+    (t.match ".*unexpected multi symbol x.y.*" msg1)
   ;; but can unify with a multi sym
   (== (let [x {:y :z}]
         (case :z
@@ -236,7 +236,7 @@
 
   ;; legacy not supported
   (let [(_ msg1) (pcall fennel.eval "(case [1 2] ([a 2] ? (> a 10)) :error-please)")]
-    (l.assertStrMatches msg1 ".*legacy guard clause not supported in case.*"))
+    (t.match ".*legacy guard clause not supported in case.*" msg1))
 
   ;; new syntax -- general case
   (== (case [1 2 3 4]
@@ -693,14 +693,14 @@
       "multiple catch clauses works")
   (let [(_ msg1) (pcall fennel.eval "(match-try abc def)")
         (_ msg2) (pcall fennel.eval "(match-try abc {} :def _ :wat (catch 55))")]
-    (l.assertStrMatches msg1 ".*expected every pattern to have a body.*")
-    (l.assertStrMatches msg2 ".*expected every catch pattern to have a body.*")))
+    (t.match ".*expected every pattern to have a body.*" msg1)
+    (t.match ".*expected every catch pattern to have a body.*" msg2)))
 
 (fn test-lua-module []
   (== (do (macro abc [] (let [l (require :test.luamod)] (l.abc))) (abc)) :abc)
   (== (do (import-macros {: reverse} :test.mod.reverse) (reverse (29 2 +))) 31)
   (let [badcode "(macro bad [] (let [l (require :test.luabad)] (l.bad))) (bad)"]
-    (l.assertFalse (pcall fennel.eval badcode {:compiler-env :strict}))))
+    (t.is (not (pcall fennel.eval badcode {:compiler-env :strict})))))
 
 (fn test-disabled-sandbox-searcher []
   (let [opts {:env :_COMPILER :compiler-env _G}
@@ -708,9 +708,9 @@
         searcher #(match $
                     :dummy (fn [] (fennel.eval code opts)))]
     (table.insert fennel.macro-searchers 1 searcher)
-    (l.assertTrue (pcall fennel.eval "(import-macros {: path} :dummy) (path)"))
+    (t.is (pcall fennel.eval "(import-macros {: path} :dummy) (path)"))
     (table.remove fennel.macro-searchers 1)
-    (l.assertTrue (pcall fennel.eval "(import-macros i :test.indirect-macro)"
+    (t.is (pcall fennel.eval "(import-macros i :test.indirect-macro)"
                          {:compiler-env _G}))))
 
 (fn test-expand []

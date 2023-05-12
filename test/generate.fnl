@@ -42,7 +42,8 @@
                                  (for [_ 1 (math.random 32)]
                                    (tset t (+ (length t) 1) (generate depth)))
                                  t))
-                   :boolean (fn [] (> (math.random) 0.5))})
+                   :boolean (fn [] (> (math.random) 0.5))
+                   :list (fn [] [])})
 
 (local order [:number :string :table :sequence :boolean])
 

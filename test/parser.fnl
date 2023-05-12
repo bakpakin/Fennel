@@ -1,9 +1,9 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
 (local utils (require :fennel.utils))
 
 (fn == [a b msg]
-  (l.assertEquals (fennel.view a) (fennel.view b) msg))
+  (t.= (fennel.view a) (fennel.view b) msg))
 
 (fn test-basics []
   (let [cases {"\"\\\\\"" "\\"
@@ -18,15 +18,15 @@
                "\"foo\\\nbar\"" "foo\nbar"}
         (amp-ok? amp) ((fennel.parser (fennel.string-stream "&abc ")))]
     (each [code expected (pairs cases)]
-      (l.assertEquals (fennel.eval code) expected code))
-    (l.assertTrue amp-ok?)
-    (l.assertEquals "&abc" (tostring amp))))
+      (t.= (fennel.eval code) expected code))
+    (t.is amp-ok?)
+    (t.= "&abc" (tostring amp))))
 
 (fn test-comments []
   (let [(ok? ast) ((fennel.parser (fennel.string-stream ";; abc")
                                   "" {:comments true}))]
-    (l.assertTable (utils.comment? ast))
-    (l.assertEquals ";; abc" (tostring ast)))
+    (t.= :table (type (utils.comment? ast)))
+    (t.= ";; abc" (tostring ast)))
   (let [code "{;; one\n1 ;; hey\n2 ;; what\n:is \"up\" ;; here\n}"
         (ok? ast) ((fennel.parser (fennel.string-stream code)
                                   "" {:comments true}))
@@ -36,8 +36,8 @@
                 1 [(fennel.comment ";; one")]}
          :values {2 [(fennel.comment ";; hey")]}
          :last [(fennel.comment ";; here")]})
-    (l.assertEquals mt.keys [1 :is])
-    (l.assertTrue ok?))
+    (t.= mt.keys [1 :is])
+    (t.is ok?))
   (let [code "{:this table
         ;; has a comment
         ;; with multiple lines in it!!!
@@ -47,7 +47,7 @@
         }"
         (ok? ast) ((fennel.parser (fennel.string-stream code)
                                   "" {:comments true}))]
-    (l.assertTrue ok? ast)
+    (t.is ok? ast)
     (== (. (getmetatable ast) :comments :keys)
         {:and [(fennel.comment ";; has a comment")
                (fennel.comment ";; with multiple lines in it!!!")]
@@ -65,16 +65,16 @@
   (for [i 1 31]
     (let [code (.. "\"" (string.char i) (tostring i) "\"")
           expected (.. (string.char i) (tostring i))]
-       (l.assertEquals (fennel.eval code) expected
+       (t.= (fennel.eval code) expected
                       (.. "Failed to parse control code " i)))))
 
 (fn test-prefixes []
   (let [code "\n\n`(let\n  ,abc #(+ 2 3))"
         (ok? ast) ((fennel.parser code))]
-    (l.assertTrue ok?)
-    (l.assertEquals ast.line 3)
-    (l.assertEquals (. ast 2 2 :line) 4)
-    (l.assertEquals (. ast 2 3 :line) 4)))
+    (t.is ok?)
+    (t.= ast.line 3)
+    (t.= (. ast 2 2 :line) 4)
+    (t.= (. ast 2 3 :line) 4)))
 
 (fn line-col [{: line : col}] [line col])
 
@@ -83,12 +83,12 @@
         (ok? ast) ((fennel.parser code))
         [let* [_ _ _ tbl]] ast
         [_ seq] ast]
-    (l.assertTrue ok?)
-    (l.assertEquals (line-col ast) [3 2] "line and column on lists")
-    (l.assertEquals (line-col let*) [3 5] "line and column on symbols")
-    (l.assertEquals (line-col (getmetatable seq)) [3 9]
+    (t.is ok?)
+    (t.= (line-col ast) [3 2] "line and column on lists")
+    (t.= (line-col let*) [3 5] "line and column on symbols")
+    (t.= (line-col (getmetatable seq)) [3 9]
                     "line and column on sequences")
-    (l.assertEquals (line-col (getmetatable tbl)) [4 10]
+    (t.= (line-col (getmetatable tbl)) [4 10]
                     "line and column on tables")))
 
 (fn test-plugin-hooks []
@@ -99,8 +99,8 @@
                 (fn parse-error [msg filename line col source root-reset]
                   (set parse-error-called true))}
         (ok? ok2? ast) (pcall (fennel.parser code "" {:plugins [plugin]}))]
-    (l.assertTrue (not ok?) "parse error is expected")
-    (l.assertTrue parse-error-called "plugin wasn't called")))
+    (t.is (not ok?) "parse error is expected")
+    (t.is parse-error-called "plugin wasn't called")))
 
 {: test-basics
  : test-control-codes

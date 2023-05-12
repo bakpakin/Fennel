@@ -1,4 +1,4 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
 
 (local mangling-tests {:3 "__fnl_global__3"
@@ -12,10 +12,10 @@
   (each [k v (pairs mangling-tests)]
     (let [manglek (fennel.mangle k)
           unmanglev (fennel.unmangle v)]
-      (l.assertEquals v manglek)
-      (l.assertEquals k unmanglev)))
+      (t.= v manglek)
+      (t.= k unmanglev)))
   ;; adding an env for evaluation causes global mangling rules to apply
-  (l.assertTrue (fennel.eval "(global mangled-name true) mangled-name"
+  (t.is (fennel.eval "(global mangled-name true) mangled-name"
                              {:env {}})))
 
 {: test-mangling}

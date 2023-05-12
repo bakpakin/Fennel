@@ -1,10 +1,10 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
 
 (macro == [form expected ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
-     (l.assertTrue ok# val#)
-     (l.assertEquals val# ,expected)))
+     (t.is ok# val#)
+     (t.= val# ,expected)))
 
 (fn test-calculations []
   (== (% 1 2 (- 1 2)) 0)
@@ -217,7 +217,7 @@
   (when (not _G.getfenv)
     (== (type _ENV) :table))
   ;; ensure sparse tables don't print with a ton of nils in them
-  (l.assertNil (string.find (fennel.compileString "{1 :a 999999 :b}") :nil)))
+  (t.is (not (string.find (fennel.compileString "{1 :a 999999 :b}") :nil))))
 
 (fn test-if []
   (== (if (values 1 2) 3 4) 3)
@@ -366,19 +366,19 @@
       ["hi" "bye"]))
 
 (fn test-comment []
-  (l.assertEquals "--[[ hello world ]]\nreturn nil"
+  (t.= "--[[ hello world ]]\nreturn nil"
                   (fennel.compile-string "(comment hello world)"))
-  (l.assertEquals "--[[ \"hello\nworld\" ]]\nreturn nil"
+  (t.= "--[[ \"hello\nworld\" ]]\nreturn nil"
                   (fennel.compile-string "(comment \"hello\nworld\")"))
-  (l.assertEquals "--[[ \"hello]\\]lol\" ]]\nreturn nil"
+  (t.= "--[[ \"hello]\\]lol\" ]]\nreturn nil"
                   (fennel.compile-string "(comment \"hello]]lol\")")))
 
 (fn test-nest []
   (let [nested (fennel.dofile "src/fennel.fnl" {:compilerEnv _G})]
-    (l.assertEquals fennel.version nested.version)))
+    (t.= fennel.version nested.version)))
 
 (fn test-sym []
-  (l.assertEquals "return \"f_1_auto.foo:bar\""
+  (t.= "return \"f_1_auto.foo:bar\""
                   (fennel.compile-string
                    "(eval-compiler (string.format \"%q\" (view `f#.foo:bar)))")))
 
@@ -394,7 +394,7 @@
                 "{c = 3, a = 1, [2] = \"b1\", [true] = \"t\", [\"2\"] = \"b\", b = 2, d = 4, [\"true\"] = \"t1\", [{9}] = \"tbl9\"}"
                 "added keys should be sorted: numbers>booleans>strings>tables>other"]]]
     (each [_ [input expected msg] (ipairs cases)]
-      (l.assertEquals (: (fennel.compile-string input) :gsub "^return%s*" "")
+      (t.= (: (fennel.compile-string input) :gsub "^return%s*" "")
                       expected msg))))
 
 {: test-booleans

@@ -1,4 +1,4 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 
 (local expected {
   :comment         "function"
@@ -68,28 +68,24 @@
       (tset current key (type value)))
 
     (each [key kind (pairs expected)]
-      (l.assertNotNil (. fennel key) (.. "expect fennel." key " to exists"))
-      (l.assertEquals
-        (type (. fennel key)) kind
-        (.. "expect fennel." key " to be \"" kind "\"")))
+      (t.is (. fennel key) (.. "expect fennel." key " to exists"))
+      (t.= (type (. fennel key)) kind
+           (.. "expect fennel." key " to be \"" kind "\"")))
 
     (each [key kind (pairs expected-aliases)]
-      (l.assertNotNil (. fennel key) (.. "expect alias fennel." key " to exists"))
-      (l.assertEquals
-        (type (. fennel key)) kind
-        (.. "expect alias fennel." key " to be \"" kind "\"")))
+      (t.is (. fennel key) (.. "expect alias fennel." key " to exists"))
+      (t.= (type (. fennel key)) kind
+           (.. "expect alias fennel." key " to be \"" kind "\"")))
 
     (each [key kind (pairs expected-deprecations)]
-      (l.assertNotNil (. fennel key) (.. "expect deprecated fennel." key " to exists"))
-      (l.assertEquals
-        (type (. fennel key)) kind
-        (.. "expect deprecated fennel." key " to be \"" kind "\"")))
+      (t.is (. fennel key) (.. "expect deprecated fennel." key " to exists"))
+      (t.= (type (. fennel key)) kind
+           (.. "expect deprecated fennel." key " to be \"" kind "\"")))
 
     (each [key value (pairs fennel)]
-      (l.assertNotNil
-        (or (. expected key)
-            (. expected-aliases key)
-            (. expected-deprecations key))
-        (.. "fennel." key " not expected to be in the public api")))))
+      (t.is (or (. expected key)
+                (. expected-aliases key)
+                (. expected-deprecations key))
+            (.. "fennel." key " not expected to be in the public api")))))
 
 {: test-api-exposure}

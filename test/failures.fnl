@@ -1,4 +1,4 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
 (local friend (require :fennel.friend))
 
@@ -7,8 +7,8 @@
 (macro assert-fail [form expected]
   `(let [(ok# msg#) (pcall fennel.compile-string (macrodebug ,form true)
                            {:allowedGlobals ["pairs" "next" "ipairs" "_G"]})]
-     (l.assertFalse ok# (.. "Expected failure: " ,(tostring form)))
-     (l.assertStrContains msg# ,expected)))
+     (t.is (not ok#) (.. "Expected failure: " ,(tostring form)))
+     (t.match ,expected msg#)))
 
 ;; use this only when you can't use the above macro
 (fn test-failures [failures]
@@ -16,12 +16,14 @@
     (let [(ok? msg) (pcall fennel.compile-string code
                            {:allowedGlobals ["pairs" "next" "ipairs" "_G"]
                             :unfriendly true})]
-      (l.assertFalse ok? (.. "Expected compiling " code " to fail."))
-      (l.assertStrContains msg expected-msg))))
+      (t.is (not ok?) (.. "Expected compiling " code " to fail."))
+      (t.is (msg:find expected-msg 1 true)
+            (.. "Expected to find\n" (fennel.view expected-msg)
+                "\n    in\n" (fennel.view msg))))))
 
 (fn test-names []
   (assert-fail (local + 6) "overshadowed by a special form")
-  (assert-fail (macro if [] "wat") "overshadowed by a special form")
+  (assert-fail (macro comment [] "wat") "overshadowed by a special form")
   (assert-fail (do each) "tried to reference a special form"))
 
 (fn test-global-fails []
@@ -178,13 +180,14 @@
 (fn test-macro []
   (let [code "(import-macros {: fail-one} :test.macros) (fail-one 1)"
         (ok? msg) (pcall fennel.compileString code)]
-    (l.assertStrContains msg "test/macros.fnl:2: oh no")
+    (t.is (not ok?))
+    (t.match "test/macros.fnl:3: oh no" msg)
     ;; sometimes it's "in function f" and sometimes "in upvalue f"
-    (l.assertStrMatches msg ".*test/macros.fnl:2: in %w+ 'def'.*")
-    (l.assertStrMatches msg ".*test/macros.fnl:6: in %w+ 'abc'.*"))
+    (t.match ".*test/macros.fnl:3: in %w+ 'def'.*" msg)
+    (t.match ".*test/macros.fnl:4: in %w+ 'abc'.*" msg))
   (let [(ok? msg) (pcall fennel.eval "(require-macros 100)")]
-    (l.assertFalse ok?)
-    (l.assertStrMatches msg ".*module name must compile to string.*")))
+    (t.is (not ok?))
+    (t.match ".*module name must compile to string.*" msg)))
 
 (fn no-codes [s] (s:gsub "\027%[[0-9]m" ""))
 
@@ -208,27 +211,27 @@
                                         "(icollect [_ _ \n(pairs [])]\n)"
                                         {:error-pinpoint [">>>" "<<<"]})]
     ;; use the standard prefix
-    (l.assertStrMatches msg "^%S+:%d+:%d+ Compile error: .+")
-    (l.assertStrMatches parse-msg "^%S+:%d+:%d+ Parse error: .+")
+    (t.match "^%S+:%d+:%d+ Compile error: .+" msg)
+    (t.match "^%S+:%d+:%d+ Parse error: .+" parse-msg)
     ;; show the raw error message
-    (l.assertStrContains msg "expected var x")
+    (t.match "expected var x" msg)
     ;; offer suggestions
-    (l.assertStrContains msg "Try declaring x using var")
+    (t.match "Try declaring x using var" msg)
     ;; show the code and point out the identifier at fault
-    (l.assertStrContains (no-codes msg) "(set x 3)")
+    (t.match "(set x 3)" (no-codes msg))
     ;; parse error
-    (l.assertStrContains (no-codes parse-msg) "{:a 1 :b 2 :c}")
+    (t.match "{:a 1 :b 2 :c}" (no-codes parse-msg))
     ;; non-table AST in assertion
-    (l.assertStrContains assert-msg "bad")
+    (t.match "bad" assert-msg)
     ;; source should be part of the error message
-    (l.assertStrContains msg4 "msg4")
-    (l.assertStrContains msg5 "msg5")
-    (l.assertStrContains msg6 "unable to bind string abc")
-    (l.assertStrContains msg7 "msg7")
+    (t.match "msg4" msg4)
+    (t.match "msg5" msg5)
+    (t.match "unable to bind string abc" msg6)
+    (t.match "msg7" msg7)
     ;; custom error pinpointing works
-    (l.assertStrContains msg-custom-pinpoint ">>>asdf<<<")
-    (l.assertStrContains msg-custom-pinpoint2 ">>>]<<<")
-    (l.assertStrContains msg-custom-pinpoint3 ">>>(icollect")))
+    (t.match ">>>asdf<<<" msg-custom-pinpoint)
+    (t.match ">>>]<<<" msg-custom-pinpoint2)
+    (t.match ">>>%(icollect" msg-custom-pinpoint3)))
 
 (fn doer []
   ;; this plugin does not detach in subsequent tests, so we must check that
@@ -248,9 +251,9 @@
                                    :do (doer)
                                    :versions [(fennel.version:gsub "-dev" "")]}]
                         :filename "matcher.fnl"})]
-    (l.assertStrContains err "matcher.fnl:3"))
+    (t.match "matcher.fnl:3" err))
   (let [(_ err) (pcall fennel.eval "(match 5 b)")]
-    (l.assertNotStrContains err "fennel.compiler.macroexpand")))
+    (t.not-match "fennel.compiler.macroexpand" err)))
 
 {: test-global-fails
  : test-fn-fails

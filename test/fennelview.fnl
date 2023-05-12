@@ -1,4 +1,4 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
 (local view (require :fennel.view))
 (local {: generate} (fennel.dofile "test/generate.fnl"))
@@ -36,43 +36,41 @@
           round-tripped (fennel.eval viewed)]
       ;; you would think assertEquals would work here but it doesn't!
       ;; it is easy to confuse it with randomly generated tables.
-      (l.assertTrue (deep= item round-tripped) viewed))))
+      (t.is (deep= item round-tripped) viewed))))
 
 (fn test-fennelview-userdata-handling []
   (let [view-target {:my-userdata io.stdout}
         expected-with-mt "{:my-userdata \"HI, I AM USERDATA\"}"
         expected-without-mt "^%{%:my%-userdata %#%<file %([x0-9a-f]+%)%>%}$"]
-    (l.assertStrContains (view view-target {:one-line? true})
-                         expected-without-mt
-                         true)
+    (t.match expected-without-mt (view view-target {:one-line? true}) true)
     (tset (getmetatable io.stdout) :__fennelview #"\"HI, I AM USERDATA\"")
-    (l.assertEquals (view view-target {:one-line? true})
+    (t.= (view view-target {:one-line? true})
                     expected-with-mt)
     (tset (getmetatable io.stdout) :__fennelview nil)))
 
 (fn test-cycles []
-  (let [t {:a 1 :b 2}
+  (let [t1 {:a 1 :b 2}
         t2 {:tbl [1 :b] :foo 19}
         sparse [:abc]]
-    (set t.t t)
+    (set t1.t t1)
     (tset t2.tbl 3 t2)
     (tset sparse 4 sparse)
-    (l.assertEquals (view t) "@1{:a 1 :b 2 :t @1{...}}")
-    (l.assertEquals (view t2) "@1{:foo 19 :tbl [1 \"b\" @1{...}]}")
-    (l.assertEquals (view sparse) "@1[\"abc\" nil nil @1[...]]")))
+    (t.= (view t1) "@1{:a 1 :b 2 :t @1{...}}")
+    (t.= (view t2) "@1{:foo 19 :tbl [1 \"b\" @1{...}]}")
+    (t.= (view sparse) "@1[\"abc\" nil nil @1[...]]")))
 
 (fn test-newline []
   (let [s "hello\nworld!\n"]
-    (l.assertEquals (view s) "\"hello\nworld!\n\"")
-    (l.assertEquals (view s {:escape-newlines? true})
+    (t.= (view s) "\"hello\nworld!\n\"")
+    (t.= (view s {:escape-newlines? true})
                     "\"hello\\nworld!\\n\"")))
 
 (fn test-escapes []
-  (l.assertEquals (view ["\a" "\t"]) "[\"\\a\" \"\\t\"]")
-  (l.assertEquals (view "[\7-\13]") "\"[\\a-\\r]\""))
+  (t.= (view ["\a" "\t"]) "[\"\\a\" \"\\t\"]")
+  (t.= (view "[\7-\13]") "\"[\\a-\\r]\""))
 
 (fn test-gaps []
-  (l.assertEquals (view {967216353 788}) "{967216353 788}"))
+  (t.= (view {967216353 788}) "{967216353 788}"))
 
 (fn test-utf8 []
   (when _G.utf8
@@ -82,8 +80,7 @@
       (for [j 1 100]
         (table.insert x (string.char (math.random 0 255))))
       (set x (view (table.concat x)))
-      (l.assertNotIsNil (_G.utf8.len x)
-                        (.. "invalid utf-8: " x "\"")))
+      (t.is (_G.utf8.len x) (.. "invalid utf-8: " x "\"")))
     ;; make sure valid utf-8 doesn't get escaped
     (for [i 1 100]
       (var x [])
@@ -91,7 +88,7 @@
         (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
                                        (math.random 0x80 0xd7ff)
                                        (math.random 0xe000 0x10ffff)))))
-      (l.assertNotStrContains (view (table.concat x)) "\\"))
+      (t.not-match "\\" (view (table.concat x))))
     ;; validate utf-8 length
     ;; this one is a little weird. since the only place utf-8 length is
     ;; exposed is within the indentation code, we have to generate some
@@ -103,29 +100,29 @@
         (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
                                        (math.random 0x80 0xd7ff)
                                        (math.random 0xe000 0x10ffff)))))
-      (l.assertEquals (_G.utf8.len (view {(table.concat x) [1 2]})) 217))))
+      (t.= (_G.utf8.len (view {(table.concat x) [1 2]})) 217))))
 
 (fn test-seq-comments []
   ;; a sequence containing a comment as its last item should have its closing
   ;; delimiter on a new line.
   (let [(_ok? ast) ((fennel.parser (fennel.string-stream "(print [1\n;hi\n])")
                                    "" {:comments true}))]
-    (l.assertEquals (view ast) "(print [1\n ;hi\n ])"))
+    (t.= (view ast) "(print [1\n ;hi\n ])"))
   ;; a sequence containing a comment should print on multiple lines.
   (let [(_ok? ast) ((fennel.parser (fennel.string-stream "(print [1;hi\n2])")
                                    "" {:comments true}))]
-    (l.assertEquals (view ast) "(print [1\n ;hi\n 2])")))
+    (t.= (view ast) "(print [1\n ;hi\n 2])")))
 
 (fn test-once-skip-opts []
-  (l.assertEquals (view "a" {:prefer-colon? {:once true}}) ":a")
-  (l.assertEquals (view ["a"] {:prefer-colon? {:once true}}) "[\"a\"]")
-  (l.assertEquals (view ["a" ["b"] "c"]
+  (t.= (view "a" {:prefer-colon? {:once true}}) ":a")
+  (t.= (view ["a"] {:prefer-colon? {:once true}}) "[\"a\"]")
+  (t.= (view ["a" ["b"] "c"]
                         {:prefer-colon? {:once true :after {:once true}}})
                   "[:a [\"b\"] :c]")
-  (l.assertEquals (view ["a" ["b" ["c"]] "d"]
+  (t.= (view ["a" ["b" ["c"]] "d"]
                         {:prefer-colon? {:once true :after {:once true :after {:once true}}}})
                   "[:a [:b [\"c\"]] :d]")
-  (l.assertEquals (view ["a" ["b" ["c" ["d"] "e"] "f"] "g"]
+  (t.= (view ["a" ["b" ["c" ["d"] "e"] "f"] "g"]
                         {:prefer-colon? {:once true :after {:once true :after {:once true}}}})
                   "[:a [:b [\"c\" [\"d\"] \"e\"] :f] :g]")
   (let [vector (fn [...]
@@ -138,9 +135,9 @@
                                          {:once true :after opts.empty-as-sequence?}))
                                indent))}
                       (setmetatable [...])))]
-    (l.assertEquals (view (vector)) "[]")
-    (l.assertEquals (view (vector [])) "[{}]")
-    (l.assertEquals (view (vector (vector))) "[[]]")))
+    (t.= (view (vector)) "[]")
+    (t.= (view (vector [])) "[{}]")
+    (t.= (view (vector (vector))) "[[]]")))
 
 (fn test-fennelview []
   (let [cases {"((require :fennel.view) \"123\")"
@@ -312,10 +309,11 @@
                ;; correct metamethods
                "((require :fennel.view) (setmetatable {} {:__pairs #(values next {:a :b} nil)}))" "{:a \"b\"}"}]
     (each [code expected (pairs cases)]
-      (l.assertEquals (fennel.eval code {:correlate true :compiler-env _G})
-                      expected code))
+      (let [(ok val) (pcall fennel.eval code {:correlate true :compiler-env _G})]
+        (t.is ok)
+        (t.= expected val code)))
     (let [mt (setmetatable [] {:__fennelview (fn [] "META")})]
-      (l.assertEquals (fennel.view mt) "META"))))
+      (t.= (fennel.view mt) "META"))))
 
 {: test-generated
  : test-newline

@@ -1,19 +1,19 @@
-(local l (require :test.luaunit))
+(local t (require :test.faith))
 (local fennel (require :fennel))
 
 (macro == [form expected]
   `(let [(ok# val#) (pcall fennel.eval ,(view form)
                            {:useBitLib (not= nil _G.bit)})]
-     (l.assertTrue ok# val#)
-     (l.assertEquals val# ,expected)))
+     (t.is ok# val#)
+     (t.= val# ,expected)))
 
 (fn test-shifts []
   (== (lshift 33 2) 132)
   (== (lshift 1) 2)
   (== (rshift 33 2) 8)
   (let [(ok? msg) (pcall fennel.compileString "(lshift)")]
-    (l.assertFalse ok?)
-    (l.assertStrContains msg "Expected more than 0 arguments")))
+    (t.is (not ok?))
+    (t.match "Expected more than 0 arguments" msg)))
 
 (fn test-ops []
   (== (band 22 13) 4)

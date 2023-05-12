@@ -769,10 +769,11 @@ Method name doesn't have to be known at compile-time; if it is, use
 (tbl:method-name ...) instead.")
 
 (fn SPECIALS.comment [ast _ parent]
-  (let [els []]
-    (for [i 2 (length ast)]
-      (table.insert els (view (. ast i) {:one-line? true})))
-    (compiler.emit parent (.. "--[[ " (table.concat els " ") " ]]") ast)))
+  (let [c (-> (icollect [i elt (ipairs ast)]
+                (if (not= i 1) (view (. ast i) {:one-line? true})))
+              (table.concat " ")
+              (: :gsub "%]%]" "]\\]"))]
+    (compiler.emit parent (.. "--[[ " c " ]]") ast)))
 
 (doc-special :comment ["..."] "Comment which will be emitted in Lua output." true)
 

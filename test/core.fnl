@@ -369,7 +369,9 @@
   (l.assertEquals "--[[ hello world ]]\nreturn nil"
                   (fennel.compile-string "(comment hello world)"))
   (l.assertEquals "--[[ \"hello\nworld\" ]]\nreturn nil"
-                  (fennel.compile-string "(comment \"hello\nworld\")")))
+                  (fennel.compile-string "(comment \"hello\nworld\")"))
+  (l.assertEquals "--[[ \"hello]\\]lol\" ]]\nreturn nil"
+                  (fennel.compile-string "(comment \"hello]]lol\")")))
 
 (fn test-nest []
   (let [nested (fennel.dofile "src/fennel.fnl" {:compilerEnv _G})]

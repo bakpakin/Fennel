@@ -49,8 +49,8 @@
       (set opts.scope (compiler.make-scope compiler.scopes.compiler)))
     opts))
 
-(fn eval [str options ...]
-  (let [opts (eval-opts options str)
+(fn eval [str ?options ...]
+  (let [opts (eval-opts ?options str)
         env (eval-env opts.env opts)
         lua-source (compiler.compile-string str opts)
         loader (specials.load-code lua-source env
@@ -60,8 +60,8 @@
     (set opts.filename nil)
     (loader ...)))
 
-(fn dofile* [filename options ...]
-  (let [opts (utils.copy options)
+(fn dofile* [filename ?options ...]
+  (let [opts (utils.copy ?options)
         f (assert (io.open filename :rb))
         source (assert (f:read :*all) (.. "Could not read " filename))]
     (f:close)

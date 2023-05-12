@@ -38,7 +38,7 @@ format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 # All-in-one pure-lua script:
 fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
 	echo "#!/usr/bin/env $(LUA)" > $@
-	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< >> $@
+	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua --require-as-include $< >> $@
 	chmod 755 $@
 
 # Library file

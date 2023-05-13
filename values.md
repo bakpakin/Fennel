@@ -23,9 +23,13 @@ independently; it addresses a severe problem in Lua's runtime
 semantics where `tostring` on a table produces nearly-useless
 results. But this can be thought of as simply another library which
 happens to be included in the compiler. The `fennel.view` function is
-a prerequisite to having a useful repl. The repl of course is also a
-function you can call at runtime if you embed the compiler, but this
-is a special case that blurs the lines between runtime and compile time.
+a prerequisite to having a useful repl.
+
+The repl of course is also a function you can call at runtime if you
+embed the compiler, but this is a special case that blurs the lines
+between runtime and compile time.  After all, what is compile time
+except that subset of runtime during which the function being run
+happens to be a compiler?
 
 ## Transparency
 

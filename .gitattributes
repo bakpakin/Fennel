@@ -1,6 +1,0 @@
-# Ignore generated files
-bootstrap/launcher.lua linguist-generated
-bootstrap/fennel.lua linguist-generated
-
-# External/vendored deps checked into the repo
-test/luaunit.lua linguist-vendored

@@ -16,7 +16,8 @@ SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
 build: fennel fennel.lua
 
-test: fennel.lua fennel test/faith.lua; $(LUA) test/init.lua $(TESTS)
+test: fennel.lua fennel test/faith.lua
+	LUA_PATH=?.lua $(LUA) test/init.lua $(TESTS)
 
 testall: export FNL_TEST_OUTPUT=text
 testall: export FNL_TESTALL=yes

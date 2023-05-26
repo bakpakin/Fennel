@@ -122,7 +122,7 @@
 
 (fn friendly-msg [msg {: filename : line : col : endcol : endline} source opts]
   (let [(ok codeline) (pcall read-line filename line source)
-        endcol (if (not= line endline)
+        endcol (if (and ok codeline (not= line endline))
                    (length codeline)
                    endcol)
         out [msg ""]]

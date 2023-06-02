@@ -28,6 +28,7 @@ deprecated forms.
   redefinition at runtime.
 * Allow following docstring with a metadata table syntax.
 * Return whole metadata table when `metadata.get` is called without a key.
+* added plugin extension point `preprocess`
 
 ## 1.3.0 / 2023-02-13
 

@@ -618,6 +618,7 @@ the rest of the plugins for a given event to be skipped.
 * `destructure`
 * `parse-error`
 * `assert-compile`
+* `preprocess`
 
 The `destructure` extension point is different because instead of just
 taking `ast` and `scope` it takes a `from` which is the AST for the value

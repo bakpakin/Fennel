@@ -860,7 +860,8 @@ which we have to do if we don't know."
     (compile-asts asts opts)))
 
 (fn compile-string [str ?opts]
-  (compile-stream (parser.string-stream str (or ?opts {})) (or ?opts {})))
+  (compile-stream (parser.string-stream (or (utils.hook-opts :preprocess ?opts str ?opts.filename) str)
+                                        (or ?opts {})) (or ?opts {})))
 
 (fn compile [ast ?opts]
   (compile-asts [ast] ?opts))

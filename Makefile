@@ -67,17 +67,30 @@ lint: fennel
 
 BIN_LUA_VERSION=5.4.4
 BIN_LUA_DIR ?= $(PWD)/lua-$(BIN_LUA_VERSION)
+BIN_LUAJIT_DIR ?= $(PWD)/luajit
 NATIVE_LUA_LIB ?= $(BIN_LUA_DIR)/src/liblua-native.a
+NATIVE_LUAJIT_LIB ?= $(BIN_LUAJIT_DIR)/src/libluajit.a
 LUA_INCLUDE_DIR ?= $(BIN_LUA_DIR)/src
+LUAJIT_INCLUDE_DIR ?= $(BIN_LUAJIT_DIR)/src
 
 COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
+LUAJIT_COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
 
 $(BIN_LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(BIN_LUA_VERSION).tar.gz | tar xz
+
+$(BIN_LUAJIT_DIR): ; git clone https://luajit.org/git/luajit.git luajit
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
 	$(COMPILE_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
 		$< $@ $(NATIVE_LUA_LIB) $(LUA_INCLUDE_DIR)
+
+fennel-bin-luajit: src/launcher.fnl fennel $(NATIVE_LUAJIT_LIB)
+	$(LUAJIT_COMPILE_ARGS) ./fennel --no-compiler-sandbox --compile-binary \
+		$< $@ $(NATIVE_LUAJIT_LIB) $(LUAJIT_INCLUDE_DIR)
+
+$(NATIVE_LUAJIT_LIB): $(BIN_LUAJIT_DIR)
+	$(MAKE) -C $(BIN_LUAJIT_DIR) BUILDMODE=static
 
 $(NATIVE_LUA_LIB): $(BIN_LUA_DIR)
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean liblua.a

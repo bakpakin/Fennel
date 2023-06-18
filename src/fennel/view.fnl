@@ -290,7 +290,7 @@
 
 (fn colon-string? [s]
   ;; Test if given string is valid colon string.
-  (s:find "^[-%w?^_!$%&*+./@|<=>]+$"))
+  (s:find "^[-%w?^_!$%&*+./|<=>]+$"))
 
 (local utf8-inits
   [{:min-byte 0x00 :max-byte 0x7f

@@ -321,6 +321,9 @@
     (let [mt (setmetatable [] {:__fennelview (fn [] "META")})]
       (t.= (fennel.view mt) "META"))))
 
+(fn test-colon []
+  (t.= "{\"@foo.bar\" 42}" (fennel.view {"@foo.bar" 42})))
+
 {: test-generated
  : test-newline
  : test-fennelview
@@ -329,5 +332,6 @@
  : test-escapes
  : test-gaps
  : test-utf8
+ : test-colon
  : test-seq-comments
  : test-once-skip-opts}

@@ -939,6 +939,15 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (doc-special :bxor [:x1 :x2 "..."] "Bitwise XOR of any number of arguments.
 Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
+(fn SPECIALS.bnot [ast scope parent]
+  (compiler.assert (= (length ast) 2) "expected one argument" ast)
+  (let [[value] (compiler.compile1 (. ast 2) scope parent {:nval 1})]
+    (if utils.root.options.useBitLib
+        (.. "bit.bnot(" (tostring value) ")")
+        (.. "~(" (tostring value) ")"))))
+
+(doc-special :bnot [:x] "Bitwise negation; only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
+
 (doc-special ".." [:a :b "..."]
              "String concatenation operator; works the same as Lua but accepts more arguments.")
 
@@ -1016,8 +1025,6 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
 (define-unary-special :not "not ")
 (doc-special :not [:x] "Logical operator; works the same as Lua.")
-(define-unary-special :bnot "~")
-(doc-special :bnot [:x] "Bitwise negation; only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (define-unary-special :length "#")
 (doc-special :length [:x] "Returns the length of a table or string.")
 

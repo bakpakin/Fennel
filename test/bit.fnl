@@ -19,7 +19,8 @@
   (== (band 22 13) 4)
   (== (bor 1 2 4 8) 15)
   (== (bxor 1) 1)
-  (== (band) 0))
+  (== (band) 0)
+  (== (bnot 26) -27))
 
 ;; skip the test on PUC 5.1 and 5.2
 (if (or (rawget _G :jit) (not (_VERSION:find "5%.[12]")))

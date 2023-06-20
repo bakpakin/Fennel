@@ -622,10 +622,9 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
 
 (fn SPECIALS.each [ast scope parent]
   (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
-  (let [binding (compiler.assert (utils.table? (. ast 2))
-                                 "expected binding table" ast)
-        _ (compiler.assert (<= 2 (length binding))
-                           "expected binding and iterator" binding)
+  (compiler.assert (utils.table? (. ast 2)) "expected binding table" ast)
+  (compiler.assert (<= 2 (length (. ast 2))) "expected binding and iterator" ast)
+  (let [binding (setmetatable (utils.copy (. ast 2)) (getmetatable (. ast 2)))
         until-condition (remove-until-condition binding)
         iter (table.remove binding (length binding))
         ;; last item is iterator call
@@ -690,10 +689,10 @@ order, but can be used with any iterator." true)
              true)
 
 (fn for* [ast scope parent]
-  (let [ranges (compiler.assert (utils.table? (. ast 2))
-                                "expected binding table" ast)
-        until-condition (remove-until-condition (. ast 2))
-        binding-sym (table.remove (. ast 2) 1)
+  (compiler.assert (utils.table? (. ast 2)) "expected binding table" ast)
+  (let [ranges (setmetatable (utils.copy (. ast 2)) (getmetatable (. ast 2)))
+        until-condition (remove-until-condition ranges)
+        binding-sym (table.remove ranges 1)
         sub-scope (compiler.make-scope scope)
         range-args []
         chunk []]

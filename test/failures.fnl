@@ -60,6 +60,7 @@
   (assert-fail #(values ...) "use $... in hashfn")
   (assert-fail (fn [a & b c] nil)
                "expected rest argument before last parameter")
+  (assert-fail (fn [...] (+ ...)) "tried to use vararg with operator")
   (test-failures {"(lambda x)" "expected arg list"
                   "(fn [a & {3 3}] nil)" "unable to bind number 3"}))
 

@@ -79,6 +79,7 @@
                                 "checking for typos"]
         "unexpected iterator clause" ["removing an argument"
                                       "checking for typos"]
+        "tried to use vararg with operator" ["accumulating over the operands"]
         "tried to use unquote outside quote" ["moving the form to inside a quoted form"
                                               "removing the comma"]})
 

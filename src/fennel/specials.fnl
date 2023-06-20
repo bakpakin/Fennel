@@ -862,7 +862,9 @@ Method name doesn't have to be known at compile-time; if it is, use
       0 (utils.expr (doto zero-arity
                       (compiler.assert "Expected more than 0 arguments" ast))
                     :literal)
-      1 (if unary-prefix
+      1 (if (utils.varg? (. ast 2))
+            (compiler.assert false "tried to use vararg with operator" ast)
+            unary-prefix
             (.. "(" unary-prefix padded-op (. operands 1) ")")
             (. operands 1))
       _ (.. "(" (table.concat operands padded-op) ")"))))

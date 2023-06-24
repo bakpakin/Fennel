@@ -6,7 +6,8 @@
 ;; expanded before this code ever sees it.
 (macro assert-fail [form expected]
   `(let [(ok# msg#) (pcall fennel.compile-string (macrodebug ,form true)
-                           {:allowedGlobals ["pairs" "next" "ipairs" "_G"]})]
+                           {:allowedGlobals ["pairs" "next" "ipairs" "_G"]
+                            :correlate true})]
      (t.is (not ok#) (.. "Expected failure: " ,(tostring form)))
      (t.match ,expected msg#)))
 
@@ -15,7 +16,7 @@
   (each [code expected-msg (pairs failures)]
     (let [(ok? msg) (pcall fennel.compile-string code
                            {:allowedGlobals ["pairs" "next" "ipairs" "_G"]
-                            :unfriendly true})]
+                            :unfriendly true :correlate true})]
       (t.is (not ok?) (.. "Expected compiling " code " to fail."))
       (t.is (msg:find expected-msg 1 true)
             (.. "Expected to find\n" (fennel.view expected-msg)
@@ -180,7 +181,7 @@
 
 (fn test-macro []
   (let [code "(import-macros {: fail-one} :test.macros) (fail-one 1)"
-        (ok? msg) (pcall fennel.compileString code)]
+        (ok? msg) (pcall fennel.compile-string code {:correlate true})]
     (t.is (not ok?))
     (t.match "test/macros.fnl:3: oh no" msg)
     ;; sometimes it's "in function f" and sometimes "in upvalue f"

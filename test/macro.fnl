@@ -150,13 +150,12 @@
 
   ;; can't expand blind multi sym
   (let [(_ msg1) (pcall fennel.eval "(let [x {:y :z}] (case :z x.y 1 _ 0))")]
-    (t.match ".*unexpected multi symbol x.y.*" msg1)
+    (t.match ".*unexpected multi symbol x.y.*" msg1))
   ;; but can unify with a multi sym
   (== (let [x {:y :z}]
         (case :z
           (where (= x.y)) 1
-          _ 0)
-        )
+          _ 0))
       1)
 
   (== (case (io.open "/does/not/exist")
@@ -443,7 +442,7 @@
   (== (let [x 1]
          (case [:hello]
            [x] x))
-       :hello)
+      :hello)
 
   (== (let [x 1]
         (case [:hello]
@@ -495,7 +494,7 @@
           ;; [99 20] = [99 x]
           ;; note that x is bound in the pattern, so the body uses that value
           (where [(= x) x]) (+ x x)))
-     (+ 20 20))))
+     (+ 20 20)))
 
 (fn test-case-try []
   ;; ensure we do not unify in a sucess path

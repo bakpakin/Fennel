@@ -494,6 +494,14 @@
           ;; [99 20] = [99 x]
           ;; note that x is bound in the pattern, so the body uses that value
           (where [(= x) x]) (+ x x)))
+     (+ 20 20))
+
+  (== (let [x 99]
+        (case [20 99]
+          ;; [20 99] = [x 20]
+          ;; x is bound in the pattern, so the body uses that value
+          (where (or [(= x) x]
+                     [x (= x)])) (+ x x)))
      (+ 20 20)))
 
 (fn test-case-try []

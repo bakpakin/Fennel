@@ -69,15 +69,18 @@
 (fn symbols-in-pattern [pattern]
   "gives the set of symbols inside a pattern"
   (if (list? pattern)
-      (let [result {}]
-        (each [_ child-pattern (ipairs pattern)]
-          (collect [name symbol (pairs (symbols-in-pattern child-pattern)) &into result]
-            name symbol))
-        result)
+      (if (or (= (. pattern 1) `where)
+              (= (. pattern 1) `=))
+          (symbols-in-pattern (. pattern 2))
+          (= (. pattern 2) `?)
+          (symbols-in-pattern (. pattern 1))
+          (let [result {}]
+            (each [_ child-pattern (ipairs pattern)]
+              (collect [name symbol (pairs (symbols-in-pattern child-pattern)) &into result]
+                name symbol))
+            result))
       (sym? pattern)
       (if (and (not= pattern `or)
-               (not= pattern `where)
-               (not= pattern `?)
                (not= pattern `nil))
           {(tostring pattern) pattern}
           {})

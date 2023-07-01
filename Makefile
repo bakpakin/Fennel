@@ -65,7 +65,7 @@ lint: fennel
 
 ## Binaries
 
-BIN_LUA_VERSION=5.4.4
+BIN_LUA_VERSION=5.4.6
 BIN_LUA_DIR ?= $(PWD)/lua-$(BIN_LUA_VERSION)
 BIN_LUAJIT_DIR ?= $(PWD)/luajit
 NATIVE_LUA_LIB ?= $(BIN_LUA_DIR)/src/liblua-native.a
@@ -134,7 +134,8 @@ ci: testall lint fuzz fennel
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \
-		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock
+		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock bootstrap/view.lua \
+		test/faith.lua minifennel.lua
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
 
 coverage: fennel

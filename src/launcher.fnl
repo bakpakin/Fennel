@@ -88,6 +88,9 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
         cmd [(string.format "%s %s" tgt-lua (or (. arg 0) "fennel"))]]
     (for [i 1 (length arg)] ; quote args to prevent shell escapes when executing
       (table.insert cmd (string.format "%q" (. arg i))))
+    (when (= nil (. arg -1))
+      (io.stderr:write
+       "WARNING: --lua argument only works from script, not binary.\n"))
     (let [ok (os.execute (table.concat cmd " "))]
       (os.exit (if ok 0 1) true))))
 

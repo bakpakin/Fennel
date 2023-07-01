@@ -112,8 +112,7 @@ encountering an error before propagating it."
   (var (into iter-out found?) (values [] (copy iter-tbl)))
   (for [i (length iter-tbl) 2 -1]
     (let [item (. iter-tbl i)]
-      (if (or (= `&into item)
-              (= :into  item))
+      (if (or (sym? item "&into") (= :into item))
           (do
             (assert (not found?) "expected only one &into clause")
             (set found? true)

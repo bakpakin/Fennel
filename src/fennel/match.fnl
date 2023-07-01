@@ -24,7 +24,7 @@
   (let [condition `(and (= (_G.type ,val) :table))
         bindings []]
     (each [k pat (pairs pattern)]
-      (if (= pat `&)
+      (if (sym? pat :&)
           (let [rest-pat (. pattern (+ k 1))
                 rest-val `(select ,k ((or table.unpack _G.unpack) ,val))
                 subcondition (case-table `(pick-values 1 ,rest-val)
@@ -36,19 +36,19 @@
                     "expected & rest argument before last parameter")
             (table.insert bindings rest-pat)
             (table.insert bindings [rest-val]))
-          (= k `&as)
+          (sym? k :&as)
           (do
             (table.insert bindings pat)
             (table.insert bindings val))
-          (and (= :number (type k)) (= `&as pat))
+          (and (= :number (type k)) (sym? pat :&as))
           (do
             (assert (= nil (. pattern (+ k 2)))
                     "expected &as argument before last parameter")
             (table.insert bindings (. pattern (+ k 1)))
             (table.insert bindings val))
           ;; don't process the pattern right after &/&as; already got it
-          (or (not= :number (type k)) (and (not= `&as (. pattern (- k 1)))
-                                           (not= `& (. pattern (- k 1)))))
+          (or (not= :number (type k)) (and (not (sym? (. pattern (- k 1)) :&as))
+                                           (not (sym? (. pattern (- k 1)) :&))))
           (let [subval `(. ,val ,k)
                 (subcondition subbindings) (case-pattern [subval] pat
                                                           unifications
@@ -69,10 +69,10 @@
 (fn symbols-in-pattern [pattern]
   "gives the set of symbols inside a pattern"
   (if (list? pattern)
-      (if (or (= (. pattern 1) `where)
-              (= (. pattern 1) `=))
+      (if (or (sym? (. pattern 1) :where)
+              (sym? (. pattern 1) :=))
           (symbols-in-pattern (. pattern 2))
-          (= (. pattern 2) `?)
+          (sym? (. pattern 2) :?)
           (symbols-in-pattern (. pattern 1))
           (let [result {}]
             (each [_ child-pattern (ipairs pattern)]
@@ -80,8 +80,8 @@
                 name symbol))
             result))
       (sym? pattern)
-      (if (and (not= pattern `or)
-               (not= pattern `nil))
+      (if (and (not (sym? pattern :or))
+               (not (sym? pattern :nil)))
           {(tostring pattern) pattern}
           {})
       (= (type pattern) :table)
@@ -164,10 +164,10 @@ introduce for the duration of the body if it does match."
   ;; of vals) or we're not, in which case we only care about the first one.
   (let [[val] vals]
     (if (and (sym? pattern)
-             (or (= pattern `nil)
+             (or (sym? pattern :nil)
                  (and opts.infer-unification?
                       (in-scope? pattern)
-                      (not= pattern `_))
+                      (not (sym? pattern :_)))
                  (and opts.infer-unification?
                       (multi-sym? pattern)
                       (in-scope? (. (multi-sym? pattern) 1)))))
@@ -183,33 +183,33 @@ introduce for the duration of the body if it does match."
                       `(not= ,(sym :nil) ,val)) [pattern val]))
         ;; opt-in unify with (=)
         (and (list? pattern)
-             (= (. pattern 1) `=)
+             (sym? (. pattern 1) :=)
              (sym? (. pattern 2)))
         (let [bind (. pattern 2)]
           (assert-compile (= 2 (length pattern)) "(=) should take only one argument" pattern)
           (assert-compile (not opts.infer-unification?) "(=) cannot be used inside of match" pattern)
           (assert-compile opts.in-where? "(=) must be used in (where) patterns" pattern)
-          (assert-compile (and (sym? bind) (not= bind `nil) "= has to bind to a symbol" bind))
+          (assert-compile (and (sym? bind) (not (sym? bind :nil)) "= has to bind to a symbol" bind))
           (values `(= ,val ,bind) []))
         ;; where-or clause
-        (and (list? pattern) (= (. pattern 1) `where) (list? (. pattern 2)) (= (. pattern 2 1) `or))
+        (and (list? pattern) (sym? (. pattern 1) :where) (list? (. pattern 2)) (sym? (. pattern 2 1) :or))
         (do
           (assert-compile top-level? "can't nest (where) pattern" pattern)
           (case-or vals (. pattern 2) [(unpack pattern 3)] unifications case-pattern (with opts :in-where?)))
         ;; where clause
-        (and (list? pattern) (= (. pattern 1) `where))
+        (and (list? pattern) (sym? (. pattern 1) :where))
         (do
           (assert-compile top-level? "can't nest (where) pattern" pattern)
           (case-guard vals (. pattern 2) [(unpack pattern 3)] unifications case-pattern (with opts :in-where?)))
         ;; or clause (not allowed on its own)
-        (and (list? pattern) (= (. pattern 1) `or))
+        (and (list? pattern) (sym? (. pattern 1) :or))
         (do
           (assert-compile top-level? "can't nest (or) pattern" pattern)
           ;; This assertion can be removed to make patterns more permissive
           (assert-compile false "(or) must be used in (where) patterns" pattern)
           (case-or vals pattern [] unifications case-pattern opts))
         ;; guard clause
-        (and (list? pattern) (= (. pattern 2) `?))
+        (and (list? pattern) (sym? (. pattern 2) :?))
         (do
           (assert-compile opts.legacy-guard-allowed? "legacy guard clause not supported in case" pattern)
           (case-guard vals (. pattern 1) [(unpack pattern 3)] unifications case-pattern opts))
@@ -262,11 +262,11 @@ introduce for the duration of the body if it does match."
 
 (fn count-case-multival [pattern]
   "Identify the amount of multival values that a pattern requires."
-  (if (and (list? pattern) (= (. pattern 2) `?))
+  (if (and (list? pattern) (sym? (. pattern 2) :?))
       (count-case-multival (. pattern 1))
-      (and (list? pattern) (= (. pattern 1) `where))
+      (and (list? pattern) (sym? (. pattern 1) :where))
       (count-case-multival (. pattern 2))
-      (and (list? pattern) (= (. pattern 1) `or))
+      (and (list? pattern) (sym? (. pattern 1) :or))
       (accumulate [longest 0
                    _ child-pattern (ipairs pattern)]
         (math.max longest (count-case-multival child-pattern)))
@@ -343,7 +343,7 @@ Syntax:
 (fn case-try-impl [how expr pattern body ...]
   (let [clauses [pattern body ...]
         last (. clauses (length clauses))
-        catch (if (= `catch (and (= :table (type last)) (. last 1)))
+        catch (if (sym? (and (= :table (type last)) (. last 1)) :catch)
                  (let [[_ & e] (table.remove clauses)] e) ; remove `catch sym
                  [`_# `...])]
     (assert (= 0 (math.fmod (length clauses) 2))

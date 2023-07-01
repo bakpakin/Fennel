@@ -295,9 +295,11 @@ except when certain macros need to look for binding forms, etc specifically."
   "Checks if an object is a list. Returns the object if is."
   (and (= (type x) :table) (= (getmetatable x) list-mt) x))
 
-(fn sym? [x]
-  "Checks if an object is a symbol. Returns the object if it is."
-  (and (= (type x) :table) (= (getmetatable x) symbol-mt) x))
+(fn sym? [x ?name]
+  "Checks if an object is a symbol. Returns the object if it is.
+When given a second string argument, will check that the sym's name matches it."
+  (and (= (type x) :table) (= (getmetatable x) symbol-mt)
+       (or (= nil ?name) (= (. x 1) ?name)) x))
 
 (fn sequence? [x]
   "Checks if an object is a sequence (created with a [] literal)"

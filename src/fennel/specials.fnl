@@ -342,7 +342,7 @@ the number of expected arguments."
                              "expected vararg as last parameter" ast)
             (set f-scope.vararg true)
             "...")
-          (= (utils.sym :&) arg) (destructure-amp i)
+          (utils.sym? arg :&) (destructure-amp i)
           (and (utils.sym? arg) (not= (tostring arg) :nil)
                (not (utils.multi-sym? (tostring arg))))
           (compiler.declare-local arg [] f-scope ast)
@@ -806,7 +806,7 @@ Method name doesn't have to be known at compile-time; if it is, use
                                            ast)))
     ;; recursively walk the AST, transforming $... into ...
     (fn walker [idx node ?parent-node]
-      (if (= node (utils.sym "$..."))
+      (if (utils.sym? node "$...")
           (do
             (set f-scope.vararg true)
             (if ?parent-node
@@ -815,7 +815,7 @@ Method name doesn't have to be known at compile-time; if it is, use
           (or (and (utils.list? node)
                    (or (not ?parent-node)
                        ;; don't descend into child functions
-                       (not (= :hashfn (tostring (. node 1))))))
+                       (not (utils.sym? (. node 1) :hashfn))))
               (utils.table? node))))
 
     (utils.walk-tree ast walker)

@@ -805,17 +805,20 @@ Method name doesn't have to be known at compile-time; if it is, use
       (tset args i (compiler.declare-local (utils.sym (.. "$" i)) [] f-scope
                                            ast)))
     ;; recursively walk the AST, transforming $... into ...
-
-    (fn walker [idx node parent-node]
-      (if (and (utils.sym? node) (= (tostring node) "$..."))
+    (fn walker [idx node ?parent-node]
+      (if (= node (utils.sym "$..."))
           (do
-            (tset parent-node idx (utils.varg))
-            (set f-scope.vararg true))
-          (and (= :table (type node))
-               (not= (utils.sym :hashfn) (. node 1))
-               (or (utils.list? node) (utils.table? node)))))
+            (set f-scope.vararg true)
+            (if ?parent-node
+                (tset ?parent-node idx (utils.varg))
+                (utils.varg)))
+          (or (and (utils.list? node)
+                   (or (not ?parent-node)
+                       ;; don't descend into child functions
+                       (not (= :hashfn (tostring (. node 1))))))
+              (utils.table? node))))
 
-    (utils.walk-tree (. ast 2) walker)
+    (utils.walk-tree ast walker)
     ;; compile body
     (compiler.compile1 (. ast 2) f-scope f-chunk {:tail true})
     (let [max-used (hashfn-max-used f-scope 1 0)]

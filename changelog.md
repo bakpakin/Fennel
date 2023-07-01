@@ -19,6 +19,7 @@ deprecated forms.
 * Fix a bug where metadata tables with different arglists break lambdas
 * Fix a bug with detecting cycles for tables that have custom
   `__pairs` metamethod in fennel.view
+* Fix a bug where vararg couldn't be the only thing in a hashfn
 
 ### New Features
 

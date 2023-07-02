@@ -4,7 +4,7 @@ DESTDIR ?=
 PREFIX ?= /usr/local
 BIN_DIR ?= $(PREFIX)/bin
 LUA_LIB_DIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
-MAN_DIR ?= $(PREFIX)/share/man
+MAN_DIR ?= $(PREFIX)/share
 
 MINI_SRC=src/fennel.fnl src/fennel/parser.fnl src/fennel/specials.fnl \
 		src/fennel/utils.fnl src/fennel/compiler.fnl  src/fennel/macros.fnl \
@@ -13,6 +13,10 @@ MINI_SRC=src/fennel.fnl src/fennel/parser.fnl src/fennel/specials.fnl \
 LIB_SRC=$(MINI_SRC) src/fennel/friend.fnl src/fennel/view.fnl src/fennel/repl.fnl
 
 SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
+
+MAN_PANDOC = pandoc -f gfm -t man -s --lua-filter=build/manfilter.lua \
+	     --metadata author="Fennel Maintainers" \
+	     --variable footer="fennel $(shell ./fennel -e '(. (require :fennel) :version)')"
 
 build: fennel fennel.lua
 
@@ -135,7 +139,7 @@ ci: testall lint fuzz fennel
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \
 		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock bootstrap/view.lua \
-		test/faith.lua minifennel.lua
+		test/faith.lua minifennel.lua build/manfilter.lua
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
 	rm -f $(NATIVE_LUA_LIB)
 
@@ -143,19 +147,41 @@ coverage: fennel
 	$(LUA) -lluacov test/init.lua
 	@echo "generated luacov.report.out"
 
-install: fennel fennel.lua fennel.1
+MAN_DOCS := man/man1/fennel.1 man/man3/fennel-api.3 man/man5/fennel-reference.5\
+	    man/man7/fennel-tutorial.7
+
+define maninst =
+mkdir -p $(dir $(2)) && cp $(1) $(2)
+
+endef
+
+install: fennel fennel.lua
 	mkdir -p $(DESTDIR)$(BIN_DIR) && cp fennel $(DESTDIR)$(BIN_DIR)/
 	mkdir -p $(DESTDIR)$(LUA_LIB_DIR) && cp fennel.lua $(DESTDIR)$(LUA_LIB_DIR)/
-	mkdir -p $(DESTDIR)$(MAN_DIR)/man1 && cp fennel.1 $(DESTDIR)$(MAN_DIR)/man1/
+	$(foreach doc,$(MAN_DOCS),\
+		$(call maninst,$(doc),$(DESTDIR)$(MAN_DIR)/$(doc)))
 
 uninstall:
 	rm $(DESTDIR)$(BIN_DIR)/fennel
 	rm $(DESTDIR)$(LUA_LIB_DIR)/fennel.lua
-	rm $(DESTDIR)$(MAN_DIR)/man1/fennel.1
+	rm $(addprefix $(DESTDIR)$(MAN_DIR)/,$(MAN_DOCS))
+
+build/manfilter.lua: build/manfilter.fnl fennel.lua fennel
+	./fennel --correlate --compile $< > $@
+
+man: $(dir $(MAN_DOCS)) $(MAN_DOCS)
+
+man/man%/: ; mkdir -p $@
+
+man/man3/fennel-%.3: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
+
+man/man5/fennel-%.5: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
+
+man/man7/fennel-%.7: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
 
 # Release-related tasks:
 
-fennel.tar.gz: README.md LICENSE fennel.1 fennel fennel.lua \
+fennel.tar.gz: README.md LICENSE $(MAN_DOCS) fennel fennel.lua \
 		Makefile $(SRC)
 	rm -rf fennel-$(VERSION)
 	mkdir fennel-$(VERSION)
@@ -210,5 +236,5 @@ guard-%:
 		exit 1; \
 	fi
 
-.PHONY: build test testall fuzz lint count format ci clean coverage install \
+.PHONY: build test testall fuzz lint count format ci clean coverage install man \
 	uploadtar uploadrock release rockspec xc-deps guard-VERSION test-builds

@@ -8,6 +8,9 @@
 /bootstrap/view.lua
 /test/faith.lua
 
+# items related to manpage generation
+/build/manfilter.lua
+
 /lua
 /lua-5.*
 

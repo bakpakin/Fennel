@@ -482,6 +482,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 
 (fn disambiguate? [rootstr parent]
   (or (rootstr:match "^{")
+      (rootstr:match "^%(")
       (match (get-prev-line parent)
         prev-line (prev-line:match "%)$"))))
 

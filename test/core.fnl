@@ -55,7 +55,6 @@
         (< 0 (f) 2) (. tbl :dbl)) 1))
 
 (fn test-functions []
-  (== ((fn [...] (: ... :gsub :foo :bar)) :foofoo) "barbar")
   (== ((fn [a b c] (+ a b c)) 1 (values 8 2)) 11)
   (== ((fn [x] (* x 2)) 26) 52)
   (== ((fn f [a sin cos radC cx cy x y limit dis] sin) 8 529) 529)
@@ -66,9 +65,6 @@
         (foo)
         :yeah)
       "yeah")
-  (== (do (fn x [y] (y.obj:method) 77)
-          (x {:obj {:method #$2}}))
-      77)
 
   (== ((lambda [[x &as t]] t) [10]) [10])
   (== ((lambda [x ...] (+ x 2)) 4) 6)
@@ -94,9 +90,6 @@
         (f 1) (f 2) (f 3)) [1 2 3])
   (== (let [f (partial + (math.random 10))]
         (= (f 1) (f 1) (f 1))) true)
-  (== (let [f {:+ #(+ $2 $3 $4)}]
-        (f:+ 1 2 9)) 12)
-  (== (let [f {:+ #18}] (f:+)) 18)
   (== (let [t {:x 1} f (partial + t.x)]
         [(f 1) (do (set t.x 2) (f 1))]) [2 2])
   (== (pcall (lambda [string] nil) 1) true)
@@ -107,12 +100,6 @@
           (tset (getmetatable ::) :__call nil)
           res))
        42)
-  (== (do
-        (var a 0)
-        (let [f (fn [] (set a (+ a 1)) :hi)]
-          (: (f) :find :h))
-        a)
-      1)
   (== (do
         (var a 11)
         (let [f (fn [] (set a (+ a 2)))]
@@ -336,7 +323,25 @@
   (== (let [t {:x 41} f #(set $.x 86)] (f t) t.x) 86))
 
 (fn test-method-calls []
+    ;; method calls work
   (== (: :hello :find :e) 2)
+  ;; method calls work on identifiers that aren't valid lua
+  (== (let [f {:+ #(+ $2 $3 $4)}] (f:+ 1 2 9)) 12)
+  ;; method calls work non-native with no args
+  (== (let [f {:+ #18}] (f:+)) 18)
+  ;; method calls don't double up side effects
+  (== (do (var a 0)
+          (let [f (fn [] (set a (+ a 1)) :hi)] (: (f) :find :h))
+          a) 1)
+  ;; method calls don't emit illegal semicolon
+  (== (do (fn x [y] (y.obj:method) 77) (x {:obj {:method #$2}})) 77)
+  ;; avoid ambiguous calls
+  (== (let [state0 {"sheep one" {} :sheep-1 {}}]
+        (tset (. state0 "sheep one") :x state0.sheep-1.x)
+        (tset (. state0 "sheep one") :y state0.sheep-1.y)
+        (type state0)) :table)
+  ;; method calls work with varg
+  (== ((fn [...] (: ... :gsub :foo :bar)) :foofoo) :barbar)
   (== (let [x {:foo (fn [self arg1] (.. self.bar arg1)) :bar :baz}]
         (x:foo :quux))
       "bazquux")

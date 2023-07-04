@@ -61,7 +61,7 @@
       (t.is ok "shouldn't kill the repl on a parse error"))))
 
 (fn test-macro-completion []
-  (let [(send comp) (wrap-repl)]
+  (let [(send comp) (wrap-repl {:scope (fennel.scope)})]
     (send "(local mac {:incremented 9 :unsanitary 2})")
     (send "(import-macros mac :test.macros)")
     (let [[c1 c2 c3] (doto (comp "mac.i") table.sort)]
@@ -91,23 +91,22 @@
     (t.is (not ok?))
     (t.= msg "cannot resume dead coroutine")))
 
-(var dummy-module nil)
-
-(fn dummy-loader [module-name]
-  (if (= :dummy module-name)
-      #dummy-module))
-
 (fn test-reload []
-  (set dummy-module {:dummy :first-load})
-  (table.insert (or package.searchers package.loaders) dummy-loader)
-  (let [dummy (require :dummy)
-        dummy-first-contents dummy.dummy
-        send (wrap-repl)]
-    (set dummy-module {:dummy :reloaded})
-    (send ",reload dummy")
-    (t.= :first-load dummy-first-contents)
-    (t.= :reloaded dummy.dummy)
-    (t.match "module 'lmao' not found" (. (send ",reload lmao") 1))))
+  (set package.loaded.dummy nil)
+  (let [modules {:dummy {:dummy :first-load}}]
+    (fn dummy-loader [module-name]
+      (if (= :dummy module-name)
+          #modules.dummy))
+    (table.insert (or package.searchers package.loaders) dummy-loader)
+    (let [dummy (require :dummy)
+          dummy-first-contents dummy.dummy
+          send (wrap-repl)]
+      (t.= :first-load dummy-first-contents)
+      (set modules.dummy {:dummy :reloaded})
+      (send ",reload dummy")
+      (table.remove (or package.searchers package.loaders))
+      (t.= :reloaded dummy.dummy)
+      (t.match "module 'lmao' not found" (. (send ",reload lmao") 1)))))
 
 (fn test-reload-macros []
   (let [send (wrap-repl)]
@@ -132,7 +131,12 @@
         _ (send "(local f (require :fennel))")
         result (table.concat (send ",find f.view"))
         err (table.concat (send ",find f.viewwwww"))]
-    (t.match "fennel.lua:[0-9]+$" result)
+    (t.is (or (string.match result "fennel.lua:[0-9]+$")
+              ;; running tests from script
+              (string.match result "fennel:[0-9]+$")
+              ;; running tests from compiled binary
+              (string.match result "src.launcher"))
+          (.. "Expected to find f.view in fennel but got " result))
     (t.= "error: Unknown value" err)))
 
 (fn test-compile []
@@ -156,9 +160,9 @@
                  :versions [(fennel.version:gsub "-dev" "")]}
         send (wrap-repl {:plugins [plugin1 plugin2] :allowedGlobals false})]
     (send ",log :log-me")
-    (t.= logged ["log-me"])
+    (t.= ["log-me"] logged)
     (send ",set-boo")
-    (t.= (send "boo") ["!!!"])
+    (t.= ["!!!"] (send "boo"))
     (t.match "Set boo to" (table.concat (send ",help")))))
 
 (fn test-options []
@@ -274,7 +278,7 @@
 
 (fn test-no-undocumented []
   (let [send (wrap-repl)
-        undocumented-ok? {:lua true "#" true :set-forcibly! true}
+        undocumented-ok? {:lua true "#" true :set-forcibly! true :reverse-it true}
         {: _SPECIALS} (specials.make-compiler-env)]
     (each [name (pairs _SPECIALS)]
       (when (not (. undocumented-ok? name))

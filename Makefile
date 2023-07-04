@@ -137,6 +137,7 @@ clean:
 		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock bootstrap/view.lua \
 		test/faith.lua minifennel.lua
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
+	rm -f $(NATIVE_LUA_LIB)
 
 coverage: fennel
 	$(LUA) -lluacov test/init.lua
@@ -178,6 +179,10 @@ rockspecs/fennel-$(VERSION)-1.rockspec: rockspecs/template.fnl
 
 rockspec: rockspecs/fennel-$(VERSION)-1.rockspec
 
+test-builds: fennel fennel-x86_64 test/faith.lua
+	./fennel --metadata --eval "(global arg []) (require :test.init)"
+	./fennel-x86_64 --metadata --eval "(global arg []) (require :test.init)"
+
 uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
@@ -197,7 +202,7 @@ uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).tar.gz
 	rsync -rtAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
-release: guard-VERSION uploadtar uploadrock
+release: test-builds guard-VERSION uploadtar uploadrock
 
 guard-%:
 	@ if [ "${${*}}" = "" ]; then \
@@ -206,4 +211,4 @@ guard-%:
 	fi
 
 .PHONY: build test testall fuzz lint count format ci clean coverage install \
-	uploadtar uploadrock release rockspec xc-deps guard-VERSION
+	uploadtar uploadrock release rockspec xc-deps guard-VERSION test-builds

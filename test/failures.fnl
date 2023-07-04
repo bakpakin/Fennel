@@ -180,6 +180,7 @@
     "(match [1] (where (or [_ a] [a b])) b)" "unknown identifier"}))
 
 (fn test-macro []
+  (tset fennel.macro-loaded :test.macros nil)
   (let [code "(import-macros {: fail-one} :test.macros) (fail-one 1)"
         (ok? msg) (pcall fennel.compile-string code {:correlate true})]
     (t.is (not ok?))

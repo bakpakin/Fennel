@@ -2,6 +2,9 @@
 (local fennel (require :fennel))
 (local view (require :fennel.view))
 
+(fn setup []
+  (set _G.tbl []))
+
 (fn test-traceback []
   (let [tracer (fennel.dofile "test/mod/tracer.fnl")
         traceback (tracer)]
@@ -23,6 +26,7 @@
                 "Expected global mangling to work."))
 
 (fn test-include []
+  (tset package.preload :test.mod.quux nil)
   (let [stderr io.stderr
         ;; disable warnings because these are supposed to fall back
         _ (set io.stderr nil)
@@ -49,22 +53,22 @@
     (t.is ok5 (: "Expected foo5 to run but it failed with error %s" :format (tostring out5)))
     (t.is ok6 (: "Expected foo6 to run but it failed with error %s" :format (tostring out6)))
     (t.is ok6-2 (: "Expected foo6 to run but it failed with error %s" :format (tostring out6-2)))
-    (t.= (and (= :table (type out)) out.result) expected
-                    (.. "Expected include to have result: " expected))
-    (t.= out.quux [:FOO 1]
-                    "Expected include not to leak upvalues into included modules")
+    (t.= expected (and (= :table (type out)) out.result)
+         (.. "Expected include to have result: " expected))
+    (t.= [:FOO 1] out.quux
+         "Expected include to expose upvalues into included modules")
     (t.= (view out) (view out2)
-                    "Expected requireAsInclude to behave the same as include")
+         "Expected requireAsInclude to behave the same as include")
     (t.= (view out) (view out3)
-                    "Expected requireAsInclude to behave the same as include when given an expression")
+         "Expected requireAsInclude to behave the same as include when given an expression")
     (t.= (view out) (view out4)
-                    "Expected include to work when given an expression")
+         "Expected include to work when given an expression")
     (t.= (view out) (view out5)
-                    "Expected relative requireAsInclude to work when given a ...")
+         "Expected relative requireAsInclude to work when given a ...")
     (t.= (view out) (view out6)
-                    "Expected relative requireAsInclude to work with nested modules")
+         "Expected relative requireAsInclude to work with nested modules")
     (t.= (view out) (view out6-2)
-                    "Expected relative requireAsInclude to work with nested modules")
+         "Expected relative requireAsInclude to work with nested modules")
     (t.= nil _G.quux "Expected include to actually be local")
     (let [spliceOk (pcall fennel.dofile "test/mod/splice.fnl")]
       (t.is spliceOk "Expected splice to run")
@@ -142,7 +146,9 @@
         tbl (fennel.eval code)]
     (t.= (. tbl 8) 8)))
 
-{: test-empty-values
+{: setup
+
+ : test-empty-values
  : test-env-iteration
  : test-global-mangling
  : test-include

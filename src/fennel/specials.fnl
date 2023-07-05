@@ -528,79 +528,87 @@ nested values, but all parents must contain an existing table.")
 ;; TODO: refactor; too long!
 (fn if* [ast scope parent opts]
   (compiler.assert (< 2 (length ast)) "expected condition and body" ast)
-  (let [do-scope (compiler.make-scope scope)
-        branches []
-        (wrapper inner-tail inner-target target-exprs) (calculate-target scope
-                                                                         opts)
-        body-opts {:nval opts.nval :tail inner-tail :target inner-target}]
-    (fn compile-body [i]
-      (let [chunk []
-            cscope (compiler.make-scope do-scope)]
-        (compiler.keep-side-effects (compiler.compile1 (. ast i) cscope chunk
-                                                       body-opts)
-                                    chunk nil (. ast i))
-        {: chunk :scope cscope}))
 
-    ;; Implicit else becomes nil
-    (when (= 1 (% (length ast) 2))
-      (table.insert ast (utils.sym :nil)))
+  ;; Remove redundant "true" conditions
+  (when (and (= 1 (% (length ast) 2))
+             (= (. ast (- (length ast) 1)) true))
+    (table.remove ast (- (length ast) 1)))
 
-    (for [i 2 (- (length ast) 1) 2]
-      (let [condchunk []
-            res (compiler.compile1 (. ast i) do-scope condchunk {:nval 1})
-            cond (. res 1)
-            branch (compile-body (+ i 1))]
-        (set branch.cond cond)
-        (set branch.condchunk condchunk)
-        (set branch.nested (and (not= i 2) (= (next condchunk nil) nil)))
-        (table.insert branches branch)))
-    ;; Emit code
-    (let [else-branch (compile-body (length ast))
-          s (compiler.gensym scope)
-          buffer []]
-      (var last-buffer buffer)
-      (for [i 1 (length branches)]
-        (let [branch (. branches i)
-              fstr (if (not branch.nested) "if %s then" "elseif %s then")
-              cond (tostring branch.cond)
-              cond-line (: fstr :format cond)]
-          (if branch.nested
-              (compiler.emit last-buffer branch.condchunk ast)
-              (each [_ v (ipairs branch.condchunk)]
-                (compiler.emit last-buffer v ast)))
-          (compiler.emit last-buffer cond-line ast)
-          (compiler.emit last-buffer branch.chunk ast)
-          (if (= i (length branches))
-              (do
-                (compiler.emit last-buffer :else ast)
-                (compiler.emit last-buffer else-branch.chunk ast)
-                (compiler.emit last-buffer :end ast))
-              (not (. (. branches (+ i 1)) :nested))
-              (let [next-buffer []]
-                (compiler.emit last-buffer :else ast)
-                (compiler.emit last-buffer next-buffer ast)
-                (compiler.emit last-buffer :end ast)
-                (set last-buffer next-buffer)))))
-      ;; Emit if
-      (if (= wrapper :iife)
-          (let [iifeargs (or (and scope.vararg "...") "")]
-            (compiler.emit parent
-                           (: "local function %s(%s)" :format (tostring s)
-                              iifeargs) ast)
-            (compiler.emit parent buffer ast)
-            (compiler.emit parent :end ast)
-            (utils.expr (: "%s(%s)" :format (tostring s) iifeargs) :statement))
-          (= wrapper :none) ; Splice result right into code
-          (do
-            (for [i 1 (length buffer)]
-              (compiler.emit parent (. buffer i) ast))
-            {:returned true})
-          ;; wrapper is target
-          (do
-            (compiler.emit parent (: "local %s" :format inner-target) ast)
-            (for [i 1 (length buffer)]
-              (compiler.emit parent (. buffer i) ast))
-            target-exprs)))))
+  ;; Implicit else becomes nil
+  (when (= 1 (% (length ast) 2))
+    (table.insert ast (utils.sym :nil)))
+
+  (if (= (length ast) 2)
+    ;; defer to "do" if all the branches have been deleted
+    (SPECIALS.do (utils.list (utils.sym :do) (. ast 2)) scope parent opts)
+    (let [do-scope (compiler.make-scope scope)
+          branches []
+          (wrapper inner-tail inner-target target-exprs) (calculate-target scope
+                                                                           opts)
+          body-opts {:nval opts.nval :tail inner-tail :target inner-target}]
+      (fn compile-body [i]
+        (let [chunk []
+              cscope (compiler.make-scope do-scope)]
+          (compiler.keep-side-effects (compiler.compile1 (. ast i) cscope chunk
+                                                         body-opts)
+                                      chunk nil (. ast i))
+          {: chunk :scope cscope}))
+      (for [i 2 (- (length ast) 1) 2]
+        (let [condchunk []
+              res (compiler.compile1 (. ast i) do-scope condchunk {:nval 1})
+              cond (. res 1)
+              branch (compile-body (+ i 1))]
+          (set branch.cond cond)
+          (set branch.condchunk condchunk)
+          (set branch.nested (and (not= i 2) (= (next condchunk nil) nil)))
+          (table.insert branches branch)))
+      ;; Emit code
+      (let [else-branch (compile-body (length ast))
+            s (compiler.gensym scope)
+            buffer []]
+        (var last-buffer buffer)
+        (for [i 1 (length branches)]
+          (let [branch (. branches i)
+                fstr (if (not branch.nested) "if %s then" "elseif %s then")
+                cond (tostring branch.cond)
+                cond-line (: fstr :format cond)]
+            (if branch.nested
+                (compiler.emit last-buffer branch.condchunk ast)
+                (each [_ v (ipairs branch.condchunk)]
+                  (compiler.emit last-buffer v ast)))
+            (compiler.emit last-buffer cond-line ast)
+            (compiler.emit last-buffer branch.chunk ast)
+            (if (= i (length branches))
+                (do
+                  (compiler.emit last-buffer :else ast)
+                  (compiler.emit last-buffer else-branch.chunk ast)
+                  (compiler.emit last-buffer :end ast))
+                (not (. (. branches (+ i 1)) :nested))
+                (let [next-buffer []]
+                  (compiler.emit last-buffer :else ast)
+                  (compiler.emit last-buffer next-buffer ast)
+                  (compiler.emit last-buffer :end ast)
+                  (set last-buffer next-buffer)))))
+        ;; Emit if
+        (if (= wrapper :iife)
+            (let [iifeargs (or (and scope.vararg "...") "")]
+              (compiler.emit parent
+                             (: "local function %s(%s)" :format (tostring s)
+                                iifeargs) ast)
+              (compiler.emit parent buffer ast)
+              (compiler.emit parent :end ast)
+              (utils.expr (: "%s(%s)" :format (tostring s) iifeargs) :statement))
+            (= wrapper :none) ; Splice result right into code
+            (do
+              (for [i 1 (length buffer)]
+                (compiler.emit parent (. buffer i) ast))
+              {:returned true})
+            ;; wrapper is target
+            (do
+              (compiler.emit parent (: "local %s" :format inner-target) ast)
+              (for [i 1 (length buffer)]
+                (compiler.emit parent (. buffer i) ast))
+              target-exprs))))))
 
 (tset SPECIALS :if if*)
 

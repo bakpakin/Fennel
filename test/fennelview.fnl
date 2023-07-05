@@ -89,12 +89,12 @@
       (t.is (_G.utf8.len x) (.. "invalid utf-8: " x "\"")))
     ;; make sure valid utf-8 doesn't get escaped
     (for [i 1 100]
-      (var x [])
-      (for [j 1 100]
-        (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
-                                       (math.random 0x80 0xd7ff)
-                                       (math.random 0xe000 0x10ffff)))))
-      (t.not-match "\\" (view (table.concat x))))
+      (let [x []]
+        (for [j 1 100]
+          (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
+                                            (math.random 0x80 0xd7ff)
+                                            (math.random 0xe000 0x10ffff)))))
+        (t.not-match "\\" (view (table.concat x)))))
     ;; validate utf-8 length
     ;; this one is a little weird. since the only place utf-8 length is
     ;; exposed is within the indentation code, we have to generate some

@@ -9,6 +9,7 @@ deprecated forms.
 ## 1.3.1 / ???
 
 ### Bug Fixes
+* Fix a bug where `not` in compiler output would bind with incorrect precedence
 * Fix a bug where the comment special would fail on forms containing "]]"
 * Fix a bug where tables like `{:true 1 true 2}` emit with unstable key order
 * Fix a bug where table literals mutated by a macro emit with unstable key

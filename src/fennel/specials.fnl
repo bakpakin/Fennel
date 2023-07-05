@@ -1024,7 +1024,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
   (fn opfn [ast scope parent]
     (compiler.assert (= (length ast) 2) "expected one argument" ast)
     (let [tail (compiler.compile1 (. ast 2) scope parent {:nval 1})]
-      (.. (or ?realop op) (tostring (. tail 1)))))
+      (.. (or ?realop op) "(" (tostring (. tail 1)) ")")))
 
   (tset SPECIALS op opfn))
 

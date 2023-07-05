@@ -1,8 +1,7 @@
 (local {:text pdtext :path pdpath :utils pdutils &as pd} (require :pandoc))
 
-(local debug? (or (os.getenv :MAN_PANDOC_DEBUG) true))
 (fn d [msg]
-  (when debug? (io.stderr:write (: "%s\n" :format msg)))
+  (io.stderr:write (: "%s\n" :format msg))
   nil)
 
 (local (basename ext) (-?> PANDOC_STATE.output_file
@@ -75,4 +74,3 @@ NAME's contents are set to '<meta.title> - <original H1 contents>"
  {:Header h1-upper}
  {: Table}
  {: Meta}]
-

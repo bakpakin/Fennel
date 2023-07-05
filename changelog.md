@@ -8,6 +8,23 @@ deprecated forms.
 
 ## 1.3.1 / ???
 
+### New Features
+
+* `fennel.runtime-version` will return version information as a table
+  if given optional argument
+* Expose REPL's methods in the `___repl___` table, allowing method
+  redefinition at runtime.
+* Allow following docstring with a metadata table syntax.
+* Return whole metadata table when `metadata.get` is called without a key.
+* Add `:byte-escape` option to `fennel.view` for overriding default char escapes
+* Generate man pages for `fennel-api(3)`, `fennel-reference(5)`, and
+  `fennel-tutorial(7)` from their respective documentation.
+
+**Note for packagers:** The man page `fennel.1` has been moved to
+`man/man1/fennel.1` along with the new generated man pages. For build scripts
+that copy files manually in lieu of `make install`, this may require an update.
+
+
 ### Bug Fixes
 * Fix a bug where `not` in compiler output would bind with incorrect precedence
 * Fix a bug where the comment special would fail on forms containing "]]"
@@ -22,23 +39,6 @@ deprecated forms.
   `__pairs` metamethod in fennel.view
 * Fix a bug where vararg couldn't be the only thing in a hashfn
 
-### New Features
-
-* `fennel.runtime-version` will return version information as a table
-  if given optional argument
-* Expose REPL's methods in the `___repl___` table, allowing method
-  redefinition at runtime.
-* Allow following docstring with a metadata table syntax.
-* Return whole metadata table when `metadata.get` is called without a key.
-* Add `:byte-escape` option to `fennel.view` for overriding default char escapes
-* Generate man pages for `fennel-api(3)`, `fennel-reference(5)`, and
-  `fennel-tutorial(7)` from their respective documentation.
-
-### Note for packagers
-
-The man page `fennel.1` has been moved to `man/man1/fennel.1` to go with the
-newly generated man pages. If copying `fennel.1` manually in the package recipe
-instead of `make install`, the source will need to be updated accordingly.
 
 ## 1.3.0 / 2023-02-13
 

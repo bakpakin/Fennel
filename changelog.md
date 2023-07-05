@@ -31,6 +31,14 @@ deprecated forms.
 * Allow following docstring with a metadata table syntax.
 * Return whole metadata table when `metadata.get` is called without a key.
 * Add `:byte-escape` option to `fennel.view` for overriding default char escapes
+* Generate man pages for `fennel-api(3)`, `fennel-reference(5)`, and
+  `fennel-tutorial(7)` from their respective documentation.
+
+### Note for packagers
+
+The man page `fennel.1` has been moved to `man/man1/fennel.1` to go with the
+newly generated man pages. If copying `fennel.1` manually in the package recipe
+instead of `make install`, the source will need to be updated accordingly.
 
 ## 1.3.0 / 2023-02-13
 

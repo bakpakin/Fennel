@@ -139,6 +139,11 @@
     (t.is (not (fennel.eval method-code)))
     (t.is (not (fennel.eval comparator-code)))))
 
+(fn test-precedence []
+  (let [bomb (setmetatable {} {:__add #(= $2 false)})]
+    (t.is (fennel.eval "(+ x (<= 1 5 3))" {:env {:x bomb : _G}})
+          "n-ary comparators should ignore operators precedence")))
+
 (fn test-table []
   (let [code "{:transparent 0 :sky 0 :sun 1 :stem 2 :cloud 3 :star 3 :moon 3
  :cloud-2 4 :gray 4 :rain 5 :butterfly-body 6 :bee-body-1 6 :white 3
@@ -156,4 +161,5 @@
  : test-table
  : test-runtime-quote
  : test-traceback
- : test-short-circuit}
+ : test-short-circuit
+ : test-precedence}

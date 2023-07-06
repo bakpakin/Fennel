@@ -26,7 +26,7 @@ that copy files manually in lieu of `make install`, this may require an update.
 
 
 ### Bug Fixes
-* Fix a bug where `not` in compiler output would bind with incorrect precedence
+* Fix a bug where operator compiler output had incorrect precedence with 3+ args
 * Fix a bug where the comment special would fail on forms containing "]]"
 * Fix a bug where tables like `{:true 1 true 2}` emit with unstable key order
 * Fix a bug where table literals mutated by a macro emit with unstable key

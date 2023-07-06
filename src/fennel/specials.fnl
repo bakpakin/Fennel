@@ -973,8 +973,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
                       (string.format "(%s %s %s)"
                                      (. vals i) op (. vals (+ i 1))))
         chain (string.format " %s " (or chain-op :and))]
-    (table.concat comparisons
-                  chain)))
+    (.. "(" (table.concat comparisons chain) ")")))
 
 (fn double-eval-protected-comparator [op chain-op ast scope parent]
   "Compile a multi-arity comparison to a binary Lua comparison."

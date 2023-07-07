@@ -77,6 +77,7 @@
 
         "unexpected arguments" ["removing an argument"
                                 "checking for typos"]
+        "expected range to include start and stop" ["adding missing arguments"]
         "unexpected iterator clause" ["removing an argument"
                                       "checking for typos"]
         "tried to use vararg with operator" ["accumulating over the operands"]

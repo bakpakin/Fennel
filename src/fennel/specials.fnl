@@ -393,8 +393,10 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
                   (table.insert indices (.. "." index))
                   (let [[index] (compiler.compile1 index scope parent {:nval 1})]
                     (table.insert indices (.. "[" (tostring index) "]"))))))
-          ;; Extra parens are needed unless the target is a table literal
-          (if (or (: (tostring lhs) :find "[{\"0-9]") (= :nil (tostring lhs)))
+          ;; Extra parens are needed if the target is a literal
+          (if (or (not (or (utils.sym? (. ast 2))
+                           (utils.list? (. ast 2))))
+                  (= :nil (tostring lhs)))
               (.. "(" (tostring lhs) ")" (table.concat indices))
               (.. (tostring lhs) (table.concat indices)))))))
 

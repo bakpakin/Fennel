@@ -172,8 +172,8 @@
 
 (macro embed-src [filename]
   `(eval-compiler
-     (let [FENNEL_SRC# (and os os.getenv (= :table (type os)) os.getenv
-                           (os.getenv :FENNEL_SRC))
+     (let [FENNEL_SRC# (and (= :table (type os)) os.getenv
+                            (os.getenv :FENNEL_SRC))
            root# (if FENNEL_SRC# (.. FENNEL_SRC# :/) "")]
        (with-open [f# (assert (io.open (.. root# ,filename)))]
          (.. "[===[" (f#:read :*all) "]===]")))))

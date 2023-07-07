@@ -701,7 +701,9 @@ order, but can be used with any iterator." true)
                      (: "unable to bind %s %s" :format (type binding-sym)
                         (tostring binding-sym)) (. ast 2))
     (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
-    (compiler.assert (<= (length ranges) 3) "unexpected arguments" (. ranges 4))
+    (compiler.assert (<= (length ranges) 3) "unexpected arguments" ranges)
+    (compiler.assert (< 1 (length ranges))
+                     "expected range to include start and stop" ranges)
     (for [i 1 (math.min (length ranges) 3)]
       (tset range-args i (tostring (. (compiler.compile1 (. ranges i) scope
                                                          parent {:nval 1}) 1))))

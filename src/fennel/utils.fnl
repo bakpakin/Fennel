@@ -5,7 +5,7 @@
 
 (local view (require :fennel.view))
 
-(local version :1.3.1-dev)
+(local version :1.3.1)
 
 ;;; Lua VM detection helper functions
 

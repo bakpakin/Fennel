@@ -295,12 +295,14 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.compile :fnl/docstring
                        "compiles the expression into lua and prints the result.")
 
+;; note that this is sub-optimal for nested repls; the loaded commands should
+;; be kept in a session-specific location rather than top-level commands table.
 (fn load-plugin-commands [plugins]
-  (each [_ plugin (ipairs (or plugins []))]
-    (each [name f (pairs plugin)]
-      ;; first function to provide a command should win
+  ;; first function to provide a command should win
+  (for [i (length (or plugins [])) 1 -1]
+    (each [name f (pairs (. plugins i))]
       (match (name:match "^repl%-command%-(.*)")
-        cmd-name (tset commands cmd-name (or (. commands cmd-name) f))))))
+        cmd-name (tset commands cmd-name f)))))
 
 (fn run-command-loop [input read loop env on-values on-error scope chars]
   (let [command-name (input:match ",([^%s/]+)")]

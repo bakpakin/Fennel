@@ -212,6 +212,8 @@
 (fn test-if []
   (== (if (values 1 2) 3 4) 3)
   (== (if (values 1) 3 4) 3)
+  (== (if _G.nothing :no true :yes) :yes)
+  (== (if true :haha-yesss) :haha-yesss)
   (== (let [x (if false 3 (values 2 5))] x) 2)
   (== (do (fn myfn [x y z] (+ x y z))
           (myfn 1 (if 1 (values 2 5) 3) 4))

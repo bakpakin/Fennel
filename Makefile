@@ -206,8 +206,8 @@ rockspecs/fennel-$(VERSION)-1.rockspec: rockspecs/template.fnl
 rockspec: rockspecs/fennel-$(VERSION)-1.rockspec
 
 test-builds: fennel fennel-x86_64 test/faith.lua
-	./fennel --metadata --eval "(global arg []) (require :test.init)"
-	./fennel-x86_64 --metadata --eval "(global arg []) (require :test.init)"
+	./fennel --metadata --eval "(require :test.init)"
+	./fennel-x86_64 --metadata --eval "(require :test.init)"
 
 uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	mkdir -p downloads/

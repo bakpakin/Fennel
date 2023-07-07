@@ -10,7 +10,7 @@ This document is intended for Fennel maintainers.
 4. Check for changes which need to be mentioned in help text or man page.
 5. Update the download links in `setup.md`.
 6. Run `make rockspec VERSION=$VERSION`
-7. Run `git commit -m "Release $VERSION" && git tag -s $VERSION -m $VERSION`
+7. Run `git add . && git commit -m "Release $VERSION" && git tag -s $VERSION -m $VERSION`
 
 ## Uploading
 

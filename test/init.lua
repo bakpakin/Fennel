@@ -10,6 +10,6 @@ local modules = {"test.core", "test.mangling", "test.quoting", "test.bit",
                  "test.cli", "test.macro", "test.linter", "test.loops",
                  "test.misc", "test.searcher", "test.api"}
 
-if(#arg ~= 0) then modules = arg end
+if(#arg ~= 0 and arg[1] ~= "--eval") then modules = arg end
 
 t.run(modules,{exit=dofile("test/irc.lua")})

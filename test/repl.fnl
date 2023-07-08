@@ -2,14 +2,15 @@
 (local fennel (require :fennel))
 (local specials (require :fennel.specials))
 
-;; TODO: stop using code in strings here
+;; allow inputs to be structured as a form but converted to a string
+(macro v [form] (view form))
 
 (fn wrap-repl [options]
   (var repl-complete nil)
   (fn send []
     (var output [])
-    (let [opts (collect [k v (pairs (or options {})) :into {:useMetadata true}]
-                 (values k v))]
+    (let [opts (collect [k x (pairs (or options {})) :into {:useMetadata true}]
+                 (values k x))]
       (fn opts.readChunk []
         (let [chunk (coroutine.yield output)]
           (set output [])
@@ -27,43 +28,51 @@
     (repl-send)
     (values repl-send repl-complete)))
 
-(fn assert-equal-unordered [a b msg]
-  (t.= (table.sort a) (table.sort b) msg))
+(fn assert-equal-unordered [a b ...]
+  (t.= (table.sort a) (table.sort b) (table.concat [...] " ")))
 
 (fn test-sym-completion []
-  (let [(send comp) (wrap-repl {:env (collect [k v (pairs _G)] (values k v))})]
+  (let [(send comp) (wrap-repl {:env (collect [k x (pairs _G)] (values k x))})]
     ;; if not deduped, causes a duplication error completing foo
-    (send "(global foo :DUPE)")
-    (send "(local [foo foo-ba* moe-larry] [1 2 {:*curly* \"Why soitenly\"}])")
-    (send "(local [!x-y !x_y] [1 2])")
+    (send (v (global foo :DUPE)))
+    (send (v (local [foo foo-ba* moe-larry] [1 2 {:*curly* "Why soitenly"}])))
+    (send (v (local [!x-y !x_y] [1 2])))
     (assert-equal-unordered (comp "foo") ["foo" "foo-ba*"]
                             "local completion works & accounts for mangling")
     (assert-equal-unordered (comp "moe-larry") ["moe-larry.*curly*"]
-                            (.. "completion traverses tables without mangling"
-                                " keys when input is \"tbl-var.\""))
-    (assert-equal-unordered (send "(values !x-y !x_y)") [[1 2]]
+                            "completion traverses tables without mangling"
+                            "keys when input is \"tbl-var.\"")
+    (assert-equal-unordered (send (v (values !x-y !x_y))) [[1 2]]
                             "mangled locals do not collide")
     (assert-equal-unordered (comp "!x") ["!x_y" "!x-y"]
                             "completions on mangled locals do not collide")
-    (send "(local dynamic-index (setmetatable {:a 1 :b 2} {:__index #($2:upper)}))")
-    (assert-equal-unordered (comp "dynamic-index.") [:dynamic-index.a :dynamic-index.b]
-                            "completion doesn't error on table with a fn on mt.__index")
-    (send "(global global-is-nil nil) (tset _G :global-is-not-nil-unscoped :NOT-NIL)")
-    (assert-equal-unordered (comp :global-is-n) [:global-is-nil :global-not-nil-unscoped]
-                            "completion includes repl-scoped nil globals & unscoped non-nil globals")
-    (send "(local val-is-nil nil) (lua \"local val-is-nil-unscoped = nil\")")
+    (send (v (local dynamic-index
+                    (setmetatable {:a 1 :b 2} {:__index #($2:upper)}))))
+    (assert-equal-unordered (comp "dynamic-index.")
+                            [:dynamic-index.a :dynamic-index.b]
+                            "completion doesn't error on table with a fn"
+                            "on mt.__index")
+    (send (v (global global-is-nil nil)))
+    (send (v (tset _G :global-is-not-nil-unscoped :NOT-NIL)))
+    (assert-equal-unordered (comp :global-is-n) [:global-is-nil
+                                                 :global-not-nil-unscoped]
+                            "completion includes repl-scoped nil globals"
+                            "and unscoped non-nil globals")
+    (send (v (local val-is-nil nil)))
+    (send (v (lua "local val-is-nil-unscoped = nil")))
     (t.= (comp :val-is-ni) [:val-is-nil]
-                    "completion includes repl-scoped locals with nil values")
-    (send "(global shadowed-is-nil nil) (local shadowed-nil nil)")
+         "completion includes repl-scoped locals with nil values")
+    (send (v (global shadowed-is-nil nil)))
+    (send (v (local shadowed-nil nil)))
     (t.= (comp :shadowed-is-n) [:shadowed-is-nil]
-                    "completion includes repl-scoped shadowed variables only once")
-    (let [(ok msg) (pcall send ",complete ]")]
-      (t.is ok "shouldn't kill the repl on a parse error"))))
+         "completion includes repl-scoped shadowed variables only once")
+    (t.is (pcall send ",complete ]")
+          "shouldn't kill the repl on a parse error")))
 
 (fn test-macro-completion []
   (let [(send comp) (wrap-repl {:scope (fennel.scope)})]
-    (send "(local mac {:incremented 9 :unsanitary 2})")
-    (send "(import-macros mac :test.macros)")
+    (send (v (local mac {:incremented 9 :unsanitary 2})))
+    (send (v (import-macros mac :test.macros)))
     (let [[c1 c2 c3] (doto (comp "mac.i") table.sort)]
       ;; local should be shadowed!
       (t.not= c1 "mac.incremented")
@@ -72,7 +81,7 @@
 
 (fn test-method-completion []
   (let [(send comp) (wrap-repl)]
-    (send "(local ttt {:abc 12 :fff (fn [] :val) :inner {:foo #:f :fa #:f}})")
+    (send (v (local ttt {:abc 12 :fff (fn [] :val) :inner {:foo #:f :fa #:f}})))
     (t.= (comp "ttt:f") ["ttt:fff"] "method completion works on fns")
     (assert-equal-unordered (comp "ttt.inner.f") ["ttt:foo" "ttt:fa"]
                             "method completion nests")
@@ -119,7 +128,7 @@
 
 (fn test-reset []
   (let [send (wrap-repl)
-        _ (send "(local abc 123)")
+        _ (send (v (local abc 123)))
         abc (table.concat (send "abc"))
         _ (send ",reset")
         abc2 (table.concat (send "abc"))]
@@ -128,7 +137,7 @@
 
 (fn test-find []
   (let [send (wrap-repl)
-        _ (send "(local f (require :fennel))")
+        _ (send (v (local f (require :fennel))))
         result (table.concat (send ",find f.view"))
         err (table.concat (send ",find f.viewwwww"))]
     (t.is (or (string.match result "fennel.lua:[0-9]+$")
@@ -168,7 +177,7 @@
 (fn test-options []
   ;; ensure options.useBitLib propagates to repl
   (let [send (wrap-repl {:useBitLib true :onError (fn [e] (values :ERROR e))})
-        bxor-result (send "(bxor 0 0)")]
+        bxor-result (send (v (bxor 0 0)))]
     (if _G.jit
       (t.= bxor-result [:0])
       (t.match "error:.*attempt to index.*global 'bit'" (. bxor-result 1)
@@ -195,8 +204,9 @@
 
 (fn test-byteoffset []
   (let [send (wrap-repl)
-        _ (send "(macro b [x] (view (doto (getmetatable x) (tset :__fennelview nil))))")
-        _ (send "(macro f [x] (assert-compile false :lol-no x))")
+        _ (send (v (macro b [x]
+                     (view (doto (getmetatable x) (tset :__fennelview nil))))))
+        _ (send (v (macro f [x] (assert-compile false :lol-no x))))
         out (table.concat (send "(b [1])"))
         out2 (table.concat (send "(b [1])"))
         out3 (table.concat (send "   (f [123])"))]
@@ -207,9 +217,9 @@
 
 (fn test-code []
   (let [(send comp) (wrap-repl)]
-    (send "(local {: foo} (require :test.mod.foo7))")
+    (send (v (local {: foo} (require :test.mod.foo7))))
     ;; repro case for https://todo.sr.ht/~technomancy/fennel/85
-    (t.= (send "(foo)") [:foo])
+    (t.= (send (v (foo))) [:foo])
     (t.= (comp "fo") [:for :foo])))
 
 (fn test-error-handling []
@@ -227,19 +237,20 @@
 
 (fn test-locals-saving []
   (let [(send comp) (wrap-repl)]
-    (send "(local x-y 5)")
-    (send "(let [x-y 55] nil)")
-    (send "(fn abc [] nil)")
-    (t.= (send "x-y") [:5])
-    (t.= (send "(type abc)") ["function"]))
+    (send (v (local x-y 5)))
+    (send (v (let [x-y 55] nil)))
+    (send (v (fn abc [] nil)))
+    (t.= (send (v x-y)) [:5])
+    (t.= (send (v (type abc))) ["function"]))
   (let [(send comp) (wrap-repl {:correlate true})]
-    (send "(local x 1)")
+    (send (v (local x 1)))
     (t.= (send "x") [:1]))
   ;; now let's try with an env
   (let [(send comp) (wrap-repl {:env {: debug}})]
-    (send "(local xyz 55)")
+    (send (v (local xyz 55)))
     (t.= (send "xyz") [:55])))
 
+;; TODO: this is a bit of a mess innit
 (local doc-cases
        [[",doc doto" "(doto val ...)\n  Evaluate val and splice it into the first argument of subsequent forms." "docstrings for built-in macros" ]
         [",doc table.concat"  "(table.concat #<unknown-arguments>)\n  #<undocumented>" "docstrings for built-in Lua functions" ]
@@ -288,56 +299,64 @@
                        (.. "Missing docstring for " name)))))))
 
 (fn test-custom-metadata []
-  (let [send (wrap-repl)
-        _ (send "(local {: view : metadata} (require :fennel))")
-        cases [["(fn foo [] {:foo :some-data} nil)
-                 (view (metadata:get foo :foo))"
-                "\"some-data\""
-                "expected ordinary string metadata to work"]
-               ["(fn bar [] {:bar [:seq]} nil)
-                 (view (metadata:get bar :bar))"
-                "[\"seq\"]"
-                "expected sequential table metadata to work"]
-               ["(fn baz [] {:baz {:table :table}} nil)
-                 (view (metadata:get baz :baz))"
-                "{:table \"table\"}"
-                "expected associative table metadata to work"]
-               ["(fn qux [] {:qux {:compound [:seq {:table :table}]}} nil)
-                 (view (metadata:get qux :qux))"
-                "{:compound [\"seq\" {:table \"table\"}]}"
-                "expected compound metadata to work"]
-               ["(fn quux [] \"docs\" {:foo :some-data} nil)
-                 (view [(metadata:get quux :foo) (metadata:get quux :fnl/docstring)])"
-                "[\"some-data\" \"docs\"]"
-                "expected combined docstring and ordinary string metadata to work"]
-               ["(λ a-lambda [x ...] {:fnl/arglist [x y z]} nil)
-                 (view (metadata:get a-lambda :fnl/arglist))"
-                "[\"x\" \"y\" \"z\"]"
-                "expected lambda metadata literal to work"]
-               ["(λ b-lambda [] \"docs\" {:fnl/arglist [x y z]} nil)
-                 (view [(metadata:get b-lambda :fnl/arglist) (metadata:get b-lambda :fnl/docstring)])"
-                "[[\"x\" \"y\" \"z\"] \"docs\"]"
-                "expected combined docstring and ordinary string metadata to work"]
-               ["(fn whole [x] nil)
-                 (view (metadata:get whole))"
-                "{:fnl/arglist [\"x\"]}"
-                "expected whole metadata table when no key is asked"]]
-        err-cases [["(fn foo [] {:foo (fn [] nil)} nil)"
-                    "expected literal value in metadata table, got: \"foo\" (fn [] nil)"
-                    "lists are not allowed as metadata fields"]
-                   ["(fn foo [] {:foo [(fn [] nil)]} nil)"
-                    "expected literal value in metadata table, got: \"foo\" [(fn [] nil)]"
-                    "nested lists are not allowed as metadata fields"]
-                   ["(fn foo [] {:foo {:foo [(fn [] nil)]}} nil)"
-                    "expected literal value in metadata table, got: \"foo\" {:foo [(fn [] nil)]}"
-                    "nested lists as values are not allowed as metadata fields"]
-                   ["(fn foo [] {:foo {[(fn [] nil)] :foo}} nil)"
-                    "expected literal value in metadata table, got: \"foo\" {[(fn [] nil)] \"foo\"}"
-                    "nested lists as keys are not allowed as metadata fields"]]]
-    (each [_ [code expected msg] (ipairs cases)]
-      (t.= (table.concat (send code)) expected msg))
-    (each [_ [code err-msg msg] (ipairs err-cases)]
-      (t.is (string.find (table.concat (send code)) err-msg 1 true) msg))))
+  (let [send (wrap-repl)]
+    (send (v (local {: view : metadata} (require :fennel))))
+    (macro s [...]
+      `(table.concat (send (v (do ,...)))))
+    (t.= "\"some-data\""
+         (s (fn foo [] {:foo :some-data} nil)
+            (view (metadata:get foo :foo)))
+         "expected ordinary string metadata to work")
+    (t.= "[\"seq\"]"
+         (s (fn bar [] {:bar [:seq]} nil)
+            (view (metadata:get bar :bar)))
+         "expected sequential table metadata to work")
+    (t.= "{:table \"table\"}"
+         (s (fn baz [] {:baz {:table :table}} nil)
+            (view (metadata:get baz :baz)))
+         "expected associative table metadata to work")
+    (t.= "{:compound [\"seq\" {:table \"table\"}]}"
+         (s (fn qux [] {:qux {:compound [:seq {:table :table}]}} nil)
+            (view (metadata:get qux :qux)))
+         "expected compound metadata to work")
+    (t.= "[\"some-data\" \"docs\"]"
+         (s (fn quux [] "docs" {:foo :some-data} nil)
+            (view [(metadata:get quux :foo)
+                   (metadata:get quux :fnl/docstring)]))
+         "expected combined docstring and ordinary string metadata to work")
+    (t.= "[\"x\" \"y\" \"z\"]"
+         (s (λ a-lambda [x ...] {:fnl/arglist [x y z]} nil)
+            (view (metadata:get a-lambda :fnl/arglist)))
+         "expected lambda metadata literal to work")
+    (t.= "[[\"x\" \"y\" \"z\"] \"docs\"]"
+         (s (λ b-lambda [] "docs" {:fnl/arglist [x y z]} nil)
+            (view [(metadata:get b-lambda :fnl/arglist)
+                   (metadata:get b-lambda :fnl/docstring)]))
+         "expected combined docstring and ordinary string metadata to work")
+    (t.= "{:fnl/arglist [\"x\"]}"
+         (s (fn whole [x] nil)
+            (view (metadata:get whole)))
+         "expected whole metadata table when no key is asked")))
+
+(fn test-custom-metadata-failing []
+  (let [send (wrap-repl)]
+    (send (v (local {: view : metadata} (require :fennel))))
+    (t.match "expected literal value in metadata table, got: \"foo\" %(fn "
+             (table.concat (send (v (fn foo []
+                                      {:foo (fn [] nil)} nil))))
+             "lists are not allowed as metadata fields")
+    (t.match "expected literal value in metadata table, got: \"foo\" %[%(fn "
+             (table.concat (send (v (fn foo []
+                                      {:foo [(fn [] nil)]} nil))))
+             "nested lists are not allowed as metadata fields")
+    (t.match "expected literal value in metadata table, got: \"foo\" {:foo "
+             (table.concat (send (v (fn foo []
+                                      {:foo {:foo [(fn [] nil)]}} nil))))
+             "nested lists as values are not allowed as metadata fields")
+    (t.match "expected literal value in metadata table, got: \"foo\" {%[%(fn "
+             (table.concat (send (v (fn foo []
+                                      {:foo {[(fn [] nil)] :foo}} nil))))
+             "nested lists as values are not allowed as metadata fields")))
 
 (fn test-long-string []
   (let [send (wrap-repl)
@@ -348,19 +367,19 @@
 (fn test-decorating-repl []
   ;; overriding REPL methods from within the REPL via decoration.
   (let [send (wrap-repl)]
-    (let [_ (send "(let [readChunk ___repl___.readChunk]
-                     (fn ___repl___.readChunk [parser-state]
-                       (string.format \"(- %s)\" (readChunk parser-state))))")
-          [res] (send "(+ 1 2 3)")]
+    (let [_ (send (v (let [readChunk ___repl___.readChunk]
+                       (fn ___repl___.readChunk [parser-state]
+                         (string.format "(- %s)" (readChunk parser-state))))))
+          [res] (send (v (+ 1 2 3)))]
       (t.= res "-6" "expected the result to be negated by the new readChunk"))
-    (let [_ (send "(let [onValues ___repl___.onValues]
-                     (fn ___repl___.onValues [vals]
-                       (onValues (icollect [_ v (ipairs vals)]
-                          (.. \"res: \" v)))))")
-          [res] (send "(+ 1 2 3 4)")]
+    (let [_ (send (v (let [onValues ___repl___.onValues]
+                       (fn ___repl___.onValues [vals]
+                         (onValues (icollect [_ v (ipairs vals)]
+                                     (.. "res: " v)))))))
+          [res] (send (v (+ 1 2 3 4)))]
       (t.= res "res: -10" "expected result to include \"res: \" preffix"))
-    (let [_ (send "(fn ___repl___.onError [errtype err lua-source] nil)")
-          [res] (send "(error :foo)")]
+    (let [_ (send (v (fn ___repl___.onError [errtype err lua-source] nil)))
+          [res] (send (v (error :foo)))]
       (t.= res nil "expected error to be ignored"))))
 
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
@@ -388,6 +407,7 @@
      : test-docstrings
      : test-no-undocumented
      : test-custom-metadata
+     : test-custom-metadata-failing
      : test-long-string
      : test-decorating-repl}
     {})

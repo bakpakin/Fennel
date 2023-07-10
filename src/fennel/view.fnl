@@ -312,7 +312,6 @@
 
 (fn utf8-escape [str options]
   ;; return nil if invalid utf8, if not return the length
-  ;; TODO: use native utf8 library if possible
   (fn validate-utf8 [str index]
     (let [inits utf8-inits
           byte (string.byte str index)

@@ -1236,7 +1236,6 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
 
 (fn sandbox-fennel-module [modname]
   "Let limited Fennel module thru with safe fields."
-  ;; TODO: why fennel.macros here? should never be required.
   (if (or (= modname :fennel.macros)
           (and package package.loaded
                (= :table (type (. package.loaded modname)))

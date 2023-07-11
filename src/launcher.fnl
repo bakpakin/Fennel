@@ -91,8 +91,9 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
     (when (= nil (. arg -1))
       (io.stderr:write
        "WARNING: --lua argument only works from script, not binary.\n"))
-    (let [ok (os.execute (table.concat cmd " "))]
-      (os.exit (if ok 0 1) true))))
+    (case (os.execute (table.concat cmd " "))
+      (where (or (true :exit) 0)) (os.exit 0 true)
+      _ (os.exit 1 true))))
 
 (assert arg "Using the launcher from non-CLI context; use fennel.lua instead.")
 

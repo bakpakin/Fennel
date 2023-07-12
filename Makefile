@@ -140,9 +140,10 @@ ci: testall lint fuzz fennel
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \
 		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock bootstrap/view.lua \
-		test/faith.lua minifennel.lua build/manfilter.lua
+		test/faith.lua minifennel.lua build/manfilter.lua fennel-bin-luajit
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
-	rm -f $(NATIVE_LUA_LIB)
+	$(MAKE) -C $(BIN_LUAJIT_DIR) clean || true # this dir might not exist
+	rm -f $(NATIVE_LUA_LIB) $(NATIVE_LUAJIT_LIB)
 
 coverage: fennel
 	$(LUA) -lluacov test/init.lua

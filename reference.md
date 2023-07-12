@@ -1497,10 +1497,10 @@ functions have been exported to use as macros. For instance, here is a
 macro module which implements `when2` in terms of `if` and `do`:
 
 ```fennel
-(fn when2 [condition body1 ...]
+(fn when2 [condition body1 & rest-body]
   (assert body1 "expected body")
   `(if ,condition
-     (do ,body1 ,...)))
+     (do ,body1 ,(unpack rest-body))))
 
 {:when2 when2}
 ```

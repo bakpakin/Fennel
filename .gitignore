@@ -13,6 +13,7 @@
 
 /lua
 /lua-5.*
+/LuaJIT-*
 
 /rockspecs/*asc
 

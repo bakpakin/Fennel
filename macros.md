@@ -236,11 +236,11 @@ any assumptions about the code. For example:
 ```fennel
 (local engines (require :engines))
 
-(macro with-weapons-check [...]
+(macro with-weapons-check [& body]
   `(let [phasers (require :phasers)
          overloaded? (phasers.overloaded?)]
      (when (not overloaded?)
-       ,...)))
+       ,(unpack body))))
 
 (let [overloaded? (engines.overloaded?)]
   (with-weapons-check
@@ -274,11 +274,11 @@ different symbol which is guaranteed to be unique and can never
 conflict with an existing local value.
 
 ```fennel
-(macro with-weapons-check [...]
+(macro with-weapons-check [& body]
   `(let [phasers# (require :phasers)
          overloaded?# (phasers#.overloaded?)]
      (when (not overloaded?#)
-       ,...)))
+       ,(unpack body))))
 ```
 
 Above we said that there is no difference between using `list`/`sym`
@@ -297,9 +297,9 @@ a simplified version of the `with-open` macro that introduces a local which
 is bound to a file that gets closed automatically at the end of the body.
 
 ```fennel
-(macro with-open2 [[name to-open] ...]
+(macro with-open2 [[name to-open] & body]
   `(let [,name ,to-open
-         value# (do ,...)]
+         value# (do ,(unpack body))]
      (: ,name :close)
      value#))
 
@@ -312,8 +312,8 @@ arguments. It is convention to take these arguments in square brackets, but
 the macro system does not enforce this.
 
 Note that the `with-weapons-check` and `with-open2` examples above
-take an arbitrary number of arguments using `...` which get treated as
-the "body" of the macro. Picking a name that begins with `with-` or
+take an arbitrary number of arguments using `& body` which get unpacked
+as the body of the macro. Picking a name that begins with `with-` or
 `def` for macros like this will make it clearer that their bodies
 should be indented with two spaces instead of like normal function calls.
 
@@ -436,7 +436,6 @@ Compile error in scratch.fnl:8
 
 (thrice-if true abc)
                 ^^^
-stack traceback: ...
 ```
 
 It's not required, but it's a nice courtesy to your users.

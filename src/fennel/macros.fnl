@@ -121,7 +121,7 @@ encountering an error before propagating it."
             (table.remove iter-out i)))))
   (assert (or (not found?) (sym? into) (table? into) (list? into))
           "expected table, function call, or symbol in &into clause")
-  (values into iter-out))
+  (values into iter-out found?))
 
 (fn collect* [iter-tbl key-expr value-expr ...]
   "Return a table made by running an iterator and evaluating an expression that
@@ -159,17 +159,22 @@ of the generated code is identical."
   (assert (not= nil value-expr) "expected table value expression")
   (assert (= nil ...)
           "expected exactly one body expression. Wrap multiple expressions in do")
-  (let [(into iter) (extract-into iter-tbl)]
-    `(let [tbl# ,into]
-       ;; believe it or not, using a var here has a pretty good performance
-       ;; boost: https://p.hagelb.org/icollect-performance.html
-       (var i# (length tbl#))
-       (,how ,iter
-             (let [val# ,value-expr]
-               (when (not= nil val#)
-                 (set i# (+ i# 1))
-                 (tset tbl# i# val#))))
-       tbl#)))
+  (let [(into iter has-into?) (extract-into iter-tbl)]
+    (if has-into?
+        `(let [tbl# ,into]
+           (,how ,iter (table.insert tbl# ,value-expr))
+           tbl#)
+        ;; believe it or not, using a var here has a pretty good performance
+        ;; boost: https://p.hagelb.org/icollect-performance.html
+        ;; but it doesn't always work with &into clauses, so skip if that's used
+        `(let [tbl# []]
+           (var i# 0)
+           (,how ,iter
+                 (let [val# ,value-expr]
+                   (when (not= nil val#)
+                     (set i# (+ i# 1))
+                     (tset tbl# i# val#))))
+           tbl#))))
 
 (fn icollect* [iter-tbl value-expr ...]
   "Return a sequential table made by running an iterator and evaluating an

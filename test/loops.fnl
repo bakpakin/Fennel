@@ -56,6 +56,14 @@
   (== (do (macro twice [expr] `(do ,expr ,expr))
           (twice (icollect [i v (ipairs [:a :b :c])] v)))
       [:a :b :c])
+  (== (let [result [0]]
+        (icollect [_ v (ipairs [1 2 [3 4 5] 6 7]) &into result]
+          (case (type v)
+            :table (do
+                     (icollect [_ e (ipairs v) &into result] e)
+                     nil)
+            _ v)))
+      [0 1 2 3 4 5 6 7])
   (== (fcollect [i 1 4] i)
       [1 2 3 4])
   (== (fcollect [i 1 4 2] i)

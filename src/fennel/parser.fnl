@@ -338,7 +338,7 @@ Also returns a second function to clear the buffer in the byte stream."
           (= b 59) (parse-comment (getb) [";"])
           (= (type (. delims b)) :number) (open-table b)
           (. delims b) (close-table b)
-          (= b 34) (parse-string b)
+          (= b 34) (parse-string)
           (. prefixes b) (parse-prefix b)
           (or (sym-char? b) (= b (string.byte "~"))) (parse-sym b)
           (not (utils.hook-opts :illegal-char options b getb ungetb dispatch))

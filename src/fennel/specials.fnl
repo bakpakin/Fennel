@@ -1100,7 +1100,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
                    {:compiler-env :strict} (safe-compiler-env)
                    {: compilerEnv} compilerEnv
                    {: compiler-env} compiler-env
-                   _ (safe-compiler-env false))
+                   _ (safe-compiler-env))
         env {:_AST ast
              :_CHUNK parent
              :_IS_COMPILER true
@@ -1289,7 +1289,7 @@ modules in the compiler environment."
     ;; to scope directly
     (if (= :import-macros (tostring (. ast 1)))
         (. macro-loaded modname)
-        (add-macros (. macro-loaded modname) ast scope parent))))
+        (add-macros (. macro-loaded modname) ast scope))))
 
 (doc-special :require-macros [:macro-module-name]
              "Load given module and use its contents as macro definitions in current scope.
@@ -1392,7 +1392,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
   (compiler.assert (= (length ast) 2) "Expected one table argument" ast)
   (let [macro-tbl (eval-compiler* (. ast 2) scope parent)]
     (compiler.assert (utils.table? macro-tbl) "Expected one table argument" ast)
-    (add-macros macro-tbl ast scope parent)))
+    (add-macros macro-tbl ast scope)))
 
 (doc-special :macros
              ["{:macro-name-1 (fn [...] ...) ... :macro-name-N macro-body-N}"]

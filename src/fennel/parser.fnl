@@ -78,7 +78,8 @@ Also returns a second function to clear the buffer in the byte stream."
     (if lastb
         (set (r lastb) (values lastb nil))
         (set r (getbyte {:stack-size (length stack)})))
-    (set byteindex (+ byteindex 1))
+    (when r
+      (set byteindex (+ byteindex 1)))
     (when (and r (char-starter? r))
       (set col (+ col 1)))
     (when (= r 10)

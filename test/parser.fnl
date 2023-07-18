@@ -65,8 +65,8 @@
   (for [i 1 31]
     (let [code (.. "\"" (string.char i) (tostring i) "\"")
           expected (.. (string.char i) (tostring i))]
-       (t.= (fennel.eval code) expected
-                      (.. "Failed to parse control code " i)))))
+      (t.= (fennel.eval code) expected
+           (.. "Failed to parse control code " i)))))
 
 (fn test-prefixes []
   (let [code "\n\n`(let\n  ,abc #(+ 2 3))"
@@ -87,9 +87,32 @@
     (t.= (line-col ast) [3 2] "line and column on lists")
     (t.= (line-col let*) [3 5] "line and column on symbols")
     (t.= (line-col (getmetatable seq)) [3 9]
-                    "line and column on sequences")
+         "line and column on sequences")
     (t.= (line-col (getmetatable tbl)) [4 10]
-                    "line and column on tables")))
+         "line and column on tables"))
+  (let [code "abc\nxyz"
+        parser (fennel.parser code)
+        (ok? abc) (parser)
+        (ok2? xyz) (parser)]
+    (t.is (and ok? ok2?))
+    (t.= (tostring abc) (code:sub abc.bytestart abc.byteend))
+    (t.= (tostring xyz) (code:sub xyz.bytestart xyz.byteend))
+    ;; but wait! sub is tolerant of going on beyond the last byte!
+    (t.= (length code) xyz.byteend))
+  ;; now let's try that again with tables
+  (let [code "[1]\n{a 4} (true)"
+        parser (fennel.parser code)
+        (ok? seq) (parser)
+        (ok2? kv) (parser)
+        (ok3? list) (parser)
+        seq-source (getmetatable seq)
+        kv-source (getmetatable kv)]
+    (t.is (and ok? ok2? ok3?))
+    (t.= (fennel.view seq) (code:sub seq-source.bytestart seq-source.byteend))
+    (t.= (fennel.view kv) (code:sub kv-source.bytestart kv-source.byteend))
+    (t.= (fennel.view list) (code:sub list.bytestart list.byteend))
+    ;; but wait! sub is tolerant of going on beyond the last byte!
+    (t.= (length code) list.byteend)))
 
 (fn test-plugin-hooks []
   (var parse-error-called nil)

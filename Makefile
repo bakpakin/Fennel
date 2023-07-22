@@ -64,7 +64,8 @@ lua-5.3.5/src/liblua-mingw.a: lua-5.3.5
 ci: luacheck testall count
 
 clean:
-	rm -f fennel fennel-bin *_binary.c fennel-bin.exe built-ins luacov.*
+	rm -f fennel fennel-bin *_binary.c fennel-bin.exe built-ins \
+		luacov.* fennelview.lua fennelfriend.lua
 	make -C lua-5.3.5 clean || true # this dir might not exist
 
 coverage: fennel

@@ -43,12 +43,16 @@ format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 # All-in-one pure-lua script:
 fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
 	echo "#!/usr/bin/env $(LUA)" > $@
+	echo "-- SPDX-License-Identifier: MIT" >> $@
+	echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include >> $@
 	chmod 755 $@
 
 # Library file
 fennel.lua: $(SRC) bootstrap/aot.lua bootstrap/view.lua
-	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include > $@
+	echo "-- SPDX-License-Identifier: MIT" > $@
+	echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
+	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include >> $@
 
 bootstrap/view.lua: src/fennel/view.fnl
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@
@@ -58,9 +62,11 @@ test/faith.lua: test/faith.fnl
 
 # A lighter version of the compiler that excludes some features; experimental.
 minifennel.lua: $(MINI_SRC) fennel
+	echo "-- SPDX-License-Identifier: MIT" > $@
+	echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
 	./fennel --no-metadata --require-as-include --add-fennel-path src/?.fnl \
 		--skip-include fennel.repl,fennel.view,fennel.friend --no-compiler-sandbox \
-		--compile $< > $@
+		--compile $< >> $@
 
 lint: fennel
 	FENNEL_LINT_MODULES="^fennel%." ./fennel --no-compiler-sandbox \

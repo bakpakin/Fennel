@@ -2,6 +2,9 @@
 
 ;; https://git.sr.ht/~technomancy/faith
 
+;; SPDX-License-Identifier: MIT
+;; SPDX-FileCopyrightText: Scott Vokes, Phil Hagelberg, and contributors
+
 ;; To use Faith, create a test runner file which calls the `run` function with
 ;; a list of module names. The modules should export functions whose
 ;; names start with `test-` and which call the assertion functions in the

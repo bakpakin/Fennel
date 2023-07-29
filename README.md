@@ -114,9 +114,13 @@ Lua is much more readily-available than it is for Fennel.
 
 ## License
 
-Copyright © 2016-2023 Calvin Rose and contributors
+Unless otherwise listed, all files are copyright © 2016-2023 Calvin
+Rose and contributors.
 
-Released under the [MIT license](LICENSE).
+The file `test/faith.fnl` is copyright © 2009-2023 Scott Vokes, Phil
+Hagelberg, and contributors
+
+All files released under the [MIT license](LICENSE).
 
 [1]: https://fennel-lang.org
 [2]: https://wiki.fennel-lang.org/Cookbook

@@ -11,11 +11,8 @@
 # items related to manpage generation
 /build/manfilter.lua
 
-/lua
 /lua-5.*
 /LuaJIT-*
-
-/rockspecs/*asc
 
 # Created by https://www.gitignore.io/api/lua
 
@@ -23,6 +20,7 @@
 /*_binary.c
 /fennel-bin
 /fennel-arm32
+/fennel-bin-luajit
 
 ### Lua ###
 # Compiled Lua sources
@@ -69,6 +67,7 @@ luac.out
 # Tooling + transient metadata
 *.swp
 tags
+**/*asc
 
 # Misc
 /wiki

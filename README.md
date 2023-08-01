@@ -61,11 +61,8 @@ This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
 2. Run `git clone https://git.sr.ht/~technomancy/fennel`
 3. Run `cd fennel`
 4. Run `make fennel` to create a standalone script called `fennel`
-5. Copy or link the `fennel` script to a directory on your `$PATH`, such as `/usr/local/bin`
-
-**Note**: If you copied the `fennel` script to one of the
-directories on your `$PATH`, then you can run `fennel filename.fnl` to
-run a Fennel file anywhere on your system.
+5. Run `sudo make install` to install system-wide (or `make install
+   PREFIX=$HOME` if `~/bin` is on your `$PATH`)
 
 ## Differences from Lua
 

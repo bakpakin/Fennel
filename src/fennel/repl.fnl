@@ -239,8 +239,8 @@ For more information about the language, see https://fennel-lang.org/reference")
     (let [tgt (apropos-follow-path path)]
       (when (and (= :function (type tgt))
                  (compiler.metadata:get tgt :fnl/docstring))
-        (on-values (specials.doc tgt path))
-        (on-values)))))
+        (on-values [(specials.doc tgt path)])
+        (on-values [])))))
 
 (fn commands.apropos-show-docs [_env read on-values on-error]
   (run-command read on-error #(apropos-show-docs on-values (tostring $))))

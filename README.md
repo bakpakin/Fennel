@@ -50,14 +50,13 @@ each release.
 ## Building Fennel from source
 
 Building Fennel from source allows you to use versions of Fennel that
-haven't been released, and it makes contributing to Fennel easier.
+haven't been released, and it allows you to contribute to Fennel.
 
 ### To build Fennel from source
 
 This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
 
-1. `cd` to a directory in which you want to download Fennel, such as
-   `~/src`
+1. `cd` to a directory in which you want to download Fennel, such as `~/src`
 2. Run `git clone https://git.sr.ht/~technomancy/fennel`
 3. Run `cd fennel`
 4. Run `make fennel` to create a standalone script called `fennel`

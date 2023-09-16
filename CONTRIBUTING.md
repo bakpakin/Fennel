@@ -28,7 +28,7 @@
   please try to include a minimal example. This means don't post all 200 lines
   of code from your project, but spend some time distilling the problem to just
   the relevant code.
-* Add the `bug` label to the issue.
+* Add the appropriate labels to your issue. (bug, enhancement, docs, etc)
 
 ## Codebase Organization
 

@@ -10,6 +10,10 @@
 
 (local scopes [])
 
+(fn save-scope [scope] ; for analysis
+  (when utils.root.scopes
+    (table.insert utils.root.scopes scope)))
+
 (fn make-scope [?parent]
   "Create a new Scope, optionally under a parent scope.
 Scopes are compile time constructs that are responsible for keeping track of
@@ -17,20 +21,22 @@ local variables, name mangling, and macros.  They are accessible to user code
 via the 'eval-compiler' special form (may change). They use metatables to
 implement nesting. "
   (let [parent (or ?parent scopes.global)]
-    {:includes (setmetatable [] {:__index (and parent parent.includes)})
-     :macros (setmetatable [] {:__index (and parent parent.macros)})
-     :manglings (setmetatable [] {:__index (and parent parent.manglings)})
-     :specials (setmetatable [] {:__index (and parent parent.specials)})
-     :symmeta (setmetatable [] {:__index (and parent parent.symmeta)})
-     :gensym-base (setmetatable [] {:__index (and parent parent.gensym-base)})
-     :unmanglings (setmetatable [] {:__index (and parent parent.unmanglings)})
-     :gensyms (setmetatable [] {:__index (and parent parent.gensyms)})
-     :autogensyms (setmetatable [] {:__index (and parent parent.autogensyms)})
-     :vararg (and parent parent.vararg)
-     :depth (if parent (+ (or parent.depth 0) 1) 0)
-     :hashfn (and parent parent.hashfn)
-     :refedglobals {}
-     : parent}))
+    (doto {:includes (setmetatable [] {:__index (and parent parent.includes)})
+           :macros (setmetatable [] {:__index (and parent parent.macros)})
+           :manglings (setmetatable [] {:__index (and parent parent.manglings)})
+           :specials (setmetatable [] {:__index (and parent parent.specials)})
+           :symmeta (setmetatable [] {:__index (and parent parent.symmeta)})
+           :symbols (setmetatable [] {:__index (and parent parent.symbols)})
+           :gensym-base (setmetatable [] {:__index (and parent parent.gensym-base)})
+           :unmanglings (setmetatable [] {:__index (and parent parent.unmanglings)})
+           :gensyms (setmetatable [] {:__index (and parent parent.gensyms)})
+           :autogensyms (setmetatable [] {:__index (and parent parent.autogensyms)})
+           :vararg (and parent parent.vararg)
+           :depth (if parent (+ (or parent.depth 0) 1) 0)
+           :hashfn (and parent parent.hashfn)
+           :refedglobals {}
+           : parent}
+      (save-scope))))
 
 (fn assert-msg [ast msg]
   (let [ast-tbl (if (= :table (type ast)) ast {})
@@ -201,6 +207,7 @@ rather than generating new one."
     (assert-compile (not (utils.multi-sym? name))
                     (.. "unexpected multi symbol " name) ast)
     (tset scope.symmeta name meta)
+    (tset scope.symbols symbol []) ; what goes here?
     (local-mangling name scope ast ?temp-manglings)))
 
 (fn hashfn-arg-name [name multi-sym-parts scope]
@@ -865,6 +872,26 @@ which we have to do if we don't know."
 (fn compile [ast ?opts]
   (compile-asts [ast] ?opts))
 
+(fn analyze-ast [ast tail scope opts]
+  (compile1 ast scope [] {:nval (and (not tail) 0) : tail}))
+
+(fn analyze [string ?opts]
+  (utils.root:set-reset)
+  (let [opts (or ?opts {})
+        stream (parser.string-stream string opts)
+        scope (or opts.scope (make-scope scopes.global))
+        scopes [scope]
+        _ (set (utils.root.scope utils.root.options utils.root.scopes)
+               (values scope opts scopes))
+        asts (icollect [_ ast (parser.parser stream opts.filename opts)] ast)
+        analysis {}]
+    (each [i ast (ipairs asts)]
+      (analyze-ast ast (= i (length asts)) scope opts))
+    (utils.root.reset)
+    (each [_ scope (ipairs scopes)]
+      (collect [k v (pairs scope.symbols) &into analysis] k v))
+    analysis))
+
 (fn traceback-frame [info]
   (if (and (= info.what :C) info.name)
       (string.format "  [C]: in function '%s'" info.name)
@@ -1005,6 +1032,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
  : compile1
  : compile-stream
  : compile-string
+ : analyze
  : check-binding-valid
  : emit
  : destructure

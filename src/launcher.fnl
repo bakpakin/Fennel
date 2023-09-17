@@ -103,16 +103,17 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
     :--lua (handle-lua i)))
 
 (let [commands {:--repl true
-               :--compile true
-               :-c true
-               :--compile-binary true
-               :--eval true
-               :-e true
-               :-v true
-               :--version true
-               :--help true
-               :-h true
-               "-" true}]
+                :--compile true
+                :--analyze true
+                :-c true
+                :--compile-binary true
+                :--eval true
+                :-e true
+                :-v true
+                :--version true
+                :--help true
+                :-h true
+                "-" true}]
   (var i 1)
   (while (and (. arg i) (not options.ignore-options))
     (match (. arg i)
@@ -222,12 +223,15 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
                                    (io.stdin:read :*a)
                                    form) options)))
 
+(fn file-for [filename]
+  (set options.filename filename)
+  (if (= filename "-")
+      io.stdin
+      (assert (io.open filename :rb))))
+
 (fn compile [files]
   (each [_ filename (ipairs files)]
-    (set options.filename filename)
-    (let [f (if (= filename "-")
-                io.stdin
-                (assert (io.open filename :rb)))]
+    (let [f (file-for filename)]
       (match (xpcall #(fennel.compile-string (f:read :*a) options)
                      fennel.traceback)
         (true val) (print val)
@@ -235,6 +239,10 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
                   (io.stderr:write (.. msg "\n"))
                   (os.exit 1)))
       (f:close))))
+
+(fn analyze [filename]
+  (with-open [f (file-for filename)]
+    (print (fennel.view (fennel.analyze (f:read :*a) options)))))
 
 (match arg
   ([] ? (= 0 (length arg))) (repl)
@@ -249,6 +257,7 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
   [:--compile-binary] (let [cmd (or (. arg 0) "fennel")]
                         (print (: (. (require :fennel.binary) :help)
                                   :format cmd cmd cmd)))
+  [:--analyze filename] (analyze filename)
   [:--eval form] (eval form)
   [:-e form] (eval form)
   ([a] ? (or (= a :-v) (= a :--version)))

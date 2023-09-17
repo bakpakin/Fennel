@@ -117,6 +117,7 @@
             :compile compiler.compile
             :compile-string compiler.compile-string
             :compile-stream compiler.compile-stream
+            :analyze compiler.analyze
             ;; running code
             : eval
             : repl

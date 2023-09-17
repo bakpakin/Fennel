@@ -42,16 +42,16 @@ format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 
 # All-in-one pure-lua script:
 fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
-	echo "#!/usr/bin/env $(LUA)" > $@
-	echo "-- SPDX-License-Identifier: MIT" >> $@
-	echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
+	@echo "#!/usr/bin/env $(LUA)" > $@
+	@echo "-- SPDX-License-Identifier: MIT" >> $@
+	@echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include >> $@
-	chmod 755 $@
+	@chmod 755 $@
 
 # Library file
 fennel.lua: $(SRC) bootstrap/aot.lua bootstrap/view.lua
-	echo "-- SPDX-License-Identifier: MIT" > $@
-	echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
+	@echo "-- SPDX-License-Identifier: MIT" > $@
+	@echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include >> $@
 
 bootstrap/view.lua: src/fennel/view.fnl

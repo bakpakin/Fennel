@@ -1,10 +1,12 @@
 (local t (require :test.faith))
 (local fennel (require :fennel))
 
+(macro view [x] (view x))
+
 (macro == [form expected ?msg ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
      (t.is ok# val#)
-     (t.= val# ,expected ,?msg)))
+     (t.= ,expected val# ,?msg)))
 
 (fn test-arrows []
   (== (-> (+ 85 21) (+ 1) (- 99)) 8)
@@ -732,6 +734,39 @@
           (splice {:greetings "comrade"}))
       {:hello "world" :greetings "comrade"}))
 
+(fn test-debug-repl []
+  (== (let [inputs ["hello\n" "[:literal]\n" "(inc 991)\n" ",exit\n"]
+            outputs []
+            opts {:readChunk #(table.remove inputs 1)
+                  :onValues #(table.insert outputs (. $ 1))}
+            hello :world]
+        (fn inc [x] (+ x 1))
+        (debug-repl opts)
+        outputs)
+      ["\"world\"" "[\"literal\"]" "992"]))
+
+(fn test-assert-repl []
+  (let [inputs ["x\n" "(inc x)\n" "(length hello)\n" ",return 22\n"]
+        outputs []
+        env (setmetatable {:print #(table.insert outputs $)
+                           :io {:read #(table.remove inputs 1)}}
+                          {:__index _G})
+        form (view (let [hello :world]
+                     (fn inc [x] (+ x 1))
+                     (fn g [x]
+                       (assert-repl (< x 2000) nil {:readChunk io.read
+                                                    :onValues print}))
+                     (fn f [x] (g (* x 2)))
+                     ;; (f 28)
+                     (f 1010)
+                     ;; (f 3)
+                     ))]
+    (t.= [true 22] [(pcall fennel.eval form {:env env})])
+    (t.= [] inputs)
+    (t.= ["assertion failed, entering repl." ["2020"] ["2021"] ["5"] ["22"]]
+         outputs)
+    (t.= (assert-repl :a-string) :a-string)))
+
 {: test-arrows
  : test-doto
  : test-?.
@@ -748,6 +783,8 @@
  : test-case
  : test-lua-module
  : test-disabled-sandbox-searcher
+ : test-debug-repl
+ : test-assert-repl
  : test-expand
  : test-match-try
  : test-case-try

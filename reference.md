@@ -1462,6 +1462,45 @@ module paths similarly to `import-macros`.  See the [relative
 require](tutorial#relative-require) section in the tutorial for more
 information.
 
+### `debug-repl`
+
+*(Since 1.4.0)*
+
+Sometimes it's helpful for debugging purposes to drop a repl right
+into the middle of your code to see what's really going on. You can
+use the `debug-repl` macro to do this:
+
+```fnl
+(let [input (get-input)
+      value []]
+  (fn helper [x]
+    (table.insert value (calculate x)))
+  (debug-repl)
+  value)
+```
+
+This will drop you into a repl when you hit that point in the
+code. The repl will have access to all the locals that are in
+scope. (This would be `input`, `value`, and `helper` in the example
+above.) It takes an optional options table which accepts all the same
+values as the `fennel.repl` function in the API.
+
+Note that this is meant for use in development and will not work with
+ahead-of-time compilation unless your build also includes Fennel as a
+library.
+
+## `assert-repl`
+
+*(Since 1.4.0)*
+
+Sometimes you want to get a debug repl but only under certain
+conditions. The `assert-repl` macro is more or less a drop-in
+replacement for `assert`, except instead of raising an error, it
+allows you to debug with a repl. It takes the same arguments as assert
+plus an optional opts table which is the same as `fennel.repl`.
+
+If you use the `--assert-as-repl` flag when running Fennel, calls to
+`assert` will be replaced with `assert-repl` automatically.
 
 ## Macros
 

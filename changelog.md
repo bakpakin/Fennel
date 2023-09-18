@@ -8,8 +8,11 @@ deprecated forms.
 
 ## 1.3.2 / ???
 
-### New Features
+### New Forms
+* Add `debug-repl` to drop a repl into any code for debugging.
+* Add `assert-repl` to make an assertion which opens a repl when it fails.
 
+### New Features
 * Allow you to return a value from the repl with `,return FORM` command.
 * Save previous REPL values in `*1`, `*2`, and `*3` locals.
 * Make repl prompt change when repl sessions get nested.

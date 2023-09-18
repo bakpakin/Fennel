@@ -1,3 +1,5 @@
+;; fennel-ls: macro-file
+
 ;; These macros are awkward because their definition cannot rely on the any
 ;; built-in macros, only special forms. (no when, no icollect, etc)
 
@@ -393,6 +395,29 @@ Example:
             (tset scope.macros import-key (. macros* macro-name))))))
   nil)
 
+(fn debug-repl* [?opts]
+  "Embed a repl with access to locals at the point of the call.
+Takes an optional table of arguments which will be passed to fennel.repl."
+  (let [locals []]
+    (fn add-locals [{: symmeta : parent}]
+      (each [name (pairs symmeta)]
+        (tset locals name (sym name)))
+      (if parent (add-locals parent)))
+    (add-locals (get-scope))
+    `(let [opts# (or ,?opts {})
+           ;; TODO: nesting a debug-repl should change the prompt
+           fennel# (require (or opts#.module-name :fennel))]
+       (set opts#.env (collect [k# v# (pairs _G) &into ,locals] k# v#))
+       (fennel#.repl opts#))))
+
+(fn assert-repl* [condition message ?opts]
+  "Drop into a debug-repl and print the message when condition is falsy."
+  `(let [condition# ,condition]
+     (if (not condition#)
+         (do (print (or ,message "assertion failed, entering repl."))
+             (debug-repl ,?opts))
+         condition#)))
+
 {:-> ->*
  :->> ->>*
  :-?> -?>*
@@ -413,4 +438,6 @@ Example:
  :pick-values pick-values*
  :macro macro*
  :macrodebug macrodebug*
- :import-macros import-macros*}
+ :import-macros import-macros*
+ :debug-repl debug-repl*
+ :assert-repl assert-repl*}

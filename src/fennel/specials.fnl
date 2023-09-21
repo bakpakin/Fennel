@@ -634,7 +634,6 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
 (fn SPECIALS.each [ast scope parent]
   (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
   (compiler.assert (utils.table? (. ast 2)) "expected binding table" ast)
-  (compiler.assert (<= 2 (length (. ast 2))) "expected binding and iterator" ast)
   (let [binding (setmetatable (utils.copy (. ast 2)) (getmetatable (. ast 2)))
         until-condition (remove-until-condition binding)
         iter (table.remove binding (length binding))
@@ -655,6 +654,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
           vals (compiler.compile1 iter scope parent)
           val-names (utils.map vals tostring)
           chunk []]
+      (compiler.assert (. bind-vars 1) "expected binding and iterator" ast)
       (compiler.emit parent
                      (: "for %s in %s do" :format (table.concat bind-vars ", ")
                         (table.concat val-names ", ")) ast)

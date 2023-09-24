@@ -857,12 +857,10 @@ Method name doesn't have to be known at compile-time; if it is, use
              ;; TODO: this misses a ton of things
              ;; https://github.com/bakpakin/Fennel/issues/422
              (or (. mac call) (= :set call) (= :tset call) (= :global call)))
-        ;; TODO: this delegates to do because we can trick it into doing IIFE
-        ;; but what we really want is IIFE to be available a la carte
-        (utils.list (utils.sym :do) nil ast)
+        (utils.list (utils.list (utils.sym :fn) (utils.sequence (utils.varg)) ast))
         ast)))
 
-(fn arithmetic-special [name zero-arity unary-prefix ast scope parent]
+(fn operator-special [name zero-arity unary-prefix ast scope parent]
   (let [len (length ast) operands []
         padded-op (.. " " name " ")]
     (for [i 2 len]
@@ -884,7 +882,7 @@ Method name doesn't have to be known at compile-time; if it is, use
       _ (.. "(" (table.concat operands padded-op) ")"))))
 
 (fn define-arithmetic-special [name zero-arity unary-prefix ?lua-name]
-  (tset SPECIALS name (partial arithmetic-special (or ?lua-name name) zero-arity
+  (tset SPECIALS name (partial operator-special (or ?lua-name name) zero-arity
                                unary-prefix))
   (doc-special name [:a :b "..."]
                "Arithmetic operator; works the same as Lua but accepts more arguments."))
@@ -899,10 +897,10 @@ Method name doesn't have to be known at compile-time; if it is, use
 (define-arithmetic-special "//" nil :1)
 
 (fn SPECIALS.or [ast scope parent]
-  (arithmetic-special :or :false nil ast scope parent))
+  (operator-special :or :false nil ast scope parent))
 
 (fn SPECIALS.and [ast scope parent]
-  (arithmetic-special :and :true nil ast scope parent))
+  (operator-special :and :true nil ast scope parent))
 
 (doc-special :and [:a :b "..."]
              "Boolean operator; works the same as Lua but accepts more arguments.")

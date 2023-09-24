@@ -350,11 +350,10 @@ Returns nil if passed something other than a multi-sym."
 
 (fn idempotent-expr? [x]
   "Checks if an object is an idempotent expression. Returns the object if it is."
-  (or (= (type x) :string)
-      (= (type x) :integer)
-      (= (type x) :number)
-      (and (sym? x)
-           (not (multi-sym? x)))))
+  (let [t (type x)]
+    (or (= t :string) (= t :integer) (= t :number) (= t :boolean)
+        (and (sym? x)
+             (not (multi-sym? x))))))
 
 (fn ast-source [ast]
   "Get a table for the given ast which includes file/line info, if possible."

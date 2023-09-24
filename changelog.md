@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Save previous REPL values in `*1`, `*2`, and `*3` locals.
 * Make repl prompt change when repl sessions get nested.
 
 ## 1.3.1 / 2023-07-07

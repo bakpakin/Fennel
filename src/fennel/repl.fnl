@@ -120,6 +120,7 @@ You can also run these repl commands:
   ,exit - Leave the repl.
 
 Use ,doc something to see descriptions for individual macros and special forms.
+Values from previous inputs are kept in *1, *2, and *3.
 
 For more information about the language, see https://fennel-lang.org/reference")]))
 
@@ -398,6 +399,16 @@ For more information about the language, see https://fennel-lang.org/reference")
           (table.insert out (pp (. vals i))))
         (callbacks.onValues out)))
 
+    (fn save-value [...]
+      (set env.___replLocals___.*3 env.___replLocals___.*2)
+      (set env.___replLocals___.*2 env.___replLocals___.*1)
+      (set env.___replLocals___.*1 ...)
+      ...)
+
+    (set (opts.scope.manglings.*1 opts.scope.unmanglings._1) (values "_1" "*1"))
+    (set (opts.scope.manglings.*2 opts.scope.unmanglings._2) (values "_2" "*2"))
+    (set (opts.scope.manglings.*3 opts.scope.unmanglings._3) (values "_3" "*3"))
+
     (fn loop []
       (each [k (pairs chars)]
         (tset chars k nil))
@@ -428,7 +439,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                                (false msg) (do
                                              (clear-stream)
                                              (callbacks.onError "Lua Compile" msg src))
-                               (_ chunk) (xpcall #(print-values (chunk))
+                               (_ chunk) (xpcall #(print-values (save-value (chunk)))
                                                  (partial callbacks.onError :Runtime)))))
               (set utils.root.options old-root-options)
               (loop)))))

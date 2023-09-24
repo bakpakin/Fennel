@@ -440,6 +440,13 @@
         back (send (table.concat long))]
     (t.= 8000 (length back))))
 
+(fn test-save-values []
+  (let [send (wrap-repl)]
+    (send ":lol")
+    (send ":hehe")
+    (send ":lmao")
+    (t.= "lmaohehelol" (send "(table.concat [*1 *2 *3])"))))
+
 (fn test-decorating-repl []
   ;; overriding REPL methods from within the REPL via decoration.
   (let [send (wrap-repl)]
@@ -484,5 +491,6 @@
      : test-custom-metadata
      : test-custom-metadata-failing
      : test-long-string
+     : test-save-values
      : test-decorating-repl}
     {})

@@ -11,8 +11,15 @@
 (local view (require :fennel.view))
 (local unpack (or table.unpack _G.unpack))
 
+(var depth 0)
+
+(fn prompt-for [top?]
+  (if top?
+      (.. (string.rep ">" (+ depth 1)) " ")
+      (.. (string.rep "." (+ depth 1)) " ")))
+
 (fn default-read-chunk [parser-state]
-  (io.write (if (< 0 parser-state.stack-size) ".." ">> "))
+  (io.write (prompt-for (= 0 parser-state.stack-size)))
   (io.flush)
   (let [input (io.read)]
     (and input (.. input "\n"))))
@@ -366,6 +373,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                                         (when b
                                           (table.insert chars (string.char b)))
                                         b)))]
+    (set depth (+ depth 1))
     (set env.___repl___ callbacks)
     (set (opts.env opts.scope) (values env (compiler.make-scope)))
     ;; use metadata unless we've specifically disabled it
@@ -425,6 +433,8 @@ For more information about the language, see https://fennel-lang.org/reference")
               (set utils.root.options old-root-options)
               (loop)))))
 
-    (loop)
-    (when readline
-      (readline.save_history))))
+    (let [value (loop)]
+      (set depth (- depth 1))
+      (when readline
+        (readline.save_history))
+      value)))

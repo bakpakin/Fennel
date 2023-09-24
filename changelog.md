@@ -10,7 +10,7 @@ deprecated forms.
 
 ### New Features
 
-* ???
+* Make repl prompt change when repl sessions get nested.
 
 ## 1.3.1 / 2023-07-07
 

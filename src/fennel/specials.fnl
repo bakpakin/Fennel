@@ -95,19 +95,14 @@ By default, start is 2."
         len (length ast)
         retexprs {:returned true}]
     (fn compile-body [outer-target outer-tail outer-retexprs]
-      (if (< len start)
-          ;; In the unlikely event we do a do with no arguments
-          (compiler.compile1 nil sub-scope chunk
-                             {:tail outer-tail :target outer-target})
-          ;; There will be side-effects
-          (for [i start len]
-            (let [subopts {:nval (or (and (not= i len) 0) opts.nval)
-                           :tail (or (and (= i len) outer-tail) nil)
-                           :target (or (and (= i len) outer-target) nil)}
-                  _ (utils.propagate-options opts subopts)
-                  subexprs (compiler.compile1 (. ast i) sub-scope chunk subopts)]
-              (when (not= i len)
-                (compiler.keep-side-effects subexprs parent nil (. ast i))))))
+      (for [i start len]
+        (let [subopts {:nval (or (and (not= i len) 0) opts.nval)
+                       :tail (or (and (= i len) outer-tail) nil)
+                       :target (or (and (= i len) outer-target) nil)}
+              _ (utils.propagate-options opts subopts)
+              subexprs (compiler.compile1 (. ast i) sub-scope chunk subopts)]
+          (when (not= i len)
+            (compiler.keep-side-effects subexprs parent nil (. ast i)))))
       (compiler.emit parent chunk ast)
       (compiler.emit parent :end ast)
       (utils.hook :do ast sub-scope)
@@ -511,7 +506,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
              "Set the value of a table field. Can take additional keys to set
 nested values, but all parents must contain an existing table.")
 
-(fn calculate-target [scope opts]
+(fn calculate-if-target [scope opts]
   (if (not (or opts.tail opts.target opts.nval))
       (values :iife true nil)
       (and opts.nval (not= opts.nval 0) (not opts.target))
@@ -543,8 +538,8 @@ nested values, but all parents must contain an existing table.")
     (SPECIALS.do (utils.list (utils.sym :do) (. ast 2)) scope parent opts)
     (let [do-scope (compiler.make-scope scope)
           branches []
-          (wrapper inner-tail inner-target target-exprs) (calculate-target scope
-                                                                           opts)
+          (wrapper inner-tail inner-target target-exprs) (calculate-if-target
+                                                          scope opts)
           body-opts {:nval opts.nval :tail inner-tail :target inner-target}]
       (fn compile-body [i]
         (let [chunk []
@@ -590,7 +585,7 @@ nested values, but all parents must contain an existing table.")
                   (compiler.emit last-buffer :end ast)
                   (set last-buffer next-buffer)))))
         ;; Emit if
-        (if (= wrapper :iife)
+        (if (= wrapper :iife) ; unavoidable IIFE due to statement/expression
             (let [iifeargs (or (and scope.vararg "...") "")]
               (compiler.emit parent
                              (: "local function %s(%s)" :format (tostring s)
@@ -1001,8 +996,8 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
     (fcollect [i 1 (- (length arglist) 1) :into comparisons]
       (string.format "(%s %s %s)" (. arglist i) op
                      (. arglist (+ i 1))))
-    ;; The function call here introduces some overhead, but it is the only way
-    ;; to compile this safely while preventing both double-evaluation of
+    ;; The IIFE function call here introduces some overhead, but it is the only
+    ;; way to compile this safely while preventing both double-evaluation of
     ;; side-effecting values and early evaluation of values which should never
     ;; happen in the case of a short-circuited call. See test-short-circuit in
     ;; test/misc.fnl for an example of the problem.

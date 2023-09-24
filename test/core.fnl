@@ -38,6 +38,7 @@
   (== (and) true)
   ;; short-circuit special forms
   (== (let [t {:a 85}] (or true (tset t :a 1)) t.a) 85)
+  (== (let [t {:a 85}] (or false (tset t :a 82)) t.a) 82)
   ;; short-circuit macros too
   (== (do (macro ts [t k v] `(tset ,t ,k ,v))
           (let [t {:a 521}] (or true (ts t :a 1)) t.a)) 521))

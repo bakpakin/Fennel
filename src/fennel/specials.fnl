@@ -78,7 +78,7 @@ will see its values updated as expected, regardless of mangling rules."
   (tset compiler.metadata (. SPECIALS name)
         {:fnl/arglist arglist :fnl/docstring docstring :fnl/body-form? body-form?}))
 
-(fn compile-do [ast scope parent ?start]
+(fn compile-body [ast scope parent ?start]
   "Compile a list of forms for side effects."
   (let [start (or ?start 2)
         len (length ast)
@@ -113,6 +113,8 @@ By default, start is 2."
         (do
           (compiler.emit parent :do ast)
           (compile-body opts.target opts.tail))
+        (= len 2) ; empty do is a no-op
+        (compiler.compile1 (. ast 2) scope chunk opts)
         opts.nval
         ;; generate a local target
         (let [syms []]
@@ -658,7 +660,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
                               {:declaration true :nomulti true :symtype :each}))
       (compiler.apply-manglings sub-scope new-manglings ast)
       (compile-until until-condition sub-scope chunk)
-      (compile-do ast sub-scope chunk 3)
+      (compile-body ast sub-scope chunk 3)
       (compiler.emit parent chunk ast)
       (compiler.emit parent :end ast))))
 
@@ -684,7 +686,7 @@ order, but can be used with any iterator." true)
                          ast))
         ;; simple condition
         (compiler.emit parent (.. "while " (tostring condition) " do") ast))
-    (compile-do ast (compiler.make-scope scope) sub-chunk 3)
+    (compile-body ast (compiler.make-scope scope) sub-chunk 3)
     (compiler.emit parent sub-chunk ast)
     (compiler.emit parent :end ast)))
 
@@ -717,7 +719,7 @@ order, but can be used with any iterator." true)
                       (compiler.declare-local binding-sym [] sub-scope ast)
                       (table.concat range-args ", ")) ast)
     (compile-until until-condition sub-scope chunk)
-    (compile-do ast sub-scope chunk 3)
+    (compile-body ast sub-scope chunk 3)
     (compiler.emit parent chunk ast)
     (compiler.emit parent :end ast)))
 
@@ -855,14 +857,16 @@ Method name doesn't have to be known at compile-time; if it is, use
              ;; TODO: this misses a ton of things
              ;; https://github.com/bakpakin/Fennel/issues/422
              (or (. mac call) (= :set call) (= :tset call) (= :global call)))
-        (utils.list (utils.sym :do) ast)
+        ;; TODO: this delegates to do because we can trick it into doing IIFE
+        ;; but what we really want is IIFE to be available a la carte
+        (utils.list (utils.sym :do) nil ast)
         ast)))
 
 (fn arithmetic-special [name zero-arity unary-prefix ast scope parent]
   (let [len (length ast) operands []
         padded-op (.. " " name " ")]
     (for [i 2 len]
-      (let [subast (maybe-short-circuit-protect (. ast i) i name scope)
+      (let [subast (maybe-short-circuit-protect (. ast i) i name scope parent)
             subexprs (compiler.compile1 subast scope parent)]
         (if (= i len)
             ;; last arg gets all its exprs but everyone else only gets one

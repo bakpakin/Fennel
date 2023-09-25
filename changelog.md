@@ -13,14 +13,15 @@ deprecated forms.
 * Add `assert-repl` to make an assertion which opens a repl when it fails.
 
 ### New Features
+* Add `--assert-as-repl` flag to replace `assert` calls with `assert-repl`.
 * Allow you to return a value from the repl with `,return FORM` command.
 * Save previous REPL values in `*1`, `*2`, and `*3` locals.
 * Make repl prompt change when repl sessions get nested.
 
+
 ## 1.3.1 / 2023-07-07
 
 ### New Features
-
 * `fennel.runtime-version` will return version information as a table
   if given optional argument
 * Expose REPL's methods in the `___repl___` table, allowing method

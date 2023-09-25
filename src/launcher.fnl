@@ -12,29 +12,29 @@ Run fennel, a lisp programming language for the Lua runtime.
   --compile FILES (-c)     : Command to AOT compile files, writing Lua to stdout
   --eval SOURCE (-e)       : Command to evaluate source code and print result
 
-  --no-searcher            : Skip installing package.searchers entry
-  --indent VAL             : Indent compiler output with VAL
+  --correlate              : Make Lua output line numbers match Fennel input
+  --load FILE (-l)         : Load the specified FILE before executing command
+  --no-compiler-sandbox    : Don't limit compiler environment to minimal sandbox
+  --compile-binary FILE
+      OUT LUA_LIB LUA_DIR  : Compile FILE to standalone binary OUT
+  --compile-binary --help  : Display further help for compiling binaries
   --add-package-path PATH  : Add PATH to package.path for finding Lua modules
   --add-package-cpath PATH : Add PATH to package.cpath for finding Lua modules
   --add-fennel-path PATH   : Add PATH to fennel.path for finding Fennel modules
   --add-macro-path PATH    : Add PATH to fennel.macro-path for macro modules
   --globals G1[,G2...]     : Allow these globals in addition to standard ones
   --globals-only G1[,G2]   : Same as above, but exclude standard ones
+  --assert-as-repl         : Replace assert calls with assert-repl
   --require-as-include     : Inline required modules in the output
   --skip-include M1[,M2]   : Omit certain modules from output when included
   --use-bit-lib            : Use LuaJITs bit library instead of operators
   --metadata               : Enable function metadata, even in compiled output
   --no-metadata            : Disable function metadata, even in REPL
-  --correlate              : Make Lua output line numbers match Fennel input
-  --load FILE (-l)         : Load the specified FILE before executing command
   --lua LUA_EXE            : Run in a child process with LUA_EXE
-  --no-fennelrc            : Skip loading ~/.fennelrc when launching repl
-  --raw-errors             : Disable friendly compile error reporting
   --plugin FILE            : Activate the compiler plugin in FILE
-  --compile-binary FILE
-      OUT LUA_LIB LUA_DIR  : Compile FILE to standalone binary OUT
-  --compile-binary --help  : Display further help for compiling binaries
-  --no-compiler-sandbox    : Don't limit compiler environment to minimal sandbox
+  --raw-errors             : Disable friendly compile error reporting
+  --no-searcher            : Skip installing package.searchers entry
+  --no-fennelrc            : Skip loading ~/.fennelrc when launching repl
 
   --help (-h)              : Display this text
   --version (-v)           : Show version
@@ -156,6 +156,9 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
       :--require-as-include (do
                               (set options.requireAsInclude true)
                               (table.remove arg i))
+      :--assert-as-repl (do
+                          (set options.assertAsRepl true)
+                          (table.remove arg i))
       :--skip-include (let [skip-names (table.remove arg (+ i 1))
                             skip (icollect [m (skip-names:gmatch "([^,]+)")] m)]
                         (set options.skipInclude skip)

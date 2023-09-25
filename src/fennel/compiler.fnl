@@ -841,6 +841,8 @@ which we have to do if we don't know."
         chunk []]
     (when opts.requireAsInclude
       (set scope.specials.require require-include))
+    (when opts.assertAsRepl
+      (set scope.macros.assert scope.macros.assert-repl))
     (utils.root:set-reset)
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))

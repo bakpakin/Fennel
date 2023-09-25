@@ -73,6 +73,14 @@ Instead of loading required modules at runtime, compile them inline
 into the main file being compiled. Only useful during ahead-of-time
 compilation.
 .TP
+.B \-\-assert-as-repl
+Calls to the built-in function
+.B assert
+from Fennel will be replaced with calls to
+.B assert-repl
+so that when the assertion fails, a REPL will be started in which you
+can interactively debug.
+.TP
 .B \-\-use-bit-lib
 Compile bitwise operations to use LuaJIT's bitop library instead of Lua
 5.3+ bitwise operators.

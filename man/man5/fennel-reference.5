@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-reference" "5" "2023-07-05" "fennel 1.3.1-dev" "Fennel Reference"
+.TH "fennel-reference" "5" "2023-09-25" "fennel 1.3.2-dev" "Fennel Reference"
 .hy
 .SH NAME
 .PP
@@ -59,8 +59,9 @@ in binding contexts to bind to multiple values.
 Lists are a compile-time construct; they are not used at runtime.
 For example: \f[V](print \[dq]hello world\[dq])\f[R]
 .PP
-\f[V]{curly brackets}\f[R]: used to denote key/value table literals, for
-example: \f[V]{:a 1 :b 2}\f[R]
+\f[V]{curly brackets}\f[R]: used to denote key/value table literals,
+also known as dictionaries.
+For example: \f[V]{:a 1 :b 2}\f[R]
 .PP
 \f[V][square brackets]\f[R]: used to denote sequential tables, which can
 be used for literal data structures and also in specials and macros to
@@ -117,11 +118,12 @@ identifier, and the part after the dot or colon is a field looked up on
 the local identified.
 A colon is only allowed before the final segment of a multi symbol, so
 \f[V]x.y:z\f[R] is valid but \f[V]a:b.c\f[R] is not.
-Colon multi symbols cannot be used for anything but method calls.
+Colon multi symbols can only be used for method calls.
 .PP
 Fennel also supports certain kinds of strings that begin with a colon as
 long as they don\[aq]t contain any characters which wouldn\[aq]t be
-allowed in a symbol, for example \f[V]:fennel-lang.org\f[R] is a string.
+allowed in a symbol, for example \f[V]:fennel-lang.org\f[R] is another
+way of writing the string \[dq]fennel-lang.org\[dq].
 .PP
 Spaces, tabs, newlines, vertical tabs, form feeds, and carriage returns
 are counted as whitespace.
@@ -225,8 +227,6 @@ anywhere a new local is introduced.
 The \f[V]λ\f[R] form is an alias for \f[V]lambda\f[R] and behaves
 identically.
 .SS Docstrings and metadata
-.PP
-\f[I](Since 0.3.0)\f[R]
 .PP
 The \f[V]fn\f[R], \f[V]lambda\f[R], \f[V]λ\f[R] and \f[V]macro\f[R]
 forms accept an optional docstring.
@@ -372,8 +372,6 @@ Fennel itself only uses the \f[V]fnl/docstring\f[R] and
 arbitrary keys.
 .SS Hash function literal shorthand
 .PP
-\f[I](Since 0.3.0)\f[R]
-.PP
 It\[aq]s pretty easy to create function literals, but Fennel provides an
 even shorter form of functions.
 Hash functions are anonymous functions of one form, with implicitly
@@ -447,7 +445,8 @@ Example:
 .IP
 .nf
 \f[C]
-(partial (fn [x y] (print (+ x y))) 2)
+(fn add-print [x y] (print (+ x y)))
+(partial add-print 2)
 \f[R]
 .fi
 .PP
@@ -832,8 +831,6 @@ The reason Fennel doesn\[aq]t have \f[V]if-let\f[R] is that
 \f[V]case\f[R] makes it redundant.
 .SS \f[V]match\f[R] pattern matching
 .PP
-\f[I](since 0.2.0)\f[R]
-.PP
 \f[V]match\f[R] is conceptually equivalent to \f[V]case\f[R], except
 symbols in the patterns are always pinned with outer-scope symbols if
 they exist.
@@ -876,12 +873,7 @@ Example:
 \f[R]
 .fi
 .PP
-\f[B]Note:\f[R] The \f[V]match\f[R] macro can be used in place of the
-\f[V]if-let\f[R] macro from Clojure.
-The reason Fennel doesn\[aq]t have \f[V]if-let\f[R] is that
-\f[V]match\f[R] makes it redundant.
-.PP
-\f[B]Note 2:\f[R] Prior to Fennel 0.9.0 the \f[V]match\f[R] macro used
+\f[B]Note:\f[R] Prior to Fennel 0.9.0 the \f[V]match\f[R] macro used
 infix \f[V]?\f[R] operator to test patterns against the guards.
 While this syntax is still supported, \f[V]where\f[R] should be
 preferred instead:
@@ -1054,8 +1046,6 @@ Example:
 .fi
 .SS \f[V]with-open\f[R] bind and auto-close file handles
 .PP
-\f[I](Since 0.4.2)\f[R]
-.PP
 While Lua will automatically close an open file handle when it\[aq]s
 garbage collected, GC may not run right away; \f[V]with-open\f[R]
 ensures handles are closed immediately, error or no, without
@@ -1096,8 +1086,6 @@ Example:
 \f[R]
 .fi
 .SS \f[V]pick-values\f[R] emit exactly n values
-.PP
-\f[I](Since 0.4.0)\f[R]
 .PP
 Discards all values after the first n when dealing with multi-values
 (\f[V]...\f[R]) and multiple returns.
@@ -1341,8 +1329,7 @@ String concatenation is subject to the same compile-time limit as the
 operators above; it is not aware of multiple values at runtime.
 .SS \f[V]length\f[R] string or table length
 .PP
-\f[I](Changed in 0.3.0: the function was called \f[VI]#\f[I]
-before.)\f[R]
+\f[I](Changed in 0.3.0: it was called \f[VI]#\f[I] before.)\f[R]
 .PP
 Returns the length of a string or table.
 Note that the length of a table with gaps (nils) in it is undefined; it
@@ -1351,7 +1338,7 @@ can return a number corresponding to any of the table\[aq]s
 If a table has nils and you want to know the last consecutive numeric
 index starting at 1, you must calculate it yourself with
 \f[V]ipairs\f[R]; if you want to know the maximum numeric key in a table
-with nils, you can use \f[V]table.maxn\f[R].
+with nils, you can use \f[V]table.maxn\f[R] on some versions of Lua.
 .PP
 Example:
 .IP
@@ -1423,13 +1410,13 @@ This is analogous to \f[V]filter\f[R] in other languages.
 .nf
 \f[C]
 (icollect [_ v (ipairs [1 2 3 4 5 6])]
-  (if (> v 2) (* v v)))
+  (if (< 2 v) (* v v)))
 ;; -> [9 16 25 36]
 
 ;; equivalent to:
 (let [tbl []]
   (each [_ v (ipairs [1 2 3 4 5 6])]
-    (tset tbl (+ (length tbl) 1) (if (> v 2) (* v v))))
+    (tset tbl (+ (length tbl) 1) (if (< 2 v) (* v v))))
   tbl)
 \f[R]
 .fi
@@ -1578,9 +1565,8 @@ Looks up a function in a table and calls it with the table as its first
 argument.
 This is a common idiom in many Lua APIs, including some built-in ones.
 .PP
-\f[I](Since 0.3.0)\f[R] Just like Lua, you can perform a method call by
-calling a function name where \f[V]:\f[R] separates the table variable
-and method name.
+Just like Lua, you can perform a method call by calling a function name
+where \f[V]:\f[R] separates the table variable and method name.
 .PP
 Example:
 .IP
@@ -1712,8 +1698,6 @@ in rather than using the value from the previous form for the next form.
 The first form becomes the return value for the whole expression, and
 subsequent forms are evaluated solely for side-effects.
 .SS \f[V]include\f[R]
-.PP
-\f[I](since 0.3.0)\f[R]
 .IP
 .nf
 \f[C]
@@ -1744,18 +1728,60 @@ Starting from version 0.10.0 \f[V]include\f[R] and hence
 \f[V]--require-as-include\f[R] support semi-dynamic compile-time
 resolution of module paths similarly to \f[V]import-macros\f[R].
 See the relative require section in the tutorial for more information.
+.SS \f[V]debug-repl\f[R]
+.PP
+\f[I](Since 1.4.0)\f[R]
+.PP
+Sometimes it\[aq]s helpful for debugging purposes to drop a repl right
+into the middle of your code to see what\[aq]s really going on.
+You can use the \f[V]debug-repl\f[R] macro to do this:
+.IP
+.nf
+\f[C]
+(let [input (get-input)
+      value []]
+  (fn helper [x]
+    (table.insert value (calculate x)))
+  (debug-repl)
+  value)
+\f[R]
+.fi
+.PP
+This will drop you into a repl when you hit that point in the code.
+The repl will have access to all the locals that are in scope.
+(This would be \f[V]input\f[R], \f[V]value\f[R], and \f[V]helper\f[R] in
+the example above.)
+It takes an optional options table which accepts all the same values as
+the \f[V]fennel.repl\f[R] function in the API.
+.PP
+Note that this is meant for use in development and will not work with
+ahead-of-time compilation unless your build also includes Fennel as a
+library.
+.SH \f[V]assert-repl\f[R]
+.PP
+\f[I](Since 1.4.0)\f[R]
+.PP
+Sometimes you want to get a debug repl but only under certain
+conditions.
+The \f[V]assert-repl\f[R] macro is more or less a drop-in replacement
+for \f[V]assert\f[R], except instead of raising an error, it allows you
+to debug with a repl.
+It takes the same arguments as assert plus an optional opts table which
+is the same as \f[V]fennel.repl\f[R].
+.PP
+If you use the \f[V]--assert-as-repl\f[R] flag when running Fennel,
+calls to \f[V]assert\f[R] will be replaced with \f[V]assert-repl\f[R]
+automatically.
 .SH MACROS
 .PP
 All forms which introduce macros do so inside the current scope.
 This is usually the top level for a given file, but you can introduce
-macros into smaller scopes as well.
+macros into nested scopes as well.
 Note that macros are a compile-time construct; they do not exist at
 runtime.
 As such macros cannot be exported at the bottom of a module like
 functions and other values.
 .SS \f[V]import-macros\f[R] load macros from a separate module
-.PP
-\f[I](Since 0.4.0)\f[R]
 .PP
 Loads a module at compile-time and binds its functions as local macros.
 .PP
@@ -1769,10 +1795,10 @@ terms of \f[V]if\f[R] and \f[V]do\f[R]:
 .IP
 .nf
 \f[C]
-(fn when2 [condition body1 ...]
+(fn when2 [condition body1 & rest-body]
   (assert body1 \[dq]expected body\[dq])
   \[ga](if ,condition
-     (do ,body1 ,...)))
+     (do ,body1 ,(unpack rest-body))))
 
 {:when2 when2}
 \f[R]
@@ -1784,8 +1810,6 @@ All forms in Fennel are normal tables you can use
 The backtick on the third line creates a template list for the code
 emitted by the macro, and the comma serves as \[dq]unquote\[dq] which
 splices values into the template.
-\f[I](Changed in 0.3.0: \f[VI]\[at]\f[I] was used instead of
-\f[VI],\f[I] before.)\f[R]
 .PP
 Assuming the code above is in the file \[dq]my-macros.fnl\[dq] then it
 turns this input:
@@ -1887,8 +1911,6 @@ The loader function will receive the module name and the filename as
 arguments.
 .SS \f[V]macros\f[R] define several macros
 .PP
-\f[I](Since 0.3.0)\f[R]
-.PP
 Defines a table of macros.
 Note that inside the macro definitions, you cannot access variables and
 bindings from the surrounding code.
@@ -1958,7 +1980,7 @@ form which has side-effects, the result will be unexpected:
 \f[R]
 .fi
 .PP
-\f[I](Since 0.3.0)\f[R] In order to prevent accidental symbol
+In order to prevent accidental symbol
 capture (https://gist.github.com/nimaai/2f98cc421c9a51930e16#variable-capture),
 you may not bind a bare symbol inside a backtick as an identifier.
 Appending a \f[V]#\f[R] on the end of the identifier name as above
@@ -2150,7 +2172,7 @@ you are able to avoid it, you should.
 .SH DEPRECATED FORMS
 .SS \f[V]require-macros\f[R] load macros with less flexibility
 .PP
-\f[I](Since 0.1.0, deprecated in 0.4.0)\f[R]
+\f[I](Deprecated in 0.4.0)\f[R]
 .PP
 The \f[V]require-macros\f[R] form is like \f[V]import-macros\f[R],
 except it imports all macros without making it clear what new
@@ -2158,7 +2180,7 @@ identifiers are brought into scope.
 It is strongly recommended to use \f[V]import-macros\f[R] instead.
 .SS \f[V]pick-args\f[R] create a function of fixed arity
 .PP
-\f[I](Since 0.4.0, deprecated 0.10.0)\f[R]
+\f[I](Deprecated 0.10.0)\f[R]
 .PP
 Like \f[V]pick-values\f[R], but takes an integer \f[V]n\f[R] and a
 function/operator \f[V]f\f[R], and creates a new function that applies

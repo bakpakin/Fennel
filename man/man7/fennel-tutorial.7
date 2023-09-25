@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-tutorial" "7" "2023-07-05" "fennel 1.3.1-dev" "Getting Started with Fennel"
+.TH "fennel-tutorial" "7" "2023-09-25" "fennel 1.3.2-dev" "Getting Started with Fennel"
 .hy
 .SH NAME
 .PP
@@ -78,7 +78,7 @@ outside.)
 .fi
 .PP
 Functions can take an optional docstring in the form of a string that
-immediately follows the arglist.
+immediately follows the argument list.
 Under normal compilation, this is removed from the emitted Lua, but
 during development in the REPL the docstring and function usage can be
 viewed with the \f[V],doc\f[R] command:
@@ -124,7 +124,7 @@ Note that the second argument \f[V]?y\f[R] is allowed to be
 .fi
 .PP
 Like \f[V]fn\f[R], lambdas accept an optional docstring after the
-arglist.
+argument list.
 .SS Locals and variables
 .PP
 Locals are introduced using \f[V]let\f[R] with the names and values
@@ -144,8 +144,8 @@ These bindings are only valid inside the body of the \f[V]let\f[R] call.
 .PP
 You can also introduce locals with \f[V]local\f[R], which is nice when
 they\[aq]ll be used across the whole file, but in general \f[V]let\f[R]
-is preferred because it\[aq]s clearer at a glance where the value is
-used:
+is preferred inside functions because it\[aq]s clearer at a glance where
+the value can be used:
 .IP
 .nf
 \f[C]
@@ -183,7 +183,7 @@ There is no nested \f[V]let\f[R]-like equivalent of \f[V]var\f[R].
 Of course, all our standard arithmetic operators like \f[V]+\f[R],
 \f[V]-\f[R], \f[V]*\f[R], and \f[V]/\f[R] work here in prefix form.
 Note that numbers are double-precision floats in all Lua versions prior
-to 5.3, which optionally introduced integers.
+to 5.3, which introduced integers.
 On 5.3 and up, integer division uses \f[V]//\f[R] and bitwise operations
 use \f[V]lshift\f[R], \f[V]rshift\f[R], \f[V]bor\f[R], \f[V]band\f[R],
 \f[V]bnot\f[R] and \f[V]xor\f[R].
@@ -191,7 +191,7 @@ Bitwise operators and integer division will not work if the host Lua
 environment is older than version 5.3.
 .PP
 You may also use underscores to separate sections of long numbers.
-The underscores have no effect on the output.
+The underscores have no effect on the value.
 .IP
 .nf
 \f[C]
@@ -531,9 +531,9 @@ with parens instead of square brackets:
 .IP
 .nf
 \f[C]
-(match (io.open \[dq]file\[dq])
-  ;; when io.open succeeds, it will return a file, but if it fails it will
-  ;; return nil and an err-msg string describing why
+(case (io.open \[dq]file\[dq])
+  ;; when io.open succeeds, it will return a file, but if it fails
+  ;; it will return nil and an err-msg string describing why
   f (do (use-file-contents (f:read :*all))
         (f:close))
   (nil err-msg) (print \[dq]Could not open file:\[dq] err-msg))
@@ -606,7 +606,8 @@ error message upon failure, a failure will trigger an \f[V]error\f[R]
 and halt execution.
 .SH VARIADIC FUNCTIONS
 .PP
-Fennel supports variadic functions like many languages.
+Fennel supports variadic functions (in other words, functions which take
+any number of arguments) like many languages.
 The syntax for taking a variable number of arguments to a function is
 the \f[V]...\f[R] symbol, which must be the last parameter to a
 function.
@@ -644,6 +645,7 @@ Often, the vararg can be passed directly to another function such as
 .PP
 Varargs are scoped differently than other variables as well - they are
 only accessible to the function in which they are created.
+Unlike normal values, functions cannot close over them.
 This means that the following code will NOT work, as the varargs in the
 inner function are out of scope.
 .IP
@@ -654,11 +656,6 @@ inner function are out of scope.
     (print ...)))
 \f[R]
 .fi
-.PP
-You can read more detailed coverage of some of the problems with
-\f[V]...\f[R] and multiple
-values (https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/)
-here.
 .SH STRICT GLOBAL CHECKING
 .PP
 If you get an error that says \f[V]unknown global in strict mode\f[R] it
@@ -708,8 +705,8 @@ There is no \f[V]apply\f[R] function; instead use \f[V]table.unpack\f[R]
 or \f[V]unpack\f[R] depending on your Lua version:
 \f[V](f 1 3 (table.unpack [4 9]))\f[R].
 .IP \[bu] 2
-Tables are compared for identity, not based on the value of their
-contents, as per
+Tables are compared for equality by identity, not based on the value of
+their contents, as per
 Baker (https://p.hagelb.org/equal-rights-for-functional-objects.html).
 .IP \[bu] 2
 Return values in the repl will get pretty-printed, but calling

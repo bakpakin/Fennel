@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-api" "3" "2023-07-05" "fennel 1.3.1-dev" "Fennel\[aq]s Lua API"
+.TH "fennel-api" "3" "2023-09-25" "fennel 1.3.2-dev" "Fennel\[aq]s Lua API"
 .hy
 .SH NAME
 .PP
@@ -44,17 +44,20 @@ the line numbers match up with the Fennel input code; useful for
 situation where code that isn\[aq]t under your control will print the
 stack traces.
 .IP \[bu] 2
-\f[V]useMetadata\f[R] \f[I](since 0.3.0)\f[R]: enables or disables
-metadata, allowing use of the \f[V],doc\f[R] repl command.
+\f[V]useMetadata\f[R]: enables or disables metadata, allowing use of the
+\f[V],doc\f[R] repl command.
 Intended for development purposes (see performance note); defaults to
 true for REPL only.
 .IP \[bu] 2
-\f[V]requireAsInclude\f[R] \f[I](since 0.3.0)\f[R]: Alias any static
-\f[V]require\f[R] calls to the \f[V]include\f[R] special, embedding the
-module code inline in the compiled output.
+\f[V]requireAsInclude\f[R]: Alias any static \f[V]require\f[R] calls to
+the \f[V]include\f[R] special, embedding the module code inline in the
+compiled output.
 If the module name isn\[aq]t a string literal that is resolvable at
 compile time it falls back to \f[V]require\f[R] at runtime.
 Can be used to embed both Fennel and Lua modules.
+.IP \[bu] 2
+\f[V]assertAsRepl\f[R]: Replace calls to \f[V]assert\f[R] with
+\f[V]assert-repl\f[R] to allow for interactive debugging.
 .IP \[bu] 2
 \f[V]env\f[R]: an environment table in which to run the code; see the
 Lua manual.
@@ -98,13 +101,15 @@ Takes these additional options:
 .IP \[bu] 2
 \f[V]readChunk()\f[R]: a function that when called, returns a string of
 source code.
-The empty is string or nil is used as the end of source marker.
+Should return nil when there is no more source, which will exit the
+repl.
 .IP \[bu] 2
 \f[V]pp\f[R]: a pretty-printer function to apply on values (default:
 \f[V]fennel.view\f[R]).
 .IP \[bu] 2
 \f[V]onValues(values)\f[R]: a function that will be called on all
 returned top level values.
+Takes a table of values.
 .IP \[bu] 2
 \f[V]onError(errType, err, luaSource)\f[R]: a function that will be
 called on each error.
@@ -259,7 +264,7 @@ Unlike the other functions, the \f[V]compile\f[R] functions default to
 performing no global checks, though you can pass in an
 \f[V]allowedGlobals\f[R] table in \f[V]options\f[R] to enable it.
 .PP
-Accepts \f[V]filename\f[R] in \f[V]options\f[R] as in
+Accepts \f[V]filename\f[R] in \f[V]options\f[R] like
 \f[V]fennel.eval\f[R].
 .SH COMPILE AN ITERATOR OF BYTES INTO A STRING OF LUA
 .PP
@@ -362,23 +367,23 @@ messages.
 Note that column numbers are based on character count, which does not
 always correspond to visual columns; for instance \[dq]วัด\[dq] is three
 characters but only two visual columns.
-.SS sequence/kv table
+.SS sequence/key-value table
 .PP
 These are table literals in Fennel code produced by square brackets
-(sequences) or curly brackets (kv tables).
+(sequences) or curly brackets (k/v tables).
 Sequences can be identified using the \f[V]fennel.sequence?\f[R]
 function and constructed using \f[V]fennel.sequence\f[R].
-There is no predicate or constructor for kv tables; any table which is
+There is no predicate or constructor for k/v tables; any table which is
 not one of the other types is assumed to be one of these.
 .PP
-At runtime there is no difference between sequences and kv tables which
+At runtime there is no difference between sequences and k/v tables which
 use monotonically increasing integer keys, but the parser is able to
 distinguish between them to improve error reporting.
 .PP
-Sequences and kv tables have their source data in \f[V]filename\f[R],
+Sequences and k/v tables have their source data in \f[V]filename\f[R],
 \f[V]line\f[R], etc keys of their metatable.
-The metatable for kv tables also includes a \f[V]keys\f[R] sequence
-which tells you which order the keys appeared originally, since kv
+The metatable for k/v tables also includes a \f[V]keys\f[R] sequence
+which tells you which order the keys appeared originally, since k/v
 tables are unordered and there would otherwise be no way to reconstruct
 this information.
 .SS symbol
@@ -427,11 +432,11 @@ using the \f[V]fennel.comment\f[R] function.
 They are represented as tables that have source data as fields inside
 them.
 .PP
-In most data context, comments just get included inline in a list or
+In most data contexts, comments just get included inline in a list or
 sequence.
-However, in a kv table, this cannot be done, because kv tables must have
-balanced key/value pairs, and including comments inline would imbalance
-these or cause keys to be considered as values and vice versa.
+However, in a k/v table, this cannot be done, because k/v tables must
+have balanced key/value pairs, and including comments inline would
+imbalance these or cause keys to be considered as values and vice versa.
 So the comments are stored on the \f[V]comments\f[R] field of metatable
 instead, keyed by the key or value they were attached to.
 .SH SERIALIZATION (VIEW)
@@ -482,11 +487,12 @@ instead of newline
 \f[V]prefer-colon?\f[R] (default: false) emit strings in colon notation
 when possible
 .IP \[bu] 2
-\f[V]utf8?\f[R] (default true) whether to use utf8 module to compute
+\f[V]utf8?\f[R] (default: true) whether to use utf8 module to compute
 string lengths
 .IP \[bu] 2
-\f[V]max-sparse-gap\f[R] (integer, default 10) maximum gap to fill in
-with nils in sparse sequential tables.
+\f[V]max-sparse-gap\f[R] (number, default: 10) maximum gap to fill in
+with nils in sparse sequential tables before switching to curly
+brackets.
 .IP \[bu] 2
 \f[V]preprocess\f[R] (function) if present, called on x (and recursively
 on each value in x), and the result is used for pretty printing; takes
@@ -636,8 +642,6 @@ While Lua 5.2+ supports hex escapes, PUC Lua 5.1 does not, so compiling
 this with Fennel later would result in an incorrect escape code in Lua
 5.1.
 .SH WORK WITH DOCSTRINGS AND METADATA
-.PP
-\f[I](Since 0.3.0)\f[R]
 .PP
 When running a REPL or using compile/eval with metadata enabled, each
 function declared with \f[V]fn\f[R] or \f[V]λ/lambda\f[R] will use the
@@ -880,5 +884,7 @@ Your plugin should contain a \f[V]:versions\f[R] table which contains a
 list of strings indicating every version of Fennel which you have tested
 it with.
 You should also have a \f[V]:name\f[R] field with the plugin\[aq]s name.
+If your plugin is used with a version of Fennel that isn\[aq]t in the
+list, it will emit a warning.
 .SH AUTHORS
 Fennel Maintainers.

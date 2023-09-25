@@ -117,6 +117,7 @@ This is the REPL where you can enter code to be evaluated.
 You can also run these repl commands:
 
 " (command-docs) "
+  ,return FORM - Evaluate FORM and return its value to the REPL's caller.
   ,exit - Leave the repl.
 
 Use ,doc something to see descriptions for individual macros and special forms.
@@ -316,10 +317,10 @@ For more information about the language, see https://fennel-lang.org/reference")
   (let [command-name (input:match ",([^%s/]+)")]
     (match (. commands command-name)
       command (command env read on-values on-error scope chars)
-      _ (when (not= :exit command-name)
+      _ (when (and (not= command-name :exit) (not= command-name :return))
           (on-values ["Unknown command" command-name])))
     (when (not= :exit command-name)
-      (loop))))
+      (loop (= command-name :return)))))
 
 (fn try-readline! [opts ok readline]
   (when ok
@@ -409,7 +410,7 @@ For more information about the language, see https://fennel-lang.org/reference")
     (set (opts.scope.manglings.*2 opts.scope.unmanglings._2) (values "_2" "*2"))
     (set (opts.scope.manglings.*3 opts.scope.unmanglings._3) (values "_3" "*3"))
 
-    (fn loop []
+    (fn loop [exit-next?]
       (each [k (pairs chars)]
         (tset chars k nil))
       (reset)
@@ -424,7 +425,8 @@ For more information about the language, see https://fennel-lang.org/reference")
               (clear-stream)
               (loop))
             (command? src-string)
-            (run-command-loop src-string read loop env callbacks.onValues callbacks.onError
+            (run-command-loop src-string read loop env
+                              callbacks.onValues callbacks.onError
                               opts.scope chars)
             (when not-eof?
               (match (pcall compiler.compile x (doto opts
@@ -442,7 +444,9 @@ For more information about the language, see https://fennel-lang.org/reference")
                                (_ chunk) (xpcall #(print-values (save-value (chunk)))
                                                  (partial callbacks.onError :Runtime)))))
               (set utils.root.options old-root-options)
-              (loop)))))
+              (if exit-next?
+                  env.___replLocals___.*1
+                  (loop))))))
 
     (let [value (loop)]
       (set depth (- depth 1))

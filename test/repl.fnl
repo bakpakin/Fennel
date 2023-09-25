@@ -447,6 +447,11 @@
     (send ":lmao")
     (t.= "lmaohehelol" (send "(table.concat [*1 *2 *3])"))))
 
+(fn test-return []
+  (let [opts {:readChunk #",return (.. :return :value)"
+              :onValues #nil}]
+    (t.= :returnvalue (fennel.repl opts))))
+
 (fn test-decorating-repl []
   ;; overriding REPL methods from within the REPL via decoration.
   (let [send (wrap-repl)]
@@ -492,5 +497,6 @@
      : test-custom-metadata-failing
      : test-long-string
      : test-save-values
+     : test-return
      : test-decorating-repl}
     {})

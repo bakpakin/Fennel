@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Allow you to return a value from the repl with `,return FORM` command.
 * Save previous REPL values in `*1`, `*2`, and `*3` locals.
 * Make repl prompt change when repl sessions get nested.
 

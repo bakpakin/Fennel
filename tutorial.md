@@ -46,7 +46,7 @@ outside.)
 ```
 
 Functions can take an optional docstring in the form of a string that
-immediately follows the arglist. Under normal compilation, this is
+immediately follows the argument list. Under normal compilation, this is
 removed from the emitted Lua, but during development in the REPL the
 docstring and function usage can be viewed with the `,doc` command:
 
@@ -81,7 +81,7 @@ Note that the second argument `?y` is allowed to be `nil`, but `z` is not:
 (print-calculation 5 nil 3) ; -> 2
 ```
 
-Like `fn`, lambdas accept an optional docstring after the arglist.
+Like `fn`, lambdas accept an optional docstring after the argument list.
 
 ### Locals and variables
 
@@ -99,8 +99,9 @@ bound to a function that prints twice its argument. These bindings are
 only valid inside the body of the `let` call.
 
 You can also introduce locals with `local`, which is nice when they'll
-be used across the whole file, but in general `let` is preferred because
-it's clearer at a glance where the value is used:
+be used across the whole file, but in general `let` is preferred
+inside functions because it's clearer at a glance where the value can 
+be used:
 
 ```fennel
 (local tau-approx 6.28318)
@@ -131,13 +132,13 @@ nested `let`-like equivalent of `var`.
 
 Of course, all our standard arithmetic operators like `+`, `-`, `*`, and `/`
 work here in prefix form. Note that numbers are double-precision floats in all
-Lua versions prior to 5.3, which optionally introduced integers. On 5.3 and
+Lua versions prior to 5.3, which introduced integers. On 5.3 and
 up, integer division uses `//` and bitwise operations use `lshift`, `rshift`,
 `bor`, `band`, `bnot` and `xor`. Bitwise operators and integer division will
 not work if the host Lua environment is older than version 5.3.
 
 You may also use underscores to separate sections of long numbers. The
-underscores have no effect on the output.
+underscores have no effect on the value.
 
 ```fennel
 (let [x (+ 1 99)
@@ -416,9 +417,9 @@ failure message string. You can interact with this style of function
 in Fennel by destructuring with parens instead of square brackets:
 
 ```fennel
-(match (io.open "file")
-  ;; when io.open succeeds, it will return a file, but if it fails it will
-  ;; return nil and an err-msg string describing why
+(case (io.open "file")
+  ;; when io.open succeeds, it will return a file, but if it fails
+  ;; it will return nil and an err-msg string describing why
   f (do (use-file-contents (f:read :*all))
         (f:close))
   (nil err-msg) (print "Could not open file:" err-msg))
@@ -478,8 +479,9 @@ upon failure, a failure will trigger an `error` and halt execution.
 
 ## Variadic Functions
 
-Fennel supports variadic functions like many languages. The syntax for
-taking a variable number of arguments to a function is the `...` symbol, which
+Fennel supports variadic functions (in other words, functions which
+take any number of arguments) like many languages. The syntax for taking
+a variable number of arguments to a function is the `...` symbol, which
 must be the last parameter to a function. This syntax is inherited from Lua rather
 than Lisp.
 
@@ -507,19 +509,17 @@ function such as `print` without needing to bind it.
 (myprint ":D " :d :e :f)
 ```
 
-Varargs are scoped differently than other variables as well - they are only
-accessible to the function in which they are created. This means that the
-following code will NOT work, as the varargs in the inner function are out of
-scope.
+Varargs are scoped differently than other variables as well - they are
+only accessible to the function in which they are created. Unlike
+normal values, functions cannot close over them. This means that the
+following code will NOT work, as the varargs in the inner function are
+out of scope.
 
 ```fennel
 (fn badcode [...]
   (fn []
     (print ...)))
 ```
-
-You can read [more detailed coverage of some of the problems with `...` and multiple values][18]
-here.
 
 
 ## Strict global checking
@@ -559,8 +559,8 @@ runtime overhead over Lua.
 * There is no `apply` function; instead use `table.unpack` or `unpack`
   depending on your Lua version: `(f 1 3 (table.unpack [4 9]))`.
 
-* Tables are compared for identity, not based on the value of their
-  contents, as per [Baker][8].
+* Tables are compared for equality by identity, not based on the value of
+  their contents, as per [Baker][8].
 
 * Return values in the repl will get pretty-printed, but
   calling `(print tbl)` will emit output like `table: 0x55a3a8749ef0`.

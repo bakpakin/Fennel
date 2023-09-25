@@ -19,15 +19,17 @@ usually accept these fields:
 * `correlate`: when this is set, Fennel attempts to emit Lua where the line
   numbers match up with the Fennel input code; useful for situation where code
   that isn't under your control will print the stack traces.
-* `useMetadata` *(since 0.3.0)*: enables or disables [metadata](#work-with-docstrings-and-metadata),
+* `useMetadata`: enables or disables [metadata](#work-with-docstrings-and-metadata),
   allowing use of the `,doc` repl command. Intended for development purposes
   (see [performance note](#metadata-performance-note)); defaults to
   true for REPL only.
-* `requireAsInclude` *(since 0.3.0)*: Alias any static `require` calls to the
+* `requireAsInclude`: Alias any static `require` calls to the
   `include` special, embedding the module code inline in the compiled
   output. If the module name isn't a string literal that is resolvable at
   compile time it falls back to `require` at runtime. Can be used to embed both
   Fennel and Lua modules.
+* `assertAsRepl`: Replace calls to `assert` with `assert-repl` to
+  allow for interactive debugging.
 * `env`: an environment table in which to run the code; see the Lua manual.
 * `compilerEnv`: an environment table in which to run compiler-scoped code
   for macro definitions and `eval-compiler` calls. Internal Fennel functions
@@ -60,11 +62,12 @@ fennel.repl([options])
 Takes these additional options:
 
 * `readChunk()`: a function that when called, returns a string of source code.
-  The empty is string or nil is used as the end of source marker.
+  Should return nil when there is no more source, which will exit the repl.
 * `pp`: a pretty-printer function to apply on values (default: `fennel.view`).
-* `onValues(values)`: a function that will be called on all returned top level values.
-* `onError(errType, err, luaSource)`: a function that will be called on each error.
-  `errType` is a string with the type of error, can be either, 'parse',
+* `onValues(values)`: a function that will be called on all returned
+  top level values. Takes a table of values.
+* `onError(errType, err, luaSource)`: a function that will be called on each
+  error. `errType` is a string with the type of error, can be either, 'parse',
   'compile', 'runtime',  or 'lua'. `err` is the error message, and `luaSource`
   is the source of the generated lua code.
 
@@ -192,7 +195,7 @@ provided. Unlike the other functions, the `compile` functions default
 to performing no global checks, though you can pass in an `allowedGlobals`
 table in `options` to enable it.
 
-Accepts `filename` in `options` as in `fennel.eval`.
+Accepts `filename` in `options` like `fennel.eval`.
 
 ## Compile an iterator of bytes into a string of Lua
 
@@ -279,23 +282,23 @@ numbers are based on character count, which does not always correspond to
 visual columns; for instance "วัด" is three characters but only two visual
 columns.
 
-### sequence/kv table
+### sequence/key-value table
 
 These are table literals in Fennel code produced by square brackets
-(sequences) or curly brackets (kv tables). Sequences can be identified
+(sequences) or curly brackets (k/v tables). Sequences can be identified
 using the `fennel.sequence?` function and constructed using
-`fennel.sequence`. There is no predicate or constructor for kv tables;
+`fennel.sequence`. There is no predicate or constructor for k/v tables;
 any table which is not one of the other types is assumed to be one of
 these.
 
-At runtime there is no difference between sequences and kv tables
+At runtime there is no difference between sequences and k/v tables
 which use monotonically increasing integer keys, but the parser is
 able to distinguish between them to improve error reporting.
 
-Sequences and kv tables have their source data in `filename`, `line`,
-etc keys of their metatable. The metatable for kv tables also includes
+Sequences and k/v tables have their source data in `filename`, `line`,
+etc keys of their metatable. The metatable for k/v tables also includes
 a `keys` sequence which tells you which order the keys appeared
-originally, since kv tables are unordered and there would otherwise be
+originally, since k/v tables are unordered and there would otherwise be
 no way to reconstruct this information.
 
 ### symbol
@@ -340,8 +343,8 @@ parsed values. They are identified using `fennel.comment?` and
 constructed using the `fennel.comment` function. They are represented
 as tables that have source data as fields inside them.
 
-In most data context, comments just get included inline in a list or
-sequence. However, in a kv table, this cannot be done, because kv
+In most data contexts, comments just get included inline in a list or
+sequence. However, in a k/v table, this cannot be done, because k/v
 tables must have balanced key/value pairs, and including comments
 inline would imbalance these or cause keys to be considered as values
 and vice versa. So the comments are stored on the `comments` field of
@@ -376,9 +379,9 @@ characters in decimal format (e.g. `<ESC>` -> `\027`). Called with the signature
 `(byte-escape byte view-opts)`, where byte is the char code for a special character
 * `escape-newlines?` (default: false) emit strings with \\n instead of newline
 * `prefer-colon?` (default: false) emit strings in colon notation when possible
-* `utf8?` (default true) whether to use utf8 module to compute string lengths
-* `max-sparse-gap` (integer, default 10) maximum gap to fill in with nils in
-  sparse sequential tables.
+* `utf8?` (default: true) whether to use utf8 module to compute string lengths
+* `max-sparse-gap` (number, default: 10) maximum gap to fill in with nils in
+  sparse sequential tables before switching to curly brackets.
 * `preprocess` (function) if present, called on x (and recursively on each value
   in x), and the result is used for pretty printing; takes the same arguments as
   `fennel.view`
@@ -501,8 +504,6 @@ with Fennel later would result in an incorrect escape code in Lua 5.1.
 
 
 ## Work with docstrings and metadata
-
-*(Since 0.3.0)*
 
 When running a REPL or using compile/eval with metadata enabled, each function
 declared with `fn` or `λ/lambda` will use the created function as a key on
@@ -697,6 +698,6 @@ entry point functions.
 
 Your plugin should contain a `:versions` table which contains a list
 of strings indicating every version of Fennel which you have tested it
-with. You should also have a `:name` field with the plugin's name.
-
-[1]: https://github.com/rxi/lume#lumehotswapmodname
+with. You should also have a `:name` field with the plugin's name. If
+your plugin is used with a version of Fennel that isn't in the list,
+it will emit a warning.

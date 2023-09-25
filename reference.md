@@ -34,7 +34,7 @@ compile-time construct; they are not used at runtime. For example:
 `(print "hello world")`
 
 `{curly brackets}`: used to denote key/value table
-literals, for example: `{:a 1 :b 2}`
+literals, also known as dictionaries. For example: `{:a 1 :b 2}`
 
 `[square brackets]`: used to denote sequential
 tables, which can be used for literal data structures and also in
@@ -79,11 +79,12 @@ Symbols that contain a dot `.` or colon `:` are considered
 used as an identifier, and the part after the dot or colon is a field
 looked up on the local identified. A colon is only allowed before the
 final segment of a multi symbol, so `x.y:z` is valid but `a:b.c` is
-not. Colon multi symbols cannot be used for anything but method calls.
+not. Colon multi symbols can only be used for method calls.
 
 Fennel also supports certain kinds of strings that begin with a colon
 as long as they don't contain any characters which wouldn't be allowed
-in a symbol, for example `:fennel-lang.org` is a string.
+in a symbol, for example `:fennel-lang.org` is another way of writing
+the string "fennel-lang.org".
 
 Spaces, tabs, newlines, vertical tabs, form feeds, and carriage
 returns are counted as whitespace. Non-ASCII whitespace characters are
@@ -178,8 +179,6 @@ new local is introduced.
 The `λ` form is an alias for `lambda` and behaves identically.
 
 ### Docstrings and metadata
-
-*(Since 0.3.0)*
 
 The `fn`, `lambda`, `λ` and `macro` forms accept an optional docstring.
 
@@ -303,8 +302,6 @@ keys but third-party code can make use of arbitrary keys.
 
 ### Hash function literal shorthand
 
-*(Since 0.3.0)*
-
 It's pretty easy to create function literals, but Fennel provides
 an even shorter form of functions. Hash functions are anonymous
 functions of one form, with implicitly named arguments. All
@@ -362,7 +359,8 @@ function instead of waiting till it has the "correct" number of args.
 Example:
 
 ```fennel
-(partial (fn [x y] (print (+ x y))) 2)
+(fn add-print [x y] (print (+ x y)))
+(partial add-print 2)
 ```
 
 This example returns a function which will print a number that is 2
@@ -698,8 +696,6 @@ makes it redundant.
 
 ### `match` pattern matching
 
-*(since 0.2.0)*
-
 `match` is conceptually equivalent to `case`, except symbols in the patterns are
 always pinned with outer-scope symbols if they exist.
 
@@ -732,11 +728,7 @@ Example:
     ?no-input (.. "Hello anonymous"))) ; -> "Hello anonymous"
 ```
 
-**Note:** The `match` macro can be used in place of the `if-let` macro
-from Clojure. The reason Fennel doesn't have `if-let` is that `match`
-makes it redundant.
-
-**Note 2:** Prior to Fennel 0.9.0 the `match` macro used infix `?`
+**Note:** Prior to Fennel 0.9.0 the `match` macro used infix `?`
 operator to test patterns against the guards. While this syntax is
 still supported, `where` should be preferred instead:
 
@@ -886,8 +878,6 @@ Example:
 
 ### `with-open` bind and auto-close file handles
 
-*(Since 0.4.2)*
-
 While Lua will automatically close an open file handle when it's garbage collected,
 GC may not run right away; `with-open` ensures handles are closed immediately, error
 or no, without boilerplate.
@@ -922,8 +912,6 @@ Example:
 
 
 ### `pick-values` emit exactly n values
-
-*(Since 0.4.0)*
 
 Discards all values after the first n when dealing with multi-values (`...`)
 and multiple returns. Useful for composing functions that return multiple values
@@ -1123,7 +1111,7 @@ operators above; it is not aware of multiple values at runtime.
 
 ### `length` string or table length
 
-*(Changed in 0.3.0: the function was called `#` before.)*
+*(Changed in 0.3.0: it was called `#` before.)*
 
 Returns the length of a string or table. Note that the length of a
 table with gaps (nils) in it is undefined; it can return a number
@@ -1131,7 +1119,7 @@ corresponding to any of the table's "boundary" positions between nil
 and non-nil values. If a table has nils and you want to know the last
 consecutive numeric index starting at 1, you must calculate it
 yourself with `ipairs`; if you want to know the maximum numeric key in
-a table with nils, you can use `table.maxn`.
+a table with nils, you can use `table.maxn` on some versions of Lua.
 
 Example:
 
@@ -1196,13 +1184,13 @@ If the value is nil, it is omitted from the return table. This is analogous to
 
 ```fennel
 (icollect [_ v (ipairs [1 2 3 4 5 6])]
-  (if (> v 2) (* v v)))
+  (if (< 2 v) (* v v)))
 ;; -> [9 16 25 36]
 
 ;; equivalent to:
 (let [tbl []]
   (each [_ v (ipairs [1 2 3 4 5 6])]
-    (tset tbl (+ (length tbl) 1) (if (> v 2) (* v v))))
+    (tset tbl (+ (length tbl) 1) (if (< 2 v) (* v v))))
   tbl)
 ```
 
@@ -1332,7 +1320,7 @@ Looks up a function in a table and calls it with the table as its
 first argument. This is a common idiom in many Lua APIs, including
 some built-in ones.
 
-*(Since 0.3.0)* Just like Lua, you can perform a method call by calling a function
+Just like Lua, you can perform a method call by calling a function
 name where `:` separates the table variable and method name.
 
 Example:
@@ -1448,8 +1436,6 @@ subsequent forms are evaluated solely for side-effects.
 
 ### `include`
 
-*(since 0.3.0)*
-
 ```fennel
 (include :my.embedded.module)
 ```
@@ -1476,17 +1462,16 @@ module paths similarly to `import-macros`.  See the [relative
 require](tutorial#relative-require) section in the tutorial for more
 information.
 
+
 ## Macros
 
 All forms which introduce macros do so inside the current scope. This
 is usually the top level for a given file, but you can introduce
-macros into smaller scopes as well. Note that macros are a
+macros into nested scopes as well. Note that macros are a
 compile-time construct; they do not exist at runtime. As such macros
 cannot be exported at the bottom of a module like functions and other values.
 
 ### `import-macros` load macros from a separate module
-
-*(Since 0.4.0)*
 
 Loads a module at compile-time and binds its functions as local macros.
 
@@ -1510,7 +1495,7 @@ All forms in Fennel are normal tables you can use `table.insert`,
 `ipairs`, destructuring, etc on. The backtick on the third line
 creates a template list for the code emitted by the macro, and the
 comma serves as "unquote" which splices values into the
-template. *(Changed in 0.3.0: `@` was used instead of `,` before.)*
+template.
 
 Assuming the code above is in the file "my-macros.fnl" then it turns this input:
 
@@ -1595,8 +1580,6 @@ loader function will receive the module name and the filename as arguments.
 
 ### `macros` define several macros
 
-*(Since 0.3.0)*
-
 Defines a table of macros. Note that inside the macro definitions, you
 cannot access variables and bindings from the surrounding code. The
 macros are essentially compiled in their own compiler
@@ -1657,7 +1640,7 @@ they are passed a form which has side-effects, the result will be unexpected:
 (print (my-max (f) 2)) ; -> 3 since (f) is called twice in the macro body above
 ```
 
-*(Since 0.3.0)* In order to prevent [accidental symbol capture][2], you may not bind a
+In order to prevent [accidental symbol capture][2], you may not bind a
 bare symbol inside a backtick as an identifier. Appending a `#` on
 the end of the identifier name as above invokes "auto gensym" which
 guarantees the local name is unique.
@@ -1810,7 +1793,7 @@ if you are able to avoid it, you should.
 
 ### `require-macros` load macros with less flexibility
 
-*(Since 0.1.0, deprecated in 0.4.0)*
+*(Deprecated in 0.4.0)*
 
 The `require-macros` form is like `import-macros`, except it imports
 all macros without making it clear what new identifiers are brought
@@ -1818,7 +1801,7 @@ into scope. It is strongly recommended to use `import-macros` instead.
 
 ### `pick-args` create a function of fixed arity
 
-*(Since 0.4.0, deprecated 0.10.0)*
+*(Deprecated 0.10.0)*
 
 Like `pick-values`, but takes an integer `n` and a function/operator
 `f`, and creates a new function that applies exactly `n` arguments to `f`.

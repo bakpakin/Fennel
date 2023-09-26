@@ -1499,6 +1499,10 @@ replacement for `assert`, except instead of raising an error, it
 allows you to debug with a repl. It takes the same arguments as assert
 plus an optional opts table which is the same as `fennel.repl`.
 
+You can `,return EXPRESSION` from the repl to replace the original
+failing condition with a different arbitrary value. Returning false or
+nil will trigger a regular `assert` failure.
+
 If you use the `--assert-as-repl` flag when running Fennel, calls to
 `assert` will be replaced with `assert-repl` automatically.
 

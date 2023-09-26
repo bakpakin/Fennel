@@ -395,8 +395,6 @@ Example:
             (tset scope.macros import-key (. macros* macro-name))))))
   nil)
 
-
-
 (fn debug-repl* [?opts]
   "Embed a repl with access to locals at the point of the call.
 Takes an optional table of arguments which will be passed to fennel.repl."
@@ -407,7 +405,6 @@ Takes an optional table of arguments which will be passed to fennel.repl."
       (if parent (add-locals parent)))
     (add-locals (get-scope))
     `(let [opts# (or ,?opts {})
-           ;; TODO: nesting a debug-repl should change the prompt
            fennel# (require (or opts#.module-name :fennel))]
        (set opts#.env ,locals)
        (each [k# v# (pairs _G)]
@@ -422,7 +419,7 @@ Takes an optional table of arguments which will be passed to fennel.repl."
      (if (not condition#)
          (let [traceback# (. (require (or opts#.module-name :fennel)) :traceback)]
            (io.stderr:write (.. (traceback# message#) "\n"))
-           (debug-repl opts#))
+           (_G.assert (debug-repl opts#) message#))
          ;; `assert` returns *all* params on success, but omitting opts# to
          ;; defensively prevent accidental leakage of REPL opts into code
          (values condition# message#))))

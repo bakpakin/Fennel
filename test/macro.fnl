@@ -756,19 +756,25 @@
         form (view (let [hello :world]
                      (fn inc [x] (+ x 1))
                      (fn g [x]
-                       (assert-repl (< x 2000) nil {:readChunk io.read
-                                                    :onValues print}))
+                       (assert-repl (< x 2000) "AAAAAH" {:readChunk io.read
+                                                         :onValues print}))
                      (fn f [x] (g (* x 2)))
-                     ;; (f 28)
-                     (f 1010)
-                     ;; (f 3)
-                     ))]
-    (t.= [true 22] [(pcall fennel.eval form {:env env})])
+                     (f 28)
+                     (f 1010)))]
+    (t.= [true 22 "AAAAAH"]
+         [(pcall fennel.eval form {: env})])
     (t.= [] inputs)
-    (t.= ["assertion failed, entering repl." ["2020"] ["2021"] ["5"] ["22"]]
+    (t.= ["AAAAAH" ["2020"] ["2021"] ["5"] ["22"]]
          [(string.gsub (. outputs 1) "%s*stack traceback:.*" "")
           (unpack outputs 2)])
-    (t.= (assert-repl :a-string) :a-string)))
+    (t.= (assert-repl :a-string) :a-string)
+    (let [env (setmetatable {:io {:read #",return nil" :stderr {:write #nil}}}
+                            {:__index _G})
+          form (view (assert-repl false "oh no" {:readChunk io.read
+                                                 :onValues #nil}))
+          (ok? msg) (pcall fennel.eval form {: env})]
+      (t.= false ok? "assertion should fail from repl when returning nil")
+      (t.match "oh no" msg))))
 
 {: test-arrows
  : test-doto

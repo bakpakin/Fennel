@@ -407,7 +407,9 @@ Takes an optional table of arguments which will be passed to fennel.repl."
     `(let [opts# (or ,?opts {})
            ;; TODO: nesting a debug-repl should change the prompt
            fennel# (require (or opts#.module-name :fennel))]
-       (set opts#.env (collect [k# v# (pairs _G) &into ,locals] k# v#))
+       (set opts#.env ,locals)
+       (each [k# v# (pairs _G)]
+         (when (= nil (. opts#.env k#)) (tset opts#.env k# v#)))
        (fennel#.repl opts#))))
 
 (fn assert-repl* [condition message ?opts]

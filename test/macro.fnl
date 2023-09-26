@@ -1,3 +1,4 @@
+(local unpack (or _G.unpack table.unpack))
 (local t (require :test.faith))
 (local fennel (require :fennel))
 
@@ -749,7 +750,8 @@
   (let [inputs ["x\n" "(inc x)\n" "(length hello)\n" ",return 22\n"]
         outputs []
         env (setmetatable {:print #(table.insert outputs $)
-                           :io {:read #(table.remove inputs 1)}}
+                           :io {:read #(table.remove inputs 1)
+                                :stderr {:write #(table.insert outputs $2)}}}
                           {:__index _G})
         form (view (let [hello :world]
                      (fn inc [x] (+ x 1))
@@ -764,7 +766,8 @@
     (t.= [true 22] [(pcall fennel.eval form {:env env})])
     (t.= [] inputs)
     (t.= ["assertion failed, entering repl." ["2020"] ["2021"] ["5"] ["22"]]
-         outputs)
+         [(string.gsub (. outputs 1) "%s*stack traceback:.*" "")
+          (unpack outputs 2)])
     (t.= (assert-repl :a-string) :a-string)))
 
 {: test-arrows

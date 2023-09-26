@@ -395,6 +395,8 @@ Example:
             (tset scope.macros import-key (. macros* macro-name))))))
   nil)
 
+
+
 (fn debug-repl* [?opts]
   "Embed a repl with access to locals at the point of the call.
 Takes an optional table of arguments which will be passed to fennel.repl."
@@ -414,11 +416,16 @@ Takes an optional table of arguments which will be passed to fennel.repl."
 
 (fn assert-repl* [condition message ?opts]
   "Drop into a debug-repl and print the message when condition is falsy."
-  `(let [condition# ,condition]
+  `(let [condition# ,condition
+         message# (or ,message "assertion failed, entering repl.")
+         opts# (or ,?opts {})]
      (if (not condition#)
-         (do (print (or ,message "assertion failed, entering repl."))
-             (debug-repl ,?opts))
-         condition#)))
+         (let [traceback# (. (require (or opts#.module-name :fennel)) :traceback)]
+           (io.stderr:write (.. (traceback# message#) "\n"))
+           (debug-repl opts#))
+         ;; `assert` returns *all* params on success, but omitting opts# to
+         ;; defensively prevent accidental leakage of REPL opts into code
+         (values condition# message#))))
 
 {:-> ->*
  :->> ->>*

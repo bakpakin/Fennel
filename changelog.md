@@ -9,7 +9,6 @@ deprecated forms.
 ## 1.3.2 / ???
 
 ### New Forms
-* Add `debug-repl` to drop a repl into any code for debugging.
 * Add `assert-repl` to make an assertion which opens a repl when it fails.
 
 ### New Features

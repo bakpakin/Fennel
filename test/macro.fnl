@@ -735,18 +735,8 @@
           (splice {:greetings "comrade"}))
       {:hello "world" :greetings "comrade"}))
 
-(fn test-debug-repl []
-  (== (let [inputs ["hello\n" "[:literal]\n" "(inc 991)\n" ",exit\n"]
-            outputs []
-            opts {:readChunk #(table.remove inputs 1)
-                  :onValues #(table.insert outputs (. $ 1))}
-            hello :world]
-        (fn inc [x] (+ x 1))
-        (debug-repl opts)
-        outputs)
-      ["\"world\"" "[\"literal\"]" "992"]))
-
 (fn test-assert-repl []
+  (set _G.x 3)
   (let [inputs ["x\n" "(inc x)\n" "(length hello)\n" ",return 22\n"]
         outputs []
         env (setmetatable {:print #(table.insert outputs $)
@@ -776,6 +766,16 @@
       (t.= false ok? "assertion should fail from repl when returning nil")
       (t.match "oh no" msg))))
 
+(fn test-assert-as-repl []
+  (let [env (setmetatable {:io {:read #",return :nerevar" :stderr {:write #nil}}}
+                          {:__index _G})
+        ;; TODO: move opts out of the assert call!
+        form (view (assert nil "you nwah" {:readChunk io.read
+                                           :onValues #nil}))
+        (ok? val) (pcall fennel.eval form {: env :assertAsRepl true})]
+    (t.is ok? "should be able to recover from nil assertion.")
+    (t.= "nerevar" val)))
+
 {: test-arrows
  : test-doto
  : test-?.
@@ -792,8 +792,8 @@
  : test-case
  : test-lua-module
  : test-disabled-sandbox-searcher
- : test-debug-repl
  : test-assert-repl
+ : test-assert-as-repl
  : test-expand
  : test-match-try
  : test-case-try

@@ -31,7 +31,7 @@
 ;; fnlfmt: skip
 (fn default-on-error [errtype err lua-source]
   (io.write
-   (match errtype
+   (case errtype
      "Lua Compile" (.. "Bad code generated - likely a bug with the compiler:\n"
                        "--- Generated Lua Start ---\n"
                        lua-source
@@ -49,7 +49,7 @@
                      :format raw name)))
         gap (if (lua-source:find "\n") "\n" " ")]
     (.. (if (next saves) (.. (table.concat saves " ") gap) "")
-        (match (lua-source:match "^(.*)[\n ](return .*)$")
+        (case (lua-source:match "^(.*)[\n ](return .*)$")
           (body return) (.. body gap (table.concat binds " ") gap return)
           _ lua-source))))
 
@@ -64,7 +64,7 @@
       ;; When matching on global env or repl locals, iterate *manglings* to include nils
       (local scope-first? (or (= tbl env) (= tbl env.___replLocals___)))
       (icollect [k is-mangled (utils.allpairs (if scope-first? scope.manglings tbl))
-                :into matches :until (<= max-items (length matches))]
+                 :into matches :until (<= max-items (length matches))]
         (let [lookup-k (if scope-first? is-mangled k)]
           (when (and (= (type k) :string) (= input (k:sub 0 (length input)))
                      ;; manglings iterated for globals & locals, but should only match once
@@ -130,7 +130,7 @@ For more information about the language, see https://fennel-lang.org/reference")
 
 (fn reload [module-name env on-values on-error]
   ;; Sandbox the reload inside the limited environment, if present.
-  (match (pcall (specials.load-code "return require(...)" env) module-name)
+  (case (pcall (specials.load-code "return require(...)" env) module-name)
     (true old) (let [_ (tset package.loaded module-name nil)
                      (ok new) (pcall require module-name)
                      ;; keep the old module if reload failed
@@ -195,7 +195,7 @@ For more information about the language, see https://fennel-lang.org/reference")
   (each [name subtbl (pairs tbl)]
     (when (and (= :string (type name))
                (not= package subtbl))
-      (match (type subtbl)
+      (case (type subtbl)
         :function (when (: (.. prefix name) :match pattern)
                     (table.insert names (.. prefix name)))
         :table (when (not (. seen subtbl))
@@ -233,7 +233,7 @@ For more information about the language, see https://fennel-lang.org/reference")
   (icollect [_ path (ipairs (apropos ".*"))]
     (let [tgt (apropos-follow-path path)]
       (when (= :function (type tgt))
-        (match (compiler.metadata:get tgt :fnl/docstring)
+        (case (compiler.metadata:get tgt :fnl/docstring)
           docstr (and (docstr:match pattern) path))))))
 
 (fn commands.apropos-doc [_env read on-values on-error _scope]
@@ -268,12 +268,12 @@ For more information about the language, see https://fennel-lang.org/reference")
 
 (fn commands.find [env read on-values on-error scope]
   (run-command read on-error
-               #(match (-?> (utils.sym? $) (resolve env scope) (debug.getinfo))
+               #(case (-?> (utils.sym? $) (resolve env scope) (debug.getinfo))
                   {:what "Lua" : source :linedefined line :short_src src}
                   (let [fnlsrc (?. compiler.sourcemap source line 2)]
                     (on-values [(string.format "%s:%s" src (or fnlsrc line))]))
-                   nil (on-error :Repl "Unknown value")
-                   _ (on-error :Repl "No source info"))))
+                  nil (on-error :Repl "Unknown value")
+                  _ (on-error :Repl "No source info"))))
 
 (compiler.metadata:set commands.find :fnl/docstring
                        "Print the filename and line number for a given function")
@@ -310,12 +310,12 @@ For more information about the language, see https://fennel-lang.org/reference")
   ;; first function to provide a command should win
   (for [i (length (or plugins [])) 1 -1]
     (each [name f (pairs (. plugins i))]
-      (match (name:match "^repl%-command%-(.*)")
+      (case (name:match "^repl%-command%-(.*)")
         cmd-name (tset commands cmd-name f)))))
 
 (fn run-command-loop [input read loop env on-values on-error scope chars]
   (let [command-name (input:match ",([^%s/]+)")]
-    (match (. commands command-name)
+    (case (. commands command-name)
       command (command env read on-values on-error scope chars)
       _ (when (and (not= command-name :exit) (not= command-name :return))
           (on-values ["Unknown command" command-name])))
@@ -414,7 +414,7 @@ For more information about the language, see https://fennel-lang.org/reference")
       (each [k (pairs chars)]
         (tset chars k nil))
       (reset)
-      (let [(ok parser-not-eof? x) (pcall read)
+      (let [(ok parser-not-eof? form) (pcall read)
             src-string (table.concat chars)
             ;; Work around a bug introduced in lua-readline 3.2
             readline-not-eof? (or (not readline) (not= src-string "(null)"))
@@ -429,20 +429,17 @@ For more information about the language, see https://fennel-lang.org/reference")
                               callbacks.onValues callbacks.onError
                               opts.scope chars)
             (when not-eof?
-              (match (pcall compiler.compile x (doto opts
-                                                 (tset :source src-string)))
-                (false msg) (do
-                              (clear-stream)
-                              (callbacks.onError :Compile msg))
+              (case-try (pcall compiler.compile form
+                               (doto opts (tset :source src-string)))
                 (true src) (let [src (if save-locals?
                                          (splice-save-locals env src opts.scope)
                                          src)]
-                             (match (pcall specials.load-code src env)
-                               (false msg) (do
-                                             (clear-stream)
-                                             (callbacks.onError "Lua Compile" msg src))
-                               (_ chunk) (xpcall #(print-values (save-value (chunk)))
-                                                 (partial callbacks.onError :Runtime)))))
+                             (pcall specials.load-code src env))
+                (true chunk) (xpcall #(print-values (save-value (chunk)))
+                                     (partial callbacks.onError :Runtime))
+                (catch
+                 (false msg) (do (clear-stream)
+                                 (callbacks.onError :Compile msg))))
               (set utils.root.options old-root-options)
               (if exit-next?
                   env.___replLocals___.*1

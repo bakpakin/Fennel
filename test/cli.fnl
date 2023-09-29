@@ -39,14 +39,14 @@
                     [:lua5.1 :lua5.2 :lua5.3 :lua5.4 :luajit])
           run #(pick-values 2 (peval $ (: "--lua %q" :format lua-exec)))]
       (t.= [true lua-exec]
-           [(run (v (match (_VERSION:sub 5)
-                      :5.1 (if _G.jit :luajit :lua5.1)
-                      v-num (.. :lua v-num))))]
+           [(run (v (match _VERSION
+                      "Lua 5.1" (if _G.jit :luajit :lua5.1)
+                      _ (.. :lua (_VERSION:sub 5)))))]
            (.. "should execute code in Lua runtime: " lua-exec))
       (let [(success? output) (run (v (do (print :test) (os.exit 1 true))))]
         (t.= "test" output)
         ;; pcall in Lua 5.1 doesn't give status with (proc:close)
-        (t.= (if (= _VERSION "Lua 5.1") true nil)
+        (t.= (if (or (= host-lua :lua5.1) (= host-lua :luajit)) true nil)
              success?
              (.. "errors should cause failing exit status with --lua "
                  lua-exec))))))

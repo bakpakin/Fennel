@@ -36,6 +36,8 @@
 ;;; helper functions
 
 (local unpack (or table.unpack _G.unpack))
+(local load (or _G.load _G.loadstring))
+(local math_pow (or math.pow (fennel.eval "(fn [x y] (^ x y))")))
 
 (fn now []
   {:real (or (and (pcall require :socket)
@@ -186,7 +188,7 @@
                      (: (.. "%." (tonumber decimal-places) "f")
                         :format
                         (math.max (- end start)
-                                  (math.pow 10 (- decimal-places))))))]
+                                  (math_pow 10 (- decimal-places))))))]
     (print (: (.. "Testing finished %s with %d assertion(s)\n"
                   "%d passed, %d failed, %d error(s), %d skipped\n"
                   "%.2f second(s) of CPU time used")

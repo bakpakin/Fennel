@@ -27,32 +27,44 @@
 
 (fn test-include []
   (tset package.preload :test.mod.quux nil)
-  (let [stderr io.stderr
+  (let [fmt "Expected %s to run but it failed with error %s"
+        fmt* "Expected %s (with requireAsInclude) to run but it failed with error %s"
+        stderr io.stderr
         ;; disable warnings because these are supposed to fall back
         _ (set io.stderr nil)
         expected "foo:FOO-1bar:BAR-2-BAZ-3"
         (ok out) (pcall fennel.dofile "test/mod/foo.fnl")
-        (ok2 out2) (pcall fennel.dofile "test/mod/foo2.fnl"
-                          {:requireAsInclude true})
-        (ok3 out3) (pcall fennel.dofile "test/mod/foo3.fnl"
-                          {:requireAsInclude true})
+        (ok2 out2) (pcall fennel.dofile "test/mod/foo2.fnl")
+        (ok2* out2*) (pcall fennel.dofile "test/mod/foo2.fnl"
+                            {:requireAsInclude true})
+        (ok3 out3) (pcall fennel.dofile "test/mod/foo3.fnl")
+        (ok3* out3*) (pcall fennel.dofile "test/mod/foo3.fnl"
+                            {:requireAsInclude true})
         (ok4 out4) (pcall fennel.dofile "test/mod/foo4.fnl")
-        (ok5 out5) (pcall fennel.dofile "test/mod/foo5.fnl"
-                          {:requireAsInclude true}
-                          :test)
-        (ok6 out6) (pcall fennel.dofile "test/mod/foo6.fnl"
-                          {:requireAsInclude true}
-                          :test)
-        (ok6-2 out6-2) (pcall fennel.dofile "test/mod/foo6-2.fnl"
-                              {:requireAsInclude true}
-                              :test)]
-    (t.is ok (: "Expected foo to run but it failed with error %s" :format (tostring out)))
-    (t.is ok2 (: "Expected foo2 to run but it failed with error %s" :format (tostring out2)))
-    (t.is ok3 (: "Expected foo3 to run but it failed with error %s" :format (tostring out3)))
-    (t.is ok4 (: "Expected foo4 to run but it failed with error %s" :format (tostring out4)))
-    (t.is ok5 (: "Expected foo5 to run but it failed with error %s" :format (tostring out5)))
-    (t.is ok6 (: "Expected foo6 to run but it failed with error %s" :format (tostring out6)))
-    (t.is ok6-2 (: "Expected foo6 to run but it failed with error %s" :format (tostring out6-2)))
+        (ok5 out5) (pcall fennel.dofile "test/mod/foo5.fnl" {} :test)
+        (ok5* out5*) (pcall fennel.dofile "test/mod/foo5.fnl"
+                            {:requireAsInclude true}
+                            :test)
+        (ok6 out6) (pcall fennel.dofile "test/mod/foo6.fnl" {} :test)
+        (ok6* out6*) (pcall fennel.dofile "test/mod/foo6.fnl"
+                            {:requireAsInclude true}
+                            :test)
+        (ok6-2 out6-2) (pcall fennel.dofile "test/mod/foo6-2.fnl" {} :test)
+        (ok6-2* out6-2*) (pcall fennel.dofile "test/mod/foo6-2.fnl"
+                                {:requireAsInclude true}
+                                :test)]
+    (t.is ok (: fmt :format :foo (tostring out)))
+    (t.is ok2 (: fmt :format :foo2 (tostring out2)))
+    (t.is ok2* (: fmt* :format :foo2 (tostring out2*)))
+    (t.is ok3 (: fmt :format :foo3 (tostring out3)))
+    (t.is ok3* (: fmt* :format :foo3 (tostring out3*)))
+    (t.is ok4 (: fmt :format :foo4 (tostring out4)))
+    (t.is ok5 (: fmt :format :foo5 (tostring out5)))
+    (t.is ok5* (: fmt* :format :foo5 (tostring out5*)))
+    (t.is ok6 (: fmt :format :foo6 (tostring out6)))
+    (t.is ok6* (: fmt* :format :foo6 (tostring out6*)))
+    (t.is ok6-2 (: fmt :format :foo6-2 (tostring out6-2)))
+    (t.is ok6-2* (: fmt* :format :foo6-2 (tostring out6-2*)))
     (t.= expected (and (= :table (type out)) out.result)
          (.. "Expected include to have result: " expected))
     (t.= [:FOO 1] out.quux

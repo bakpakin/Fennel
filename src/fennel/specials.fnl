@@ -1345,13 +1345,14 @@ Consider using import-macros instead as it is more flexible.")
 
 (fn SPECIALS.include [ast scope parent opts]
   (compiler.assert (= (length ast) 2) "expected one argument" ast)
-  (let [modexpr (match (pcall resolve-module-name ast scope parent opts)
+  (let [(modname? modname) (pcall resolve-module-name ast scope parent opts)
+        modexpr (if modname?
                   ;; if we're in a dofile and not a require, then module-name
                   ;; will be nil and we will not be able to successfully
                   ;; compile relative requires into includes, but we can still
                   ;; emit a runtime relative require.
-                  (true modname) (utils.expr (string.format "%q" modname) :literal))]
-    (compiler.compile1 (. ast 2) scope parent {:nval 1})
+                  (utils.expr (string.format "%q" modname) :literal)
+                  (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))]
     (if (or (not= modexpr.type :literal) (not= (: (. modexpr 1) :byte) 34))
         (if opts.fallback
             (opts.fallback modexpr)
@@ -1395,7 +1396,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
              ["{:macro-name-1 (fn [...] ...) ... :macro-name-N macro-body-N}"]
              "Define all functions in the given table as macros local to the current scope.")
 
-(fn SPECIALS.tail! [ast scope parent {: tail}]
+(fn SPECIALS.tail! [ast scope _parent {: tail}]
   (compiler.assert (= (length ast) 2) "Expected one argument" ast)
   (compiler.assert (utils.list? (. ast 2)) "Expected a call as argument" ast)
   (compiler.assert tail "Must be in tail position" ast)

@@ -6,6 +6,8 @@ BIN_DIR ?= $(PREFIX)/bin
 LUA_LIB_DIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 MAN_DIR ?= $(PREFIX)/share
 
+MAKEFLAGS += --no-print-directory
+
 MINI_SRC=src/fennel.fnl src/fennel/parser.fnl src/fennel/specials.fnl \
 		src/fennel/utils.fnl src/fennel/compiler.fnl  src/fennel/macros.fnl \
 		src/fennel/match.fnl
@@ -21,7 +23,8 @@ MAN_PANDOC = pandoc -f gfm -t man -s --lua-filter=build/manfilter.lua \
 build: fennel fennel.lua
 
 test: fennel.lua fennel test/faith.lua
-	LUA_PATH=?.lua $(LUA) test/init.lua $(TESTS)
+	@LUA_PATH=?.lua $(LUA) test/init.lua $(TESTS)
+	@echo
 
 testall: export FNL_TEST_OUTPUT=text
 testall: export FNL_TESTALL=yes
@@ -69,7 +72,7 @@ minifennel.lua: $(MINI_SRC) fennel
 		--compile $< >> $@
 
 lint: fennel
-	FENNEL_LINT_MODULES="^fennel%." ./fennel --no-compiler-sandbox \
+	@FENNEL_LINT_MODULES="^fennel%." ./fennel --no-compiler-sandbox \
 		--add-fennel-path src/?.fnl --plugin src/linter.fnl \
 		--require-as-include --compile src/fennel.fnl > /dev/null
 

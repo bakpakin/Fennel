@@ -1350,8 +1350,8 @@ Consider using import-macros instead as it is more flexible.")
                   ;; will be nil and we will not be able to successfully
                   ;; compile relative requires into includes, but we can still
                   ;; emit a runtime relative require.
-                  (true modname) (utils.expr (string.format "%q" modname) :literal))]
-    (compiler.compile1 (. ast 2) scope parent {:nval 1})
+                  (true modname) (utils.expr (string.format "%q" modname) :literal)
+                  _ (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))]
     (if (or (not= modexpr.type :literal) (not= (: (. modexpr 1) :byte) 34))
         (if opts.fallback
             (opts.fallback modexpr)

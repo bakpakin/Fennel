@@ -1395,7 +1395,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
              ["{:macro-name-1 (fn [...] ...) ... :macro-name-N macro-body-N}"]
              "Define all functions in the given table as macros local to the current scope.")
 
-(fn SPECIALS.tail! [ast scope parent {: tail}]
+(fn SPECIALS.tail! [ast scope _parent {: tail}]
   (compiler.assert (= (length ast) 2) "Expected one argument" ast)
   (compiler.assert (utils.list? (. ast 2)) "Expected a call as argument" ast)
   (compiler.assert tail "Must be in tail position" ast)

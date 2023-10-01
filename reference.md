@@ -33,8 +33,15 @@ in binding contexts to bind to multiple values. Lists are a
 compile-time construct; they are not used at runtime. For example:
 `(print "hello world")`
 
-`{curly brackets}`: used to denote key/value table
-literals, also known as dictionaries. For example: `{:a 1 :b 2}`
+`{curly brackets}`: used to denote key/value table literals, also
+known as dictionaries. For example: `{:a 1 :b 2}` In a table if you
+have a string key followed by a symbol of the same name as the string,
+you can use `:` as the key and it will be expanded to a string
+containing the name of the following symbol.
+
+```fennel
+{: this} ; is shorthand for {:this this}
+```
 
 `[square brackets]`: used to denote sequential
 tables, which can be used for literal data structures and also in
@@ -405,7 +412,7 @@ Example:
 
 If a table key is a string with the same name as the local you want to
 bind to, you can use shorthand of just `:` for the key name followed
-by the local name.
+by the local name. This works for both creating tables and destructuring them.
 
 Example:
 

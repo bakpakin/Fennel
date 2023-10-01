@@ -180,6 +180,9 @@ something that may not be able to get merged.
   `changelog.md`. Changes that affect the compiler API should update `api.md`
   while changes to the built-in forms will usually need to update
   `reference.md` to reflect the new behavior.
+* Please be patient if it takes a long time to get feedback on your change;
+  there are very few people who review patches, and no one works on Fennel
+  for their job.
 
 [1]: https://man.sr.ht/git.sr.ht/send-email.md
 [2]: https://lists.sr.ht/%7Etechnomancy/fennel

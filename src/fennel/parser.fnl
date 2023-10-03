@@ -36,20 +36,27 @@ Also returns a second function to clear the buffer in the byte stream."
 ;; Opener keys have closer as the value; closers keys have true as their value.
 (local delims {40 41 41 true 91 93 93 true 123 125 125 true})
 
+(local uws {0x85 true 0xA0 true 0x1680 true 0x2000 true 0x2001 true 0x2002 true
+            0x2003 true 0x2004 true 0x2005 true 0x2006 true 0x2007 true
+            0x2008 true 0x2009 true 0x200A true 0x2028 true 0x2029 true
+            0x202F true 0x205F true 0x3000 true})
+
+(fn whitespace? [cp] (or (= cp 32) (<= 9 cp 13) (. uws cp)))
+
 ;; fnlfmt: skip
-(fn sym-char? [b]
-  (let [b (if (= :number (type b)) b (string.byte b))]
-    (and (< 32 b)
-         (not (. delims b))
-         (not= b 127) ; backspace
-         (not= b 34) ; backslash
-         (not= b 39) ; single quote
-         (not= b 126) ; tilde
-         (not= b 59) ; semicolon
-         (not= b 44) ; comma
-         (not= b 64) ; at
-         (not= b 96) ; backtick
-         )))
+(fn sym-char? [cp]
+  (let [cp (if (= :number (type cp)) cp (string.byte cp))]
+    (and (< 32 cp)
+         (not (. delims cp))
+         (not= cp 127) ; backspace
+         (not= cp 34) ; backslash
+         (not= cp 39) ; single quote
+         (not= cp 126) ; tilde
+         (not= cp 59) ; semicolon
+         (not= cp 44) ; comma
+         (not= cp 64) ; at
+         (not= cp 96) ; backtick
+         (not (whitespace? cp)))))
 
 ;; prefix chars substituted while reading
 (local prefixes {35 :hashfn
@@ -59,6 +66,14 @@ Also returns a second function to clear the buffer in the byte stream."
                  96 :quote})
 
 (fn char-starter? [b] (or (< 1 b 127) (< 192 b 247)))
+
+(fn insert-codepoint [chars cp]
+  (if (< cp 0xff)
+      (table.insert chars (string.char cp))
+      (let [left (math.floor (/ cp 0xff))]
+        (table.insert chars (string.char (math.fmod cp 0xff)))
+        (when (< 0 left)
+          (insert-codepoint chars left)))))
 
 (fn parser-fn [getbyte filename {: source : unfriendly : comments &as options}]
   (var stack []) ; stack of unfinished values
@@ -86,7 +101,22 @@ Also returns a second function to clear the buffer in the byte stream."
       (set (line col prev-col) (values (+ line 1) 0 col)))
     r)
 
-  (fn whitespace? [b] (or (= b 32) (<= 9 b 13) (?. options.whitespace b)))
+  (fn getcp []
+    (let [b (getb)]
+      (if (= nil b) nil
+          (< b 0x80) b
+          (< b 0xE0) (let [b2 (getb)]
+                       (+ (lshift (band b 0x1f) 6) b2))
+          (< b 0xF0) (let [b2 (getb)
+                           b3 (getb)]
+                       (+ (lshift (band b 0xF) 12)
+                          (lshift (band b2 0x3F) 6)
+                          (band 0x3F b3)))
+          (let [b2 (getb) b3 (getb) b4 (getb)]
+            (+ (lshift (band b 0xF) 18)
+               (lshift (band b2 0x3F) 12)
+               (lshift (band b3 0x3F) 6)
+               (band 0x3F b4))))))
 
   ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!
@@ -264,7 +294,7 @@ Also returns a second function to clear the buffer in the byte stream."
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"
       (table.insert stack {:prefix (. prefixes b) : filename : line
                            :bytestart byteindex :col (- col 1)})
-      (let [nextb (getb)]
+      (let [nextb (getcp)]
         (when (or (whitespace? nextb) (= true (. delims nextb)))
           (when (not= b 35)
             (parse-error "invalid whitespace after quoting prefix"))
@@ -272,14 +302,14 @@ Also returns a second function to clear the buffer in the byte stream."
           (dispatch (utils.sym "#")))
         (ungetb nextb)))
 
-    (fn parse-sym-loop [chars b]
-      (if (and b (sym-char? b))
+    (fn parse-sym-loop [chars cp]
+      (if (and cp (sym-char? cp))
           (do
-            (table.insert chars (string.char b))
-            (parse-sym-loop chars (getb)))
+            (insert-codepoint chars cp)
+            (parse-sym-loop chars (getcp)))
           (do
-            (when b
-              (ungetb b))
+            (when cp
+              (ungetb cp))
             chars)))
 
     (fn parse-number [rawstr]
@@ -321,7 +351,7 @@ Also returns a second function to clear the buffer in the byte stream."
 
     (fn parse-sym [b] ; not just syms actually...
       (let [source {:bytestart byteindex : filename : line :col (- col 1)}
-            rawstr (table.concat (parse-sym-loop [(string.char b)] (getb)))]
+            rawstr (table.concat (parse-sym-loop [(string.char b)] (getcp)))]
         (set-source-fields source)
         (if (= rawstr :true)
             (dispatch true)
@@ -346,9 +376,9 @@ Also returns a second function to clear the buffer in the byte stream."
           (parse-error (.. "invalid character: " (string.char b))))
       (if (not b) nil ; EOF
           done? (values true retval)
-          (parse-loop (skip-whitespace (getb)))))
+          (parse-loop (skip-whitespace (getcp)))))
 
-    (parse-loop (skip-whitespace (getb))))
+    (parse-loop (skip-whitespace (getcp))))
 
   (values parse-stream #(set (stack line byteindex col lastb) (values [] 1 0 0 nil))))
 

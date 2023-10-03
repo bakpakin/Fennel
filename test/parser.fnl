@@ -125,9 +125,18 @@
     (t.is (not ok?) "parse error is expected")
     (t.is parse-error-called "plugin wasn't called")))
 
+(fn test-whitespace []
+  (let [(ok? ast) ((fennel.parser (fennel.string-stream "[ 1 ]") ""))]
+    (t.= [1] (and ok? ast)))
+  (set _G.dbg true)
+  (let [(ok1? ok? ast) (pcall (fennel.parser (fennel.string-stream "[ a]") ""))]
+    (set _G.dbg false)
+    (t.= [(fennel.sym :a)] (and ok? ast))))
+
 {: test-basics
  : test-control-codes
  : test-comments
  : test-prefixes
  : test-source-meta
- : test-plugin-hooks}
+ : test-plugin-hooks
+ : test-whitespace}

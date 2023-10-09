@@ -78,7 +78,7 @@ will see its values updated as expected, regardless of mangling rules."
   (tset compiler.metadata (. SPECIALS name)
         {:fnl/arglist arglist :fnl/docstring docstring :fnl/body-form? body-form?}))
 
-(fn compile-body [ast scope parent ?start]
+(fn compile-do [ast scope parent ?start]
   "Compile a list of forms for side effects."
   (let [start (or ?start 2)
         len (length ast)
@@ -113,8 +113,6 @@ By default, start is 2."
         (do
           (compiler.emit parent :do ast)
           (compile-body opts.target opts.tail))
-        (= len 2) ; empty do is a no-op
-        (compiler.compile1 (. ast 2) scope chunk opts)
         opts.nval
         ;; generate a local target
         (let [syms []]
@@ -660,7 +658,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
                               {:declaration true :nomulti true :symtype :each}))
       (compiler.apply-manglings sub-scope new-manglings ast)
       (compile-until until-condition sub-scope chunk)
-      (compile-body ast sub-scope chunk 3)
+      (compile-do ast sub-scope chunk 3)
       (compiler.emit parent chunk ast)
       (compiler.emit parent :end ast))))
 
@@ -686,7 +684,7 @@ order, but can be used with any iterator." true)
                          ast))
         ;; simple condition
         (compiler.emit parent (.. "while " (tostring condition) " do") ast))
-    (compile-body ast (compiler.make-scope scope) sub-chunk 3)
+    (compile-do ast (compiler.make-scope scope) sub-chunk 3)
     (compiler.emit parent sub-chunk ast)
     (compiler.emit parent :end ast)))
 
@@ -719,7 +717,7 @@ order, but can be used with any iterator." true)
                       (compiler.declare-local binding-sym [] sub-scope ast)
                       (table.concat range-args ", ")) ast)
     (compile-until until-condition sub-scope chunk)
-    (compile-body ast sub-scope chunk 3)
+    (compile-do ast sub-scope chunk 3)
     (compiler.emit parent chunk ast)
     (compiler.emit parent :end ast)))
 
@@ -847,7 +845,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 (doc-special :hashfn ["..."]
              "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
-;; Spice in a do to trigger an IIFE to ensure we short-circuit certain
+;; Trigger an IIFE to ensure we short-circuit certain
 ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
 ;; https://todo.sr.ht/~technomancy/fennel/111
 (fn maybe-short-circuit-protect [ast i name {:macros mac}]
@@ -864,7 +862,7 @@ Method name doesn't have to be known at compile-time; if it is, use
   (let [len (length ast) operands []
         padded-op (.. " " name " ")]
     (for [i 2 len]
-      (let [subast (maybe-short-circuit-protect (. ast i) i name scope parent)
+      (let [subast (maybe-short-circuit-protect (. ast i) i name scope)
             subexprs (compiler.compile1 subast scope parent)]
         (if (= i len)
             ;; last arg gets all its exprs but everyone else only gets one

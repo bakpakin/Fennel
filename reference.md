@@ -1443,15 +1443,21 @@ subsequent forms are evaluated solely for side-effects.
 
 ### `tail!`
 
-The `tail!` form asserts that its argument is called in a tail position.
+The `tail!` form asserts that its argument is called in a tail
+position. You can use this when using tail calls to recurse over large
+data sets in a way that might not be obvious; that way if the code is
+changed so that the recursive call is no longer a tail call, it will
+cause a compile error instead of overflowing the stack on large data
+sets.
 
 ```fennel
-(macro not-last [f]
-  `(do ,f nil))
-
-(fn abc []
-  (not-last (tail! (print :lol))))
-;;           ^^^^^ Compile error: Must be in tail position
+(fn process-all [data i]
+  (case (process (. data i))
+    :done (print "Process completed.")
+    :next (process-all data (+ i 1))
+    :skip (do (process-all data (+ i 2))
+;;             ^^^^^^^^^^^ Compile error: Must be in tail position
+              (print "Skipped" (+ i 1)))))
 ```
 
 ### `include`

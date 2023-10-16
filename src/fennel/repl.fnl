@@ -376,6 +376,8 @@ For more information about the language, see https://fennel-lang.org/reference")
                                           (table.insert chars (string.char b)))
                                         b)))]
     (set depth (+ depth 1))
+    (when opts.message
+      (callbacks.onValues [opts.message]))
     (set env.___repl___ callbacks)
     (set (opts.env opts.scope) (values env (compiler.make-scope)))
     ;; use metadata unless we've specifically disabled it

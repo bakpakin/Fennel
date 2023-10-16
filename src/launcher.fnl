@@ -210,14 +210,16 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
 
 (fn repl []
   (let [readline? (and (not= "dumb" (os.getenv "TERM"))
-                       (pcall require :readline))]
+                       (pcall require :readline))
+        welcome [(.. "Welcome to " (fennel.runtime-version) "!")
+                 "Use ,help to see available commands."]]
     (set searcher-opts.useMetadata (not= false options.useMetadata))
     (when (not= false options.fennelrc)
       (tset options :fennelrc load-initfile))
-    (print (.. "Welcome to " (fennel.runtime-version) "!"))
-    (print "Use ,help to see available commands.")
     (when (and (not readline?) (not= "dumb" (os.getenv "TERM")))
-      (print "Try installing readline via luarocks for a better repl experience."))
+      (table.insert welcome (.. "Try installing readline via luarocks for a "
+                                "better repl experience.")))
+    (set options.message (table.concat welcome "\n"))
     (fennel.repl options)))
 
 (fn eval [form]

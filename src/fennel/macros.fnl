@@ -403,12 +403,12 @@ Takes an optional table of arguments which will be passed to fennel.repl."
       (tset locals name (sym name)))
     (if parent (add-locals parent locals) locals))
   `(let [condition# ,condition
-         message# (or ,message "assertion failed, entering repl.")
-         opts# (or ,?opts {})]
+         message# (or ,message "assertion failed, entering repl.")]
      (if (not condition#)
-         (let [fennel# (require (or opts#.moduleName :fennel))
+         (let [opts# (or ,?opts {:assert-repl? true})
+               fennel# (require (or opts#.moduleName :fennel))
                locals# ,(add-locals (get-scope) [])]
-           (io.stderr:write (.. (fennel#.traceback message#) "\n"))
+           (set opts#.message (fennel#.traceback message#))
            (set opts#.env (collect [k# v# (pairs _G) &into locals#]
                             (if (= nil (. locals# k#)) (values k# v#))))
            (_G.assert (fennel#.repl opts#) message#))

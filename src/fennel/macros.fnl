@@ -405,7 +405,10 @@ Takes an optional table of arguments which will be passed to fennel.repl."
   `(let [condition# ,condition
          message# (or ,message "assertion failed, entering repl.")]
      (if (not condition#)
-         (let [opts# (or ,?opts {:assert-repl? true})
+         (let [opts# (or ,?opts {:assert-repl? true
+                                 :readChunk (?. _G :___repl___ :readChunk)
+                                 :onError (?. _G :___repl___ :onError)
+                                 :onValued (?. _G :___repl___ :onValued)})
                fennel# (require (or opts#.moduleName :fennel))
                locals# ,(add-locals (get-scope) [])]
            (set opts#.message (fennel#.traceback message#))

@@ -745,16 +745,17 @@
                           {:__index _G})
         form (view (let [hello :world]
                      (fn inc [x] (+ x 1))
+                     (fn onValues [[x]] (print x))
                      (fn g [x]
                        (assert-repl (< x 2000) "AAAAAH" {:readChunk io.read
-                                                         :onValues print}))
+                                                         : onValues}))
                      (fn f [x] (g (* x 2)))
                      (f 28)
                      (f 1010)))]
     (t.= [true 22 "AAAAAH"]
          [(pcall fennel.eval form {: env})])
     (t.= [] inputs)
-    (t.= ["AAAAAH" ["2020"] ["2021"] ["5"] ["22"]]
+    (t.= ["AAAAAH" "2020" "2021" "5" "22"]
          [(string.gsub (. outputs 1) "%s*stack traceback:.*" "")
           (unpack outputs 2)])
     (t.= (assert-repl :a-string) :a-string)

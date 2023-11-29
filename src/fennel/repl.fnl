@@ -384,6 +384,7 @@ For more information about the language, see https://fennel-lang.org/reference")
     (set opts.useMetadata (not= opts.useMetadata false))
     (when (= opts.allowedGlobals nil)
       (set opts.allowedGlobals (specials.current-global-names env)))
+    (when opts.init (opts.init opts depth))
     (when opts.registerCompleter
       (opts.registerCompleter (partial completer env opts.scope)))
     (load-plugin-commands opts.plugins)
@@ -451,4 +452,5 @@ For more information about the language, see https://fennel-lang.org/reference")
       (set depth (- depth 1))
       (when readline
         (readline.save_history))
+      (when opts.exit (opts.exit opts depth))
       value)))

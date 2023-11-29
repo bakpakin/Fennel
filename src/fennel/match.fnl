@@ -1,3 +1,5 @@
+;; fennel-ls: macro-file
+
 ;;; Pattern matching
 ;; This is separated out so we can use the "core" macros during the
 ;; implementation of pattern matching.
@@ -101,7 +103,7 @@
                    (let [in-pattern (symbols-in-pattern pattern)]
                      (if ?symbols
                        (do
-                         (each [name symbol (pairs ?symbols)]
+                         (each [name (pairs ?symbols)]
                            (when (not (. in-pattern name))
                              (tset ?symbols name nil)))
                          ?symbols)
@@ -117,7 +119,7 @@
     (if (= 0 (length bindings))
       ;; no bindings special case generates simple code
       (let [condition
-            (icollect [i subpattern (ipairs pattern) &into `(or)]
+            (icollect [_ subpattern (ipairs pattern) &into `(or)]
               (let [(subcondition subbindings) (case-pattern vals subpattern unifications opts)]
                 subcondition))]
         (values
@@ -130,7 +132,7 @@
             bindings-mangled (icollect [_ binding (ipairs bindings)]
                                (gensym (tostring binding)))
             pre-bindings `(if)]
-        (each [i subpattern (ipairs pattern)]
+        (each [_ subpattern (ipairs pattern)]
           (let [(subcondition subbindings) (case-guard vals subpattern guards {} case-pattern opts)]
             (table.insert pre-bindings subcondition)
             (table.insert pre-bindings `(let ,subbindings
@@ -296,7 +298,7 @@ introduce for the duration of the body if it does match."
       (case-condition (list val) clauses match?)
       ;; protect against multiple evaluation of the value, bind against as
       ;; many values as we ever match against in the clauses.
-      (let [vals (fcollect [i 1 vals-count &into (list)] (gensym))]
+      (let [vals (fcollect [_ 1 vals-count &into (list)] (gensym))]
         (list `let [vals val] (case-condition vals clauses match?))))))
 
 (fn case* [val ...]

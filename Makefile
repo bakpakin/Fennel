@@ -76,6 +76,9 @@ lint: fennel
 		--add-fennel-path src/?.fnl --plugin src/linter.fnl \
 		--require-as-include --compile src/fennel.fnl > /dev/null
 
+check:
+	find src -name "*fnl" | xargs fennel-ls --check
+
 ## Binaries
 
 BIN_LUA_VERSION ?= 5.4.6

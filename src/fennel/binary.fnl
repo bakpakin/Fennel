@@ -17,10 +17,8 @@
     true true))
 
 (fn string->c-hex-literal [characters]
-  (let [hex []]
-    (each [character (characters:gmatch ".")]
-      (table.insert hex (: "0x%02x" :format (string.byte character))))
-    (table.concat hex ", ")))
+  (table.concat (icollect [character (characters:gmatch ".")]
+                  (: "0x%02x" :format (string.byte character))) ", "))
 
 (local c-shim "#ifdef __cplusplus
 extern \"C\" {

@@ -56,15 +56,14 @@ will see its values updated as expected, regardless of mangling rules."
   "Return a docstring for tgt."
   (if (not tgt)
       (.. name " not found")
-      (let [docstring (-> (: compiler.metadata :get tgt :fnl/docstring)
+      (let [docstring (-> (compiler.metadata:get tgt :fnl/docstring)
                           (or "#<undocumented>")
                           (: :gsub "\n$" "")
                           (: :gsub "\n" "\n  "))
             mt (getmetatable tgt)]
         (if (or (= (type tgt) :function)
                 (and (= (type mt) :table) (= (type (. mt :__call)) :function)))
-            (let [arglist (table.concat (or (: compiler.metadata :get tgt
-                                               :fnl/arglist)
+            (let [arglist (table.concat (or (compiler.metadata:get tgt :fnl/arglist)
                                             ["#<unknown-arguments>"])
                                         " ")]
               (string.format "(%s%s%s)\n  %s" name
@@ -499,8 +498,8 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
                      "do end (%s)[%s] = %s"
                      "%s[%s] = %s")]
       (compiler.emit parent
-                     (: fmtstr :format rootstr (table.concat keys "][")
-                        (tostring value)) ast))))
+                     (fmtstr:format rootstr (table.concat keys "][")
+                                    (tostring value)) ast))))
 
 (doc-special :tset [:tbl :key1 "..." :keyN :val]
              "Set the value of a table field. Can take additional keys to set
@@ -566,7 +565,7 @@ nested values, but all parents must contain an existing table.")
           (let [branch (. branches i)
                 fstr (if (not branch.nested) "if %s then" "elseif %s then")
                 cond (tostring branch.cond)
-                cond-line (: fstr :format cond)]
+                cond-line (fstr:format cond)]
             (if branch.nested
                 (compiler.emit last-buffer branch.condchunk ast)
                 (each [_ v (ipairs branch.condchunk)]
@@ -786,7 +785,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 
 (fn SPECIALS.comment [ast _ parent]
   (let [c (-> (icollect [i elt (ipairs ast)]
-                (if (not= i 1) (view (. ast i) {:one-line? true})))
+                (if (not= i 1) (view elt {:one-line? true})))
               (table.concat " ")
               (: :gsub "%]%]" "]\\]"))]
     (compiler.emit parent (.. "--[[ " c " ]]") ast)))
@@ -1156,7 +1155,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
                      pkg-config.pathsep)]
     (fn try-path [path]
       (let [filename (path:gsub (escapepat pkg-config.pathmark) no-dot-module)
-            filename2 (: path :gsub (escapepat pkg-config.pathmark) modulename)]
+            filename2 (path:gsub (escapepat pkg-config.pathmark) modulename)]
         (match (or (io.open filename) (io.open filename2))
           file (do
                  (file:close)

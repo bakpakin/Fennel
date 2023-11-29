@@ -310,7 +310,7 @@ expands to
           (.. "Expected n to be an integer >= 0, got " (tostring n)))
   (let [let-syms (list)
         let-values (if (= 1 (select "#" ...)) ... `(values ,...))]
-    (for [i 1 n]
+    (for [_ 1 n]
       (table.insert let-syms (gensym)))
     (if (= n 0) `(values)
         `(let [,let-syms ,let-values]

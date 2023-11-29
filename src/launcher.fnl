@@ -260,7 +260,7 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
   (print (fennel.runtime-version))
   [:--help] (print help)
   [:-h] (print help)
-  ["-" & args] (dosafely fennel.eval (io.stdin:read :*a))
+  ["-"] (dosafely fennel.eval (io.stdin:read :*a))
   [filename & args] (do
                       (tset arg -2 (. arg -1))
                       (tset arg -1 (. arg 0))

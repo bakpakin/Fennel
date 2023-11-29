@@ -1106,7 +1106,6 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              :assert-compile compiler.assert
              : view
              :version utils.version
-             :metadata compiler.metadata
              ;; AST functions
              :ast-source utils.ast-source
              :list utils.list :list? utils.list? :table? utils.table?
@@ -1236,7 +1235,7 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
                (= (. package.loaded modname :metadata) compiler.metadata)))
       ;; should never be needed to use view thru here since it's global in
       ;; macro scope, but it's not obvious, so allow this to be used as well.
-      {:metadata compiler.metadata : view}))
+      {:metadata {} : view}))
 
 (set safe-require (fn [modname]
                     "This is a replacement for require for use in macro contexts.

@@ -6,7 +6,7 @@ Note that since 0.3.0, no deprecations have actually resulted in
 removals. They are advisory only and we have no plans to break the
 deprecated forms.
 
-## 1.4.0 / ???
+## 1.4.0 / 2023-12-01
 
 ### Bug Fixes
 * Prevent metadata from being accessible in compiler sandbox.

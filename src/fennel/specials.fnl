@@ -1235,7 +1235,8 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
                (= (. package.loaded modname :metadata) compiler.metadata)))
       ;; should never be needed to use view thru here since it's global in
       ;; macro scope, but it's not obvious, so allow this to be used as well.
-      {:metadata {} : view}))
+      ;; can't read metadata from sandbox, but need to be able to set it.
+      {: view :metadata {:setall (fn [_ ...] (compiler.metadata:setall ...))}}))
 
 (set safe-require (fn [modname]
                     "This is a replacement for require for use in macro contexts.

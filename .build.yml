@@ -1,4 +1,4 @@
-image: debian/sid
+image: debian/stable
 packages:
   - lua5.1
   - lua5.2

@@ -6,7 +6,7 @@ orbs:
 jobs:
   build:
     docker:
-      - image: debian:testing
+      - image: debian:stable
     steps:
       - checkout
       - run:

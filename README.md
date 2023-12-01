@@ -70,6 +70,7 @@ This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
 * Pervasive destructuring anywhere locals are introduced
 * Clearer syntactic distinction between sequential tables and key/value tables
 * Separate looping constructs for numeric loops vs iterators instead of overloading `for`
+* Comprehensions result in much more succinct table transformations
 * Opt-in mutability for local variables
 * Opt-in nil checks for function arguments
 * Pattern matching
@@ -84,6 +85,8 @@ This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
 * Lua VM is already embedded in databases, window managers, games, etc
 * Low memory usage
 * Readable compiler output resembles input
+* Easy to build small (~250kb) standalone binaries
+* Compilation output has no runtime dependency on Fennel
 
 ## Why not Fennel?
 
@@ -101,7 +104,8 @@ Lua is much more readily-available than it is for Fennel.
 
 ## Resources
 
-* Join the `#fennel` chat [thru IRC on Libera.Chat][9] or [on Matrix][10]
+* Join the `#fennel` IRC chat [Libera.Chat][9] 
+* There is also a separate chat [on Matrix][10] if you prefer
 * The [mailing list][5] has slower-paced discussion and announcements
 * Report issues on the mailing list, [Sourcehut todo][11] or [Github issues][12]
 * You can browse and edit [the Wiki][7]

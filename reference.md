@@ -1338,8 +1338,10 @@ Example:
   (f:close))
 ```
 
-If the name of the method isn't known at compile time, you can use `:`
-followed by the table and then the method's name as a string.
+In the example above, `f:write` is a single multisym. If the name of
+the method or the table containing it isn't fixed, you can use `:`
+followed by the table and then the method's name to allow it to be a
+dynamic string instead:
 
 Example:
 

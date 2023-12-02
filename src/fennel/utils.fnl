@@ -342,8 +342,7 @@ Returns nil if passed something other than a multi-sym."
                      (if (or (= last-char ":") (= last-char "."))
                        (tset parts (+ (length parts) 1) (part:sub 1 (- 2)))
                        (tset parts (+ (length parts) 1) part))))
-             (and (< 0 (length parts))
-                  parts)))))
+             (and (next parts) parts)))))
 
 (fn quoted? [symbol]
   symbol.quoted)

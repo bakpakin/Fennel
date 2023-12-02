@@ -134,7 +134,7 @@ Also returns a second function to clear the buffer in the byte stream."
           (do
             (set whitespace-since-dispatch true)
             (skip-whitespace (getb)))
-          (and (not b) (< 0 (length stack)))
+          (and (not b) (next stack))
           (badend)
           b))
 

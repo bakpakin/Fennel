@@ -89,7 +89,7 @@
 (fn suggest [msg]
   (accumulate [s nil pat sug (pairs suggestions) :until s]
     (let [matches [(msg:match pat)]]
-      (when (< 0 (length matches))
+      (when (next matches)
         (icollect [_ s (ipairs sug)]
           (s:format (unpack matches)))))))
 

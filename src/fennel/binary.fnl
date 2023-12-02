@@ -282,7 +282,7 @@ int main(int argc, char *argv[]) {
               new (table.remove args (+ i 1))]
           (tset native.rename-modules original new)
           (table.remove args i))))
-    (when (< 0 (length args))
+    (when (next args)
       (print (table.concat args " "))
       (error (.. "Unknown args: " (table.concat args " "))))
     native))

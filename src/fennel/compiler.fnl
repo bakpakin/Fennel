@@ -265,7 +265,7 @@ if they have already been declared via declare-local"
     (if chunk.leaf
         (tset out last-line (.. (or (. out last-line) "") " " chunk.leaf))
         (each [_ subchunk (ipairs chunk)]
-          (when (or subchunk.leaf (< 0 (length subchunk))) ; ignore empty chunks
+          (when (or subchunk.leaf (next subchunk)) ; ignore empty chunks
             ;; don't increase line unless it's from the same file
             (let [source (utils.ast-source subchunk.ast)]
               (when (= file source.filename)
@@ -293,7 +293,7 @@ Tab is what is used to indent a block."
                   tab tab
                   nil "")]
         (fn parter [c]
-          (when (or c.leaf (< 0 (length c)))
+          (when (or c.leaf (next c))
             (let [sub (flatten-chunk file-sourcemap c tab (+ depth 1))]
               (if (< 0 depth)
                   (.. tab (sub:gsub "\n" (.. "\n" tab)))

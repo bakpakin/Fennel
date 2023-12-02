@@ -22,8 +22,8 @@
     (values (proc:close) output))) ; proc:close gives exit status on 5.2+
 
 (fn test-cli []
-  ;; skip this if we haven't compiled the CLI
-  (when (file-exists? "fennel")
+  ;; skip this if we haven't compiled the CLI or on Windows
+  (when (and (file-exists? "fennel") (= "/" (package.config:sub 1 1)))
     (t.= [true "1\tnil\t2\tnil\tnil"]
          [(peval (v (values 1 nil 2 nil nil)))])))
 

@@ -38,13 +38,13 @@
          :last [(fennel.comment ";; here")]})
     (t.= mt.keys [1 :is])
     (t.is ok?))
-  (let [code "{:this table
-        ;; has a comment
-        ;; with multiple lines in it!!!
-        :and \"we don't want to lose the comments\"
-        ;; so let's keep em; all the comments are
-        : good ; and we want them to be kept
-        }"
+  (let [code (table.concat ["{:this table"
+                            ";; has a comment"
+                            ";; with multiple lines in it!!!"
+                            ":and \"we don't want to lose the comments\""
+                            ";; so let's keep em; all the comments are"
+                            ": good ; and we want them to be kept"
+                            "}"] "\n")
         (ok? ast) ((fennel.parser (fennel.string-stream code)
                                   "" {:comments true}))]
     (t.is ok? ast)

@@ -287,8 +287,7 @@
          (send ",doc foo!")
          "fn-name and args deep pretty-printing 2")
     (send (v (fn foo! [-kebab- [a b {"a \"b\" c" a-b-c} [x y]]] 1)))
-    (t.= "(foo! -kebab- [a b {\"a \\\"b\\\" c\" a-b-c} [x y]])
-  #<undocumented>"
+    (t.= "(foo! -kebab- [a b {\"a \\\"b\\\" c\" a-b-c} [x y]])\n  #<undocumented>"
          (send " ,doc foo!")
          "fn-name and args deep pretty-printing 3")
     (send (v (fn foo! [-kebab- [a b {"a \"b \\\"c\\\" d\" e" a-b-c-d-e}
@@ -473,7 +472,8 @@
 ;; limitation. Normally we want all tests to run on all versions, but in
 ;; this case the feature will work fine; we just can't use this method of
 ;; testing it on PUC 5.1, so skip it.
-(if (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
+(if (and (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
+         (= "/" (package.config:sub 1 1)))
     {: test-sym-completion
      : test-macro-completion
      : test-method-completion

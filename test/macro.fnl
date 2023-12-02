@@ -95,7 +95,7 @@
 (fn test-relative-filename []
   ;; manual pcall instead of == macro for smaller failure message
   (let [(ok? val) (pcall require :test.relative-filename)]
-    (t.is ok? "... had bad filename")
+    (t.is ok? val)
     (t.= val 2)))
 
 (fn test-require-macros []

@@ -135,12 +135,12 @@ that accept a "body" argument or arguments.
 ```
 
 This raises the question of how to tell whether a given macro takes a
-body or not. For the forms which are part of Fennel, you can use the
-`(fennel.syntax)` function in Fennel's API: it will give you a table
-of form names, some of which have `:body? true`. For things that don't
-come with Fennel, picking a name that starts with `with-` or `def`
-will make it clearer to 3rd-party tools like text editors and `fnlfmt`
-that it's a macro which takes a body.
+body or not. For the forms which are part of Fennel, you can consult
+the reference or use the `(fennel.syntax)` function in Fennel's API:
+it will give you a table of form names, some of which have `:body?
+true`. For things that don't come with Fennel, picking a name that
+starts with `with-` or `def` will make it clearer to 3rd-party tools
+like text editors and `fnlfmt` that it's a macro which takes a body.
 
 If the callee is not like that, then if the first argument is on the
 same line, align the starting column of all following arguments with
@@ -221,8 +221,8 @@ that would otherwise be difficult to distinguish from each other.
 [Naming][2] is subtle and elusive.
 Bizarrely, it is simultaneously insignificant, because an object is
 independent of and unaffected by the many names by which we refer to it, and
-also of supreme importance, because it is what programming -- and, indeed,
-almost everything that we humans deal with -- is all about.  A full
+also of supreme importance, because it is what programming—and, indeed,
+almost everything that we humans deal with—is all about.  A full
 discussion of the concept of name lies far outside the scope of this
 document, and could surely fill not merely a book but a library.
 
@@ -368,7 +368,7 @@ You can write object-oriented code with Fennel, but avoid uncritically
 carrying over habits from object-oriented languages.  Consider the different
 aspects of "OOP" independently and use only the ones that make sense for the
 context. For instance, encapsulation is great and should be used everywhere,
-while inheritance is usually a mistake--at the very least inheritance should
+while inheritance is usually a mistake—at the very least inheritance should
 not be inseparably linked to classes. Polymorphism can be useful at times but
 is not a good default to use everywhere.
 
@@ -457,6 +457,10 @@ Do not use `#(this-style)` syntax for functions longer than a single
 line. Never use long-form `(hashfn)` directly; only use the shorthand. Prefer
 `partial` to hashfn shorthand where possible.
 
+When checking to see if a table is empty, don't use `(= 0 (length t))`
+since `length` can be expensive for large tables. Instead use `(= nil
+(next t))` which is always cheap.
+
 Do not use `require-macros` or `eval-compiler`.
 
 The `lua` special form is intended to make it easier to port imperative
@@ -468,12 +472,10 @@ style; it should never be used except as a temporary hack.
 Gather all your top-level `require` calls to the top of your file so
 dependencies can be seen at a glance.
 
-Use `local` only at the top level of a module to avoid indenting the entire
-module. Use `let` instead inside functions. In some cases it can be better to
-even use `let` at the top level to make it clearer that a given local is only
-used in a very limited scope rather than available for the whole file. If you
-are tempted to use `local` inside a function in order to avoid increasing the
-amount of indentation, it means your function is too long.
+Use `local` only at the top level of a module to avoid indenting the
+entire module. Use `let` instead inside functions. If you are tempted
+to use `local` inside a function in order to avoid increasing the
+amount of indentation, it means your function is too big.
 
 Prefer constructing the module table at the bottom of the file rather than
 defining it at the top and adding to it as you go. Rationale: being able to
@@ -499,7 +501,7 @@ Always return a table from a module. Even if you think today that returning a
 bare function is fine, you will regret it later.
 
 Loading a module should have no side effects. Since modules are tables, their
-contents can be changed. Avoid this temptation, except in the case of
+contents can be changed at runtime. Avoid this temptation, except in the case of
 reloading the entire module.
 
 When requiring modules, note that destructuring fields at the top level will
@@ -534,16 +536,17 @@ convention of returning multiple values, nil followed by a message describing
 the error. This should be preferred in cases where a failure is to be
 expected, such as a file not being found, or a socket closing.
 Functions which use this style should usually be called inside
-a `match` form so the success and failure cases can be side by side.
+a `case` form so the success and failure cases can be side by side, or
+a `case-try` form if it's a sequence of potentially-failing calls.
 
-Errors raised using the `error` or `assert` functions should be preferred
-when fundamental assumptions are found to be violated in a way which
-indicates a bug in the program.
-
-However, in some cases when an expected failure cannot be recovered from,
-using `error` lets you abort quickly without propagating the error as return
-values up a long call stack; this is acceptable, but it's better if your I/O
-happens at the edges of your program rather than deep inside.
+In cases when an expected failure cannot be recovered from, using
+`assert` or `error` lets you abort quickly without propagating the
+failure as return values up a long call stack; this is acceptable, but
+it's better if your I/O happens at the edges of your program rather
+than deep inside. Manually propagating failures using values is more
+explicit and clearer, but it can be tedious. Using `error` and
+`assert` results in less code, but it can be a form of "spooky action
+at a distance". Keep this trade-off in mind.
 
 ### Macros
 
@@ -593,7 +596,7 @@ Use quoting to build up code instead of calling `list` and `sym`.
 # Attribution
 
    Copyright © 2007-2011 Taylor R. Campbell
-   Copyright © 2021-2022 Phil Hagelberg and contributors
+   Copyright © 2021-2023 Phil Hagelberg and contributors
 
    CC BY-NC-SA 3.0
 

@@ -129,13 +129,19 @@ Also returns a second function to clear the buffer in the byte stream."
                                     (if (= (length stack) 1) "" :s)
                                     (string.char (unpack accum))))))
 
-    (fn skip-whitespace [b]
+    (fn skip-whitespace [b close-table]
       (if (and b (whitespace? b))
           (do
             (set whitespace-since-dispatch true)
-            (skip-whitespace (getb)))
+            (skip-whitespace (getb) close-table))
           (and (not b) (next stack))
-          (badend)
+          (do (badend)
+              ;; if we are at the end of the file and missing closers,
+              ;; just pretend the closers all exist
+              (do
+                (for [i (length stack) 2 -1]
+                  (close-table (. stack i :closer)))
+                (. stack 1 :closer)))
           b))
 
     (fn parse-comment [b contents]
@@ -316,8 +322,8 @@ Also returns a second function to clear the buffer in the byte stream."
                        (col-adjust ":$"))
           (rawstr:match ":.+[%.:]")
           (parse-error (.. "method must be last component of multisym: " rawstr)
-                       (col-adjust ":.+[%.:]"))
-          rawstr))
+                       (col-adjust ":.+[%.:]")))
+      rawstr)
 
     (fn parse-sym [b] ; not just syms actually...
       (let [source {:bytestart byteindex : filename : line :col (- col 1)}
@@ -346,9 +352,9 @@ Also returns a second function to clear the buffer in the byte stream."
           (parse-error (.. "invalid character: " (string.char b))))
       (if (not b) nil ; EOF
           done? (values true retval)
-          (parse-loop (skip-whitespace (getb)))))
+          (parse-loop (skip-whitespace (getb) close-table))))
 
-    (parse-loop (skip-whitespace (getb))))
+    (parse-loop (skip-whitespace (getb) close-table)))
 
   (values parse-stream #(set (stack line byteindex col lastb) (values [] 1 0 0 nil))))
 

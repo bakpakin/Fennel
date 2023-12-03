@@ -333,14 +333,16 @@ Returns nil if passed something other than a multi-sym."
       (and (or (str:match "%.") (str:match ":"))
            (not (str:match "%.%."))
            (not= (str:byte) (string.byte "."))
-           (not= (str:byte (- 1)) (string.byte "."))
+           (not= (str:byte) (string.byte ":"))
+           (not= (str:byte -1) (string.byte "."))
+           (not= (str:byte -1) (string.byte ":"))
            (let [parts []]
              (each [part (str:gmatch "[^%.%:]+[%.%:]?")]
-                   (let [last-char (part:sub (- 1))]
+                   (let [last-char (part:sub -1)]
                      (when (= last-char ":")
                        (set parts.multi-sym-method-call true))
                      (if (or (= last-char ":") (= last-char "."))
-                       (tset parts (+ (length parts) 1) (part:sub 1 (- 2)))
+                       (tset parts (+ (length parts) 1) (part:sub 1 -2))
                        (tset parts (+ (length parts) 1) part))))
              (and (next parts) parts)))))
 

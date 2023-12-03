@@ -174,7 +174,7 @@ rather than generating new one."
   (match (utils.multi-sym? base)
     parts (combine-auto-gensym parts (autogensym (. parts 1) scope))
     _ (or (. scope.autogensyms base)
-          (let [mangling (gensym scope (base:sub 1 (- 2)) :auto)]
+          (let [mangling (gensym scope (base:sub 1 -2) :auto)]
             (tset scope.autogensyms base mangling)
             mangling))))
 

@@ -93,6 +93,7 @@ By default, start is 2."
         chunk (or ?chunk [])
         len (length ast)
         retexprs {:returned true}]
+    (utils.hook :pre-do ast sub-scope)
     (fn compile-body [outer-target outer-tail outer-retexprs]
       (for [i start len]
         (let [subopts {:nval (or (and (not= i len) 0) opts.nval)
@@ -242,6 +243,8 @@ the number of expected arguments."
 
 (fn compile-named-fn [ast f-scope f-chunk parent index fn-name local?
                       arg-name-list f-metadata]
+  ;; anonymous functions use this path after a name has been generated
+  (utils.hook :pre-fn ast f-scope)
   (for [i (+ index 1) (length ast)]
     (compiler.compile1 (. ast i) f-scope f-chunk
                        {:nval (or (and (not= i (length ast)) 0) nil)
@@ -618,23 +621,24 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
       (table.remove bindings (- (length bindings) 1))
       (table.remove bindings))))
 
-(fn compile-until [condition scope chunk]
-  (when condition
-    (let [[condition-lua] (compiler.compile1 condition scope chunk {:nval 1})]
+(fn compile-until [?condition scope chunk]
+  (when ?condition
+    (let [[condition-lua] (compiler.compile1 ?condition scope chunk {:nval 1})]
       (compiler.emit chunk (: "if %s then break end" :format
                               (tostring condition-lua))
-                     (utils.expr condition :expression)))))
+                     (utils.expr ?condition :expression)))))
 
 (fn SPECIALS.each [ast scope parent]
   (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
   (compiler.assert (utils.table? (. ast 2)) "expected binding table" ast)
   (let [binding (setmetatable (utils.copy (. ast 2)) (getmetatable (. ast 2)))
-        until-condition (remove-until-condition binding)
+        sub-scope (compiler.make-scope scope)
+        ?until-condition (remove-until-condition binding)
         iter (table.remove binding (length binding))
-        ;; last item is iterator call
+        ;; last remaining item is iterator call
         destructures []
-        new-manglings []
-        sub-scope (compiler.make-scope scope)]
+        new-manglings []]
+    (utils.hook :pre-each ast sub-scope binding iter ?until-condition)
     (fn destructure-binding [v]
       (compiler.assert (not (utils.string? v))
                        (.. "unexpected iterator clause " (tostring v)) binding)
@@ -656,7 +660,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
         (compiler.destructure args raw ast sub-scope chunk
                               {:declaration true :nomulti true :symtype :each}))
       (compiler.apply-manglings sub-scope new-manglings ast)
-      (compile-until until-condition sub-scope chunk)
+      (compile-until ?until-condition sub-scope chunk)
       (compile-do ast sub-scope chunk 3)
       (compiler.emit parent chunk ast)
       (compiler.emit parent :end ast))))
@@ -708,6 +712,7 @@ order, but can be used with any iterator." true)
     (compiler.assert (<= (length ranges) 3) "unexpected arguments" ranges)
     (compiler.assert (< 1 (length ranges))
                      "expected range to include start and stop" ranges)
+    (utils.hook :pre-for ast sub-scope binding-sym)
     (for [i 1 (math.min (length ranges) 3)]
       (tset range-args i (tostring (. (compiler.compile1 (. ranges i) scope
                                                          parent {:nval 1}) 1))))

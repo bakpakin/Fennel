@@ -1457,8 +1457,8 @@ sets.
   (case (process (. data i))
     :done (print "Process completed.")
     :next (process-all data (+ i 1))
-    :skip (do (process-all data (+ i 2))
-;;             ^^^^^^^^^^^ Compile error: Must be in tail position
+    :skip (do (tail! (process-all data (+ i 2)))
+;;             ^^^^^ Compile error: Must be in tail position
               (print "Skipped" (+ i 1)))))
 ```
 

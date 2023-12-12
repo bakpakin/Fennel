@@ -128,7 +128,7 @@
   (t.= (fennel.eval "(select :# (#(values)))") 0)
   (let [broken-code (fennel.compile "(local [x] (values)) (local {: y} (values))")]
     (t.is broken-code "code should compile")
-    (t.error broken-code "code should fail at runtime")))
+    (t.error "attempt to call a string" broken-code "should fail at runtime")))
 
 (fn test-short-circuit []
   (let [method-code "(var shorted? false)

@@ -80,7 +80,7 @@
 ;; because it has to be set by every assertion, and the assertion functions
 ;; themselves do not have access to any stateful arguments given that they
 ;; are called directly from user code.
-(var checked nil)
+(var checked 0)
 
 (macro wrap [flag msg ...]
   `(do (set ,(sym :checked) (+ ,(sym :checked) 1))
@@ -98,17 +98,11 @@
 (fn is [got ?msg]
   (wrap got ?msg "Expected truthy value"))
 
-(fn error* [f ?msg]
+(fn error* [pat f ?msg]
   (case (pcall f)
-    (true val) (wrap false ?msg "Expected an error, got %s"
-                     (fennel.view val))))
-
-(fn error-match [pat f ?msg]
-  (case (pcall f)
-    (true val) (wrap false ?msg
-                     "Expected an error, got %s" (fennel.view val))
+    (true ?val) (wrap false ?msg "Expected an error, got %s" (fennel.view ?val))
     (_ err) (let [err-string (if (= (type err) :string) err (fennel.view err))]
-              (wrap (: err-string :match pat) ?msg
+              (wrap (err-string:match pat) ?msg
                     "Expected error to match pattern %s, was %s"
                     pat err-string))))
 
@@ -186,7 +180,7 @@
                      (: (.. "%." (tonumber decimal-places) "f")
                         :format
                         (math.max (- end start)
-                                  (math.pow 10 (- decimal-places))))))]
+                                  (^ 10 (- decimal-places))))))]
     (print (: (.. "Testing finished %s with %d assertion(s)\n"
                   "%d passed, %d failed, %d error(s), %d skipped\n"
                   "%.2f second(s) of CPU time used")
@@ -231,8 +225,7 @@
 
 (fn run-test [name ?setup test ?teardown module-result hooks context]
   (when (fn? hooks.begin-test) (hooks.begin-test name))
-  (let [started-at (now)
-        result (case-try (if ?setup (xpcall ?setup (err-handler name)) true)
+  (let [result (case-try (if ?setup (xpcall ?setup (err-handler name)) true)
                  true (xpcall #(test (unpack context)) (err-handler name))
                  true (pass)
                  (catch (_ err) err))]
@@ -300,6 +293,10 @@
     (when (or (next results.err) (next results.fail))
       (exit hooks))))
 
-{: run : skip :version "0.1.2"
- : is :error error* : error-match := =* :not= not=* :< <* :<= <=* : almost=
+(when (= ... "--tests")
+  (run (doto [...] (table.remove 1)))
+  (os.exit 0))
+
+{: run : skip :version "0.1.3-dev"
+ : is :error error* := =* :not= not=* :< <* :<= <=* : almost=
  : identical :match match* : not-match}

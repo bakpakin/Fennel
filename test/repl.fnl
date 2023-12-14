@@ -228,12 +228,13 @@
     (t.match "%(let \027" (send "(let a)"))
     ;; repeated errors still get it
     (t.match "%(let \027" (send "(let b)"))
-    (set _G.dbg true)
     ;; repl commands don't mess it up
     (send ",complete l")
     (t.match "%(let \027" (send "(let c)"))
     ;; parser errors should be properly displayed, albeit without ^ at position
-    (t.match "invalid character: @" (send "(print @)"))))
+    (t.match "invalid character: @" (send "(print @)"))
+    ;; don't ignore trailing delimiters
+    (t.match "unexpected closing delimiter %)" (send "565)"))))
 
 (fn test-locals-saving []
   (let [(send comp) (wrap-repl)]

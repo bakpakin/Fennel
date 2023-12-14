@@ -356,7 +356,8 @@ Also returns a second function to clear the buffer in the byte stream."
 
     (parse-loop (skip-whitespace (getb) close-table)))
 
-  (values parse-stream #(set (stack line byteindex col lastb) (values [] 1 0 0 nil))))
+  (values parse-stream #(set (stack line byteindex col lastb)
+                             (values [] 1 0 0 (and (not= lastb 10) lastb)))))
 
 (fn parser [stream-or-string ?filename ?options]
   "Returns an iterator fn which parses string-or-stream and returns AST nodes.

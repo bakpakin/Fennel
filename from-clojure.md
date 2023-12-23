@@ -61,8 +61,8 @@ the VM is already present.
 
 ## Functions and locals
 
-Clojure has two types of scoping: lexical (for locals) and dynamic
-(for vars). Fennel only has lexical scope. (Globals exist, but they're
+Clojure has two types of scoping: locals and vars.
+Fennel uses lexical scope for everything. (Globals exist, but they're
 mostly used for debugging and repl purposes; you don't use them in
 normal code.) This means that the "unit of reloading" is not the
 `clojure.lang.Var`, but the module. Fennel's repl includes a `,reload
@@ -82,7 +82,8 @@ arguments.
 Fennel supports destructuring similarly to Clojure. The main
 difference is that rather than using `:keys` Fennel has a notation
 where a bare `:` is followed by a symbol naming the key. One main
-advantage of this notation is that unlike `:keys` it can be nested.
+advantage of this notation is that unlike `:keys`, the same notation
+is used for constructing and destructuring.
 
 ```clojure
 ;; clojure
@@ -358,9 +359,9 @@ characteristics will vary a lot.
 ## Pattern Matching
 
 Tragically Clojure does not have pattern matching as part of the
-language. Fennel fixes this problem by implementing the `match` macro.
+language. Fennel fixes this problem by implementing the `case` macro.
 Refer to [the reference][6] for details. Since `if-let` just an anemic
-form of pattern matching, Fennel omits it in favor of `match`.
+form of pattern matching, Fennel omits it in favor of `case`.
 
 ```clojure
 ;; clojure
@@ -371,7 +372,7 @@ form of pattern matching, Fennel omits it in favor of `match`.
 
 ```fennel
 ;; fennel
-(match (calculate-thingy)
+(case (calculate-thingy)
   result (print "Got" result)
   _ (print "Couldn't get any results"))
 ```
@@ -469,8 +470,8 @@ There are two kinds of ways to represent failure in Lua and
 Fennel. The `error` function works a bit like throwing an `ex-info`
 in Clojure, except instead of `try` and `catch` we have `pcall` and
 `xpcall` to call a function in "protected" state which will prevent
-errors from bringing down the process. These can't be chained in the
-same way as Exceptions on the JVM are.
+errors from bringing down the process. These can't be chained or
+seamlessly re-thrown in the same way as Exceptions on the JVM are.
 
 See [the tutorial][11] for details.
 
@@ -494,7 +495,7 @@ though the latter would work for functions rather than special forms.
 [3]: https://leiningen.org
 [4]: https://luarocks.org
 [5]: https://p.hagelb.org/equal-rights-for-functional-objects.html
-[6]: https://fennel-lang.org/reference#match-pattern-matching
+[6]: https://fennel-lang.org/reference#case-pattern-matching
 [7]: https://www.lua.org/pil/7.1.html
 [8]: https://github.com/lunarmodules/Penlight
 [9]: https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/

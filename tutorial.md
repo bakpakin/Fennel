@@ -774,12 +774,12 @@ current module name string (`...`).
 
 [1]: https://stopa.io/post/265
 [2]: http://danmidwood.com/content/2014/11/21/animated-paredit.html
-[3]: https://www.lua.org/manual/5.1/
+[3]: https://www.lua.org/manual/5.4/
 [4]: https://github.com/Stepets/utf8.lua
 [6]: https://www.lua.org/pil/7.1.html
-[7]: https://www.lua.org/manual/5.1/manual.html#pdf-string.gmatch
+[7]: https://www.lua.org/manual/5.4/manual.html#pdf-string.gmatch
 [8]: https://p.hagelb.org/equal-rights-for-functional-objects.html
-[10]: https://www.lua.org/manual/5.1/manual.html#5
+[10]: https://www.lua.org/manual/5.4/manual.html#6
 [11]: https://leafo.net/posts/itchio-and-coroutines.html
 [12]: https://www.lua.org/pil/13.html
 [13]: https://love2d.org

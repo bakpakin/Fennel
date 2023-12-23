@@ -74,7 +74,7 @@ Takes these additional options:
 By default, metadata will be enabled and you can view function signatures and
 docstrings with the `,doc` command in the REPL.
 
-## Evaulate a string of Fennel
+## Evaluate a string of Fennel
 
 ```lua
 local result = fennel.eval(str[, options[, ...]])

@@ -7,9 +7,14 @@
 
 (local test-all? (os.getenv :FNL_TESTALL)) ; set by `make testall`
 
-(local host-lua (match _VERSION
-                  "Lua 5.1" (if _G.jit :luajit :lua5.1)
-                  _ (.. :lua (_VERSION:sub 5))))
+(local host-lua (let [long (match _VERSION
+                             "Lua 5.1" (if _G.jit :luajit :lua5.1)
+                             _ (.. :lua (_VERSION:sub 5)))
+                      p (io.popen (.. long " -v"))]
+                  (p:read :*all)
+                  (if (p:close)
+                      long
+                      "lua")))
 
 (fn file-exists? [filename]
   (let [f (io.open filename)]

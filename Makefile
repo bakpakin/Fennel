@@ -20,6 +20,9 @@ MAN_PANDOC = pandoc -f gfm -t man -s --lua-filter=build/manfilter.lua \
 	     --metadata author="Fennel Maintainers" \
 	     --variable footer="fennel $(shell ./fennel -e '(. (require :fennel) :version)')"
 
+unexport NO_COLOR # this causes test failures
+unexport FENNEL_PATH FENNEL_MACRO_PATH # ensure isolation
+
 build: fennel fennel.lua
 
 test: fennel.lua fennel test/faith.lua

@@ -454,3 +454,7 @@ For more information about the language, see https://fennel-lang.org/reference")
         (readline.save_history))
       (when opts.exit (opts.exit opts depth))
       value)))
+
+(setmetatable {} {:__call (fn [overrides ?opts]
+                            (repl (utils.copy ?opts (utils.copy overrides))))
+                  :__index {: repl}})

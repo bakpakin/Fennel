@@ -10,7 +10,12 @@ deprecated forms.
 
 ### New Features
 
-* ???
+* `fennel.repl` is now a callable table, allowing the default `(fennel.repl)`
+  options to be customized by setting option fields on the table itself.
+
+### Bug Fixes
+
+* `assert-repl`, as a drop-in replacement for `assert`, no longer takes an `opts` param
 
 ## 1.4.0 / 2023-12-01
 

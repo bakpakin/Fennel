@@ -74,6 +74,22 @@ Takes these additional options:
 By default, metadata will be enabled and you can view function signatures and
 docstrings with the `,doc` command in the REPL.
 
+### Customize REPL default options
+
+Any fields set on `fennel.repl`, which is actually a table with a `__call`
+metamethod rather than a function, will used as a fallback for any options
+passed to `(fennel.repl)` before defaults are applied, allowing one to
+customize the default behavior of `(fennel.repl)`:
+
+```lua
+fennel.repl.onError = custom_error_handler
+-- In rare cases this needs to be temporary, overrides
+-- can be cleared by simply clearing the entire table
+for k in pairs(fennel.repl) do
+  fennel.repl[k] = nil
+end
+```
+
 ## Evaluate a string of Fennel
 
 ```lua

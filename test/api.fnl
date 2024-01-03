@@ -21,7 +21,7 @@
   :multi-sym?      "function"
   :parser          "function"
   :path            "string"
-  :repl            "function"
+  :repl            "callable"
   :runtime-version "function"
   :search-module   "function"
   :searcher        "function"
@@ -61,6 +61,14 @@
   :stringStream  "function"
   :unmangle      "function"})
 
+(fn supertype [expect v]
+  (let [vt (type v)]
+    (if (and (= expect :callable)
+             (or (= vt :function) (and (= vt :table)
+                                       (?. (getmetatable v) :__call))))
+      :callable
+      vt)))
+
 (fn test-api-exposure []
   (let [fennel (require :fennel) current {}]
 
@@ -69,17 +77,17 @@
 
     (each [key kind (pairs expected)]
       (t.is (. fennel key) (.. "expect fennel." key " to exists"))
-      (t.= (type (. fennel key)) kind
+      (t.= (supertype kind (. fennel key)) kind
            (.. "expect fennel." key " to be \"" kind "\"")))
 
     (each [key kind (pairs expected-aliases)]
       (t.is (. fennel key) (.. "expect alias fennel." key " to exists"))
-      (t.= (type (. fennel key)) kind
+      (t.= (supertype kind (. fennel key)) kind
            (.. "expect alias fennel." key " to be \"" kind "\"")))
 
     (each [key kind (pairs expected-deprecations)]
       (t.is (. fennel key) (.. "expect deprecated fennel." key " to exists"))
-      (t.= (type (. fennel key)) kind
+      (t.= (supertype kind (. fennel key)) kind
            (.. "expect deprecated fennel." key " to be \"" kind "\"")))
 
     (each [key value (pairs fennel)]

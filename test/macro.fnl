@@ -739,45 +739,44 @@
   (set _G.x 3)
   (let [inputs ["x\n" "(inc x)\n" "(length hello)\n" ",return 22\n"]
         outputs []
-        env (setmetatable {:print #(table.insert outputs $)
-                           :io {:read #(table.remove inputs 1)
-                                :stderr {:write #(table.insert outputs $2)}}}
-                          {:__index _G})
+        _ (do (set fennel.repl.readChunk #(table.remove inputs 1))
+              (set fennel.repl.onValues (fn [[x]] (table.insert outputs x))))
         form (view (let [hello :world]
                      (fn inc [x] (+ x 1))
-                     (fn onValues [[x]] (print x))
                      (fn g [x]
-                       (assert-repl (< x 2000) "AAAAAH" {:readChunk io.read
-                                                         : onValues}))
+                       (assert-repl (< x 2000) "AAAAAH" "WAHHHH"))
                      (fn f [x] (g (* x 2)))
                      (f 28)
                      (f 1010)))]
-    (t.= [true 22 "AAAAAH"]
-         [(pcall fennel.eval form {: env})])
+    (t.= [true 22]
+         [(pcall fennel.eval form)])
     (t.= [] inputs)
     (t.= ["AAAAAH" "2020" "2021" "5" "22"]
          [(string.gsub (. outputs 1) "%s*stack traceback:.*" "")
           (unpack outputs 2)])
-    (t.= (assert-repl :a-string) :a-string)
-    (let [env (setmetatable {:io {:read #",return nil" :stderr {:write #nil}}}
-                            {:__index _G})
-          form (view (assert-repl false "oh no" {:readChunk io.read
-                                                 :onValues #nil}))
-          (ok? msg) (pcall fennel.eval form {: env})]
+    (t.= [(assert-repl :a-string :b-string :c-string)] [:a-string :b-string :c-string])
+    ;; Set REPL to return immediately for next assertions
+    (set fennel.repl.onError #nil)
+    (set fennel.repl.onValues #",return nil")
+    (let [form (view (assert-repl false "oh no"))
+          multi-args-form (view (assert-repl (select 1 :a :b nil nil :c)))
+          (ok? msg) (pcall fennel.eval form)]
       (t.= false ok? "assertion should fail from repl when returning nil")
+      (t.= [true :a :b nil nil :c] [(pcall fennel.eval multi-args-form)]
+           "assert-repl should pass along all runtime ret vals upon success")
       (t.match "oh no" msg))))
 
 (fn test-assert-as-repl []
-  (let [env (setmetatable {:io {:read #",return :nerevar" :stderr {:write #nil}}}
-                          {:__index _G})
-        ;; TODO: move opts out of the assert call!
-        form (view (assert nil "you nwah" {:readChunk io.read
-                                           :onValues #nil}))
-        (ok? val) (pcall fennel.eval form {: env :assertAsRepl true})]
+  (set fennel.repl.readChunk #",return :nerevar")
+  (set fennel.repl.onValues #nil)
+  (let [form (view (assert nil "you nwah"))
+        (ok? val) (pcall fennel.eval form {:assertAsRepl true})]
     (t.is ok? "should be able to recover from nil assertion.")
     (t.= "nerevar" val)))
 
-{: test-arrows
+{:teardown #(each [k (pairs fennel.repl)]
+              (tset fennel.repl k nil))
+ : test-arrows
  : test-doto
  : test-?.
  : test-import-macros

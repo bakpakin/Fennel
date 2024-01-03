@@ -1506,16 +1506,10 @@ use the `assert-repl` macro to do this:
   (assert-repl (transform helper value) "could not transform"))
 ```
 
-This works like the built-in `assert` function, but when the condition
-is false or nil, instead of an error, it drops into a repl which
-has access to all the locals that are in scope. (This would be
-`input`, `value`, and `helper` in the example above.) It takes an
-optional options table as its third argument which accepts all the same
-values as the `fennel.repl` function in the API.
-
-You can `,return EXPRESSION` from the repl to replace the original
-failing condition with a different arbitrary value. Returning false or
-nil will trigger a regular `assert` failure.
+This works as a drop-in replacement for the built-in `assert` function, but
+when the condition is false or nil, instead of an error, it drops into a repl
+which has access to all the locals that are in scope (`input`, `value`, and
+`helper` in the example above).
 
 Note that this is meant for use in development and will not work with
 ahead-of-time compilation unless your build also includes Fennel as a
@@ -1524,6 +1518,24 @@ library.
 If you use the `--assert-as-repl` flag when running Fennel, calls to
 `assert` will be replaced with `assert-repl` automatically.
 
+**Note:** In Fennel 1.4.0, `assert-repl` accepted an options table for
+`fennel.repl` as an optional third argument. This was removed as a bug in
+1.4.1, as it broke compatibility with `assert`.
+
+The REPL spawned by `assert-repl` applies the same default options as
+`fennel.repl`, which as of Fennel 1.4.1 can be configured from the API. See the
+[Fennel API reference](api.md#customize-repl-default-options) for details.
+
+#### Recovering from failed assertions
+
+You can `,return EXPRESSION` from the repl to replace the original
+failing condition with a different arbitrary value. Returning false or
+nil will trigger a regular `assert` failure.
+
+**Note:** Currently, only a single value can be returned from the REPL this
+way. While `,return` can be used to make a failed assertion recover, if the
+calling code expects multiple return values, it may cause unspecified
+behavior.
 
 ## Macros
 

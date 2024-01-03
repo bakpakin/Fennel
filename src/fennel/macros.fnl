@@ -395,29 +395,31 @@ Example:
             (tset scope.macros import-key (. macros* macro-name))))))
   nil)
 
-(fn assert-repl* [condition message ?opts]
-  "Drop into a debug repl and print the message when condition is false/nil.
-Takes an optional table of arguments which will be passed to fennel.repl."
+(fn assert-repl* [condition ...]
+  "Enter into a debug REPL  and print the message when condition is false/nil.
+Works as a drop-in replacement for Lua's `assert`.
+REPL `,return` command returns values to assert in place to continue execution."
+  {:fnl/arglist [condition ?message ...]}
   (fn add-locals [{: symmeta : parent} locals]
     (each [name (pairs symmeta)]
       (tset locals name (sym name)))
     (if parent (add-locals parent locals) locals))
-  `(let [condition# ,condition
-         message# (or ,message "assertion failed, entering repl.")]
+  `(let [unpack# (or table.unpack _G.unpack)
+         pack# (or table.pack #(doto [$...] (tset :n (select :# $...))))
+         ;; need to pack/unpack input args to account for (assert (foo)),
+         ;; because assert returns *all* arguments upon success
+         vals# (pack# ,condition ,...)
+         condition# (. vals# 1)
+         message# (or (. vals# 2) "assertion failed, entering repl.")]
      (if (not condition#)
-         (let [opts# (or ,?opts {:assert-repl? true
-                                 :readChunk (?. _G :___repl___ :readChunk)
-                                 :onError (?. _G :___repl___ :onError)
-                                 :onValued (?. _G :___repl___ :onValued)})
+         (let [opts# {:assert-repl? true}
                fennel# (require (or opts#.moduleName :fennel))
                locals# ,(add-locals (get-scope) [])]
            (set opts#.message (fennel#.traceback message#))
            (set opts#.env (collect [k# v# (pairs _G) &into locals#]
                             (if (= nil (. locals# k#)) (values k# v#))))
-           (_G.assert (fennel#.repl opts#) message#))
-         ;; `assert` returns *all* params on success, but omitting opts# to
-         ;; defensively prevent accidental leakage of REPL opts into code
-         (values condition# message#))))
+           (_G.assert (fennel#.repl opts#)))
+         (values (unpack# vals# 1 vals#.n)))))
 
 {:-> ->*
  :->> ->>*

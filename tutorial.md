@@ -567,7 +567,8 @@ runtime overhead over Lua.
   If you don't already have one, it's recommended for debugging to
   define a printer function which calls `fennel.view` on its argument
   before printing it: `(local fennel (require :fennel))
-  (fn _G.pp [x] (print (fennel.view x)))`
+  (fn _G.pp [x] (print (fennel.view x)))`. If you add this definition
+  to your `~/.fennelrc` file it will be available in the standard repl.
 
 * Lua programmers should note Fennel functions cannot do early returns.
 

@@ -1445,12 +1445,12 @@ subsequent forms are evaluated solely for side-effects.
 
 ### `tail!`
 
-The `tail!` form asserts that its argument is called in a tail
-position. You can use this when using tail calls to recurse over large
-data sets in a way that might not be obvious; that way if the code is
-changed so that the recursive call is no longer a tail call, it will
-cause a compile error instead of overflowing the stack on large data
-sets.
+Tail calls will be optimized automatically. However, the `tail!` form
+asserts that its argument is called in a tail position. You can use
+this when the code depends on tail call optimization; that way if the
+code is changed so that the recursive call is no longer in the tail position,
+it will cause a compile error instead of overflowing the stack later on
+large data sets.
 
 ```fennel
 (fn process-all [data i]

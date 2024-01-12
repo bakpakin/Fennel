@@ -35,6 +35,8 @@ will see its values updated as expected, regardless of mangling rules."
 
                             (values next (utils.kvmap env putenv) nil))}))
 
+(fn fennel-module-name [] (or utils.root.options.moduleName :fennel))
+
 (fn current-global-names [?env]
   ;; if there's a metatable on ?env, we need to make sure it's one that has a
   ;; __pairs metamethod, otherwise we give up entirely on globals checking.
@@ -227,8 +229,7 @@ the number of expected arguments."
         (if (= k :fnl/arglist)
             (insert-arglist meta-fields v)
             (insert-meta meta-fields k v)))
-      (let [meta-str (: "require(\"%s\").metadata" :format
-                        (or utils.root.options.moduleName :fennel))]
+      (let [meta-str (: "require(\"%s\").metadata" :format (fennel-module-name))]
         (compiler.emit parent
                        (: "pcall(function() %s:setall(%s, %s) end)" :format
                           meta-str fn-name (table.concat meta-fields ", ")))))))
@@ -1112,6 +1113,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              : unpack
              :assert-compile compiler.assert
              : view
+             : fennel-module-name
              :version utils.version
              ;; AST functions
              :ast-source utils.ast-source

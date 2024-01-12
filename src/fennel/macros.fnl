@@ -101,7 +101,8 @@ encountering an error before propagating it."
                   ,...)
         closer `(fn close-handlers# [ok# ...]
                   (if ok# ... (error ... 0)))
-        traceback `(. (or package.loaded.fennel debug) :traceback)]
+        traceback `(. (or (. package.loaded ,(fennel-module-name)) debug)
+                      :traceback)]
     (for [i 1 (length closable-bindings) 2]
       (assert (sym? (. closable-bindings i))
               "with-open only allows symbols in bindings")
@@ -413,7 +414,7 @@ REPL `,return` command returns values to assert in place to continue execution."
          message# (or (. vals# 2) "assertion failed, entering repl.")]
      (if (not condition#)
          (let [opts# {:assert-repl? true}
-               fennel# (require (or opts#.moduleName :fennel))
+               fennel# (require ,(fennel-module-name))
                locals# ,(add-locals (get-scope) [])]
            (set opts#.message (fennel#.traceback message#))
            (set opts#.env (collect [k# v# (pairs _G) &into locals#]

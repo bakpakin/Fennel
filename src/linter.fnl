@@ -1,23 +1,6 @@
-;; An example of some possible linters using Fennel's --plugin option.
-
-;; The first two linters here can only function on static module
-;; use. For instance, this code can be checked because they use static
-;; field access on a local directly bound to a require call:
-
-;; (local m (require :mymodule))
-;; (print m.field) ; fails if mymodule lacks a :field field
-;; (print (m.function 1 2 3)) ; fails unless mymodule.function takes 3 args
-
-;; However, these cannot:
-
-;; (local m (do (require :mymodule)) ; m is not directly bound
-;; (print (. m field)) ; not a static field reference
-;; (let [f m.function]
-;;   (print (f 1 2 3)) ; intermediate local, not a static field call on m
-
-;; Still, pretty neat, huh?
-
-;; This file is provided as an example and is not part of Fennel's public API.
+;; This file is provided as an example of Fennel's plugin API; it is
+;; not part of Fennel's public API. If you want a real linter, use
+;; fennel-ls.
 
 (fn set-set-meta [to scope opts]
   (when (not (or opts.declaration (multi-sym? to)))

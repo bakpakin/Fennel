@@ -20,10 +20,11 @@ compile to Lua. You have a few options for how to install Fennel.
 
 Depending on what package manager you use on your system, you may be
 able to use it to install Fennel. See [the
-wiki](https://wiki.fennel-lang.org/Packaging) for a list of
-packaging systems which offer Fennel. Packaged versions of Fennel may
-lag behind the official releases and often only support one version at
-a time, but they tend to be the most convenient.
+wiki](https://wiki.fennel-lang.org/Packaging) for a list of packaging
+systems which offer Fennel. Packaged versions of Fennel may lag behind
+the official releases and often only support one version at a time,
+but they tend to be the most convenient. For instance, if you use
+Fedora, it should be as easy as running `sudo dnf install fennel`.
 
 
 ### Downloading the fennel script
@@ -39,10 +40,10 @@ you want to use a newer version that has come out.
 
  1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-1.4.0)
  2. Run `chmod +x fennel-1.4.0` to make it executable
- 3. Download [the signature](https://fennel-lang.org/downloads/fennel-1.4.0.asc)
- 4. Run `gpg --verify fennel-1.4.0.asc` to verify that the fennel
-    script is from the Fennel creators (optional but recommended)
- 5. Move `fennel-1.4.0` to a directory on your `$PATH`, such as `/usr/local/bin`
+ 3. Download the [signature](https://fennel-lang.org/downloads/fennel-1.4.0.asc)
+    and confirm it matches using `gpg --verify fennel-1.4.0*.asc`
+    (optional but recommended).
+ 4. Move `fennel-1.4.0` to a directory on your `$PATH`, such as `/usr/local/bin`
 
 **Note**: You can rename the script to `fennel` for convenience. Or
 you can leave the version in the name, which makes it easy to keep
@@ -64,7 +65,7 @@ you want to use a newer version that has come out.
         ([signature](https://fennel-lang.org/downloads/fennel-1.4.0-arm32.asc))
       - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-1.4.0-windows32.exe)
         ([signature](https://fennel-lang.org/downloads/fennel-1.4.0-windows32.exe.asc))
- 2. Run `chmod +x fennel-1.4.0*` to make it executable (not needed on Windows).
+ 2. Run `chmod +x fennel-1.4.0*` to make it executable
  3. Download the signature and confirm it matches using `gpg --verify fennel-1.4.0*.asc`
     (optional but recommended).
  4. Move the downloaded binary to a directory on your `$PATH`, such as `/usr/local/bin`
@@ -165,6 +166,10 @@ jumping to source definitions.
 
 See [the wiki](https://wiki.fennel-lang.org/Editors)
 for a list of editors that have Fennel support.
+
+If your editor supports the Language Server Protocol (LSP) then you
+can install [fennel-ls](https://git.sr.ht/~xerool/fennel-ls) to get
+highlighting of errors and improved navigation.
 
 
 ## Adding readline support to Fennel

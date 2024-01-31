@@ -869,9 +869,9 @@ which we have to do if we don't know."
 
 (fn traceback-frame [info]
   (if (and (= info.what :C) info.name)
-      (string.format "  [C]: in function '%s'" info.name)
+      (string.format "\t[C]: in function '%s'" info.name)
       (= info.what :C)
-      "  [C]: in ?"
+      "\t[C]: in ?"
       (let [remap (. sourcemap info.source)]
         (when (and remap (. remap info.currentline))
           ;; And some global info
@@ -883,12 +883,12 @@ which we have to do if we don't know."
           ;; Overwrite info with values from the mapping
           (set info.currentline (or (. remap info.currentline 2) -1)))
         (if (= info.what :Lua)
-            (string.format "  %s:%d: in function %s" info.short_src
+            (string.format "\t%s:%d: in function %s" info.short_src
                            info.currentline
                            (if info.name (.. "'" info.name "'") "?"))
             (= info.short_src "(tail call)")
             "  (tail call)"
-            (string.format "  %s:%d: in main chunk" info.short_src
+            (string.format "\t%s:%d: in main chunk" info.short_src
                            info.currentline)))))
 
 (fn traceback [?msg ?start]

@@ -115,7 +115,7 @@
 
 (fn case-or [vals pattern guards unifications case-pattern opts]
   (let [pattern [(unpack pattern 2)]
-        bindings (symbols-in-every-pattern pattern opts.infer-unification?)] ;; TODO opts.infer-unification instead of opts.unification?
+        bindings (symbols-in-every-pattern pattern opts.infer-unification?)]
     (if (= 0 (length bindings))
       ;; no bindings special case generates simple code
       (let [condition

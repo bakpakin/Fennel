@@ -82,7 +82,7 @@
         (tset out k {:special? true :body-form? metadata.fnl/body-form?
                      :binding-form? (utils.member? k binding?)
                      :define? (utils.member? k define?)})))
-    (each [k v (pairs compiler.scopes.global.macros)]
+    (each [k (pairs compiler.scopes.global.macros)]
       (tset out k {:macro? true :body-form? (utils.member? k body?)
                    :binding-form? (utils.member? k binding?)
                    :define? (utils.member? k define?)}))

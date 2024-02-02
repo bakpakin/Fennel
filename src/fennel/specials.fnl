@@ -868,6 +868,7 @@ Method name doesn't have to be known at compile-time; if it is, use
     (for [i 2 len]
       (let [subast (maybe-short-circuit-protect (. ast i) i name scope)
             subexprs (compiler.compile1 subast scope parent)]
+        ;; TODO: drop half-working multival support in 2.0
         (if (= i len)
             ;; last arg gets all its exprs but everyone else only gets one
             (utils.map subexprs tostring operands)

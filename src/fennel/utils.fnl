@@ -492,6 +492,7 @@ handlers will be skipped."
  : version
  : runtime-version
  : len
+ :fennel-module nil
  :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")
  :macro-path (table.concat [:./?.fnl :./?/init-macros.fnl :./?/init.fnl
                             (getenv :FENNEL_MACRO_PATH)] ";")}

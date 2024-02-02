@@ -8,7 +8,7 @@
 
 (local unpack (or table.unpack _G.unpack))
 
-(local scopes [])
+(local scopes {:global nil :compiler nil :macro nil})
 
 (fn make-scope [?parent]
   "Create a new Scope, optionally under a parent scope.
@@ -709,6 +709,7 @@ which we have to do if we don't know."
         (when declaration
           (tset scope.symmeta (tostring left) {:var isvar}))))
 
+    ;; TODO: remove in 2.0
     (local unpack-fn "function (t, k, e)
                         local mt = getmetatable(t)
                         if 'table' == type(mt) and mt.__fennelrest then

@@ -435,28 +435,6 @@ Example:
 has a small performance cost, so it's recommended to use `...` instead
 in cases that are sensitive to overhead.
 
-If a table implements `__fennelrest` metamethod it is used to capture the
-remainder of the table. It can be used with custom data structures
-implemented in terms of tables, which wish to provide custom rest
-destructuring. The metamethod receives the table as the first
-argument, and the amount of values it needs to drop from the beginning
-of the table, much like table.unpack
-
-Example:
-
-```fennel
-(local t [1 2 3 4 5 6])
-(setmetatable
- t
- {:__fennelrest (fn [t k]
-                  (let [res {}]
-                    (for [i k (length t)]
-                      (tset res (tostring (. t i)) (. t i)))
-                  res))})
-(let [[a b & c] t]
-  c) ;; => {:3 3 :4 4 :5 5 :6 6}
-```
-
 When destructuring a non-sequential table, you can capture the
 original table along with the destructuring by using `&as`:
 
@@ -1898,6 +1876,32 @@ Using `global` adds the identifier in question to the list of allowed
 globals so that referring to it later on will not cause a compiler error.
 However, globals are also available in the `_G` table, and accessing
 them that way instead is recommended for clarity.
+
+### Rest destructuring metamethod
+
+*(Deprecated in 1.4.1)*
+
+If a table implements `__fennelrest` metamethod it is used to capture the
+remainder of the table. It can be used with custom data structures
+implemented in terms of tables, which wish to provide custom rest
+destructuring. The metamethod receives the table as the first
+argument, and the amount of values it needs to drop from the beginning
+of the table, much like table.unpack
+
+Example:
+
+```fennel
+(local t [1 2 3 4 5 6])
+(setmetatable
+ t
+ {:__fennelrest (fn [t k]
+                  (let [res {}]
+                    (for [i k (length t)]
+                      (tset res (tostring (. t i)) (. t i)))
+                  res))})
+(let [[a b & c] t]
+  c) ;; => {:3 3 :4 4 :5 5 :6 6}
+```
 
 [1]: https://www.lua.org/manual/5.1/
 [2]: https://gist.github.com/nimaai/2f98cc421c9a51930e16#variable-capture

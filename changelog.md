@@ -17,6 +17,10 @@ deprecated forms.
 
 * `assert-repl`, as a drop-in replacement for `assert`, no longer takes an `opts` param
 
+### Changes and Removals
+
+* Deprecate the `__fennelrest` destructuring metamethod.
+
 ## 1.4.0 / 2023-12-01
 
 ### Bug Fixes

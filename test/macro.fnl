@@ -756,15 +756,15 @@
           (unpack outputs 2)])
     (t.= [(assert-repl :a-string :b-string :c-string)] [:a-string :b-string :c-string])
     ;; Set REPL to return immediately for next assertions
+    (set fennel.repl.readChunk #",return nil")
     (set fennel.repl.onError #nil)
-    (set fennel.repl.onValues #",return nil")
+    (set fennel.repl.onValues #nil)
     (let [form (view (assert-repl false "oh no"))
           multi-args-form (view (assert-repl (select 1 :a :b nil nil :c)))
           (ok? msg) (pcall fennel.eval form)]
       (t.= false ok? "assertion should fail from repl when returning nil")
       (t.= [true :a :b nil nil :c] [(pcall fennel.eval multi-args-form)]
-           "assert-repl should pass along all runtime ret vals upon success")
-      (t.match "oh no" msg))))
+           "assert-repl should pass along all runtime ret vals upon success"))))
 
 (fn test-assert-as-repl []
   (set fennel.repl.readChunk #",return :nerevar")

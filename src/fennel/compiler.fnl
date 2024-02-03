@@ -858,12 +858,13 @@ which we have to do if we don't know."
     (utils.root.reset)
     (flatten chunk opts)))
 
-(fn compile-stream [stream opts]
-  (let [asts (icollect [_ ast (parser.parser stream opts.filename opts)] ast)]
+(fn compile-stream [stream ?opts]
+  (let [opts (or ?opts {})
+        asts (icollect [_ ast (parser.parser stream opts.filename opts)] ast)]
     (compile-asts asts opts)))
 
 (fn compile-string [str ?opts]
-  (compile-stream (parser.string-stream str (or ?opts {})) (or ?opts {})))
+  (compile-stream (parser.string-stream str ?opts) ?opts))
 
 (fn compile [ast ?opts]
   (compile-asts [ast] ?opts))

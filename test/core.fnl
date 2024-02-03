@@ -289,6 +289,9 @@
   (== (let [(_ m) (pcall #(. 1 1))]
         (m:match "attempt to index a number"))
       "attempt to index a number")
+  ;; ensure (. (some-macro) k1 ...) doesn't allow invalid Lua output
+  (== (do (macro identity [...] ...) (. (identity {:x 1 :y 2 :z 3}) :y))
+      2)
   (== (. (let [t (let [t {} k :a] (tset t k 123) t) k :b]
            (tset t k 321)
            t) :a) 123)

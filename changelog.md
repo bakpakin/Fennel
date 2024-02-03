@@ -16,6 +16,7 @@ deprecated forms.
 ### Bug Fixes
 
 * `assert-repl`, as a drop-in replacement for `assert`, no longer takes an `opts` param
+* Fix a bug where `(. (a-macro) k)` bypassed protections against invalid Lua output
 
 ### Changes and Removals
 

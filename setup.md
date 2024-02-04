@@ -29,9 +29,6 @@ Fedora, it should be as easy as running `sudo dnf install fennel`.
 
 ### Downloading the fennel script
 
-Downloading the `fennel` script allows you to place the script in
-convenient locations for running Fennel code.
-
 This method assumes you have Lua 5.1, 5.2, 5.3, 5.4, or LuaJIT
 installed on your system.
 
@@ -53,7 +50,8 @@ many versions of Fennel installed at once.
 ### Downloading a Fennel binary
 
 Downloading a Fennel binary allows you to run Fennel on your computer without
-having to download Lua, if you are on a supported platform.
+having to download Lua, if you are on a supported platform. If you
+already have Lua installed, it's better to use the script above.
 
 This method requires you to manually update the `fennel` binary when
 you want to use a newer version that has come out.

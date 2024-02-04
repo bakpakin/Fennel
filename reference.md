@@ -1843,6 +1843,9 @@ if you are able to avoid it, you should.
 
 ## Deprecated Forms
 
+The `#` form is a deprecated alias for `length`, and `~=` is a
+deprecated alias for `not=`, kept for backwards compatibility.
+
 ### `require-macros` load macros with less flexibility
 
 *(Deprecated in 0.4.0)*

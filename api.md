@@ -216,10 +216,12 @@ Accepts `filename` in `options` like `fennel.eval`.
 ## Compile an iterator of bytes into a string of Lua
 
 This is useful when streaming data into the compiler to allow you to avoid
-loading all the code into a single string in one go.
+loading all the code into a single string in one go. The first argument
+should be a stateful iterator; in other words a function which returns one
+byte at a time.
 
 ```lua
-local lua = fennel.compileStream(strm[, options])
+local lua = fennel.compileStream(stream[, options])
 ```
 
 Accepts `indent` and `filename` in `options` as per above.

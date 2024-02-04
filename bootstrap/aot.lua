@@ -1,4 +1,5 @@
 -- Just a tiny shim to allow AOT
+-- This is only used to bootstrap the main compiler.
 local fennel = dofile("bootstrap/fennel.lua")
 
 local opts = {

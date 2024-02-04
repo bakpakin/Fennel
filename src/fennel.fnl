@@ -76,12 +76,14 @@
         binding? [:collect :icollect :fcollect :each :for :let :with-open
                   :accumulate :faccumulate]
         define? [:fn :lambda :λ :var :local :macro :macros :global]
+        deprecated ["~=" "#" :global :require-macros :pick-args]
         out {}]
     (each [k v (pairs compiler.scopes.global.specials)]
       (let [metadata (or (. compiler.metadata v) {})]
         (tset out k {:special? true :body-form? metadata.fnl/body-form?
                      :binding-form? (utils.member? k binding?)
-                     :define? (utils.member? k define?)})))
+                     :define? (utils.member? k define?)
+                     :deprecated? (utils.member? k deprecated)})))
     (each [k (pairs compiler.scopes.global.macros)]
       (tset out k {:macro? true :body-form? (utils.member? k body?)
                    :binding-form? (utils.member? k binding?)
@@ -89,9 +91,9 @@
     (each [k v (pairs _G)]
       (match (type v)
         :function (tset out k {:global? true :function? true})
-        :table (do
+        :table (when (not (k:find "^_"))
                  (each [k2 v2 (pairs v)]
-                   (when (and (= :function (type v2)) (not= k :_G))
+                   (when (= :function (type v2))
                      (tset out (.. k "." k2) {:function? true :global? true})))
                  (tset out k {:global? true}))))
     out))

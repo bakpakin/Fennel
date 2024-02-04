@@ -16,6 +16,11 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]
 
+-- This is a copy of an old version of the compiler from right before it became
+-- self-hosted, with a few newer features backported to it. We use this to
+-- bootstrap the current compiler in the src/ directory, which is written in
+-- Fennel, and thus needs a Fennel compiler to run.
+
 -- Changelog: (since 0.4.3)
 
 -- * backport idempotency checks in 3+ arity operator calls

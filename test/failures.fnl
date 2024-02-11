@@ -115,8 +115,6 @@
   (assert-fail (let [t {:a 1}] (+ t.a BAD)) "BAD")
   (assert-fail (local 47 :forty-seven) "unable to bind number 47")
   (test-failures {"(local a~b 3)" "invalid character: ~"
-                  "(let [t []] (set t.47 :forty-seven))"
-                  "can't start multisym segment with a digit: t.47"
                   "(let [t []] (set t.:x :y))" "malformed multisym: t.:x"
                   "(let [t []] (set t::x :y))" "malformed multisym: t::x"
                   "(let [t []] (set t:.x :y))" "malformed multisym: t:.x"

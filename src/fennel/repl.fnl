@@ -9,7 +9,6 @@
 (local compiler (require :fennel.compiler))
 (local specials (require :fennel.specials))
 (local view (require :fennel.view))
-(local unpack (or table.unpack _G.unpack))
 
 (var depth 0)
 

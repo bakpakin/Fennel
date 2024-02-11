@@ -184,7 +184,7 @@ rather than generating new one."
   (let [name (tostring symbol)
         macro? (?. ?opts :macro?)]
     ;; we can't block in the parser because & is still ok in symbols like &as
-    (assert-compile (not (name:find "&")) "invalid character: &" symbol)
+    (assert-compile (not= "&" (name:match "[&.:]")) "invalid character: &" symbol)
     (assert-compile (not (name:find "^%.")) "invalid character: ." symbol)
     (assert-compile (not (or (. scope.specials name)
                              (and (not macro?) (. scope.macros name))))

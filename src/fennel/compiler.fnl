@@ -451,6 +451,7 @@ if opts contains the nval option."
                                     quote-literal-nils))
              (set scopes.macro old-scope)
              (assert-compile ok transformed ast)
+             (utils.hook :macroexpand ast transformed scope)
              (if (or ?once (not transformed))
                  transformed
                  (macroexpand* transformed scope)))

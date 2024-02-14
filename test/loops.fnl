@@ -16,7 +16,11 @@
           (each [_ x (values f (doto s (table.remove 1)))] (set t (+ t x))) t) 5)
   (== (do (var t 0) (local (f s v) (pairs [1 2 3]))
           (each [_ x (values f s v)] (set t (+ t x))) t) 6)
-  (== (do (var x 0) (while (< x 7) (set x (+ x 1))) x) 7))
+  (== (do (var x 0) (while (< x 7) (set x (+ x 1))) x) 7)
+  (== (let [x [] y [1 2 3]]
+        (each [(i n) (ipairs y)]
+          (table.insert x (+ i n)))
+        x) [2 4 6]))
 
 (fn test-for []
   (== (for [y 0 2] nil) nil)

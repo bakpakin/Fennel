@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Iterators accept locals wrapped in parens like all other multi-value bindings.
 * `fennel.repl` is now a callable table, allowing the default `(fennel.repl)`
   options to be customized by setting option fields on the table itself.
 

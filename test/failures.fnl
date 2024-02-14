@@ -150,6 +150,7 @@
     "(doto)" "missing subject"
     ;; validity check on iterator clauses
     "(each [k (do-iter) :igloo 33] nil)" "unexpected iterator clause igloo"
+    "(each [(i x) y (do-iter)] (print x))" "unexpected values in iterator"
     "(for [i 1 3 2 other-stuff] nil)" "unexpected arguments"
     "(do\n\n\n(each \n[x 34 (pairs {})] 21))"
     "unknown:5:0 Compile error in 'x': unable to bind number 34"

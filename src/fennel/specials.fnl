@@ -630,14 +630,22 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
                               (tostring condition-lua))
                      (utils.expr ?condition :expression)))))
 
+(fn iterator-bindings [ast]
+  (let [binding (utils.copy ast)
+        ?until (remove-until-condition binding)
+        iter (table.remove binding) ; last remaining item is iterator call
+        binding (if (utils.list? (. binding 1))
+                    (do (compiler.assert (= 1 (length binding))
+                                         "unexpected values in iterator" ast)
+                        (. binding 1))
+                    binding)]
+    (values binding iter ?until)))
+
 (fn SPECIALS.each [ast scope parent]
   (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
   (compiler.assert (utils.table? (. ast 2)) "expected binding table" ast)
-  (let [binding (setmetatable (utils.copy (. ast 2)) (getmetatable (. ast 2)))
-        sub-scope (compiler.make-scope scope)
-        ?until-condition (remove-until-condition binding)
-        iter (table.remove binding (length binding))
-        ;; last remaining item is iterator call
+  (let [sub-scope (compiler.make-scope scope)
+        (binding iter ?until-condition) (iterator-bindings (. ast 2))
         destructures []
         new-manglings []]
     (utils.hook :pre-each ast sub-scope binding iter ?until-condition)

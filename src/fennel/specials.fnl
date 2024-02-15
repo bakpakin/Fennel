@@ -616,12 +616,20 @@ nested values, but all parents must contain an existing table.")
 Takes any number of condition/body pairs and evaluates the first body where
 the condition evaluates to truthy. Similar to cond in other lisps.")
 
-(fn remove-until-condition [bindings]
-  (let [last-item (. bindings (- (length bindings) 1))]
-    (when (or (and (utils.sym? last-item) (= (tostring last-item) :&until))
-              (=  :until last-item))
-      (table.remove bindings (- (length bindings) 1))
-      (table.remove bindings))))
+(fn clause? [v]
+  (or (utils.string? v) (and (utils.sym? v) (not (utils.multi-sym? v))
+                             (: (tostring v) :match "^&(.+)"))))
+
+(fn remove-until-condition [bindings ast]
+  (var until nil)
+  (for [i (- (length bindings) 1) 3 -1]
+    (case (clause? (. bindings i))
+      (where (or false nil)) until
+      clause (do (compiler.assert (and (= clause :until) (not until))
+                                  (.. "unexpected iterator clause: " clause) ast)
+                 (table.remove bindings i)
+                 (set until (table.remove bindings i)))))
+  until)
 
 (fn compile-until [?condition scope chunk]
   (when ?condition
@@ -631,15 +639,16 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
                      (utils.expr ?condition :expression)))))
 
 (fn iterator-bindings [ast]
-  (let [binding (utils.copy ast)
-        ?until (remove-until-condition binding)
-        iter (table.remove binding) ; last remaining item is iterator call
-        binding (if (utils.list? (. binding 1))
-                    (do (compiler.assert (= 1 (length binding))
-                                         "unexpected values in iterator" ast)
-                        (. binding 1))
-                    binding)]
-    (values binding iter ?until)))
+  (let [bindings (utils.copy ast)
+        ?until (remove-until-condition bindings ast)
+        iter (table.remove bindings) ; last remaining item is iterator call
+        bindings (if (= 1 (length bindings))
+                     (or (utils.list? (. bindings 1)) bindings)
+                     (do (each [_ b (ipairs bindings)]
+                           (compiler.assert (not (utils.list? b))
+                                            "unexpected bindings in iterator" b))
+                         bindings))]
+    (values bindings iter ?until)))
 
 (fn SPECIALS.each [ast scope parent]
   (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
@@ -650,8 +659,6 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
         new-manglings []]
     (utils.hook :pre-each ast sub-scope binding iter ?until-condition)
     (fn destructure-binding [v]
-      (compiler.assert (not (utils.string? v))
-                       (.. "unexpected iterator clause " (tostring v)) binding)
       (if (utils.sym? v)
           (compiler.declare-local v [] sub-scope ast new-manglings)
           (let [raw (utils.sym (compiler.gensym sub-scope))]
@@ -710,7 +717,7 @@ order, but can be used with any iterator." true)
 (fn for* [ast scope parent]
   (compiler.assert (utils.table? (. ast 2)) "expected binding table" ast)
   (let [ranges (setmetatable (utils.copy (. ast 2)) (getmetatable (. ast 2)))
-        until-condition (remove-until-condition ranges)
+        until-condition (remove-until-condition ranges ast)
         binding-sym (table.remove ranges 1)
         sub-scope (compiler.make-scope scope)
         range-args []

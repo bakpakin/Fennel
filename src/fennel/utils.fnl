@@ -322,7 +322,7 @@ When given a second string argument, will check that the sym's name matches it."
           next-state (if (= 0 len) k len)]
       (and (not= nil (nxt t next-state)) t))))
 
-(fn string? [x] (= (type x) :string))
+(fn string? [x] (if (= (type x) :string) x false))
 
 (fn multi-sym? [str]
   "Returns a table containing the symbol's segments if passed a multi-sym.

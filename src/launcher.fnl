@@ -3,8 +3,7 @@
 (local fennel (require :fennel))
 (local unpack (or table.unpack _G.unpack))
 
-(local help "
-Usage: fennel [FLAG] [FILE]
+(local help "Usage: fennel [FLAG] [FILE]
 
 Run fennel, a lisp programming language for the Lua runtime.
 
@@ -103,15 +102,11 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
     :--lua (handle-lua i)))
 
 (let [commands {:--repl true
-               :--compile true
-               :-c true
+               :--compile true :-c true
                :--compile-binary true
-               :--eval true
-               :-e true
-               :-v true
-               :--version true
-               :--help true
-               :-h true
+               :--eval true :-e true
+               :--version true :-v true
+               :--help true :-h true
                "-" true}]
   (var i 1)
   (while (and (. arg i) (not options.ignore-options))

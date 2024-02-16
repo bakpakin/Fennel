@@ -120,8 +120,7 @@
       ;; no bindings special case generates simple code
       (let [condition
             (icollect [_ subpattern (ipairs pattern) &into `(or)]
-              (let [(subcondition subbindings) (case-pattern vals subpattern unifications opts)]
-                subcondition))]
+              (case-pattern vals subpattern unifications opts))]
         (values
           (if (= 0 (length guards))
             condition

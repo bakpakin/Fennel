@@ -165,7 +165,8 @@ of the generated code is identical."
   (let [(into iter has-into?) (extract-into iter-tbl)]
     (if has-into?
         `(let [tbl# ,into]
-           (,how ,iter (table.insert tbl# ,value-expr))
+           (,how ,iter (let [val# ,value-expr]
+                         (table.insert tbl# val#)))
            tbl#)
         ;; believe it or not, using a var here has a pretty good performance
         ;; boost: https://p.hagelb.org/icollect-performance.html

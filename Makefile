@@ -8,11 +8,11 @@ MAN_DIR ?= $(PREFIX)/share
 
 MAKEFLAGS += --no-print-directory
 
-MINI_SRC=src/fennel.fnl src/fennel/parser.fnl src/fennel/specials.fnl \
+CORE_SRC=src/fennel.fnl src/fennel/parser.fnl src/fennel/specials.fnl \
 		src/fennel/utils.fnl src/fennel/compiler.fnl  src/fennel/macros.fnl \
 		src/fennel/match.fnl
 
-LIB_SRC=$(MINI_SRC) src/fennel/friend.fnl src/fennel/view.fnl src/fennel/repl.fnl
+LIB_SRC=$(CORE_SRC) src/fennel/friend.fnl src/fennel/view.fnl src/fennel/repl.fnl
 
 SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
@@ -29,19 +29,17 @@ test: fennel.lua fennel test/faith.lua
 	@LUA_PATH=?.lua $(LUA) test/init.lua $(TESTS)
 	@echo
 
-testall: export FNL_TEST_OUTPUT=text
 testall: export FNL_TESTALL=yes
-testall: fennel # recursive make considered not really a big deal; calm down
+testall: fennel test/faith.lua # recursive make considered not really a big deal
 	$(MAKE) test LUA=lua5.1
 	$(MAKE) test LUA=lua5.2
 	$(MAKE) test LUA=lua5.3
 	$(MAKE) test LUA=lua5.4
 	$(MAKE) test LUA=luajit
 
-fuzz: ; $(MAKE) test TESTS=test.fuzz
+fuzz: fennel ; $(MAKE) test TESTS=test.fuzz
 
-# older versions of cloc might need --force-lang=lisp
-count: ; cloc $(MINI_SRC); cloc $(LIB_SRC) ; cloc $(SRC)
+count: ; cloc $(CORE_SRC); cloc $(LIB_SRC) ; cloc $(SRC)
 
 # install https://git.sr.ht/~technomancy/fnlfmt manually for this:
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
@@ -66,21 +64,13 @@ bootstrap/view.lua: src/fennel/view.fnl
 test/faith.lua: test/faith.fnl
 	$(LUA) bootstrap/aot.lua $< > $@
 
-# A lighter version of the compiler that excludes some features; experimental.
-minifennel.lua: $(MINI_SRC) fennel
-	echo "-- SPDX-License-Identifier: MIT" > $@
-	echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
-	./fennel --no-metadata --require-as-include --add-fennel-path src/?.fnl \
-		--skip-include fennel.repl,fennel.view,fennel.friend --no-compiler-sandbox \
-		--compile $< >> $@
-
 lint: fennel
 	@FENNEL_LINT_MODULES="^fennel%." ./fennel --no-compiler-sandbox \
 		--add-fennel-path src/?.fnl --plugin src/linter.fnl \
 		--require-as-include --compile src/fennel.fnl > /dev/null
 
 check:
-	find src -name "*fnl" | xargs fennel-ls --check
+	fennel-ls --check $(SRC)
 
 ## Binaries
 
@@ -155,7 +145,7 @@ ci: testall lint fuzz fennel
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \
 		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock bootstrap/view.lua \
-		test/faith.lua minifennel.lua build/manfilter.lua fennel-bin-luajit
+		test/faith.lua build/manfilter.lua fennel-bin-luajit
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
 	$(MAKE) -C $(BIN_LUAJIT_DIR) clean || true # this dir might not exist
 	rm -f $(NATIVE_LUA_LIB) $(NATIVE_LUAJIT_LIB)
@@ -169,7 +159,6 @@ MAN_DOCS := man/man1/fennel.1 man/man3/fennel-api.3 man/man5/fennel-reference.5\
 
 define maninst =
 mkdir -p $(dir $(2)) && cp $(1) $(2)
-
 endef
 
 install: fennel fennel.lua
@@ -187,13 +176,9 @@ build/manfilter.lua: build/manfilter.fnl fennel.lua fennel
 	./fennel --correlate --compile $< > $@
 
 man: $(dir $(MAN_DOCS)) $(MAN_DOCS)
-
 man/man%/: ; mkdir -p $@
-
 man/man3/fennel-%.3: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
-
 man/man5/fennel-%.5: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
-
 man/man7/fennel-%.7: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
 
 # Release-related tasks:
@@ -203,7 +188,7 @@ fennel.tar.gz: README.md LICENSE $(MAN_DOCS) fennel fennel.lua \
 	rm -rf fennel-$(VERSION)
 	mkdir fennel-$(VERSION)
 	cp -r $^ fennel-$(VERSION)
-	tar czf $@ fennel-$(VERSION)
+	tar czf $@ fennel-$(VERSION) # tar is intended for luarocks purposes only
 
 uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
 	luarocks --local build $<
@@ -214,7 +199,7 @@ uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
 	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
 	luarocks --local remove fennel
 
-SSH_KEY ?= ~/.ssh/id_rsa
+SSH_KEY ?= ~/.ssh/id_ed25519.pub
 
 rockspecs/fennel-$(VERSION)-1.rockspec: rockspecs/template.fnl
 	VERSION=$(VERSION) fennel --no-compiler-sandbox -c $< > $@
@@ -226,7 +211,7 @@ test-builds: fennel fennel-x86_64 test/faith.lua
 	./fennel --metadata --eval "(require :test.init)"
 	./fennel-x86_64 --metadata --eval "(require :test.init)"
 
-uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
+upload: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel-x86_64 downloads/fennel-$(VERSION)-x86_64
@@ -245,7 +230,7 @@ uploadtar: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).tar.gz
 	rsync -rtAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
-release: test-builds guard-VERSION uploadtar uploadrock
+release: test-builds guard-VERSION upload uploadrock
 
 guard-%:
 	@ if [ "${${*}}" = "" ]; then \
@@ -254,4 +239,4 @@ guard-%:
 	fi
 
 .PHONY: build test testall fuzz lint count format ci clean coverage install man \
-	uploadtar uploadrock release rockspec xc-deps guard-VERSION test-builds
+	upload uploadrock release rockspec xc-deps guard-VERSION test-builds

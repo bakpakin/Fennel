@@ -410,7 +410,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                 (tostring x)
                 (.. "#<" (tostring x) ">")))))
 
-(fn view [x ?options]
+(fn _view [x ?options]
   "Return a string representation of x.
 
 Can take an options table with these keys:

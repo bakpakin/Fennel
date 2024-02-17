@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Fix identity value for `band` operator.
 * Fix a bug in `icollect` with `&into` and multiple values.
 * Iterators accept locals wrapped in parens like all other multi-value bindings.
 * `fennel.repl` is now a callable table, allowing the default `(fennel.repl)`

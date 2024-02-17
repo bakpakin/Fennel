@@ -952,7 +952,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 
 (define-bitop-special :lshift nil :1 "<<")
 (define-bitop-special :rshift nil :1 ">>")
-(define-bitop-special :band :0 :0 "&")
+(define-bitop-special :band :-1 :-1 "&")
 (define-bitop-special :bor :0 :0 "|")
 (define-bitop-special :bxor :0 :0 "~")
 

@@ -6,6 +6,10 @@
 
 (fn copy [t] (collect [k v (pairs t)] k v))
 
+(fn double-eval-safe? [x type]
+  (or (= :number type) (= :string type) (= :boolean type)
+      (and (sym? x) (not (multi-sym? x)))))
+
 (fn with [opts k]
   (doto (copy opts) (tset k true)))
 
@@ -290,7 +294,7 @@ introduce for the duration of the body if it does match."
           "expected at least one pattern/body pair")
   (let [clauses [...]
         vals-count (case-count-syms clauses)
-        skips-multiple-eval-protection? (and (= vals-count 1) (sym? val) (not (multi-sym? val)))]
+        skips-multiple-eval-protection? (and (= vals-count 1) (double-eval-safe? val))]
     (if skips-multiple-eval-protection?
       (case-condition (list val) clauses match?)
       ;; protect against multiple evaluation of the value, bind against as

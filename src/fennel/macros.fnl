@@ -8,6 +8,11 @@
     (each [_ v (ipairs t)] (table.insert out v))
     (setmetatable out (getmetatable t))))
 
+(fn double-eval-safe? [x]
+  (let [ty (type x)]
+    (or (= :number ty) (= :string ty) (= :boolean ty)
+        (and (sym? x) (not (multi-sym? x))))))
+
 (fn ->* [val ...]
   "Thread-first macro.
 Take the first value and splice it into the second form as its first argument.
@@ -35,26 +40,30 @@ rather than the first."
 Same as -> except will short-circuit with nil when it encounters a nil value."
   (if (= nil ?e)
       val
-      (let [el (if (list? ?e) (copy ?e) (list ?e))
-            tmp (gensym)]
-        (table.insert el 2 tmp)
-        `(let [,tmp ,val]
-           (if (not= nil ,tmp)
-               (-?> ,el ,...)
-               ,tmp)))))
+      (not (double-eval-safe? val))
+      ;; try again, but with an eval-safe val
+      `(let [tmp# ,val]
+        (-?> tmp# ,?e ,...))
+      (let [call (if (list? ?e) (copy ?e) (list ?e))]
+        (table.insert call 2 val)
+        `(if (not= nil ,val)
+           (let [tmp# ,call]
+             (-?> tmp# ,...))))))
 
 (fn -?>>* [val ?e ...]
   "Nil-safe thread-last macro.
 Same as ->> except will short-circuit with nil when it encounters a nil value."
   (if (= nil ?e)
       val
-      (let [el (if (list? ?e) (copy ?e) (list ?e))
-            tmp (gensym)]
-        (table.insert el tmp)
-        `(let [,tmp ,val]
-           (if (not= ,tmp nil)
-               (-?>> ,el ,...)
-               ,tmp)))))
+      (not (double-eval-safe? val))
+      ;; try again, but with an eval-safe val
+      `(let [tmp# ,val]
+        (-?>> tmp# ,?e ,...))
+      (let [call (if (list? ?e) (copy ?e) (list ?e))]
+        (table.insert call val)
+        `(if (not= ,val nil)
+           (let [tmp# ,call]
+             (-?>> tmp# ,...))))))
 
 (fn ?dot [tbl ...]
   "Nil-safe table look up.
@@ -74,16 +83,16 @@ a nil value in any of subsequent keys."
 (fn doto* [val ...]
   "Evaluate val and splice it into the first argument of subsequent forms."
   (assert (not= val nil) "missing subject")
-  (let [rebind? (or (not (sym? val))
-                    (multi-sym? val))
-        name (if rebind? (gensym)            val)
-        form (if rebind? `(let [,name ,val]) `(do))]
-    (each [_ elt (ipairs [...])]
-      (let [elt (if (list? elt) (copy elt) (list elt))]
-        (table.insert elt 2 name)
-        (table.insert form elt)))
-    (table.insert form name)
-    form))
+  (if (not (double-eval-safe? val))
+    `(let [tmp# ,val]
+       (doto tmp# ,...))
+    (let [form `(do)]
+      (each [_ elt (ipairs [...])]
+        (let [elt (if (list? elt) (copy elt) (list elt))]
+          (table.insert elt 2 val)
+          (table.insert form elt)))
+      (table.insert form val)
+      form)))
 
 (fn when* [condition body1 ...]
   "Evaluate body for side-effects only when condition is truthy."
@@ -258,17 +267,13 @@ same as `for` instead of `each`. Like collect to fcollect, will iterate over a
 numerical range like `for` rather than an iterator."
   (accumulate-impl true iter-tbl body ...))
 
-(fn double-eval-safe? [x type]
-  (or (= :number type) (= :string type) (= :boolean type)
-      (and (sym? x) (not (multi-sym? x)))))
-
 (fn partial* [f ...]
   "Return a function with all arguments partially applied to f."
   (assert f "expected a function to partially apply")
   (let [bindings []
         args []]
     (each [_ arg (ipairs [...])]
-      (if (double-eval-safe? arg (type arg))
+      (if (double-eval-safe? arg)
         (table.insert args arg)
         (let [name (gensym)]
           (table.insert bindings name)

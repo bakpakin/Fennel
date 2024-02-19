@@ -39,7 +39,7 @@ implement nesting. "
         line (or (and m m.line) ast-tbl.line "?")
         col (or (and m m.col) ast-tbl.col "?")
         target (tostring (or (utils.sym? (. ast-tbl 1)) (. ast-tbl 1) "()"))]
-    (string.format "%s:%s:%s Compile error in '%s': %s"
+    (string.format "%s:%s:%s: Compile error in '%s': %s"
                    filename line col target msg)))
 
 ;; If you add new calls to this function, please update fennel.friend

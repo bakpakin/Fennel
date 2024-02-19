@@ -123,18 +123,18 @@
 
 (fn test-parse-fails []
   (test-failures
-   {"\n\n(+))" "unknown:3:3 Parse error: unexpected closing delimiter )"
+   {"\n\n(+))" "unknown:3:3: Parse error: unexpected closing delimiter )"
     "(foo:)" "malformed multisym"
     "(foo.bar:)" "malformed multisym"}))
 
 (fn test-core-fails []
   (test-failures
-   {"\n\n(let [f (lambda []\n(local))] (f))" "unknown:4:0 "
-    "\n\n(let [x.y 9] nil)" "unknown:3:0 Compile error in 'let': unexpected multi"
-    "\n(when)" "unknown:2:0 Compile error in 'when'"
+   {"\n\n(let [f (lambda []\n(local))] (f))" "unknown:4:0: "
+    "\n\n(let [x.y 9] nil)" "unknown:3:0: Compile error in 'let': unexpected multi"
+    "\n(when)" "unknown:2:0: Compile error in 'when'"
     "()" "expected a function, macro, or special"
     "(789)" "cannot call literal value"
-    "(do\n\n\n(each \n[x (pairs {})] (when)))" "unknown:5:15 "
+    "(do\n\n\n(each \n[x (pairs {})] (when)))" "unknown:5:15: "
     "(each [k v (pairs {})] (BAD k v))" "BAD"
     "(f" "expected closing delimiter )"
     "(match [1 2 3] [a & b c] nil)" "rest argument before last parameter"
@@ -154,7 +154,7 @@
     "(each [i x (y) (do-iter)] (print x))" "unexpected bindings in iterator"
     "(for [i 1 3 2 other-stuff] nil)" "unexpected arguments"
     "(do\n\n\n(each \n[x 34 (pairs {})] 21))"
-    "unknown:5:0 Compile error in 'x': unable to bind number 34"
+    "unknown:5:0: Compile error in 'x': unable to bind number 34"
     "(with-open [(x y z) (values 1 2 3)])"
     "with-open only allows symbols in bindings"
     "([])" "cannot call literal value table"
@@ -214,8 +214,8 @@
                                         "(icollect [_ _ \n(pairs [])]\n)"
                                         {:error-pinpoint [">>>" "<<<"]})]
     ;; use the standard prefix
-    (t.match "^%S+:%d+:%d+ Compile error: .+" msg)
-    (t.match "^%S+:%d+:%d+ Parse error: .+" parse-msg)
+    (t.match "^%S+:%d+:%d+: Compile error: .+" msg)
+    (t.match "^%S+:%d+:%d+: Parse error: .+" parse-msg)
     ;; show the raw error message
     (t.match "expected var x" msg)
     ;; offer suggestions

@@ -5,7 +5,7 @@
   `(let [(ok# val#) (pcall fennel.eval ,(view form)
                            {:useBitLib (not= nil _G.bit)})]
      (t.is ok# val#)
-     (t.= val# ,expected)))
+     (t.= ,expected val#)))
 
 (fn test-shifts []
   (== (lshift 33 2) 132)
@@ -16,11 +16,20 @@
     (t.match "Expected more than 0 arguments" msg)))
 
 (fn test-ops []
-  (== (band 22 13) 4)
-  (== (bor 1 2 4 8) 15)
+  ;; multiple args
+  (== (band 0x16 0xd) 0x4)
+  (== (band 0xff 0x91) 0x91)
+  (== (bor 0x1 0x2 0x4 0x8) 0xf)
+  (== (bxor 0x2 0xf0) 0xf2)
+  ;; one arg
   (== (bxor 1) 1)
-  (== (band) 0)
-  (== (bnot 26) -27))
+  (== (bor 0x33) 0x33)
+  (== (band 0x93) 0x93)
+  (== (bnot 26) -27)
+  ;; no args
+  (== (band) -1)
+  (== (bor) 0)
+  (== (bxor) 0))
 
 ;; skip the test on PUC 5.1 and 5.2
 (if (or (rawget _G :jit) (not (_VERSION:find "5%.[12]")))

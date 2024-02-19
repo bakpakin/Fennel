@@ -6,6 +6,7 @@ local origin_job_prefix = 'https://builds.sr.ht/technomancy/job/'
 local is_origin = url:sub(1, #origin_job_prefix) == origin_job_prefix
 
 local branch = io.popen("git rev-parse --abbrev-ref HEAD"):read('*a')
+                 :gsub('\n$', '')
 local is_main = branch == 'main'
 
 -- This may fail in future if libera chat once again blocks builds.sr.ht

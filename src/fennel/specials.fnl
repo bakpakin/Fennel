@@ -291,13 +291,11 @@ the number of expected arguments."
   ;; a table, and copies values into function metadata table.  If it
   ;; is a string, checks if the next one is a table and combines them.
   (->> (values {:fnl/arglist arg-list} index)
-       (maybe-metadata
-        ast utils.string?
-        #(doto $1 (tset :fnl/docstring $2)))
-       (maybe-metadata
-        ast utils.kv-table?
-        #(collect [k v (pairs $2) :into $1]
-           (values k v)))))
+       (maybe-metadata ast utils.string?
+                       #(doto $1 (tset :fnl/docstring $2)))
+       (maybe-metadata ast utils.kv-table?
+                       #(collect [k v (pairs $2) :into $1]
+                          (values k v)))))
 
 (fn SPECIALS.fn [ast scope parent]
   (let [f-scope (doto (compiler.make-scope scope)
@@ -1449,4 +1447,5 @@ Lua output. The module must be a string literal and resolvable at compile time."
  : make-compiler-env
  : search-module
  : make-searcher
+ : get-function-metadata
  : wrap-env}

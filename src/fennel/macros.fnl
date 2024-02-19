@@ -327,19 +327,16 @@ nil, unless that argument's name begins with a question mark."
         has-internal-name? (sym? (. args 1))
         arglist (if has-internal-name? (. args 2) (. args 1))
         metadata-position (if has-internal-name? 3 2)
-        has-metadata? (and (< metadata-position args-len)
-                           (or (= :string (type (. args metadata-position)))
-                               (utils.kv-table? (. args metadata-position))))
-        arity-check-position (- 4 (if has-internal-name? 0 1)
-                                (if has-metadata? 0 1))
-        empty-body? (< args-len arity-check-position)]
+        (f-metadata check-position) (get-function-metadata [:lambda ...] arglist
+                                                           metadata-position)
+        empty-body? (< args-len check-position)]
     (fn check! [a]
       (if (table? a)
           (each [_ a (pairs a)] (check! a))
           (let [as (tostring a)]
             (and (not (as:match "^?")) (not= as "&") (not= as "_")
                  (not= as "...") (not= as "&as")))
-          (table.insert args arity-check-position
+          (table.insert args check-position
                         `(_G.assert (not= nil ,a)
                                     ,(: "Missing argument %s on %s:%s" :format
                                         (tostring a)
@@ -348,8 +345,7 @@ nil, unless that argument's name begins with a question mark."
 
     (assert (= :table (type arglist)) "expected arg list")
     (each [_ a (ipairs arglist)] (check! a))
-    (if empty-body?
-        (table.insert args (sym :nil)))
+    (if empty-body? (table.insert args (sym :nil)))
     `(fn ,(unpack args))))
 
 (fn macro* [name ...]

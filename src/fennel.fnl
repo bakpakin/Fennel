@@ -185,7 +185,8 @@
       _ (tset package.preload module-name #mod)
       env (doto (specials.make-compiler-env nil compiler.scopes.compiler {})
             (tset :utils utils) ; for import-macros to propagate compile opts
-            (tset :fennel mod))
+            (tset :fennel mod)
+            (tset :get-function-metadata specials.get-function-metadata))
       built-ins (eval (embed-src :src/fennel/macros.fnl)
                       {: env
                        :scope compiler.scopes.compiler

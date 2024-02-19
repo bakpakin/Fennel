@@ -774,6 +774,18 @@
     (t.is ok? "should be able to recover from nil assertion.")
     (t.= "nerevar" val)))
 
+(fn test-lambda []
+  (lambda arglist-lambda [x]
+    "docstring"
+    {:fnl/arglist [y]}
+    (do :something))
+  (t.= [:y] (. fennel.metadata arglist-lambda :fnl/arglist))
+  (let [l2 (lambda [x]
+             "docstring"
+             {:fnl/arglist [z]}
+             (do :something))]
+    (t.= [:z] (. fennel.metadata l2 :fnl/arglist))))
+
 {:teardown #(each [k (pairs fennel.repl)]
               (tset fennel.repl k nil))
  : test-arrows
@@ -797,4 +809,5 @@
  : test-expand
  : test-match-try
  : test-case-try
+ : test-lambda
  : test-literal}

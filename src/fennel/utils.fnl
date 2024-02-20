@@ -40,10 +40,6 @@
 
 ;;; General-purpose helper functions
 
-(fn warn [message]
-  (when (and _G.io _G.io.stderr)
-    (_G.io.stderr:write (: "--WARNING: %s\n" :format (tostring message)))))
-
 ;; if utf8-aware len is available, use it, otherwise use bytes
 (local len (match (pcall require :utf8)
              (true utf8) utf8.len
@@ -356,12 +352,6 @@ Returns nil if passed something other than a multi-sym."
         (and (sym? x)
              (not (multi-sym? x))))))
 
-(fn ast-source [ast]
-  "Get a table for the given ast which includes file/line info, if possible."
-  (if (or (table? ast) (sequence? ast)) (or (getmetatable ast) {})
-      (= :table (type ast)) ast
-      {}))
-
 ;;; Other
 
 (fn walk-tree [root f ?custom-iterator]
@@ -422,6 +412,18 @@ has options calls down into compile."
   (fn root.reset []
     (set (root.chunk root.scope root.options root.reset)
          (values chunk scope options reset))))
+
+(fn ast-source [ast]
+  "Get a table for the given ast which includes file/line info, if possible."
+  (if (or (table? ast) (sequence? ast)) (or (getmetatable ast) {})
+      (= :table (type ast)) ast
+      {}))
+
+(fn warn [msg ?ast]
+  (when (and _G.io _G.io.stderr)
+    (let [loc (case (ast-source ?ast) {: filename : line}
+                    (.. filename ":" line ": ") _ "")]
+      (_G.io.stderr:write (: "--WARNING: %s%s\n" :format loc (tostring msg))))))
 
 (local warned {})
 

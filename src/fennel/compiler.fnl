@@ -825,7 +825,7 @@ which we have to do if we don't know."
   (fn opts.fallback [e no-warn]
     (when (and (not no-warn) (= :literal e.type))
       (utils.warn (: "include module not found, falling back to require: %s"
-                     :format (tostring e))))
+                     :format (tostring e)) ast))
     (utils.expr (string.format "require(%s)" (tostring e)) :statement))
 
   (scopes.global.specials.include ast scope parent opts))

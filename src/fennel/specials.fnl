@@ -642,9 +642,10 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
         iter (table.remove bindings) ; last remaining item is iterator call
         bindings (if (= 1 (length bindings))
                      (or (utils.list? (. bindings 1)) bindings)
+                     ;; make this a compiler error in 2.0
                      (do (each [_ b (ipairs bindings)]
-                           (compiler.assert (not (utils.list? b))
-                                            "unexpected bindings in iterator" b))
+                           (when (utils.list? b)
+                             (utils.warn "unexpected parens in iterator" b)))
                          bindings))]
     (values bindings iter ?until)))
 

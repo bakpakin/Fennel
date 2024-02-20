@@ -6,19 +6,23 @@ Note that since 0.3.0, no deprecations have actually resulted in
 removals. They are advisory only and we have no plans to break the
 deprecated forms.
 
+## 1.5.0 / ???
+
+* ???
+
 ## 1.4.1 / 2024-02-19
 
 ### New Features
 
-* Fix a bug with metadata tables in `lambda` being ignored.
-* Fix identity value for `band` operator.
-* Fix a bug in `icollect` with `&into` and multiple values.
 * Iterators accept locals wrapped in parens like all other multi-value bindings.
 * `fennel.repl` is now a callable table, allowing the default `(fennel.repl)`
   options to be customized by setting option fields on the table itself.
 
 ### Bug Fixes
 
+* Fix a bug with metadata tables in `lambda` being ignored.
+* Fix identity value for `band` operator.
+* Fix a bug in `icollect` with `&into` and multiple values.
 * `assert-repl`, as a drop-in replacement for `assert`, no longer takes an `opts` param
 * Fix a bug where `(. (a-macro) k)` bypassed protections against invalid Lua output
 

@@ -59,8 +59,6 @@ you want to use a newer version that has come out.
  1. Choose one the options below, depending on your system:
       - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-1.4.1-x86_64)
         ([signature](https://fennel-lang.org/downloads/fennel-1.4.1-x86_64.asc))
-      - [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-1.4.1-arm32)
-        ([signature](https://fennel-lang.org/downloads/fennel-1.4.1-arm32.asc))
       - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-1.4.1-windows32.exe)
         ([signature](https://fennel-lang.org/downloads/fennel-1.4.1-windows32.exe.asc))
  2. Run `chmod +x fennel-1.4.1*` to make it executable

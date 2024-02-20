@@ -108,10 +108,6 @@ $(NATIVE_LUAJIT_LIB): $(BIN_LUAJIT_DIR)
 
 ## Cross compiling
 
-xc-deps:
-	apt install -y gcc-arm-linux-gnueabihf libc6-dev-armhf-cross curl \
-		gcc-multilib-x86-64-linux-gnu libc6-dev-amd64-cross gcc-mingw-w64-i686
-
 fennel-x86_64: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-x86_64.a
 	$(COMPILE_ARGS) CC=x86_64-linux-gnu-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< $@ \
@@ -123,27 +119,18 @@ fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 	mv fennel-bin.exe $@
 
-fennel-arm32: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-arm32.a
-	$(COMPILE_ARGS) CC=arm-linux-gnueabihf-gcc ./fennel --no-compiler-sandbox \
-		--compile-binary $< $@  $(LUA_INCLUDE_DIR)/liblua-arm32.a $(LUA_INCLUDE_DIR)
-
 $(BIN_LUA_DIR)/src/liblua-x86_64.a: $(BIN_LUA_DIR)
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean posix liblua.a
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
-# Cross-compilation here doesn't work from arm64; need to do it on x86_64
 $(BIN_LUA_DIR)/src/liblua-mingw.a: $(BIN_LUA_DIR)
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
-	mv $(BIN_LUA_DIR)/src/liblua.a $@
-
-$(BIN_LUA_DIR)/src/liblua-arm32.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean posix liblua.a CC=arm-linux-gnueabihf-gcc
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
 ci: testall lint fuzz fennel
 
 clean:
-	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe fennel-arm32 \
+	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe \
 		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock bootstrap/view.lua \
 		test/faith.lua build/manfilter.lua fennel-bin-luajit
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
@@ -211,24 +198,21 @@ test-builds: fennel fennel-x86_64 test/faith.lua
 	./fennel --metadata --eval "(require :test.init)"
 	./fennel-x86_64 --metadata --eval "(require :test.init)"
 
-upload: fennel fennel-x86_64 fennel.exe fennel-arm32 fennel.tar.gz
+upload: fennel fennel-x86_64 fennel.exe fennel.tar.gz
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel-x86_64 downloads/fennel-$(VERSION)-x86_64
 	mv fennel.exe downloads/fennel-$(VERSION)-windows32.exe
-	mv fennel-arm32 downloads/fennel-$(VERSION)-arm32
 	mv fennel.tar.gz downloads/fennel-$(VERSION).tar.gz
 	gpg -ab downloads/fennel-$(VERSION)
 	gpg -ab downloads/fennel-$(VERSION)-x86_64
 	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
-	gpg -ab downloads/fennel-$(VERSION)-arm32
 	gpg -ab downloads/fennel-$(VERSION).tar.gz
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-x86_64
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows32.exe
-	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-arm32
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).tar.gz
-	rsync -rtAv downloads/ fenneler@fennel-lang.org:fennel-lang.org/downloads/
+	rsync -rtAv downloads/fennel-$(VERSION)* fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
 release: test-builds guard-VERSION upload uploadrock
 

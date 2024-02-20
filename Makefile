@@ -144,8 +144,10 @@ coverage: fennel
 MAN_DOCS := man/man1/fennel.1 man/man3/fennel-api.3 man/man5/fennel-reference.5\
 	    man/man7/fennel-tutorial.7
 
+## The empty line in maninst is necessary for it to emit distinct commands
 define maninst =
 mkdir -p $(dir $(2)) && cp $(1) $(2)
+
 endef
 
 install: fennel fennel.lua

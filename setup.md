@@ -35,12 +35,12 @@ installed on your system.
 This method requires you to manually update the `fennel` script when
 you want to use a newer version that has come out.
 
- 1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-1.4.0)
- 2. Run `chmod +x fennel-1.4.0` to make it executable
- 3. Download the [signature](https://fennel-lang.org/downloads/fennel-1.4.0.asc)
-    and confirm it matches using `gpg --verify fennel-1.4.0*.asc`
+ 1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-1.4.1)
+ 2. Run `chmod +x fennel-1.4.1` to make it executable
+ 3. Download the [signature](https://fennel-lang.org/downloads/fennel-1.4.1.asc)
+    and confirm it matches using `gpg --verify fennel-1.4.1*.asc`
     (optional but recommended).
- 4. Move `fennel-1.4.0` to a directory on your `$PATH`, such as `/usr/local/bin`
+ 4. Move `fennel-1.4.1` to a directory on your `$PATH`, such as `/usr/local/bin`
 
 **Note**: You can rename the script to `fennel` for convenience. Or
 you can leave the version in the name, which makes it easy to keep
@@ -57,14 +57,14 @@ This method requires you to manually update the `fennel` binary when
 you want to use a newer version that has come out.
 
  1. Choose one the options below, depending on your system:
-      - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-1.4.0-x86_64)
-        ([signature](https://fennel-lang.org/downloads/fennel-1.4.0-x86_64.asc))
-      - [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-1.4.0-arm32)
-        ([signature](https://fennel-lang.org/downloads/fennel-1.4.0-arm32.asc))
-      - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-1.4.0-windows32.exe)
-        ([signature](https://fennel-lang.org/downloads/fennel-1.4.0-windows32.exe.asc))
- 2. Run `chmod +x fennel-1.4.0*` to make it executable
- 3. Download the signature and confirm it matches using `gpg --verify fennel-1.4.0*.asc`
+      - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-1.4.1-x86_64)
+        ([signature](https://fennel-lang.org/downloads/fennel-1.4.1-x86_64.asc))
+      - [GNU/Linux arm32](https://fennel-lang.org/downloads/fennel-1.4.1-arm32)
+        ([signature](https://fennel-lang.org/downloads/fennel-1.4.1-arm32.asc))
+      - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-1.4.1-windows32.exe)
+        ([signature](https://fennel-lang.org/downloads/fennel-1.4.1-windows32.exe.asc))
+ 2. Run `chmod +x fennel-1.4.1*` to make it executable
+ 3. Download the signature and confirm it matches using `gpg --verify fennel-1.4.1*.asc`
     (optional but recommended).
  4. Move the downloaded binary to a directory on your `$PATH`, such as `/usr/local/bin`
 
@@ -97,7 +97,7 @@ The Fennel compiler can be added to your code repository, and then
 loaded from Lua.
 
  1. Get the `fennel.lua` library. You can get this from a
-    [release tarball](https://fennel-lang.org/downloads/fennel-1.4.0.tar.gz)
+    [release tarball](https://fennel-lang.org/downloads/fennel-1.4.1.tar.gz)
     or by running `make` in a source checkout.
  2. Add `fennel.lua` to your code repository.
  3. Add the following lines to your Lua code:

@@ -6,7 +6,7 @@ Note that since 0.3.0, no deprecations have actually resulted in
 removals. They are advisory only and we have no plans to break the
 deprecated forms.
 
-## 1.4.1 / ???
+## 1.4.1 / 2024-02-19
 
 ### New Features
 

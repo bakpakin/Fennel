@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-reference" "5" "2023-12-01" "fennel 1.4.0" "Fennel Reference"
+.TH "fennel-reference" "5" "2024-02-19" "fennel 1.4.1" "Fennel Reference"
 .hy
 .SH NAME
 .PP
@@ -533,31 +533,6 @@ Example:
 \f[I](Since 1.3.0)\f[R]: This also works with function argument lists,
 but it has a small performance cost, so it\[aq]s recommended to use
 \f[V]...\f[R] instead in cases that are sensitive to overhead.
-.PP
-If a table implements \f[V]__fennelrest\f[R] metamethod it is used to
-capture the remainder of the table.
-It can be used with custom data structures implemented in terms of
-tables, which wish to provide custom rest destructuring.
-The metamethod receives the table as the first argument, and the amount
-of values it needs to drop from the beginning of the table, much like
-table.unpack
-.PP
-Example:
-.IP
-.nf
-\f[C]
-(local t [1 2 3 4 5 6])
-(setmetatable
- t
- {:__fennelrest (fn [t k]
-                  (let [res {}]
-                    (for [i k (length t)]
-                      (tset res (tostring (. t i)) (. t i)))
-                  res))})
-(let [[a b & c] t]
-  c) ;; => {:3 3 :4 4 :5 5 :6 6}
-\f[R]
-.fi
 .PP
 When destructuring a non-sequential table, you can capture the original
 table along with the destructuring by using \f[V]&as\f[R]:
@@ -1710,12 +1685,13 @@ The first form becomes the return value for the whole expression, and
 subsequent forms are evaluated solely for side-effects.
 .SS \f[V]tail!\f[R]
 .PP
-The \f[V]tail!\f[R] form asserts that its argument is called in a tail
-position.
-You can use this when using tail calls to recurse over large data sets
-in a way that might not be obvious; that way if the code is changed so
-that the recursive call is no longer a tail call, it will cause a
-compile error instead of overflowing the stack on large data sets.
+Tail calls will be optimized automatically.
+However, the \f[V]tail!\f[R] form asserts that its argument is called in
+a tail position.
+You can use this when the code depends on tail call optimization; that
+way if the code is changed so that the recursive call is no longer in
+the tail position, it will cause a compile error instead of overflowing
+the stack later on large data sets.
 .IP
 .nf
 \f[C]
@@ -1723,8 +1699,8 @@ compile error instead of overflowing the stack on large data sets.
   (case (process (. data i))
     :done (print \[dq]Process completed.\[dq])
     :next (process-all data (+ i 1))
-    :skip (do (process-all data (+ i 2))
-;;             \[ha]\[ha]\[ha]\[ha]\[ha]\[ha]\[ha]\[ha]\[ha]\[ha]\[ha] Compile error: Must be in tail position
+    :skip (do (tail! (process-all data (+ i 2)))
+;;             \[ha]\[ha]\[ha]\[ha]\[ha] Compile error: Must be in tail position
               (print \[dq]Skipped\[dq] (+ i 1)))))
 \f[R]
 .fi
@@ -1777,17 +1753,11 @@ You can use the \f[V]assert-repl\f[R] macro to do this:
 \f[R]
 .fi
 .PP
-This works like the built-in \f[V]assert\f[R] function, but when the
-condition is false or nil, instead of an error, it drops into a repl
-which has access to all the locals that are in scope.
-(This would be \f[V]input\f[R], \f[V]value\f[R], and \f[V]helper\f[R] in
-the example above.)
-It takes an optional options table as its third argument which accepts
-all the same values as the \f[V]fennel.repl\f[R] function in the API.
-.PP
-You can \f[V],return EXPRESSION\f[R] from the repl to replace the
-original failing condition with a different arbitrary value.
-Returning false or nil will trigger a regular \f[V]assert\f[R] failure.
+This works as a drop-in replacement for the built-in \f[V]assert\f[R]
+function, but when the condition is false or nil, instead of an error,
+it drops into a repl which has access to all the locals that are in
+scope (\f[V]input\f[R], \f[V]value\f[R], and \f[V]helper\f[R] in the
+example above).
 .PP
 Note that this is meant for use in development and will not work with
 ahead-of-time compilation unless your build also includes Fennel as a
@@ -1796,6 +1766,27 @@ library.
 If you use the \f[V]--assert-as-repl\f[R] flag when running Fennel,
 calls to \f[V]assert\f[R] will be replaced with \f[V]assert-repl\f[R]
 automatically.
+.PP
+\f[B]Note:\f[R] In Fennel 1.4.0, \f[V]assert-repl\f[R] accepted an
+options table for \f[V]fennel.repl\f[R] as an optional third argument.
+This was removed as a bug in 1.4.1, as it broke compatibility with
+\f[V]assert\f[R].
+.PP
+The REPL spawned by \f[V]assert-repl\f[R] applies the same default
+options as \f[V]fennel.repl\f[R], which as of Fennel 1.4.1 can be
+configured from the API.
+See the Fennel API reference for details.
+.SS Recovering from failed assertions
+.PP
+You can \f[V],return EXPRESSION\f[R] from the repl to replace the
+original failing condition with a different arbitrary value.
+Returning false or nil will trigger a regular \f[V]assert\f[R] failure.
+.PP
+\f[B]Note:\f[R] Currently, only a single value can be returned from the
+REPL this way.
+While \f[V],return\f[R] can be used to make a failed assertion recover,
+if the calling code expects multiple return values, it may cause
+unspecified behavior.
 .SH MACROS
 .PP
 All forms which introduce macros do so inside the current scope.
@@ -2194,6 +2185,10 @@ the second argument.
 Note that this should only be used in exceptional circumstances, and if
 you are able to avoid it, you should.
 .SH DEPRECATED FORMS
+.PP
+The \f[V]#\f[R] form is a deprecated alias for \f[V]length\f[R], and
+\f[V]\[ti]=\f[R] is a deprecated alias for \f[V]not=\f[R], kept for
+backwards compatibility.
 .SS \f[V]require-macros\f[R] load macros with less flexibility
 .PP
 \f[I](Deprecated in 0.4.0)\f[R]
@@ -2231,5 +2226,33 @@ allowed globals so that referring to it later on will not cause a
 compiler error.
 However, globals are also available in the \f[V]_G\f[R] table, and
 accessing them that way instead is recommended for clarity.
+.SS Rest destructuring metamethod
+.PP
+\f[I](Deprecated in 1.4.1)\f[R]
+.PP
+If a table implements \f[V]__fennelrest\f[R] metamethod it is used to
+capture the remainder of the table.
+It can be used with custom data structures implemented in terms of
+tables, which wish to provide custom rest destructuring.
+The metamethod receives the table as the first argument, and the amount
+of values it needs to drop from the beginning of the table, much like
+table.unpack
+.PP
+Example:
+.IP
+.nf
+\f[C]
+(local t [1 2 3 4 5 6])
+(setmetatable
+ t
+ {:__fennelrest (fn [t k]
+                  (let [res {}]
+                    (for [i k (length t)]
+                      (tset res (tostring (. t i)) (. t i)))
+                  res))})
+(let [[a b & c] t]
+  c) ;; => {:3 3 :4 4 :5 5 :6 6}
+\f[R]
+.fi
 .SH AUTHORS
 Fennel Maintainers.

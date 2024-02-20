@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-api" "3" "2023-12-01" "fennel 1.4.0" "Fennel\[aq]s Lua API"
+.TH "fennel-api" "3" "2024-02-19" "fennel 1.4.1" "Fennel\[aq]s Lua API"
 .hy
 .SH NAME
 .PP
@@ -120,7 +120,25 @@ source of the generated lua code.
 .PP
 By default, metadata will be enabled and you can view function
 signatures and docstrings with the \f[V],doc\f[R] command in the REPL.
-.SH EVAULATE A STRING OF FENNEL
+.SS Customize REPL default options
+.PP
+Any fields set on \f[V]fennel.repl\f[R], which is actually a table with
+a \f[V]__call\f[R] metamethod rather than a function, will used as a
+fallback for any options passed to \f[V](fennel.repl)\f[R] before
+defaults are applied, allowing one to customize the default behavior of
+\f[V](fennel.repl)\f[R]:
+.IP
+.nf
+\f[C]
+fennel.repl.onError = custom_error_handler
+-- In rare cases this needs to be temporary, overrides
+-- can be cleared by simply clearing the entire table
+for k in pairs(fennel.repl) do
+  fennel.repl[k] = nil
+end
+\f[R]
+.fi
+.SH EVALUATE A STRING OF FENNEL
 .IP
 .nf
 \f[C]
@@ -270,10 +288,12 @@ Accepts \f[V]filename\f[R] in \f[V]options\f[R] like
 .PP
 This is useful when streaming data into the compiler to allow you to
 avoid loading all the code into a single string in one go.
+The first argument should be a stateful iterator; in other words a
+function which returns one byte at a time.
 .IP
 .nf
 \f[C]
-local lua = fennel.compileStream(strm[, options])
+local lua = fennel.compileStream(stream[, options])
 \f[R]
 .fi
 .PP

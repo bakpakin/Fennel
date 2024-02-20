@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-tutorial" "7" "2023-12-01" "fennel 1.4.0" "Getting Started with Fennel"
+.TH "fennel-tutorial" "7" "2024-02-19" "fennel 1.4.1" "Getting Started with Fennel"
 .hy
 .SH NAME
 .PP
@@ -37,7 +37,7 @@ Even if not, Lua is one of the simplest programming languages in
 existence, so if you\[aq]ve programmed before you should be able to pick
 it up without too much trouble, especially if you\[aq]ve used another
 dynamic imperative language with closures.
-The Lua reference manual (https://www.lua.org/manual/5.1/) is a fine
+The Lua reference manual (https://www.lua.org/manual/5.4/) is a fine
 place to look for details, but Fennel\[aq]s own Lua
 Primer (https://fennel-lang.org/lua-primer) is shorter and covers the
 highlights.
@@ -329,7 +329,7 @@ over numeric keys starting with 1 until it hits a \f[V]nil\f[R].
 You can use any Lua iterator (https://www.lua.org/pil/7.1.html) with
 \f[V]each\f[R], but these are the most common.
 Here\[aq]s an example that walks through matches in a
-string (https://www.lua.org/manual/5.1/manual.html#pdf-string.gmatch):
+string (https://www.lua.org/manual/5.4/manual.html#pdf-string.gmatch):
 .IP
 .nf
 \f[C]
@@ -715,13 +715,15 @@ Return values in the repl will get pretty-printed, but calling
 If you don\[aq]t already have one, it\[aq]s recommended for debugging to
 define a printer function which calls \f[V]fennel.view\f[R] on its
 argument before printing it:
-\f[V](local fennel (require :fennel)) (fn _G.pp [x] (print (fennel.view x)))\f[R]
+\f[V](local fennel (require :fennel)) (fn _G.pp [x] (print (fennel.view x)))\f[R].
+If you add this definition to your \f[V]\[ti]/.fennelrc\f[R] file it
+will be available in the standard repl.
 .IP \[bu] 2
 Lua programmers should note Fennel functions cannot do early returns.
 .SH OTHER STUFF JUST WORKS
 .PP
 Note that built-in functions in Lua\[aq]s standard
-library (https://www.lua.org/manual/5.1/manual.html#5) like
+library (https://www.lua.org/manual/5.4/manual.html#6) like
 \f[V]math.random\f[R] above can be called with no fuss and no overhead.
 .PP
 This includes features like coroutines, which are often implemented

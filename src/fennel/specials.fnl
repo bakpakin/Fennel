@@ -1417,9 +1417,13 @@ Lua output. The module must be a string literal and resolvable at compile time."
 
 (fn SPECIALS.tail! [ast scope parent opts]
   (compiler.assert (= (length ast) 2) "Expected one argument" ast)
-  (compiler.assert (utils.list? (. ast 2)) "Expected a call as argument" ast)
-  (compiler.assert opts.tail "Must be in tail position" ast)
-  (compiler.compile1 (. ast 2) scope parent opts))
+  (let [call (utils.list? (compiler.macroexpand (. ast 2) scope))
+        callee (tostring (and call (utils.sym? (. call 1))))]
+    ;; callee won't ever be a macro because we've already macroexpanded
+    (compiler.assert (and call (not (. scope.specials callee)))
+                     "Expected a function call as argument" ast)
+    (compiler.assert opts.tail "Must be in tail position" ast)
+    (compiler.compile1 call scope parent opts)))
 
 (doc-special :tail! ["body"]
              "Assert that the body being called is in tail position.")

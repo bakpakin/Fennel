@@ -158,7 +158,13 @@
     "(with-open [(x y z) (values 1 2 3)])"
     "with-open only allows symbols in bindings"
     "([])" "cannot call literal value table"
-    "(let [((x)) 1] (do))" "can't nest multi-value destructuring"}))
+    "(let [((x)) 1] (do))" "can't nest multi-value destructuring"
+    "(tail! (if false (print :one) (print :two)))"
+    "Expected a function call as argument"
+    "(tail! [])"
+    "Expected a function call as argument"
+    "(do (tail! (print :x)) (print :y))"
+    "Must be in tail position"}))
 
 (fn test-match-fails []
   (test-failures

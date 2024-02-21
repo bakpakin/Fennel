@@ -111,7 +111,11 @@
   (== [(pick-values 4 :a :b :c (values :d :e))] ["a" "b" "c" "d"])
   (== ((fn [a & [b {: c}]] (string.format a (+ b c))) "haha %s" 4 {:c 3})
       "haha 7")
-  (== ((fn [& {1 _ 2 _ 3 x}] x) :one :two :three) "three"))
+  (== ((fn [& {1 _ 2 _ 3 x}] x) :one :two :three) "three")
+  (== (tail! (select 1 :hi))
+      "hi")
+  (== (if (= 1 1) (tail! (select 1 :yes)) (tail! (select 1 :no)))
+      "yes"))
 
 (fn test-conditionals []
   (== (if _G.non-existent 1 (* 3 9)) 27)

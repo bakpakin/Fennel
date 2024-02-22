@@ -6,9 +6,13 @@ Note that since 0.3.0, no deprecations have actually resulted in
 removals. They are advisory only and we have no plans to break the
 deprecated forms.
 
-## 1.5.0 / ???
+## 1.4.2 / ???
 
-* ???
+### Bug Fixes
+
+* Fix a bug where `(tail! (f x))` could sometimes compile to `return return f(x)`
+* Make `tail!` ensure its target is not a special form call like `(tail! (or x (f)))`
+* Fix broken man page installation on `make install` in Fennel 1.4.1
 
 ## 1.4.1 / 2024-02-19
 

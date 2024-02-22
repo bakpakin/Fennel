@@ -17,8 +17,8 @@
             "executor": "windows/default",
             "steps": [
                 "checkout",
-                {"run": "choco install lua53"},
-                {"run": "choco install make"},
+                {"run": "choco install -y lua53"},
+                {"run": "choco install -y make"},
                 {"run": "make test LUA=lua53"}
             ]
         }

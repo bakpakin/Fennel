@@ -133,7 +133,7 @@ ci: testall lint fuzz fennel
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe \
-		*_binary.c luacov.* fennel.tar.gz fennel-*.src.rock bootstrap/view.lua \
+		*_binary.c luacov.* fennel-*.src.rock bootstrap/view.lua \
 		test/faith.lua build/manfilter.lua fennel-bin-luajit
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
 	$(MAKE) -C $(BIN_LUAJIT_DIR) clean || true # this dir might not exist
@@ -174,26 +174,14 @@ man/man7/fennel-%.7: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
 
 # Release-related tasks:
 
-fennel.tar.gz: README.md LICENSE $(MAN_DOCS) fennel fennel.lua \
-		Makefile $(SRC)
-	rm -rf fennel-$(VERSION)
-	mkdir fennel-$(VERSION)
-	cp -r $^ fennel-$(VERSION)
-	tar czf $@ fennel-$(VERSION) # tar is intended for luarocks purposes only
-
-uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
-	luarocks --local build $<
-	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
-	luarocks --local remove fennel
-	luarocks upload --api-key $(shell pass luarocks-api-key) $<
-	luarocks --local install fennel
-	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
-	luarocks --local remove fennel
-	rm -f fennel-$(VERSION)-1-src.rock
-
 SSH_KEY ?= ~/.ssh/id_ed25519.pub
 
+uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
+	luarocks upload --api-key $(shell pass luarocks-api-key) $<
+
 rockspecs/fennel-$(VERSION)-1.rockspec: rockspecs/template.fnl
+	@echo TODO: this depends on the broken tarball
+	exit 1
 	VERSION=$(VERSION) fennel --no-compiler-sandbox -c $< > $@
 	git add $@
 
@@ -204,20 +192,20 @@ test-builds: fennel fennel-x86_64 test/faith.lua
 	./fennel-x86_64 --metadata --eval "(require :test.init)"
 	$(MAKE) install PREFIX=/tmp/opt
 
-upload: fennel fennel-x86_64 fennel.exe fennel.tar.gz
+upload: fennel fennel.lua fennel-x86_64 fennel.exe
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
+	mv fennel.lua downloads/fennel-$(VERSION).lua
 	mv fennel-x86_64 downloads/fennel-$(VERSION)-x86_64
 	mv fennel.exe downloads/fennel-$(VERSION)-windows32.exe
-	mv fennel.tar.gz downloads/fennel-$(VERSION).tar.gz
 	gpg -ab downloads/fennel-$(VERSION)
+	gpg -ab downloads/fennel-$(VERSION).lua
 	gpg -ab downloads/fennel-$(VERSION)-x86_64
 	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
-	gpg -ab downloads/fennel-$(VERSION).tar.gz
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).lua
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-x86_64
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows32.exe
-	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).tar.gz
 	rsync -rtAv downloads/fennel-$(VERSION)* \
 		fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
@@ -231,6 +219,7 @@ release: guard-VERSION upload uploadrock
 
 prerelease: guard-VERSION ci test-builds
 	@echo "Did you look for changes that need to be mentioned in help/man text?"
+	exit 1 # TODO: update setup.md to stop linking to tarball
 	sed -i s/$(VERSION)-dev/$(VERSION)/ src/fennel/utils.fnl
 	$(MAKE) man rockspec
 	grep "$(VERSION)" setup.md > /dev/null

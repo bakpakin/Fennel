@@ -229,12 +229,13 @@ release: guard-VERSION upload uploadrock
 	@echo "* Bump the version in src/fennel/utils.fnl to the next dev version."
 	@echo "* Add a stub for the next version in changelog.md"
 
-prerelease: guard-VERSION ci man test-builds rockspec
+prerelease: guard-VERSION ci test-builds
 	@echo "Did you look for changes that need to be mentioned in help/man text?"
 	sed -i s/$(VERSION)-dev/$(VERSION)/ src/fennel/utils.fnl
+	$(MAKE) man rockspec
 	grep "$(VERSION)" setup.md > /dev/null
 	! grep "???" changelog.md
-	git commit -m "Release $(VERSION)"
+	git commit -a -m "Release $(VERSION)"
 	git tag -s $(VERSION) -m $(VERSION)
 
 guard-%:

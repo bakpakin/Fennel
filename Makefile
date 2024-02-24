@@ -16,7 +16,7 @@ LIB_SRC=$(CORE_SRC) src/fennel/friend.fnl src/fennel/view.fnl src/fennel/repl.fn
 
 SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
-MAN_PANDOC = pandoc -f gfm -t man -s --lua-filter=build/manfilter.lua \
+MAN_PANDOC := pandoc -f gfm -t man -s --lua-filter=build/manfilter.lua \
 	     --metadata author="Fennel Maintainers" \
 	     --variable footer="fennel $(shell ./fennel -e '(. (require :fennel) :version)')"
 
@@ -86,9 +86,11 @@ LUAJIT_INCLUDE_DIR ?= $(BIN_LUAJIT_DIR)/src
 COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
 LUAJIT_COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
 
-$(BIN_LUA_DIR): ; curl https://www.lua.org/ftp/lua-$(BIN_LUA_VERSION).tar.gz | tar xz
+$(BIN_LUA_DIR):
+	curl https://www.lua.org/ftp/lua-$(BIN_LUA_VERSION).tar.gz | tar xz
 
-$(BIN_LUAJIT_DIR): ; curl https://luajit.org/download/LuaJIT-$(BIN_LUAJIT_VERSION).tar.gz | tar xz
+$(BIN_LUAJIT_DIR):
+	curl https://luajit.org/download/LuaJIT-$(BIN_LUAJIT_VERSION).tar.gz | tar xz
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl fennel $(NATIVE_LUA_LIB)
@@ -187,6 +189,7 @@ uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
 	luarocks --local install fennel
 	$(HOME)/.luarocks/bin/fennel --version | grep $(VERSION)
 	luarocks --local remove fennel
+	rm -f fennel-$(VERSION)-1-src.rock
 
 SSH_KEY ?= ~/.ssh/id_ed25519.pub
 
@@ -199,6 +202,7 @@ rockspec: rockspecs/fennel-$(VERSION)-1.rockspec
 test-builds: fennel fennel-x86_64 test/faith.lua
 	./fennel --metadata --eval "(require :test.init)"
 	./fennel-x86_64 --metadata --eval "(require :test.init)"
+	$(MAKE) install PREFIX=/tmp/opt
 
 upload: fennel fennel-x86_64 fennel.exe fennel.tar.gz
 	mkdir -p downloads/
@@ -214,9 +218,24 @@ upload: fennel fennel-x86_64 fennel.exe fennel.tar.gz
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-x86_64
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows32.exe
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).tar.gz
-	rsync -rtAv downloads/fennel-$(VERSION)* fenneler@fennel-lang.org:fennel-lang.org/downloads/
+	rsync -rtAv downloads/fennel-$(VERSION)* \
+		fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
-release: test-builds guard-VERSION upload uploadrock
+release: guard-VERSION upload uploadrock
+	git push
+	git push --tags
+	@echo "* Update the submodule in the fennel-lang.org repository."
+	@echo "* Announce the release on the mailing list."
+	@echo "* Bump the version in src/fennel/utils.fnl to the next dev version."
+	@echo "* Add a stub for the next version in changelog.md"
+
+prerelease: guard-VERSION ci man test-builds rockspec
+	@echo "Did you look for changes that need to be mentioned in help/man text?"
+	sed -i s/$(VERSION)-dev/$(VERSION)/ src/fennel/utils.fnl
+	grep "$(VERSION)" setup.md > /dev/null
+	! grep "???" changelog.md
+	git commit -m "Release $(VERSION)"
+	git tag -s $(VERSION) -m $(VERSION)
 
 guard-%:
 	@ if [ "${${*}}" = "" ]; then \
@@ -224,5 +243,5 @@ guard-%:
 		exit 1; \
 	fi
 
-.PHONY: build test testall fuzz lint count format ci clean coverage install man \
-	upload uploadrock release rockspec xc-deps guard-VERSION test-builds
+.PHONY: build test testall fuzz lint count format ci clean coverage install \
+	man upload uploadrock prerelease release rockspec guard-VERSION test-builds

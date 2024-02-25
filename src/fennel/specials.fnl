@@ -135,10 +135,6 @@ By default, start is 2."
 (doc-special :do ["..."] "Evaluate multiple forms; return last value." true)
 
 (fn SPECIALS.values [ast scope parent]
-  "Unlike most expressions and specials, 'values' resolves with multiple
-values, one for each argument, allowing multiple return values. The last
-expression can return multiple arguments as well, allowing for more than
-the number of expected arguments."
   (let [len (length ast)
         exprs []]
     (for [i 2 len]
@@ -373,7 +369,6 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
     (tostring (. ast 3))))
 
 (fn dot [ast scope parent]
-  "Table lookup; equivalent to tbl[] in Lua."
   (compiler.assert (< 1 (length ast)) "expected table argument" ast)
   (let [len (length ast)
         lhs-node (compiler.macroexpand (. ast 2) scope)
@@ -484,7 +479,6 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
         prev-line (prev-line:match "%)$"))))
 
 (fn SPECIALS.tset [ast scope parent]
-  "For setting items in a table."
   (compiler.assert (< 3 (length ast))
                    "expected table, key, and value arguments" ast)
   (let [root (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1)

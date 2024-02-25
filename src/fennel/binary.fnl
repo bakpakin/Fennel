@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
         (each [open (: (shellout (.. nm " " path)) :gmatch
                        "[^dDt] _?luaopen_([%a%p%d]+)")]
           (table.insert opens open))
-        (when (= 0 (length opens))
+        (when (= nil (. opens 1))
           (warn (: (.. "Native module %s did not contain any luaopen_* symbols. "
                        "Did you mean to use --native-library instead of --native-module?")
                    :format path)))

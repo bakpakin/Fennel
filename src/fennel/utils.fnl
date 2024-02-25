@@ -85,14 +85,10 @@
 
     (values stablenext t nil)))
 
-(fn get-in [tbl path ?fallback]
-  (assert (and (= :table (type tbl))) "get-in expects path to be a table")
-  (if (= 0 (length path))
-    ?fallback
-    (match (accumulate [t tbl _ k (ipairs path) :until (= nil t)]
-             (match (type t) :table (. t k)))
-      res res
-      _ ?fallback)))
+(fn get-in [tbl path]
+  (if (not= nil (. path 1))
+      (accumulate [t tbl _ k (ipairs path) :until (= nil t)]
+        (match (type t) :table (. t k)))))
 
 ;; Note: the collect/icollect macros mostly make map/kvmap obsolete.
 

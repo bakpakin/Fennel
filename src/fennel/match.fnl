@@ -60,13 +60,13 @@
     (values condition bindings)))
 
 (fn case-guard [vals condition guards unifications case-pattern opts]
-  (if (= 0 (length guards))
-    (case-pattern vals condition unifications opts)
+  (if (. guards 1)
     (let [(pcondition bindings) (case-pattern vals condition unifications opts)
           condition `(and ,(unpack guards))]
        (values `(and ,pcondition
                      (let ,bindings
-                       ,condition)) bindings))))
+                       ,condition)) bindings))
+    (case-pattern vals condition unifications opts)))
 
 (fn symbols-in-pattern [pattern]
   "gives the set of symbols inside a pattern"
@@ -116,16 +116,14 @@
 (fn case-or [vals pattern guards unifications case-pattern opts]
   (let [pattern [(unpack pattern 2)]
         bindings (symbols-in-every-pattern pattern opts.infer-unification?)]
-    (if (= 0 (length bindings))
-      ;; no bindings special case generates simple code
-      (let [condition
-            (icollect [_ subpattern (ipairs pattern) &into `(or)]
-              (case-pattern vals subpattern unifications opts))]
-        (values
-          (if (= 0 (length guards))
-            condition
-            `(and ,condition ,(unpack guards)))
-          []))
+    (if (= nil (. bindings 1))
+        ;; no bindings special case generates simple code
+        (let [condition (icollect [_ subpattern (ipairs pattern) &into `(or)]
+                          (case-pattern vals subpattern unifications opts))]
+          (values (if (. guards 1)
+                      `(and ,condition ,(unpack guards))
+                      condition)
+                  []))
       ;; case with bindings is handled specially, and returns three values instead of two
       (let [matched? (gensym :matched?)
             bindings-mangled (icollect [_ binding (ipairs bindings)]

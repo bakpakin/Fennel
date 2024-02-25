@@ -65,12 +65,10 @@ will see its values updated as expected, regardless of mangling rules."
             mt (getmetatable tgt)]
         (if (or (= (type tgt) :function)
                 (and (= (type mt) :table) (= (type (. mt :__call)) :function)))
-            (let [arglist (table.concat (or (compiler.metadata:get tgt :fnl/arglist)
-                                            ["#<unknown-arguments>"])
-                                        " ")]
-              (string.format "(%s%s%s)\n  %s" name
-                             (if (< 0 (length arglist)) " " "") arglist
-                             docstring))
+            (let [elts (doto (or (compiler.metadata:get tgt :fnl/arglist)
+                                 ["#<unknown-arguments>"])
+                         (table.insert 1 name))]
+              (string.format "(%s)\n  %s" (table.concat elts " ") docstring))
             (string.format "%s\n  %s" name docstring)))))
 
 ;; TODO: replace this with using the special fn's own docstring

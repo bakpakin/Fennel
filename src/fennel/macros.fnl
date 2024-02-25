@@ -277,7 +277,7 @@ numerical range like `for` rather than an iterator."
     (let [body (list f (unpack args))]
       (table.insert body _VARARG)
       ;; only use the extra let if we need double-eval protection
-      (if (= 0 (length bindings))
+      (if (= nil (. bindings 1))
           `(fn [,_VARARG] ,body)
           `(let ,bindings
              (fn [,_VARARG] ,body))))))

@@ -118,7 +118,6 @@
             ;; compiling
             :compile compiler.compile
             :compile-string compiler.compile-string
-            :compile-stream compiler.compile-stream
             ;; running code
             : eval
             : repl
@@ -159,6 +158,7 @@
             :macroLoaded specials.macro-loaded
             :compileStream compiler.compile-stream
             :compileString compiler.compile-string
+            :compile-stream compiler.compile-stream
             :stringStream parser.string-stream
             :runtimeVersion utils.runtime-version})
 

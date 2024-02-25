@@ -867,8 +867,11 @@ which we have to do if we don't know."
 (fn compile-string [str ?opts]
   (compile-stream (parser.string-stream str ?opts) ?opts))
 
-(fn compile [ast ?opts]
-  (compile-asts [ast] ?opts))
+(fn compile [from ?opts]
+  (case (type from)
+    :userdata (compile-stream #(-?> (from:read 1) (: :byte)) ?opts)
+    :function (compile-stream from ?opts)
+    _ (compile-asts [from] ?opts)))
 
 (fn traceback-frame [info]
   (if (and (= info.what :C) info.name)

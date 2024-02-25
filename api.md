@@ -186,55 +186,27 @@ debug.traceback = fennel.traceback
 
 Note that some systems print stack traces from C, which will not be affected.
 
-## Search the path for a module without loading it
+## Compile Fennel code to Lua
 
 ```lua
-print(fennel.searchModule("my.mod", package.path))
+local lua = fennel.compile(fennel[, options])
 ```
 
-If you just want to find the file path that a module would resolve to
-without actually loading it, you can use `fennel.searchModule`. The
-first argument is the module name, and the second argument is the path
-string to search. If none is provided, it defaults to Fennel's own path.
+The first argument here can be a file, an AST (usually produced by
+`fennel.parser`), or a stateful iterator function of bytes.
 
-Returns `nil` if the module is not found on the path.
+Unlike the other functions, the `compile` functions default to
+performing no global checks, though you can pass in an
+`allowedGlobals` table in `options` to enable it. Accepts `filename`
+in `options` like `fennel.eval` for error reporting purposes.
 
-## Compile a string into Lua
+## Compile a string of Fennel code to Lua
 
 ```lua
-local lua = fennel.compileString(str[, options])
+local lua = fennel.compileString(fennelcode[, options])
 ```
 
-Accepts `indent` as a string in `options` causing output to be
-indented using that string, which should contain only whitespace if
-provided. Unlike the other functions, the `compile` functions default
-to performing no global checks, though you can pass in an `allowedGlobals`
-table in `options` to enable it.
-
-Accepts `filename` in `options` like `fennel.eval`.
-
-## Compile an iterator of bytes into a string of Lua
-
-This is useful when streaming data into the compiler to allow you to avoid
-loading all the code into a single string in one go. The first argument
-should be a stateful iterator; in other words a function which returns one
-byte at a time.
-
-```lua
-local lua = fennel.compileStream(stream[, options])
-```
-
-Accepts `indent` and `filename` in `options` as per above.
-
-## Compile an AST data structure into Lua source code
-
-The `ast` here can be gotten from `fennel.parser`.
-
-```lua
-local lua = fennel.compile(ast[, options])
-```
-
-Accepts `indent` and `filename` in `options` as per above.
+Also aliased to `fennel.compile-string` for convenience calling from Fennel.
 
 ## Convert text into AST node(s)
 
@@ -367,6 +339,19 @@ tables must have balanced key/value pairs, and including comments
 inline would imbalance these or cause keys to be considered as values
 and vice versa. So the comments are stored on the `comments` field of
 metatable instead, keyed by the key or value they were attached to.
+
+## Search the path for a module without loading it
+
+```lua
+print(fennel.searchModule("my.mod", package.path))
+```
+
+If you just want to find the file path that a module would resolve to
+without actually loading it, you can use `fennel.searchModule`. The
+first argument is the module name, and the second argument is the path
+string to search. If none is provided, it defaults to Fennel's own path.
+
+Returns `nil` if the module is not found on the path.
 
 ## Serialization (view)
 

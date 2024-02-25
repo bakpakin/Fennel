@@ -8,7 +8,9 @@ deprecated forms.
 
 ## 1.5.0 / ???
 
-* ???
+### New Features
+
+* The `fennel.compile` function now accepts an AST, iterator, or file.
 
 ## 1.4.2 / 2024-02-23
 

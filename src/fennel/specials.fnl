@@ -10,6 +10,8 @@
 
 (local SPECIALS compiler.scopes.global.specials)
 
+(fn str1 [x] (tostring (. x 1)))
+
 (fn wrap-env [env]
   "Convert a fennel environment table to a Lua environment table.
 This means automatically unmangling globals when getting a value,
@@ -481,20 +483,14 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 (fn SPECIALS.tset [ast scope parent]
   (compiler.assert (< 3 (length ast))
                    "expected table, key, and value arguments" ast)
-  (let [root (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1)
-        keys []]
-    (for [i 3 (- (length ast) 1)]
-      (let [[key] (compiler.compile1 (. ast i) scope parent {:nval 1})]
-        (table.insert keys (tostring key))))
-    (let [value (. (compiler.compile1 (. ast (length ast)) scope parent
-                                      {:nval 1}) 1)
-          rootstr (tostring root)
-          fmtstr (if (disambiguate? rootstr parent)
-                     "do end (%s)[%s] = %s"
-                     "%s[%s] = %s")]
-      (compiler.emit parent
-                     (fmtstr:format rootstr (table.concat keys "][")
-                                    (tostring value)) ast))))
+  (let [root (str1 (compiler.compile1 (. ast 2) scope parent {:nval 1}))
+        keys (fcollect [i 3 (- (length ast) 1)]
+               (str1 (compiler.compile1 (. ast i) scope parent {:nval 1})))
+        value (str1 (compiler.compile1 (. ast (length ast)) scope parent {:nval 1}))
+        fmtstr (if (disambiguate? root parent)
+                   "do end (%s)[%s] = %s"
+                   "%s[%s] = %s")]
+    (compiler.emit parent (fmtstr:format root (table.concat keys "][") value) ast)))
 
 (doc-special :tset [:tbl :key1 "..." :keyN :val]
              "Set the value of a table field. Can take additional keys to set
@@ -722,8 +718,8 @@ order, but can be used with any iterator." true)
                      "expected range to include start and stop" ranges)
     (utils.hook :pre-for ast sub-scope binding-sym)
     (for [i 1 (math.min (length ranges) 3)]
-      (tset range-args i (tostring (. (compiler.compile1 (. ranges i) scope
-                                                         parent {:nval 1}) 1))))
+      (tset range-args i (str1 (compiler.compile1 (. ranges i) scope
+                                         parent {:nval 1}))))
     (compiler.emit parent
                    (: "for %s = %s do" :format
                       (compiler.declare-local binding-sym [] sub-scope ast)
@@ -752,9 +748,7 @@ Evaluates body once for each value between start and stop (inclusive)." true)
 
 (fn nonnative-method-call [ast scope parent target args]
   "When we don't have to protect against double-evaluation, it's not so bad."
-  (let [method-string (tostring (. (compiler.compile1 (. ast 3) scope parent
-                                                      {:nval 1})
-                                   1))
+  (let [method-string (str1 (compiler.compile1 (. ast 3) scope parent {:nval 1}))
         args [(tostring target) (unpack args)]]
     (utils.expr (string.format "%s[%s](%s)" (tostring target) method-string
                                (table.concat args ", "))
@@ -762,9 +756,7 @@ Evaluates body once for each value between start and stop (inclusive)." true)
 
 (fn double-eval-protected-method-call [ast scope parent target args]
   "When double-evaluation is a concern, we have to wrap an IIFE."
-  (let [method-string (tostring (. (compiler.compile1 (. ast 3) scope parent
-                                                      {:nval 1})
-                                   1))
+  (let [method-string (str1 (compiler.compile1 (. ast 3) scope parent {:nval 1}))
         call "(function(tgt, m, ...) return tgt[m](tgt, ...) end)(%s, %s)"]
     (table.insert args 1 method-string)
     (utils.expr (string.format call (tostring target) (table.concat args ", "))
@@ -861,7 +853,7 @@ Method name doesn't have to be known at compile-time; if it is, use
 ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
 ;; https://todo.sr.ht/~technomancy/fennel/111
 (fn maybe-short-circuit-protect [ast i name {:macros mac}]
-  (let [call (and (utils.list? ast) (tostring (. ast 1)))]
+  (let [call (and (utils.list? ast) (str1 ast))]
     (if (and (or (= :or name) (= :and name)) (< 1 i)
              ;; dangerous specials (or a macro which could be anything)
              ;; TODO: this misses a ton of things
@@ -880,7 +872,7 @@ Method name doesn't have to be known at compile-time; if it is, use
         (if (= i len)
             ;; last arg gets all its exprs but everyone else only gets one
             (utils.map subexprs tostring operands)
-            (table.insert operands (tostring (. subexprs 1))))))
+            (table.insert operands (str1 subexprs)))))
     (match (length operands)
       0 (utils.expr (doto zero-arity
                       (compiler.assert "Expected more than 0 arguments" ast))
@@ -986,9 +978,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
   "Compile a multi-arity comparison to a binary Lua comparison. Optimized
   variant for values not at risk of double-eval."
   (let [vals (fcollect [i 2 (length ast)]
-               (tostring (. (compiler.compile1 (. ast i) scope parent
-                                               {:nval 1})
-                            1)))
+               (str1 (compiler.compile1 (. ast i) scope parent {:nval 1})))
         comparisons (fcollect [i 1 (- (length vals) 1)]
                       (string.format "(%s %s %s)"
                                      (. vals i) op (. vals (+ i 1))))
@@ -1003,9 +993,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
         chain (string.format " %s " (or chain-op :and))]
     (for [i 2 (length ast)]
       (table.insert arglist (tostring (compiler.gensym scope)))
-      (table.insert vals (tostring (. (compiler.compile1 (. ast i) scope parent
-                                                         {:nval 1})
-                                      1))))
+      (table.insert vals (str1 (compiler.compile1 (. ast i) scope parent {:nval 1}))))
     (fcollect [i 1 (- (length arglist) 1) :into comparisons]
       (string.format "(%s %s %s)" (. arglist i) op
                      (. arglist (+ i 1))))
@@ -1043,7 +1031,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
   (fn opfn [ast scope parent]
     (compiler.assert (= (length ast) 2) "expected one argument" ast)
     (let [tail (compiler.compile1 (. ast 2) scope parent {:nval 1})]
-      (.. (or ?realop op) (tostring (. tail 1)))))
+      (.. (or ?realop op) (str1 tail))))
 
   (tset SPECIALS op opfn))
 
@@ -1296,7 +1284,7 @@ modules in the compiler environment."
                                "expected macros to be table" (or ?real-ast ast)))))
     ;; if we're called from import-macros, return the modname, else add them
     ;; to scope directly
-    (if (= :import-macros (tostring (. ast 1)))
+    (if (= :import-macros (str1 ast))
         (. macro-loaded modname)
         (add-macros (. macro-loaded modname) ast scope))))
 

@@ -660,8 +660,9 @@ Plugins can also contain repl commands. If your plugin module has a
 field with a name beginning with "repl-command-" then that function
 will be available as a comma command from within a repl session. It
 will be called with a table for the repl session's environment, a
-function which will read the next form from stdin, a function which is
-used to print normal values, and one which is used to print errors.
+function which will read the next form from stdin (ignoring newlines
+and other whitespace), a function which is used to print normal
+values, and one which is used to print errors.
 
 ```fennel
 (local fennel (require :fennel)

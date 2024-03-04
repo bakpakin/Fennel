@@ -233,7 +233,7 @@ the same place:
 
 Here the arglist is overridden by that in the metadata table (note
 that the contents of the table are implicitly quoted). Calling `,doc`
-command in the REPL prints specified argument list:
+command in the REPL prints specified argument list of the next form:
 
 ```
 >> ,doc add

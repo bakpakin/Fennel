@@ -7,7 +7,7 @@
 (macro == [form expected ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
      (t.is ok# val#)
-     (t.= val# ,expected)))
+     (t.= ,expected val#)))
 
 (fn test-calculations []
   (== (% 1 2 (- 1 2)) 0)
@@ -174,6 +174,17 @@
   (== (let [xx (let [xx 1] (* xx 2))] xx) 2)
   (== (let [t {}] (set t.a :multi) (. t :a)) "multi")
   (== (let [t []] (tset t :a (let [{: a} {:a :bcd}] a)) t.a) "bcd")
+  (== (let [t {:supported-chars {:x true}}
+            field1 :supported-chars
+            field2 :y]
+        (set (. t field1 field2) true) t.supported-chars.y) true)
+  (== (let [t {} tt [[]]]
+        (var x nil)
+        (set ((. t 1) (. t 2) x (. tt 1 1)) (values :lol :hehe 2 :hey))
+        (set [(. t 3)] [:lmao])
+        (set x 87)
+        (.. x (table.concat t " ") (table.concat (. tt 1))))
+      "87lol hehe lmaohey")
   (== (let [x 17] (. 17)) 17)
   (== (let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key) "val")
   (== (let [t {} _ (tset t :a 84)] (. t :a)) 84)

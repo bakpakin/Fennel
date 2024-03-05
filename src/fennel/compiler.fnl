@@ -634,11 +634,11 @@ which we have to do if we don't know."
         symtype (.. "_" (or symtype :dst))
         setter (if declaration "local %s = %s" "%s = %s")
         new-manglings []]
-    (fn getname [symbol up1]
+    (fn getname [symbol ast]
       "Get Lua source for symbol, and check for errors"
       (let [raw (. symbol 1)]
         (assert-compile (not (and opts.nomulti (utils.multi-sym? raw)))
-                        (.. "unexpected multi symbol " raw) up1)
+                        (.. "unexpected multi symbol " raw) ast)
         (if declaration
             ;; Technically this is too early to declare the local, but leaving
             ;; out the meta table and setting it later works around the problem.
@@ -776,23 +776,35 @@ which we have to do if we don't know."
                   (destructure-sym next-sym [(utils.expr (tostring s))] left))
 
                 (let [key (if (= (type k) :string) (serialize-string k) k)
-                      subexpr (utils.expr (string.format "%s[%s]" s key)
-                                          :expression)]
+                      subexpr (utils.expr (: "%s[%s]" :format s key) :expression)]
                   (when (= (type k) :string) (table.insert excluded-keys k))
-                  (destructure1 v [subexpr] left)))))))
+                  (destructure1 v subexpr left)))))))
 
-    (fn destructure-values [left up1 top? destructure1]
+    (fn dynamic-set-target [[_ target & keys]]
+      (assert-compile (utils.sym? target) "dynamic set needs symbol target" ast)
+      (assert-compile (. scope.manglings (tostring target))
+                      (.. "unknown identifier: " (tostring target)) target)
+      (let [keys (icollect [_ k (ipairs keys)]
+                   (tostring (. (compile1 k scope parent {:nval 1}) 1)))]
+        (string.format "%s[%s]" (tostring (symbol-to-expression target scope true))
+                       (table.concat keys "]["))))
+
+    (fn destructure-values [left rightexprs up1 destructure1 top?]
       (let [(left-names tables) (values [] [])]
         (each [i name (ipairs left)]
           (if (utils.sym? name) ; binding directly to a name
               (table.insert left-names (getname name up1))
+              (and (utils.list? name) (utils.sym? (. name 1) "."))
+              (table.insert left-names (dynamic-set-target name))
               (let [symname (gensym scope symtype)]
                 ;; further destructuring of tables inside values
                 (table.insert left-names symname)
                 (tset tables i [name (utils.expr symname :sym)]))))
         (assert-compile (. left 1) "must provide at least one value" left)
-        (assert-compile top? "can't nest multi-value destructuring" left)
-        (compile-top-target left-names)
+        (if top?
+            (compile-top-target left-names)
+            (emit parent (setter:format (table.concat left-names ",")
+                                 (exprs1 rightexprs)) left))
         (when declaration
           (each [_ sym (ipairs left)]
             (when (utils.sym? sym)
@@ -807,16 +819,18 @@ which we have to do if we don't know."
           (destructure-sym left rightexprs up1 top?)
           (utils.table? left)
           (destructure-table left rightexprs top? destructure1)
+          (and (utils.list? left) (utils.sym? (. left 1) "."))
+          (destructure-values [left] [rightexprs] up1 destructure1)
           (utils.list? left)
-          (destructure-values left up1 top? destructure1)
+          (do (assert-compile top? "can't nest multi-value destructuring" left)
+              (destructure-values left rightexprs up1 destructure1 true))
           (assert-compile false
                           (string.format "unable to bind %s %s" (type left)
                                          (tostring left))
                           (or (and (= (type (. up1 2)) :table) (. up1 2)) up1)))
-      (when top?
-        {:returned true}))
+      (and top? {:returned true}))
 
-    (let [ret (destructure1 to nil ast true)]
+    (let [ret (destructure1 to from ast true)]
       (utils.hook :destructure from to scope opts)
       (apply-manglings scope new-manglings ast)
       ret)))

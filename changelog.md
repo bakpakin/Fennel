@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Support dynamic field names in `(set (. tbl field) val)`.
 * The `fennel.compile` function now accepts an AST, iterator, or file.
 
 ## 1.4.2 / 2024-02-23

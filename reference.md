@@ -794,46 +794,26 @@ Supports destructuring and multiple-value binding.
 
 Changes the value of a variable introduced with `var`. Will not work
 on globals or `let`/`local`-bound locals. Can also be used to change a
-field of a table, even if the table is bound with `let` or `local`,
-provided the field is given at compile-time.
+field of a table, even if the table is bound with `let` or `local`. If
+the table field name is static, use `tbl.field`; if the field name is
+dynamic, use `(. tbl field)`.
 
-Example:
-
-```fennel
-(set x (+ x 91))
-```
-
-
-Example:
+Examples:
 
 ```fennel
-(let [t {:a 4 :b 8}]
+(set x (+ x 91)) ; var
+
+(let [t {:a 4 :b 8}] ; static table field
   (set t.a 2) t) ; => {:a 2 :b 8}
-```
 
+(let [t {:supported-chars {:x true}}
+      field1 :supported-chars
+      field2 :y] ; dynamic table field
+  (set (. t field1 field2) true) t) ; => {:supported-chars {:x true :y true}}
+```
 
 Supports destructuring and multiple-value binding.
 
-### `tset` set table field
-
-Sets the field of a given table to a new value. The field name does not
-need to be known at compile-time. Works on any table; the table does
-not have to be declared with `var` to change its fields.
-
-Example:
-
-```fennel
-(let [tbl {:d 32} field :d]
-  (tset tbl field 19) tbl) ; => {:d 19}
-```
-
-You can provide multiple successive field names to perform nested
-sets. For example:
-
-```fennel
-(let [tbl {:a {:b {}}} field :c]
-  (tset tbl :a :b field "d") tbl) ; => {:a {:b {:c "d"}}}
-```
 
 ### multiple value binding
 
@@ -1904,6 +1884,29 @@ Example:
                   res))})
 (let [[a b & c] t]
   c) ;; => {:3 3 :4 4 :5 5 :6 6}
+```
+
+### `tset` set table field
+
+*(Deprecated in 1.5.0)*
+
+Sets the field of a given table to a new value. The field name does not
+need to be known at compile-time. Works on any table; the table does
+not have to be declared with `var` to change its fields.
+
+Example:
+
+```fennel
+(let [tbl {:d 32} field :d]
+  (tset tbl field 19) tbl) ; => {:d 19}
+```
+
+You can provide multiple successive field names to perform nested
+sets. For example:
+
+```fennel
+(let [tbl {:a {:b {}}} field :c]
+  (tset tbl :a :b field "d") tbl) ; => {:a {:b {:c "d"}}}
 ```
 
 [1]: https://www.lua.org/manual/5.1/

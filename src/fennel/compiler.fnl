@@ -803,8 +803,12 @@ which we have to do if we don't know."
         (assert-compile (. left 1) "must provide at least one value" left)
         (if top?
             (compile-top-target left-names)
+            ;; TODO: this is dumb, why does it need to be a special case here?
+            (utils.expr? rightexprs)
             (emit parent (setter:format (table.concat left-names ",")
-                                 (exprs1 rightexprs)) left))
+                                        (exprs1 rightexprs)) left)
+            (emit parent (compile1 rightexprs scope parent
+                                   {:target (table.concat left-names ",")}) left))
         (when declaration
           (each [_ sym (ipairs left)]
             (when (utils.sym? sym)
@@ -820,7 +824,7 @@ which we have to do if we don't know."
           (utils.table? left)
           (destructure-table left rightexprs top? destructure1)
           (and (utils.list? left) (utils.sym? (. left 1) "."))
-          (destructure-values [left] [rightexprs] up1 destructure1)
+          (destructure-values [left] rightexprs up1 destructure1)
           (utils.list? left)
           (do (assert-compile top? "can't nest multi-value destructuring" left)
               (destructure-values left rightexprs up1 destructure1 true))

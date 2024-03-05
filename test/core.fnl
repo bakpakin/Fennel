@@ -178,9 +178,10 @@
             field1 :supported-chars
             field2 :y]
         (set (. t field1 field2) true) t.supported-chars.y) true)
-  (== (let [t {} tt [[]]]
+  (== (let [t {} tt [[]] value-two :hehe]
         (var x nil)
-        (set ((. t 1) (. t 2) x (. tt 1 1)) (values :lol :hehe 2 :hey))
+        (set ((. t 1) x (. tt 1 1)) (values :lol 2 :hey))
+        (set (. t 2) value-two)
         (set [(. t 3)] [:lmao])
         (set x 87)
         (.. x (table.concat t " ") (table.concat (. tt 1))))

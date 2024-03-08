@@ -103,7 +103,7 @@
   (input:match "^%s*,"))
 
 (fn command-docs []
-  (table.concat (icollect [name f (pairs commands)]
+  (table.concat (icollect [name f (utils.stablepairs commands)]
                   (: "  ,%s - %s" :format name
                      (or (compiler.metadata:get f :fnl/docstring) :undocumented)))
                 "\n"))

@@ -365,6 +365,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                    :onValues (or opts.onValues default-on-values)
                    :onError (or opts.onError default-on-error)
                    :pp (or opts.pp view)
+                   :view-opts (or opts.view-opts {:depth 4})
                    :env env}
         save-locals? (not= opts.saveLocals false)
         (byte-stream clear-stream) (parser.granulate #(callbacks.readChunk $))
@@ -399,7 +400,7 @@ For more information about the language, see https://fennel-lang.org/reference")
         (set (env._ env.__) (values (. vals 1) vals))
         ;; utils.map won't work here because of sparse tables
         (for [i 1 (select "#" ...)]
-          (table.insert out (pp (. vals i))))
+          (table.insert out (pp (. vals i) callbacks.view-opts)))
         (callbacks.onValues out)))
 
     (fn save-value [...]

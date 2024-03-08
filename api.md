@@ -64,6 +64,7 @@ Takes these additional options:
 * `readChunk()`: a function that when called, returns a string of source code.
   Should return nil when there is no more source, which will exit the repl.
 * `pp`: a pretty-printer function to apply on values (default: `fennel.view`).
+* `view-opts`: an options table passed to `pp` (default: `{:depth 4}`).
 * `onValues(values)`: a function that will be called on all returned
   top level values. Takes a table of values.
 * `onError(errType, err, luaSource)`: a function that will be called on each

@@ -10,6 +10,8 @@ deprecated forms.
 
 ### New Features
 
+* Tables in the REPL default to printing with limited depth.
+* View settings in REPL can be changed: `(set ___repl___.view-opts.depth 100)`.
 * Support dynamic field names in `(set (. tbl field) val)`.
 * The `fennel.compile` function now accepts an AST, iterator, or file.
 

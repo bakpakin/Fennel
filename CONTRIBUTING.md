@@ -128,12 +128,14 @@ code from here on out will have to pay; an addition to the API is not.
 
 ## Contributing Changes
 
-If you want to contribute code to the project, please [send patches][1] to the
+If you want to contribute code to the project, please send patches to the
 [mailing list][4]. Note that you do not need to subscribe to the mailing list
 in order to post to it. When sending patches to the mailing list, it's usually
 nicer to squash everything down to a single commit so that it will be sent as
 a single email rather than a series of messages, unless there really are two
-relatively unrelated changes.
+relatively unrelated changes. If you like to use [git send-email][1] you can,
+but since its usability is not very good, you can also just attach your patch
+to your message if you prefer.
 
 We also accept code contributions on the [GitHub mirror][5] if you
 prefer not to use email. For smaller changes, you can also push your

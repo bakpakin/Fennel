@@ -52,7 +52,9 @@
           (body return) (.. body gap (table.concat binds " ") gap return)
           _ lua-source))))
 
-(fn completer [env scope text]
+(local commands {})
+
+(fn completer [env scope text ?fulltext _from _to]
   (let [max-items 2000 ; to stop explosion on too mny items
         seen {}
         matches []
@@ -91,13 +93,15 @@
             (add-partials input tbl prefix)
             (descend input tbl prefix add-matches false))))
 
-    (each [_ source (ipairs [scope.specials scope.macros
-                             (or env.___replLocals___ []) env env._G])
-           :until stop-looking?]
-      (add-matches input-fragment source))
+    ;; When ?fulltext is available, check that for comma completion to avoid
+    ;; completing commands in the middle of an expression
+    (case (: (tostring (or ?fulltext text)) :match "^%s*,([^%s()[%]]*)$")
+      cmd-fragment (add-partials cmd-fragment commands ",")
+      _ (each [_ source (ipairs [scope.specials scope.macros
+                                 (or env.___replLocals___ []) env env._G])
+               :until stop-looking?]
+          (add-matches input-fragment source)))
     matches))
-
-(local commands {})
 
 (fn command? [input]
   (input:match "^%s*,"))
@@ -182,7 +186,7 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn commands.complete [env read on-values on-error scope chars]
   (run-command read on-error
                #(on-values (completer env scope (-> (table.concat chars)
-                                                    (: :gsub ",complete +" "")
+                                                    (: :gsub "^%s*,complete%s+" "")
                                                     (: :sub 1 -2))))))
 
 (compiler.metadata:set commands.complete :fnl/docstring
@@ -340,9 +344,8 @@ For more information about the language, see https://fennel-lang.org/reference")
 
     (fn repl-completer [text from to]
       (if completer
-          (do
-            (readline.set_completion_append_character "")
-            (completer (text:sub from to)))
+          (do (readline.set_completion_append_character "")
+              (completer (text:sub from to) text from to))
           []))
 
     (readline.set_complete_function repl-completer)

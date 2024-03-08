@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* REPL completion now works on partial REPL commands: e.g. `,complete ,d` -> `,doc`.
 * Tables in the REPL default to printing with limited depth.
 * View settings in REPL can be changed: `(set ___repl___.view-opts.depth 100)`.
 * Support dynamic field names in `(set (. tbl field) val)`.

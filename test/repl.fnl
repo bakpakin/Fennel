@@ -89,6 +89,14 @@
                             "method completion nests")
     (t.= (comp "ttt:ab") [] "no method completion on numbers")))
 
+(fn test-command-completion []
+  (let [(send comp) (wrap-repl)]
+    (t.= [",doc"] (comp ",do"))
+    (t.= ",doc" (send ",complete ,do"))
+    (t.is (< 5 (length (comp ",")))
+          "readline completion of bare `,` should list all commands")
+    (t.= ",complete" (send ",complete ,complete ,complete"))))
+
 (fn test-help []
   (let [send (wrap-repl)
         help (send ",help")]
@@ -478,6 +486,7 @@
     {: test-sym-completion
      : test-macro-completion
      : test-method-completion
+     : test-command-completion
      : test-help
      : test-exit
      : test-reload

@@ -10,8 +10,9 @@
 
 ;; nils left in for documentation purposes - they'll be set later
 (local new-meta {:date (os.date "%Y-%m-%d")
+                 :section (: (assert ext "failed to detect man section from extension")
+                             :match "^%.([0-9])$")
                  :header nil
-                 :section (-?> ext (: :match "^%.([0-9])$"))
                  :title nil})
 
 (fn get-meta-header-and-title [meta]

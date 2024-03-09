@@ -19,6 +19,7 @@
   (== (-?>> :w (. {:w :x}) (. {:x :missing}) (. {:y :z})) nil)
   (== (-?>> :w (. {:w :x}) (. {:x :y}) (. {:y :z})) "z")
   (== (-?> [:a :b] (table.concat :=)) "a=b")
+  (== (let [(result count) (-?> :abc (: :gsub "a" "b"))] count) 1)
   (== (-?>> := (table.concat [:a :b])) "a=b"))
 
 (fn test-doto []

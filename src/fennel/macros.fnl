@@ -47,8 +47,7 @@ Same as -> except will short-circuit with nil when it encounters a nil value."
       (let [call (if (list? ?e) (copy ?e) (list ?e))]
         (table.insert call 2 val)
         `(if (not= nil ,val)
-           (let [tmp# ,call]
-             (-?> tmp# ,...))))))
+             ,(-?>* call ...)))))
 
 (fn -?>>* [val ?e ...]
   "Nil-safe thread-last macro.
@@ -62,8 +61,7 @@ Same as ->> except will short-circuit with nil when it encounters a nil value."
       (let [call (if (list? ?e) (copy ?e) (list ?e))]
         (table.insert call val)
         `(if (not= ,val nil)
-           (let [tmp# ,call]
-             (-?>> tmp# ,...))))))
+             ,(-?>>* call ...)))))
 
 (fn ?dot [tbl ...]
   "Nil-safe table look up.

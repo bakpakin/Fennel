@@ -189,11 +189,13 @@ Note that some systems print stack traces from C, which will not be affected.
 
 ## Compile Fennel code to Lua
 
+### Compile a file, AST, or byte iterator
+
 ```lua
-local lua = fennel.compile(fennel[, options])
+local lua = fennel.compile(fennelSource[, options])
 ```
 
-The first argument here can be a file, an AST (usually produced by
+The first argument here can be a file name, an AST (usually produced by
 `fennel.parser`), or a stateful iterator function of bytes.
 
 Unlike the other functions, the `compile` functions default to
@@ -201,7 +203,7 @@ performing no global checks, though you can pass in an
 `allowedGlobals` table in `options` to enable it. Accepts `filename`
 in `options` like `fennel.eval` for error reporting purposes.
 
-## Compile a string of Fennel code to Lua
+### Compile a string of Fennel code
 
 ```lua
 local lua = fennel.compileString(fennelcode[, options])

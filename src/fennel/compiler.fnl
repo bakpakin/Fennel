@@ -1040,6 +1040,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
  : do-quote
  : global-mangling
  : global-unmangling
+ : global-allowed?
  : apply-manglings
  :macroexpand macroexpand*
  : declare-local

@@ -853,19 +853,36 @@ Method name doesn't have to be known at compile-time; if it is, use
 (doc-special :hashfn ["..."]
              "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
+;; Helper function to improve detection in maybe-short-circuit-protect
+;; Need to check not only certain forms, but also sometimes sub-forms
+;; See https://todo.sr.ht/~technomancy/fennel/196
+(fn short-circuit-safe? [x scope]
+  (if (or (not= :table (type x)) (utils.sym? x) (utils.varg? x))
+      true
+      (utils.list?) (accumulate [ok true _ v (ipairs x) &until (not ok)]
+                      (short-circuit-safe? v scope))
+      (utils.table? x) (accumulate [ok true k v (pairs x) &until (not ok)]
+                         (and (short-circuit-safe? v scope)
+                              (short-circuit-safe? k scope)))
+      (case (str1 x) ; list
+        (where (or :set :tset :global :do :let)) false
+        ?call (if (. scope.macros ?call) false
+                  (faccumulate [ok true i 2 (length x) &until (not ok)]
+                    (short-circuit-safe? (. x i) scope))))))
+
 ;; Trigger an IIFE to ensure we short-circuit certain
 ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
-;; https://todo.sr.ht/~technomancy/fennel/111
-(fn maybe-short-circuit-protect [ast i name {:macros mac &as scope}]
-  (let [call (and (utils.list? ast) (str1 ast))]
-    (if (and (or (= :or name) (= :and name)) (< 1 i)
-             ;; dangerous specials (or a macro which could be anything)
-             ;; TODO: this misses a ton of things
-             ;; https://github.com/bakpakin/Fennel/issues/422
-             (or (. mac call) (= :set call) (= :tset call) (= :global call)))
-        (utils.list (utils.list (utils.sym :fn) (utils.sequence (utils.varg)) ast)
-                    (or (and scope.vararg (utils.varg)) nil))
-        ast)))
+;; See https://todo.sr.ht/~technomancy/fennel/111
+(fn maybe-short-circuit-protect [ast i name scope]
+  (if (and (< 2 i) (or (= :or name) (= :and name))
+           ;; TODO: Is the following issue now satisfied?
+           ;; https://github.com/bakpakin/Fennel/issues/422
+           (not (short-circuit-safe? ast scope)))
+      ;; TODO: Flatten the generation of functions for operands to prevent
+      ;; unnecessarily nested IIFES, like (or true (and x y (let ....)))
+      (utils.list (utils.list (utils.sym :fn) (utils.sequence (utils.varg)) ast)
+                  (or (and scope.vararg (utils.varg)) nil))
+      ast))
 
 (fn operator-special [name zero-arity unary-prefix ast scope parent]
   (let [len (length ast) operands []

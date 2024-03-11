@@ -40,7 +40,9 @@
   (== (let [t {:a 85}] (or true (tset t :a 1)) t.a) 85)
   ;; short-circuit macros too
   (== (do (macro ts [t k v] `(tset ,t ,k ,v))
-          (let [t {:a 521}] (or true (ts t :a 1)) t.a)) 521))
+          (let [t {:a 521}] (or true (ts t :a 1)) t.a)) 521)
+  (== ((fn [...] (or (doto [...] (tset 4 4)) :never)) 1 2 3)
+      [1 2 3 4]))
 
 (fn test-comparisons []
   (== (= 1 1 2 2) false)

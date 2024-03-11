@@ -16,6 +16,11 @@ deprecated forms.
 * Support dynamic field names in `(set (. tbl field) val)`.
 * The `fennel.compile` function now accepts an AST, iterator, or file.
 
+### Bug Fixes
+
+* Fix a 1.4.x bug where IIFE's emitted by `and`/`or` inside `(fn [...])`
+  failed to propagate varargs
+
 ## 1.4.2 / 2024-02-23
 
 ### Bug Fixes

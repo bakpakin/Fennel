@@ -854,14 +854,15 @@ Method name doesn't have to be known at compile-time; if it is, use
 ;; Trigger an IIFE to ensure we short-circuit certain
 ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
 ;; https://todo.sr.ht/~technomancy/fennel/111
-(fn maybe-short-circuit-protect [ast i name {:macros mac}]
+(fn maybe-short-circuit-protect [ast i name {:macros mac &as scope}]
   (let [call (and (utils.list? ast) (str1 ast))]
     (if (and (or (= :or name) (= :and name)) (< 1 i)
              ;; dangerous specials (or a macro which could be anything)
              ;; TODO: this misses a ton of things
              ;; https://github.com/bakpakin/Fennel/issues/422
              (or (. mac call) (= :set call) (= :tset call) (= :global call)))
-        (utils.list (utils.list (utils.sym :fn) (utils.sequence (utils.varg)) ast))
+        (utils.list (utils.list (utils.sym :fn) (utils.sequence (utils.varg)) ast)
+                    (or (and scope.vararg (utils.varg)) nil))
         ast)))
 
 (fn operator-special [name zero-arity unary-prefix ast scope parent]

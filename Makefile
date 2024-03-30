@@ -16,7 +16,7 @@ LIB_SRC=$(CORE_SRC) src/fennel/friend.fnl src/fennel/view.fnl src/fennel/repl.fn
 
 SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
-MAN_PANDOC := pandoc -f gfm -t man -s --lua-filter=build/manfilter.lua \
+MAN_PANDOC = pandoc -f gfm -t man -s --lua-filter=build/manfilter.lua \
 	     --metadata author="Fennel Maintainers" \
 	     --variable footer="fennel $(shell ./fennel -e '(. (require :fennel) :version)')"
 
@@ -72,6 +72,20 @@ lint: fennel
 check:
 	fennel-ls --check $(SRC)
 
+ci: testall lint fuzz fennel
+
+clean:
+	rm -f fennel.lua fennel fennel-bin fennel.exe \
+		*_binary.c luacov.* fennel-*.src.rock bootstrap/view.lua \
+		test/faith.lua build/manfilter.lua fennel-bin-luajit
+	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
+	$(MAKE) -C $(BIN_LUAJIT_DIR) clean || true # this dir might not exist
+	rm -f $(NATIVE_LUA_LIB) $(NATIVE_LUAJIT_LIB)
+
+coverage: fennel
+	$(LUA) -lluacov test/init.lua
+	@echo "generated luacov.report.out"
+
 ## Binaries
 
 BIN_LUA_VERSION ?= 5.4.6
@@ -108,45 +122,22 @@ $(NATIVE_LUA_LIB): $(BIN_LUA_DIR)
 $(NATIVE_LUAJIT_LIB): $(BIN_LUAJIT_DIR)
 	$(MAKE) -C $(BIN_LUAJIT_DIR) BUILDMODE=static
 
-## Cross compiling
-
-fennel-x86_64: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-x86_64.a
-	$(COMPILE_ARGS) CC=x86_64-linux-gnu-gcc ./fennel --no-compiler-sandbox \
-		--compile-binary $< $@ \
-		$(LUA_INCLUDE_DIR)/liblua-x86_64.a $(LUA_INCLUDE_DIR)
-
 fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
 	$(COMPILE_ARGS) CC=i686-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 	mv fennel-bin.exe $@
 
-$(BIN_LUA_DIR)/src/liblua-x86_64.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean posix liblua.a
-	mv $(BIN_LUA_DIR)/src/liblua.a $@
-
 $(BIN_LUA_DIR)/src/liblua-mingw.a: $(BIN_LUA_DIR)
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 
-ci: testall lint fuzz fennel
-
-clean:
-	rm -f fennel.lua fennel fennel-bin fennel-x86_64 fennel.exe \
-		*_binary.c luacov.* fennel-*.src.rock bootstrap/view.lua \
-		test/faith.lua build/manfilter.lua fennel-bin-luajit
-	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
-	$(MAKE) -C $(BIN_LUAJIT_DIR) clean || true # this dir might not exist
-	rm -f $(NATIVE_LUA_LIB) $(NATIVE_LUAJIT_LIB)
-
-coverage: fennel
-	$(LUA) -lluacov test/init.lua
-	@echo "generated luacov.report.out"
+## Install-related tasks:
 
 MAN_DOCS := man/man1/fennel.1 man/man3/fennel-api.3 man/man5/fennel-reference.5\
 	    man/man7/fennel-tutorial.7
 
-## The empty line in maninst is necessary for it to emit distinct commands
+# The empty line in maninst is necessary for it to emit distinct commands
 define maninst =
 mkdir -p $(dir $(2)) && cp $(1) $(2)
 
@@ -172,7 +163,7 @@ man/man3/fennel-%.3: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
 man/man5/fennel-%.5: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
 man/man7/fennel-%.7: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
 
-# Release-related tasks:
+## Release-related tasks:
 
 SSH_KEY ?= ~/.ssh/id_ed25519.pub
 
@@ -187,16 +178,15 @@ rockspecs/fennel-$(VERSION)-1.rockspec: rockspecs/template.fnl
 
 rockspec: rockspecs/fennel-$(VERSION)-1.rockspec
 
-test-builds: fennel fennel-x86_64 test/faith.lua
+test-builds: fennel test/faith.lua
 	./fennel --metadata --eval "(require :test.init)"
-	./fennel-x86_64 --metadata --eval "(require :test.init)"
 	$(MAKE) install PREFIX=/tmp/opt
 
-upload: fennel fennel.lua fennel-x86_64 fennel.exe
+upload: fennel fennel.lua fennel-bin fennel.exe
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel.lua downloads/fennel-$(VERSION).lua
-	mv fennel-x86_64 downloads/fennel-$(VERSION)-x86_64
+	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
 	mv fennel.exe downloads/fennel-$(VERSION)-windows32.exe
 	gpg -ab downloads/fennel-$(VERSION)
 	gpg -ab downloads/fennel-$(VERSION).lua

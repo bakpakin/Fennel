@@ -14,7 +14,7 @@
                   (p:read :*all)
                   (if (p:close)
                       long
-                      "lua")))
+                      (or (os.getenv "LUA") "lua"))))
 
 (fn file-exists? [filename]
   (let [f (io.open filename)]

@@ -63,6 +63,10 @@ This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
 5. Run `sudo make install` to install system-wide (or `make install
    PREFIX=$HOME` if `~/bin` is on your `$PATH`)
 
+If you don't have Lua already installed on your system, you can run
+`make fennel-bin LUA=lua/src/lua` instead to build a standalone binary
+that has its own internal version of Lua.
+
 ## Differences from Lua
 
 * Syntax is much more regular and predictable (no statements; no operator precedence)

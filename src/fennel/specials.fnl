@@ -912,22 +912,17 @@ Method name doesn't have to be known at compile-time; if it is, use
                                                  accumulator
                                                  expr-string)
                                   ast))
+                 ;; Previous operands have been emitted, so we start fresh
+                 (set operands [accumulator])
                  ;; We use an if statement to enforce the short circuiting rules,
                  ;; so that when `subast` emits statements, they can be wrapped.
-                 (compiler.emit parent
-                                (string.format "if %s then"
-                                               (if (= name :and)
-                                                 accumulator
-                                                 (.. "not " accumulator)))
-                                subast)
+                 (compiler.emit parent (string.format "if %s then" (if (= name :and) accumulator (.. "not " accumulator))) subast)
                  ;; body of "if"
                  (let [chunk []]
                    (compiler.compile1 subast scope chunk {:nval 1 :target accumulator})
                    (compiler.emit parent chunk))
                  ;; endif
-                 (compiler.emit parent :end)
-                 ;; Previous operands have been emitted, so we start fresh
-                 (set operands [accumulator]))
+                 (compiler.emit parent :end))
                (table.insert operands (str1 (compiler.compile1 subast scope parent {:nval 1})))))))
      ast)
     (match (length operands)

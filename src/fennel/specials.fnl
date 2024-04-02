@@ -880,55 +880,61 @@ Method name doesn't have to be known at compile-time; if it is, use
         padded-op (.. " " name " ")]
     (var operands [])
     (var accumulator nil)
-    (for [i 2 len]
-      (let [subast (. ast i)
-            emit-if-statement? (and (< 2 i)
-                                    (or (= name :or) (= name :and))
-                                    ;; TODO: is the following now satisfied?
-                                    ;; https://github.com/bakpakin/Fennel/issues/422
-                                    (not (short-circuit-safe? subast scope)))]
-        (if emit-if-statement?
-            ;; Emit an If statement to ensure we short-circuit all
-            ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
-            ;; See https://todo.sr.ht/~technomancy/fennel/111
-            (let [expr-string (table.concat operands padded-op)
-                  declare-accumulator? (not accumulator)]
-              ;; store previous stuff into the local
-              ;; if there's not yet a local, we need to gensym it
-              (if declare-accumulator?
-                (set accumulator (tostring (compiler.gensym scope name))))
-              (compiler.emit parent
-                             (string.format (if declare-accumulator?
-                                              "local %s = %s"
-                                              "%s = %s")
-                                            accumulator
-                                            expr-string)
-                             ast)
-              ;; We use an if statement to enforce the short circuiting rules,
-              ;; so that when `subast` emits statements, they can be wrapped.
-              (compiler.emit parent
-                             (string.format "if %s then"
-                                            (if (= name :and)
-                                              accumulator
-                                              (.. "not " accumulator)))
-                             subast)
-              ;; body of "if"
-              (let [chunk []]
-                (compiler.compile1 subast scope chunk {:nval 1 :target accumulator})
-                (compiler.emit parent chunk))
-              ;; endif
-              (compiler.emit parent :end)
-              ;; Previous operands have been emitted, so we start fresh
-              (set operands [accumulator]))
-            ;; TODO: drop half-working multival support in 2.0
-            (= i len)
-            ;; last arg gets all its exprs but everyone else only gets one
-            (utils.map (compiler.compile1 subast scope parent) tostring operands)
-            (table.insert operands (str1 (compiler.compile1 subast scope parent {:nval 1}))))))
+    ((fn iife [ast]
+       (for [i 2 len]
+         (let [subast (. ast i)
+               emit-if-statement? (and (or (< 2 i)
+                                           (utils.sym? (. ast 1) :values))
+                                       (or (= name :or) (= name :and))
+                                       ;; TODO: is the following now satisfied?
+                                       ;; https://github.com/bakpakin/Fennel/issues/422
+                                       (not (short-circuit-safe? subast scope)))]
+           (if ;; TODO drop half-working multival support in 2.0
+               (and (= i len)
+                    (utils.list? subast)
+                    (utils.sym? (. subast 1) :values))
+               (if (= (length subast) 1)
+                 nil
+                 (iife subast))
+               emit-if-statement?
+               ;; Emit an If statement to ensure we short-circuit all
+               ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
+               ;; See https://todo.sr.ht/~technomancy/fennel/111
+               (let [expr-string (table.concat operands padded-op)
+                     declare-accumulator? (not accumulator)]
+                 ;; store previous stuff into the local
+                 ;; if there's not yet a local, we need to gensym it
+                 (if declare-accumulator?
+                   (set accumulator (tostring (compiler.gensym scope name))))
+                 (compiler.emit parent
+                                (string.format (if declare-accumulator?
+                                                 "local %s = %s"
+                                                 "%s = %s")
+                                               accumulator
+                                               expr-string)
+                                ast)
+                 ;; We use an if statement to enforce the short circuiting rules,
+                 ;; so that when `subast` emits statements, they can be wrapped.
+                 (compiler.emit parent
+                                (string.format "if %s then"
+                                               (if (= name :and)
+                                                 accumulator
+                                                 (.. "not " accumulator)))
+                                subast)
+                 ;; body of "if"
+                 (let [chunk []]
+                   (compiler.compile1 subast scope chunk {:nval 1 :target accumulator})
+                   (compiler.emit parent chunk))
+                 ;; endif
+                 (compiler.emit parent :end)
+                 ;; Previous operands have been emitted, so we start fresh
+                 (set operands [accumulator]))
+               (table.insert operands (str1 (compiler.compile1 subast scope parent {:nval 1})))))))
+     ast)
     (match (length operands)
-      (where 0 (not zero-arity) (= (length ast) 1)) (compiler.assert false "Expected more than 0 arguments" ast)
+      (where 0 (not zero-arity) (= len 1)) (compiler.assert false "Expected more than 0 arguments" ast)
       0 (utils.expr zero-arity :literal)
-      (where 1 unary-prefix (= (length ast) 2)) (.. "(" unary-prefix padded-op (. operands 1) ")")
+      (where 1 unary-prefix (= len 2)) (.. "(" unary-prefix padded-op (. operands 1) ")")
       1 (. operands 1)
       _ (.. "(" (table.concat operands padded-op) ")"))))
 

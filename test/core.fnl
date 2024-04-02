@@ -31,6 +31,7 @@
   (== (and 43 table false) false)
   (== (and true true (values)) true)
   (== (and true (values true false)) false)
+  (== (or false (values false (do true))) true)
   (== (tostring (and _G.xyz (do _G.xyz.y) _G.xyz)) "nil")
   (== (not nil) true)
   (== (and true (values true false) true) true)
@@ -38,6 +39,8 @@
   (== (and (values)) true)
   (== (or 5) 5)
   (== (and) true)
+  (== (do (var i 1) (and false (values (set i 2) true)) i) 1)
+  (== (do (var i 1) (and true (values (set i 2) true)) i) 2)
   ;; short-circuit special forms
   (== (let [t {:a 85}] (or true (tset t :a 1)) t.a) 85)
   ;; short-circuit macros too

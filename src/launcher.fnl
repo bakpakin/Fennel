@@ -34,6 +34,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --raw-errors             : Disable friendly compile error reporting
   --no-searcher            : Skip installing package.searchers entry
   --no-fennelrc            : Skip loading ~/.fennelrc when launching repl
+  --keywords K1[,K2...]    : Treat these symbols as reserved Lua keywords
 
   --help (-h)              : Display this text
   --version (-v)           : Show version
@@ -52,7 +53,7 @@ Use the NO_COLOR environment variable to disable escape codes in error messages.
 
 If ~/.fennelrc exists, it will be loaded before launching a repl.")
 
-(local options {:plugins []})
+(local options {:plugins [] :keywords {}})
 
 ;; Lua 5.1 doesn't have table.pack
 ;; necessary to preserve nils in luajit
@@ -177,6 +178,10 @@ If ~/.fennelrc exists, it will be loaded before launching a repl.")
                       plugin (fennel.dofile (table.remove arg (+ i 1)) opts)]
                   (table.insert options.plugins 1 plugin)
                   (table.remove arg i))
+      :--keywords (do
+                    (each [keyword (string.gmatch (table.remove arg (+ i 1)) "[^,]+")]
+                      (tset options.keywords keyword true))
+                    (table.remove arg i))
       _ (do
           (when (not (. commands (. arg i)))
             (set options.ignore-options true)

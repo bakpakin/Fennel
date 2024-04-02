@@ -7,7 +7,7 @@
 (macro == [form expected ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
      (t.is ok# val#)
-     (t.= ,expected val#)))
+     (t.= ,expected val# ,(view form))))
 
 (fn test-calculations []
   (== (% 1 2 (- 1 2)) 0)
@@ -71,7 +71,39 @@
   (== (do (var i 1)  (fn i++! [] (set i (+ i 1)) i)
           (or true (and (let [x (i++!)] x) true))
           i)
-      1))
+      1)
+  (== (do (var i 1) (fn i++! [] (set i (+ i 1)) i)
+          (or true (if (= i 1) (i++!)))
+          i)
+      1)
+  (== (do (var i 1) (fn i++! [] (set i (+ i 1)) i)
+          (or true (for [j 1 1] (i++!)))
+          i)
+      1)
+  (== (do (var i 1) (fn i++! [] (set i (+ i 1)) i)
+          (or true (each [j (ipairs [:item])] (i++!)))
+          i)
+      1)
+  (== (do (var i 1) (fn i++! [] (set i (+ i 1)) i)
+          (or true (while (= i 1) (i++!)))
+          i)
+      1)
+  (== (do (var i 1)
+          (or true (set i 2))
+          i)
+      1)
+  (== (let [t {:field 1}]
+          (or true (tset t :field 2))
+          t.field)
+      1)
+  (== (let [t {}]
+          (or true (fn t.field []))
+          t.field)
+      nil)
+  (== (do (var i 1)
+          (or (lua "i = i + 1" "true") (lua "i = i + 1" "true"))
+          i)
+      2))
 
 (fn test-comparisons []
   (== (= 1 1 2 2) false)

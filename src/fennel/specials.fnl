@@ -859,52 +859,77 @@ Method name doesn't have to be known at compile-time; if it is, use
 (fn short-circuit-safe? [x scope]
   (if (or (not= :table (type x)) (utils.sym? x) (utils.varg? x))
       true
-      (utils.list?) (accumulate [ok true _ v (ipairs x) &until (not ok)]
-                      (short-circuit-safe? v scope))
       (utils.table? x) (accumulate [ok true k v (pairs x) &until (not ok)]
                          (and (short-circuit-safe? v scope)
                               (short-circuit-safe? k scope)))
-      (case (str1 x) ; list
-        (where (or :set :tset :global :do :let)) false
-        ?call (if (. scope.macros ?call) false
-                  (faccumulate [ok true i 2 (length x) &until (not ok)]
-                    (short-circuit-safe? (. x i) scope))))))
-
-;; Trigger an IIFE to ensure we short-circuit certain
-;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
-;; See https://todo.sr.ht/~technomancy/fennel/111
-(fn maybe-short-circuit-protect [ast i name scope]
-  (if (and (< 2 i) (or (= :or name) (= :and name))
-           ;; TODO: Is the following issue now satisfied?
-           ;; https://github.com/bakpakin/Fennel/issues/422
-           (not (short-circuit-safe? ast scope)))
-      ;; TODO: Flatten the generation of functions for operands to prevent
-      ;; unnecessarily nested IIFES, like (or true (and x y (let ....)))
-      (utils.list (utils.list (utils.sym :fn) (utils.sequence (utils.varg)) ast)
-                  (or (and scope.vararg (utils.varg)) nil))
-      ast))
+      (utils.list? x)
+      (if (utils.sym? (. x 1))
+        (case (str1 x)
+          (where (or :fn :hashfn :let :local :var :set :tset :if :each :for :while :do :lua :global)) false
+          (where call (. scope.macros call)) false
+          _ (faccumulate [ok true i 2 (length x) &until (not ok)]
+              (short-circuit-safe? (. x i) scope)))
+        (accumulate [ok true _ v (ipairs x) &until (not ok)]
+          (short-circuit-safe? v scope)))))
 
 (fn operator-special [name zero-arity unary-prefix ast scope parent]
-  (let [len (length ast) operands []
+  (compiler.assert (not (and (= (length ast) 2)
+                             (utils.varg? (. ast 2))))
+                   "tried to use vararg with operator" ast)
+  (let [len (length ast)
         padded-op (.. " " name " ")]
+    (var operands [])
+    (var accumulator nil)
     (for [i 2 len]
-      (let [subast (maybe-short-circuit-protect (. ast i) i name scope)
-            ;; TODO: add nval=1 here after `do' no longer IIFEs
-            subexprs (compiler.compile1 subast scope parent)]
-        ;; TODO: drop half-working multival support in 2.0
-        (if (= i len)
+      (let [subast (. ast i)
+            emit-if-statement? (and (< 2 i)
+                                    (or (= name :or) (= name :and))
+                                    ;; TODO: is the following now satisfied?
+                                    ;; https://github.com/bakpakin/Fennel/issues/422
+                                    (not (short-circuit-safe? subast scope)))]
+        (if emit-if-statement?
+            ;; Emit an If statement to ensure we short-circuit all
+            ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
+            ;; See https://todo.sr.ht/~technomancy/fennel/111
+            (let [expr-string (table.concat operands padded-op)
+                  declare-accumulator? (not accumulator)]
+              ;; store previous stuff into the local
+              ;; if there's not yet a local, we need to gensym it
+              (if declare-accumulator?
+                (set accumulator (tostring (compiler.gensym scope name))))
+              (compiler.emit parent
+                             (string.format (if declare-accumulator?
+                                              "local %s = %s"
+                                              "%s = %s")
+                                            accumulator
+                                            expr-string)
+                             ast)
+              ;; We use an if statement to enforce the short circuiting rules,
+              ;; so that when `subast` emits statements, they can be wrapped.
+              (compiler.emit parent
+                             (string.format "if %s then"
+                                            (if (= name :and)
+                                              accumulator
+                                              (.. "not " accumulator)))
+                             subast)
+              ;; body of "if"
+              (let [chunk []]
+                (compiler.compile1 subast scope chunk {:nval 1 :target accumulator})
+                (compiler.emit parent chunk))
+              ;; endif
+              (compiler.emit parent :end)
+              ;; Previous operands have been emitted, so we start fresh
+              (set operands [accumulator]))
+            ;; TODO: drop half-working multival support in 2.0
+            (= i len)
             ;; last arg gets all its exprs but everyone else only gets one
-            (utils.map subexprs tostring operands)
-            (table.insert operands (str1 subexprs)))))
+            (utils.map (compiler.compile1 subast scope parent) tostring operands)
+            (table.insert operands (str1 (compiler.compile1 subast scope parent {:nval 1}))))))
     (match (length operands)
-      0 (utils.expr (doto zero-arity
-                      (compiler.assert "Expected more than 0 arguments" ast))
-                    :literal)
-      1 (if (utils.varg? (. ast 2))
-            (compiler.assert false "tried to use vararg with operator" ast)
-            unary-prefix
-            (.. "(" unary-prefix padded-op (. operands 1) ")")
-            (. operands 1))
+      (where 0 (not zero-arity) (= (length ast) 1)) (compiler.assert false "Expected more than 0 arguments" ast)
+      0 (utils.expr zero-arity :literal)
+      (where 1 unary-prefix (= (length ast) 2)) (.. "(" unary-prefix padded-op (. operands 1) ")")
+      1 (. operands 1)
       _ (.. "(" (table.concat operands padded-op) ")"))))
 
 (fn define-arithmetic-special [name zero-arity unary-prefix ?lua-name]

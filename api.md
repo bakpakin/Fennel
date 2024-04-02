@@ -39,6 +39,8 @@ usually accept these fields:
 * `unfriendly`: disable friendly compiler/parser error messages.
 * `plugins`: list of compiler [plugins](#plugins).
 * `error-pinpoint`: a list of two strings indicating what to wrap compile errors in
+* `keywords`: a table of the form `{:keyword1 true :keyword2 true}` containing
+  symbols that should be treated as reserved Lua keywords.
 
 You can pass the string `"_COMPILER"` as the value for `env`; it will
 cause the code to be run/compiled in a context which has all

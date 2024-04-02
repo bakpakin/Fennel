@@ -114,7 +114,7 @@ symbol is unique if the input string is unique in the scope."
   (assert-compile (not (utils.multi-sym? str))
                   (.. "unexpected multi symbol " str) ast)
   (let [;; Mapping mangling to a valid Lua identifier
-        raw (if (or (. utils.lua-keywords str) (str:match "^%d"))
+        raw (if (or (utils.lua-keyword? str) (str:match "^%d"))
                 (.. "_" str)
                 str)
         mangling (-> raw

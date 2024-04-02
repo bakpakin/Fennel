@@ -361,6 +361,13 @@ When f returns a truthy value, recursively walks the children."
   (walk (or ?custom-iterator pairs) nil nil root)
   root)
 
+(local root {:chunk nil :scope nil :options nil :reset (fn [])})
+
+(fn root.set-reset [{: chunk : scope : options : reset}]
+  (fn root.reset []
+    (set (root.chunk root.scope root.options root.reset)
+         (values chunk scope options reset))))
+
 (local lua-keywords {:and true
                      :break true
                      :do true
@@ -384,8 +391,12 @@ When f returns a truthy value, recursively walks the children."
                      :while true
                      :goto true})
 
+(fn lua-keyword? [str]
+  (or (. lua-keywords str)
+      (?. root.options :keywords str)))
+
 (fn valid-lua-identifier? [str]
-  (and (str:match "^[%a_][%w_]*$") (not (. lua-keywords str))))
+  (and (str:match "^[%a_][%w_]*$") (not (lua-keyword? str))))
 
 (local propagated-options [:allowedGlobals
                            :indent
@@ -401,13 +412,6 @@ has options calls down into compile."
   (each [_ name (ipairs propagated-options)]
     (tset subopts name (. options name)))
   subopts)
-
-(local root {:chunk nil :scope nil :options nil :reset (fn [])})
-
-(fn root.set-reset [{: chunk : scope : options : reset}]
-  (fn root.reset []
-    (set (root.chunk root.scope root.options root.reset)
-         (values chunk scope options reset))))
 
 (fn ast-source [ast]
   "Get a table for the given ast which includes file/line info, if possible."
@@ -480,7 +484,7 @@ handlers will be skipped."
  : string?
  : idempotent-expr?
  : valid-lua-identifier?
- : lua-keywords
+ : lua-keyword?
  : hook
  : hook-opts
  : propagate-options

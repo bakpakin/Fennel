@@ -39,8 +39,17 @@
   (== (and (values)) true)
   (== (or 5) 5)
   (== (and) true)
-  (== (do (var i 1) (and false (values (set i 2) true)) i) 1)
+  ;; the side effect rules are complicated
   (== (do (var i 1) (and true (values (set i 2) true)) i) 2)
+  (== (do (var i 1) (and false (values (set i 2) true)) i) 1)
+  (== (do (var i 1) (and true (values true (set i 2))) i) 2)
+  (== (do (var i 1) (and true (values false (set i 2))) i) 1)
+  (== (do (var i 1) (and true (do (values false (set i 2)))) i) 2)
+  ;; (and) should never return a second value under any circumstances
+  (== (let [(x y) (and true (values true true))] y) nil)
+  (== (let [(x y) (and true (values (values true true)))] y) nil)
+  (== (let [(x y) (and true (#(values true true)))] y) nil)
+  (== (let [(x y) (and true (do (values true true)))] y) nil)
   ;; short-circuit special forms
   (== (let [t {:a 85}] (or true (tset t :a 1)) t.a) 85)
   ;; short-circuit macros too

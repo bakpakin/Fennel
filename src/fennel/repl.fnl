@@ -295,11 +295,11 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.doc :fnl/docstring
                        "Print the docstring and arglist for a function, macro, or special form.")
 
-(fn commands.compile [env read on-values on-error scope]
+(fn commands.compile [env read on-values on-error scope _ keywords]
   (run-command read on-error
                #(let  [allowedGlobals (specials.current-global-names env)
                        (ok? result) (pcall compiler.compile
-                                           $ {: env : scope : allowedGlobals})]
+                                           $ {: env : scope : allowedGlobals : keywords})]
                   (if ok?
                       (on-values [result])
                       (on-error :Repl (.. "Error compiling expression: " result))))))
@@ -316,10 +316,10 @@ For more information about the language, see https://fennel-lang.org/reference")
       (case (name:match "^repl%-command%-(.*)")
         cmd-name (tset commands cmd-name f)))))
 
-(fn run-command-loop [input read loop env on-values on-error scope chars]
+(fn run-command-loop [input read loop env on-values on-error scope chars keywords]
   (let [command-name (input:match ",([^%s/]+)")]
     (case (. commands command-name)
-      command (command env read on-values on-error scope chars)
+      command (command env read on-values on-error scope chars keywords)
       _ (when (and (not= command-name :exit) (not= command-name :return))
           (on-values ["Unknown command" command-name])))
     (when (not= :exit command-name)
@@ -433,7 +433,8 @@ For more information about the language, see https://fennel-lang.org/reference")
             (command? src-string)
             (run-command-loop src-string read loop env
                               callbacks.onValues callbacks.onError
-                              opts.scope chars)
+                              opts.scope chars
+                              opts.keywords)
             (when not-eof?
               (case-try (pcall compiler.compile form
                                (doto opts (tset :source src-string)))

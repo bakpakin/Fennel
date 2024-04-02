@@ -384,6 +384,9 @@ When f returns a truthy value, recursively walks the children."
                      :while true
                      :goto true})
 
+(fn add-lua-keyword [str]
+  (tset lua-keywords str true))
+
 (fn valid-lua-identifier? [str]
   (and (str:match "^[%a_][%w_]*$") (not (. lua-keywords str))))
 
@@ -480,6 +483,7 @@ handlers will be skipped."
  : string?
  : idempotent-expr?
  : valid-lua-identifier?
+ : add-lua-keyword
  : lua-keywords
  : hook
  : hook-opts

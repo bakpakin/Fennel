@@ -893,9 +893,7 @@ Method name doesn't have to be known at compile-time; if it is, use
                (and (= i len)
                     (utils.list? subast)
                     (utils.sym? (. subast 1) :values))
-               (if (= (length subast) 1)
-                 nil
-                 (iife subast))
+               (if (= (length subast) 1) nil (iife subast))
                emit-if-statement?
                ;; Emit an If statement to ensure we short-circuit all
                ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
@@ -906,13 +904,14 @@ Method name doesn't have to be known at compile-time; if it is, use
                  ;; if there's not yet a local, we need to gensym it
                  (if declare-accumulator?
                    (set accumulator (tostring (compiler.gensym scope name))))
-                 (compiler.emit parent
-                                (string.format (if declare-accumulator?
-                                                 "local %s = %s"
-                                                 "%s = %s")
-                                               accumulator
-                                               expr-string)
-                                ast)
+                 (if (not= accumulator expr-string)
+                   (compiler.emit parent
+                                  (string.format (if declare-accumulator?
+                                                   "local %s = %s"
+                                                   "%s = %s")
+                                                 accumulator
+                                                 expr-string)
+                                  ast))
                  ;; We use an if statement to enforce the short circuiting rules,
                  ;; so that when `subast` emits statements, they can be wrapped.
                  (compiler.emit parent

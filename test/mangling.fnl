@@ -18,5 +18,10 @@
   (t.is (fennel.eval "(global mangled-name true) mangled-name"
                              {:env {}})))
 
-{: test-mangling}
+(fn test-keyword-mangling []
+  (let [code "(local new 99)"
+        opts {:keywords {"new" true}}]
+    (t.match "local _new = 99" (fennel.compile-string code opts))))
 
+{: test-mangling
+ : test-keyword-mangling}

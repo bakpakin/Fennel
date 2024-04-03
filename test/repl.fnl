@@ -159,9 +159,9 @@
     (t.= "error: Unknown value" err)))
 
 (fn test-compile []
-  (let [send (wrap-repl {:useMetadata false})
-        result (send ",compile (fn abc [] (+ 43 9))")
-        f "local function abc()\n  return (43 + 9)\nend\nreturn abc"
+  (let [send (wrap-repl {:useMetadata false :keywords {"new" true}})
+        result (send ",compile (fn new [] (+ 43 9))")
+        f "local function _new()\n  return (43 + 9)\nend\nreturn _new"
         err (send ",compile (fn ]")]
     (t.= f result)
     (t.= "error: Couldn't parse input." err)))

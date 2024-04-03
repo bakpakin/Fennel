@@ -159,7 +159,7 @@
     (t.= "error: Unknown value" err)))
 
 (fn test-compile []
-  (let [send (wrap-repl)
+  (let [send (wrap-repl {:useMetadata false})
         result (send ",compile (fn abc [] (+ 43 9))")
         f "local function abc()\n  return (43 + 9)\nend\nreturn abc"
         err (send ",compile (fn ]")]

@@ -671,7 +671,7 @@ values, and one which is used to print errors.
 
 ```fennel
 (local fennel (require :fennel)
-(fn locals [env read on-values on-error scope]
+(fn locals [env read on-values on-error scope chars opts]
   "Print all locals in repl session scope."
   (on-values [(fennel.view env.___replLocals___)]))
 

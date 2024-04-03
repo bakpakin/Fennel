@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Accept `--keywords` option to add to the list of built-in Lua keywords.
 * REPL completion now works on partial REPL commands: e.g. `,complete ,d` -> `,doc`.
 * Tables in the REPL default to printing with limited depth.
 * View settings in REPL can be changed: `(set ___repl___.view-opts.depth 100)`.
@@ -18,8 +19,8 @@ deprecated forms.
 
 ### Bug Fixes
 
-* Fix a 1.4.x bug where IIFE's emitted by `and`/`or` inside `(fn [...])`
-  failed to propagate varargs
+* Propagate compile options into `,compile` repl command.
+* IIFEs emitted by `and`/`or` inside `(fn [...])` now propagate varargs.
 
 ## 1.4.2 / 2024-02-23
 

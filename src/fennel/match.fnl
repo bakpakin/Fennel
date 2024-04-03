@@ -310,10 +310,7 @@ Syntax:
 (case data-expression
   pattern body
   (where pattern guards*) body
-  (or pattern patterns*) body
-  (where (or pattern patterns*) guards*) body
-  ;; legacy:
-  (pattern ? guards*) body)"
+  (where (or pattern patterns*) guards*) body)"
   (case-impl false val ...))
 
 (fn match* [val ...]
@@ -325,10 +322,7 @@ Syntax:
 (match data-expression
   pattern body
   (where pattern guards*) body
-  (or pattern patterns*) body
-  (where (or pattern patterns*) guards*) body
-  ;; legacy:
-  (pattern ? guards*) body)"
+  (where (or pattern patterns*) guards*) body)"
   (case-impl true val ...))
 
 (fn case-try-step [how expr else pattern body ...]

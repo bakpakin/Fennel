@@ -405,7 +405,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
                         {:forceglobal true :nomulti true :symtype :global})
   nil)
 
-(doc-special :global [:name :val] "Set name as a global with val.")
+(doc-special :global [:name :val] "Set name as a global with val. Deprecated.")
 
 (fn SPECIALS.set [ast scope parent]
   (compiler.assert (= (length ast) 3) "expected name and value" ast)
@@ -495,8 +495,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
     (compiler.emit parent (fmtstr:format root (table.concat keys "][") value) ast)))
 
 (doc-special :tset [:tbl :key1 "..." :keyN :val]
-             "Set the value of a table field. Can take additional keys to set
-nested values, but all parents must contain an existing table.")
+             "Set the value of a table field. Deprecated in favor of set.")
 
 (fn calculate-if-target [scope opts]
   (if (not (or opts.tail opts.target opts.nval))
@@ -1293,8 +1292,7 @@ modules in the compiler environment."
 
 (doc-special :require-macros [:macro-module-name]
              "Load given module and use its contents as macro definitions in current scope.
-Macro module should return a table of macro functions with string keys.
-Consider using import-macros instead as it is more flexible.")
+Deprecated.")
 
 (fn emit-included-fennel [src path opts sub-chunk]
   "Emit Fennel code in src into sub-chunk."

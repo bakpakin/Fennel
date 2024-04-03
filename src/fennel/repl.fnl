@@ -295,7 +295,7 @@ For more information about the language, see https://fennel-lang.org/reference")
 (compiler.metadata:set commands.doc :fnl/docstring
                        "Print the docstring and arglist for a function, macro, or special form.")
 
-(fn commands.compile [env read on-values on-error _ _ opts]
+(fn commands.compile [_ read on-values on-error _ _ opts]
   (run-command read on-error
                #(case (pcall compiler.compile $ opts)
                   (true result) (on-values [result])

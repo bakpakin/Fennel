@@ -286,22 +286,13 @@ numerical range like `for` rather than an iterator."
              (fn [,_VARARG] ,body))))))
 
 (fn pick-args* [n f]
-  "Create a function of arity n that applies its arguments to f.
-
-For example,
-  (pick-args 2 func)
-expands to
-  (fn [_0_ _1_] (func _0_ _1_))"
+  "Create a function of arity n that applies its arguments to f. Deprecated."
   (if (and _G.io _G.io.stderr)
       (_G.io.stderr:write
        "-- WARNING: pick-args is deprecated and will be removed in the future.\n"))
-  (assert (and (= (type n) :number) (= n (math.floor n)) (<= 0 n))
-          (.. "Expected n to be an integer literal >= 0, got " (tostring n)))
   (let [bindings []]
-    (for [i 1 n]
-      (tset bindings i (gensym)))
-    `(fn ,bindings
-       (,f ,(unpack bindings)))))
+    (for [i 1 n] (tset bindings i (gensym)))
+    `(fn ,bindings (,f ,(unpack bindings)))))
 
 (fn pick-values* [n ...]
   "Evaluate to exactly n values.
@@ -330,8 +321,8 @@ nil, unless that argument's name begins with a question mark."
         has-internal-name? (sym? (. args 1))
         arglist (if has-internal-name? (. args 2) (. args 1))
         metadata-position (if has-internal-name? 3 2)
-        (f-metadata check-position) (get-function-metadata [:lambda ...] arglist
-                                                           metadata-position)
+        (_ check-position) (get-function-metadata [:lambda ...] arglist
+                                                  metadata-position)
         empty-body? (< args-len check-position)]
     (fn check! [a]
       (if (table? a)

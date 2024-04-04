@@ -749,14 +749,15 @@ which we have to do if we don't know."
         (destructure1 (. left (+ k 1)) [subexpr] left)))
 
     (fn destructure-table [left rightexprs top? destructure1]
-      (let [s (gensym scope symtype)
-            right (match (if top?
+      (let [right (match (if top?
                              (exprs1 (compile1 from scope parent))
                              (exprs1 rightexprs))
                     "" :nil
                     right right)
+            s (if (utils.sym? rightexprs) right (gensym scope symtype))
             excluded-keys []]
-        (emit parent (string.format "local %s = %s" s right) left)
+        (when (not (utils.sym? rightexprs))
+          (emit parent (string.format "local %s = %s" s right) left))
         (each [k v (utils.stablepairs left)]
           (when (not (and (= :number (type k))
                           (: (tostring (. left (- k 1))) :find "^&")))

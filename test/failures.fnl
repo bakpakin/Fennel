@@ -166,7 +166,8 @@
     "(tail! [])"
     "Expected a function call as argument"
     "(do (tail! (print :x)) (print :y))"
-    "Must be in tail position"}))
+    "Must be in tail position"
+    "((values))" "cannot call literal value"}))
 
 (fn test-match-fails []
   (test-failures

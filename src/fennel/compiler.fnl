@@ -472,11 +472,14 @@ if opts contains the nval option."
         (or opts.tail opts.target) {:returned true}
         exprs)))
 
+(fn callable? [[call-ast] ctype callee]
+  (if (= :literal ctype) (= "\"" (string.sub callee 1 1))
+      (or (utils.sym? call-ast) (utils.list? call-ast))))
+
 (fn compile-function-call [ast scope parent opts compile1 len]
-  (let [fargs [] ; regular function call
-        fcallee (. (compile1 (. ast 1) scope parent {:nval 1}) 1)]
-    (assert-compile (or (utils.sym? (. ast 1)) (utils.list? (. ast 1))
-                        (= :string (type (. ast 1))))
+  (let [{1 callee :type ctype} (. (compile1 (. ast 1) scope parent {:nval 1}) 1)
+        fargs []]
+    (assert-compile (callable? ast ctype callee)
                     (.. "cannot call literal value " (tostring (. ast 1))) ast)
     (for [i 2 len]
       (let [subexprs (compile1 (. ast i) scope parent
@@ -488,10 +491,9 @@ if opts contains the nval option."
               (table.insert fargs (. subexprs j)))
             ;; Emit sub expression only for side effects
             (keep-side-effects subexprs parent 2 (. ast i)))))
-    (let [pat (if (= :string (type (. ast 1)))
-                  "(%s)(%s)"  ; ("a")() is valid Lua call, "a"() isn't
-                  "%s(%s)")   ; regular literal call
-          call (string.format pat (tostring fcallee) (exprs1 fargs))]
+    ;; ("a")() is valid Lua call, "a"() isn't
+    (let [pat (if (= :literal ctype) "(%s)(%s)" "%s(%s)")
+          call (string.format pat (tostring callee) (exprs1 fargs))]
       (handle-compile-opts [(utils.expr call :statement)] parent opts ast))))
 
 (fn compile-call [ast scope parent opts compile1]

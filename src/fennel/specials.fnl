@@ -900,12 +900,12 @@ Method name doesn't have to be known at compile-time; if it is, use
     (var accumulator nil)
     (var i 0)
     (each [subast (iter-args ast)]
-      (let [emit-if-statement? (and (not= i 0)
+      (set i (+ i 1))
+      (let [emit-if-statement? (and (not= i 1)
                                     (or (= name :or) (= name :and))
                                     ;; TODO: is the following now satisfied?
                                     ;; https://github.com/bakpakin/Fennel/issues/422
                                     (not (short-circuit-safe? subast scope)))]
-        (set i (+ i 1))
         (if emit-if-statement?
             ;; Emit an If statement to ensure we short-circuit all
             ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
@@ -914,9 +914,9 @@ Method name doesn't have to be known at compile-time; if it is, use
                   declare-accumulator? (not accumulator)]
               ;; store previous stuff into the local
               ;; if there's not yet a local, we need to gensym it
-              (if declare-accumulator?
+              (when declare-accumulator?
                 (set accumulator (tostring (compiler.gensym scope name))))
-              (if (not= accumulator expr-string)
+              (when (not= accumulator expr-string)
                 (compiler.emit parent
                                (string.format (if declare-accumulator?
                                                 "local %s = %s"

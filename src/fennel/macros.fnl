@@ -71,11 +71,11 @@ a nil value in any of subsequent keys."
         lookups `(do
                    (var ,head ,tbl)
                    ,head)]
-    (each [_ k (ipairs [...])]
+    (each [i k (ipairs [...])]
       ;; Kinda gnarly to reassign in place like this, but it emits the best lua.
       ;; With this impl, it emits a flat, concise, and readable set of ifs
-      (table.insert lookups (# lookups) `(if (not= nil ,head)
-                                           (set ,head (. ,head ,k)))))
+      (table.insert lookups (+ i 2)
+                    `(if (not= nil ,head) (set ,head (. ,head ,k)))))
     lookups))
 
 (fn doto* [val ...]

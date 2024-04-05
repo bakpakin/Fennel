@@ -892,11 +892,11 @@ Method name doesn't have to be known at compile-time; if it is, use
   (doc-special name [:a :b "..."]
                "Arithmetic operator; works the same as Lua but accepts more arguments."))
 
-(define-arithmetic-special "+" :0)
+(define-arithmetic-special "+" "0" "0")
 (define-arithmetic-special ".." "''")
 (define-arithmetic-special "^")
 (define-arithmetic-special "-" nil "")
-(define-arithmetic-special "*" :1)
+(define-arithmetic-special "*" "1" "1")
 (define-arithmetic-special "%")
 (define-arithmetic-special "/" nil :1)
 (define-arithmetic-special "//" nil :1)

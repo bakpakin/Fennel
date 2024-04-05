@@ -854,6 +854,8 @@ Method name doesn't have to be known at compile-time; if it is, use
              "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
 ;; Helper iterator to deal with (values) in operators
+;; When called on an ast like (my-call arg1 arg2 (values arg3 arg4))
+;; iter-args will yield arg1, arg2, arg3, then arg4
 (fn iter-args [ast]
   (let [state {: ast
                :len (length ast)
@@ -896,14 +898,14 @@ Method name doesn't have to be known at compile-time; if it is, use
         padded-op (.. " " name " ")]
     (var operands [])
     (var accumulator nil)
-    (var first? true)
+    (var i 0)
     (each [subast (iter-args ast)]
-      (let [emit-if-statement? (and (not first?)
+      (let [emit-if-statement? (and (not= i 0)
                                     (or (= name :or) (= name :and))
                                     ;; TODO: is the following now satisfied?
                                     ;; https://github.com/bakpakin/Fennel/issues/422
                                     (not (short-circuit-safe? subast scope)))]
-        (set first? false)
+        (set i (+ i 1))
         (if emit-if-statement?
             ;; Emit an If statement to ensure we short-circuit all
             ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
@@ -934,11 +936,13 @@ Method name doesn't have to be known at compile-time; if it is, use
               ;; Previous operands have been emitted, so we start fresh
               (set operands [accumulator]))
             (table.insert operands (str1 (compiler.compile1 subast scope parent {:nval 1}))))))
-    (match (length operands)
-      (where 0 (not zero-arity) (= len 1)) (compiler.assert false "Expected more than 0 arguments" ast)
-      0 (utils.expr zero-arity :literal)
-      (where 1 unary-prefix (= len 2)) (.. "(" unary-prefix padded-op (. operands 1) ")")
-      1 (. operands 1)
+    (case i
+      0 (if zero-arity
+          (utils.expr zero-arity :literal)
+          (compiler.assert false "Expected more than 0 arguments" ast))
+      1 (if unary-prefix
+          (.. "(" unary-prefix padded-op (. operands 1) ")")
+          (. operands 1))
       _ (.. "(" (table.concat operands padded-op) ")"))))
 
 (fn define-arithmetic-special [name zero-arity unary-prefix ?lua-name]

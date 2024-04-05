@@ -230,10 +230,11 @@ By default, start is 2."
                        (: "pcall(function() %s:setall(%s, %s) end)" :format
                           meta-str fn-name (table.concat meta-fields ", ")))))))
 
-(fn get-fn-name [ast scope fn-name multi]
+(fn get-fn-name [ast scope f-scope fn-name multi {: nval}]
   (if (and fn-name (not= (. fn-name 1) :nil))
       (values (if (not multi)
-                  (compiler.declare-local fn-name [] scope ast)
+                  (compiler.declare-local fn-name []
+                                          (if (= 1 nval) f-scope scope) ast)
                   (. (compiler.symbol-to-expression fn-name scope) 1))
               (not multi) 3)
       (values nil true 2)))
@@ -293,13 +294,13 @@ By default, start is 2."
                        #(collect [k v (pairs $2) :into $1]
                           (values k v)))))
 
-(fn SPECIALS.fn [ast scope parent]
+(fn SPECIALS.fn [ast scope parent opts]
   (let [f-scope (doto (compiler.make-scope scope)
                   (tset :vararg false))
         f-chunk []
         fn-sym (utils.sym? (. ast 2))
         multi (and fn-sym (utils.multi-sym? (. fn-sym 1)))
-        (fn-name local? index) (get-fn-name ast scope fn-sym multi)
+        (fn-name local? index) (get-fn-name ast scope f-scope fn-sym multi opts)
         arg-list (compiler.assert (utils.table? (. ast index))
                                   "expected parameters table" ast)]
     (compiler.assert (or (not multi) (not multi.multi-sym-method-call))
@@ -424,7 +425,8 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 
 (tset SPECIALS :set-forcibly! set-forcibly!*)
 
-(fn local* [ast scope parent]
+(fn local* [ast scope parent opts]
+  (compiler.assert (not= 1 opts.nval) "can't introduce local here" ast)
   (compiler.assert (= (length ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent
                         {:declaration true :nomulti true :symtype :local})
@@ -434,7 +436,8 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 
 (doc-special :local [:name :val] "Introduce new top-level immutable local.")
 
-(fn SPECIALS.var [ast scope parent]
+(fn SPECIALS.var [ast scope parent opts]
+  (compiler.assert (not= 1 opts.nval) "can't introduce var here" ast)
   (compiler.assert (= (length ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent
                         {:declaration true
@@ -541,8 +544,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
           {: chunk :scope cscope}))
       (for [i 2 (- (length ast) 1) 2]
         (let [condchunk []
-              res (compiler.compile1 (. ast i) do-scope condchunk {:nval 1})
-              cond (. res 1)
+              [cond] (compiler.compile1 (. ast i) do-scope condchunk {:nval 1})
               branch (compile-body (+ i 1))]
           (set branch.cond cond)
           (set branch.condchunk condchunk)
@@ -869,6 +871,7 @@ Method name doesn't have to be known at compile-time; if it is, use
         padded-op (.. " " name " ")]
     (for [i 2 len]
       (let [subast (maybe-short-circuit-protect (. ast i) i name scope)
+            ;; TODO: add nval=1 here after `do' no longer IIFEs
             subexprs (compiler.compile1 subast scope parent)]
         ;; TODO: drop half-working multival support in 2.0
         (if (= i len)

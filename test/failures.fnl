@@ -6,7 +6,7 @@
 ;; expanded before this code ever sees it.
 (macro assert-fail [form expected]
   `(let [(ok# msg#) (pcall fennel.compile-string (macrodebug ,form true)
-                           {:allowedGlobals ["pairs" "next" "ipairs" "_G"]
+                           {:allowedGlobals ["pairs" "next" "ipairs" "_G" "print"]
                             :correlate true})]
      (t.is (not ok#) (.. "Expected failure: " ,(tostring form)))
      (t.match ,expected msg#)))
@@ -267,6 +267,17 @@
   (let [(_ err) (pcall fennel.eval "(match 5 b)")]
     (t.not-match "fennel.compiler.macroexpand" err)))
 
+;; This does not prevent:
+;; (print (local abc :def)) (can't rely on nval)
+;; (if (fn abc []) :yes :no) (can't prevent function from being constructed)
+(fn test-disallow-locals []
+  (assert-fail (print (local xaby 10) xaby) "can't introduce local here")
+  (assert-fail (if (var x 10) (print x) (print x)) "can't introduce var")
+  (assert-fail (if (fn abc []) abc) "unknown identifier: abc")
+  ;; TODO: uncomment this once `or' gets nval support
+  ;; (assert-fail (or (local x 10) x) "can't introduce local")
+  )
+
 {: test-global-fails
  : test-fn-fails
  : test-binding-fails
@@ -277,4 +288,5 @@
  : test-macro
  : test-parse-fails
  : test-macro-traces
+ : test-disallow-locals
  : test-names}

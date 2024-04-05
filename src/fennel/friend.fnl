@@ -34,6 +34,7 @@
         "unused local (.*)" ["renaming the local to _%s if it is meant to be unused"
                              "fixing a typo so %s is used"
                              "disabling the linter which checks for unused locals"]
+        "can't introduce (.*) here" ["declaring the local at the top-level"]
         "expected parameters" ["adding function parameters as a list of identifiers in brackets"]
         "unable to bind (.*)" ["replacing the %s with an identifier"]
         "expected rest argument before last parameter" ["moving & to right before the final identifier when destructuring"]

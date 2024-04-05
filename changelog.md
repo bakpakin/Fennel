@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Allow locals in places where they make sense rather than mid-expression.
 * Accept `--keywords` option to add to the list of built-in Lua keywords.
 * REPL completion now works on partial REPL commands: e.g. `,complete ,d` -> `,doc`.
 * Tables in the REPL default to printing with limited depth.

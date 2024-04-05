@@ -25,6 +25,7 @@
       (fn opts.registerCompleter [x]
         (set repl-complete x))
       (fn opts.pp [x] x)
+      (set opts.error-pinpoint ["«" "»"])
       (fennel.repl opts)))
   (let [repl-send (coroutine.wrap send)]
     (repl-send)
@@ -221,7 +222,7 @@
     (t.= out out2 "lines and byte offsets should be stable")
     (t.match ":bytestart 5" out)
     (t.match ":byteend 7" out)
-    (t.match "   %(f \027%[7m%[123%]\027%[0m%)" (send "   (f [123])"))))
+    (t.match "   %(f «%[123%]»%)" (send "   (f [123])"))))
 
 (fn test-code []
   (let [(send comp) (wrap-repl)]
@@ -231,31 +232,31 @@
     (t.= (comp "fo") [:for :foo])))
 
 (fn test-error-handling []
-  (let [(send comp) (wrap-repl)]
+  (let [send (wrap-repl)]
     ;; we get the source in the error message
-    (t.match "%(let \027" (send "(let a)"))
+    (t.match "%(let «" (send "(let a)"))
     ;; repeated errors still get it
-    (t.match "%(let \027" (send "(let b)"))
+    (t.match "%(let «" (send "(let b)"))
     ;; repl commands don't mess it up
     (send ",complete l")
-    (t.match "%(let \027" (send "(let c)"))
+    (t.match "%(let «" (send "(let c)"))
     ;; parser errors should be properly displayed, albeit without ^ at position
     (t.match "invalid character: @" (send "(print @)"))
     ;; don't ignore trailing delimiters
     (t.match "unexpected closing delimiter %)" (send "565)"))))
 
 (fn test-locals-saving []
-  (let [(send comp) (wrap-repl)]
+  (let [send (wrap-repl)]
     (send (v (local x-y 5)))
     (send (v (let [x-y 55] nil)))
-    (send (v (fn abc [] nil)))
+    (send (v (fn abc [] :def)))
     (t.= (send (v x-y)) :5)
-    (t.= (send (v (type abc))) "function"))
-  (let [(send comp) (wrap-repl {:correlate true})]
+    (t.= (send (v (abc))) "def"))
+  (let [send (wrap-repl {:correlate true})]
     (send (v (local x 1)))
     (t.= (send "x") :1))
   ;; now let's try with an env
-  (let [(send comp) (wrap-repl {:env {: debug}})]
+  (let [send (wrap-repl {:env {: debug}})]
     (send (v (local xyz 55)))
     (t.= (send "xyz") :55)))
 

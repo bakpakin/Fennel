@@ -274,6 +274,7 @@
   (assert-fail (print (local xaby 10) xaby) "can't introduce local here")
   (assert-fail (if (var x 10) (print x) (print x)) "can't introduce var")
   (assert-fail (if (fn abc []) abc) "unknown identifier: abc")
+  (assert-fail (print (local abc :def)) "can't introduce local here")
   ;; TODO: uncomment this once `or' gets nval support
   ;; (assert-fail (or (local x 10) x) "can't introduce local")
   )

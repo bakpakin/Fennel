@@ -94,6 +94,12 @@
     (t.= (. ast 2 2 :line) 4)
     (t.= (. ast 2 3 :line) 4)))
 
+(fn test-discards []
+  (let [code "[1 #_ {:a :b} 3 #_ #_ (+ 4 5) 6 7 #_]"
+        (ok? ast) ((fennel.parser code))]
+    (t.is ok?)
+    (t.= [1 3 7] ast)))
+
 (fn line-col [{: line : col}] [line col])
 
 (fn test-source-meta []
@@ -151,5 +157,6 @@
  : test-control-codes
  : test-comments
  : test-prefixes
+ : test-discards
  : test-source-meta
  : test-plugin-hooks}

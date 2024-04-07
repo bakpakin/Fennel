@@ -893,6 +893,7 @@ Method name doesn't have to be known at compile-time; if it is, use
                      :for :while :do :lua :global)) false
           (where (or "<" ">" "<=" ">=" "=" "not=" "~=")
                  (= (comparator-special-type x) :binding)) false
+          (where :pick-values (not= 1 (. x 2))) false
           (where call (. scope.macros call)) false
           (where ":"
                  (= (method-special-type x) :binding)) false
@@ -1480,6 +1481,36 @@ Lua output. The module must be a string literal and resolvable at compile time."
 
 (doc-special :tail! ["body"]
              "Assert that the body being called is in tail position.")
+
+(fn SPECIALS.pick-values [ast scope parent]
+  (let [n (. ast 2)
+        vals (utils.list (utils.sym :values) (unpack ast 3))]
+    (compiler.assert (and (= :number (type n)) (<= 0 n) (= n (math.floor n)))
+                     (.. "Expected n to be an integer >= 0, got " (tostring n)))
+    (if (= 1 n)
+        ;; n = 1 can be simplified to (<expr>) in lua output
+        (let [[[expr]] (compiler.compile1 vals scope parent {:nval 1})]
+          [(.. "(" expr ")")])
+        (= 0 n)
+        (do
+          (for [i 3 (length ast)]
+            (-> (compiler.compile1 (. ast i) scope parent {:nval 0})
+                (compiler.keep-side-effects parent nil ast)))
+          [])
+        (let [syms (fcollect [_ 1 n &into (utils.list)]
+                     (utils.sym (compiler.gensym scope :pv)))]
+          ;; Declare exactly n temp bindings for supplied values without `let`
+          (compiler.destructure syms vals ast scope parent
+                                {:nomulti true :noundef true
+                                 :symtype :pv :declaration true})
+          syms))))
+
+(doc-special :pick-values ["n" "..."]
+             "Evaluate to exactly n values.\n\nFor example,
+  (pick-values 2 ...)
+expands to
+  (let [(_0_ _1_) ...]
+    (values _0_ _1_))")
 
 (fn SPECIALS.eval-compiler [ast scope parent]
   (let [old-first (. ast 1)]

@@ -167,7 +167,6 @@
   (== (let [add (fn [x y z] (+ x y z)) f2 (partial add 1 2)] (f2 6)) 9)
   (== (let [add (fn [x y] (+ x y)) add2 (partial add)] (add2 99 2)) 101)
   (== (let [add (fn [x y] (+ x y)) inc (partial add 1)] (inc 99)) 100)
-  (== (let [f #(values :a :b :c)] [(pick-values 0 (f))]) {})
   (== (let [f (fn [x y f2] (+ x (f2 y)))
             f2 (fn [x y] (* x (+ 2 y)))
             f3 (fn [f] (fn [x] (f 5 x)))]
@@ -179,7 +178,6 @@
   (== (let [t {:x 1} f (partial + t.x)]
         [(f 1) (do (set t.x 2) (f 1))]) [2 2])
   (== (pcall (lambda [string] nil) 1) true)
-  (== (select :# (pick-values 3)) 3)
   (== (do
         (tset (getmetatable ::) :__call (fn [s t] (. t s)))
         (let [res (:answer {:answer 42})]
@@ -191,7 +189,6 @@
         (let [f (fn [] (set a (+ a 2)))]
           (f) (f) a))
       15)
-  (== [(pick-values 4 :a :b :c (values :d :e))] ["a" "b" "c" "d"])
   (== ((fn [a & [b {: c}]] (string.format a (+ b c))) "haha %s" 4 {:c 3})
       "haha 7")
   (== ((fn [& {1 _ 2 _ 3 x}] x) :one :two :three) "three")
@@ -468,6 +465,43 @@
         (x.y:foo :quux))
       "bazquux"))
 
+(fn test-pick-values []
+  (== (select :# (pick-values 3))
+      3)
+  (== [(pick-values 0 (select 1 :a :b :c))]
+      [])
+  (== [(pick-values 4 :a :b :c (values :d :e))]
+      ["a" "b" "c" "d"])
+  ;; ensure pick-values output respects nval, e.g. in middle of table literal
+  (== [:X (pick-values 2 :Y :YY) :Z] [:X :Y :Z])
+  (== [:X (pick-values 0 :YY) :Y] [:X nil :Y])
+  (t.= "return (select(1, \"x\", \"y\", \"z\"))"
+       (fennel.compile-string "(pick-values 1 (select 1 :x :y :z))"))
+  (== [(if (= 1 1) (pick-values 1 (select 1 :x :y :z)) :bork)]
+      [:x])
+  (== (do (var i 0) (fn i++ [] (set i (+ i 1)) i)
+          (doto [(pick-values 1 (i++) (i++) (i++))]
+                (table.insert i)))
+      [3 3])
+  ;; Ensure (pick-values 0 ...) emits nil when needed, and keeps side effects
+  (== (do (var i 0) (fn i++ [] (set i (+ i 1)) i)
+          (doto [:X (pick-values 0 (i++) (i++) (i++)) :Y]
+                ;; Using tset because, in luajit and luajit only,
+                ;; (doto [:X (values) :Y] (table.insert :Z)) returns [:X 3 :Y]
+                (tset 4 i)))
+      [:X nil :Y 3])
+  (== (do (var i 0) (fn i++ [] (set i (+ i 1)) i)
+          (doto [(pick-values 2 (i++) (select 1 (i++) :X) (values (i++) (i++)))]
+                (table.insert i)))
+      [1 2 4])
+  (== (let [pack (or table.pack #(doto [$...] (tset :n (select :# $...))))
+            t (pack (pick-values 3 (pick-values 1 (values :x :y :z))))]
+        [t.n ((or _G.unpack table.unpack) t)])
+      [3 :x])
+  (== (let [pack (or table.pack #(doto [$...] (tset :n (select :# ...))))]
+        (pack (pick-values 5 :x (do :y) (do :z))))
+      {1 :x 2 :y 3 :z :n 5}))
+
 (fn test-with-open []
   (== (do
         (var fh nil)
@@ -534,6 +568,7 @@
  : test-functions
  : test-hashfn
  : test-if
+ : test-pick-values
  : test-with-open
  : test-method-calls
  : test-comment

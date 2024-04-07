@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Macro `pick-values` is now a special, allowing it to avoid emitting IIFE's.
 * Add `fennel.getinfo` as source-map-aware equivalent of `debug.getinfo`.
 * Allow `&` and `&as` in the same destructure clause.
 * More consistent module-not-found warnings for `--require-as-include`.
@@ -25,6 +26,7 @@ deprecated forms.
 
 ### Bug Fixes
 
+* `(pick-values 0 (side-effects))` now correctly preserves side effects
 * Don't non-nil assert on `_foo` arguments in `lambda`.
 * Propagate compile options into `,compile` repl command.
 * IIFEs emitted by `and`/`or` inside `(fn [...])` now propagate varargs.

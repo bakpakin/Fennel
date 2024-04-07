@@ -290,24 +290,6 @@ numerical range like `for` rather than an iterator."
     (for [i 1 n] (tset bindings i (gensym)))
     `(fn ,bindings (,f ,(unpack bindings)))))
 
-(fn pick-values* [n ...]
-  "Evaluate to exactly n values.
-
-For example,
-  (pick-values 2 ...)
-expands to
-  (let [(_0_ _1_) ...]
-    (values _0_ _1_))"
-  (assert (and (= :number (type n)) (<= 0 n) (= n (math.floor n)))
-          (.. "Expected n to be an integer >= 0, got " (tostring n)))
-  (let [let-syms (list)
-        let-values (if (= 1 (select "#" ...)) ... `(values ,...))]
-    (for [_ 1 n]
-      (table.insert let-syms (gensym)))
-    (if (= n 0) `(values)
-        `(let [,let-syms ,let-values]
-           (values ,(unpack let-syms))))))
-
 (fn lambda* [...]
   "Function literal with nil-checked arguments.
 Like `fn`, but will throw an exception if a declared argument is passed in as
@@ -428,7 +410,6 @@ REPL `,return` command returns values to assert in place to continue execution."
  :lambda lambda*
  :λ lambda*
  :pick-args pick-args*
- :pick-values pick-values*
  :macro macro*
  :macrodebug macrodebug*
  :import-macros import-macros*

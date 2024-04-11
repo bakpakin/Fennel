@@ -344,9 +344,8 @@ Returns nil if passed something other than a multi-sym."
 (fn idempotent-expr? [x]
   "Checks if an object is an idempotent expression. Returns the object if it is."
   (let [t (type x)]
-    (or (= t :string) (= t :integer) (= t :number) (= t :boolean)
-        (and (sym? x)
-             (not (multi-sym? x))))))
+    (or (= t :string) (= t :number) (= t :boolean)
+        (and (sym? x) (not (multi-sym? x))))))
 
 ;;; Other
 

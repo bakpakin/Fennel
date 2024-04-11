@@ -8,11 +8,6 @@
     (each [_ v (ipairs t)] (table.insert out v))
     (setmetatable out (getmetatable t))))
 
-(fn double-eval-safe? [x]
-  (let [ty (type x)]
-    (or (= :number ty) (= :string ty) (= :boolean ty)
-        (and (sym? x) (not (multi-sym? x))))))
-
 (fn ->* [val ...]
   "Thread-first macro.
 Take the first value and splice it into the second form as its first argument.
@@ -40,7 +35,7 @@ rather than the first."
 Same as -> except will short-circuit with nil when it encounters a nil value."
   (if (= nil ?e)
       val
-      (not (double-eval-safe? val))
+      (not (utils.idempotent-expr? val))
       ;; try again, but with an eval-safe val
       `(let [tmp# ,val]
         (-?> tmp# ,?e ,...))
@@ -54,7 +49,7 @@ Same as -> except will short-circuit with nil when it encounters a nil value."
 Same as ->> except will short-circuit with nil when it encounters a nil value."
   (if (= nil ?e)
       val
-      (not (double-eval-safe? val))
+      (not (utils.idempotent-expr? val))
       ;; try again, but with an eval-safe val
       `(let [tmp# ,val]
         (-?>> tmp# ,?e ,...))
@@ -81,7 +76,7 @@ a nil value in any of subsequent keys."
 (fn doto* [val ...]
   "Evaluate val and splice it into the first argument of subsequent forms."
   (assert (not= val nil) "missing subject")
-  (if (not (double-eval-safe? val))
+  (if (not (utils.idempotent-expr? val))
     `(let [tmp# ,val]
        (doto tmp# ,...))
     (let [form `(do)]
@@ -271,7 +266,7 @@ numerical range like `for` rather than an iterator."
   (let [bindings []
         args []]
     (each [_ arg (ipairs [...])]
-      (if (double-eval-safe? arg)
+      (if (utils.idempotent-expr? arg)
         (table.insert args arg)
         (let [name (gensym)]
           (table.insert bindings name)

@@ -442,7 +442,7 @@ handlers will be skipped."
     (when plugins
       (accumulate [result nil
                    _ plugin (ipairs plugins)
-                   :until result]
+                   :until (not= nil result)]
         (do
           (check-plugin-version plugin)
           (match (. plugin event)

@@ -109,18 +109,18 @@ Also returns a second function to clear the buffer in the byte stream."
       (set (source.byteend source.endcol source.endline)
            (values byteindex (- col 1) line)))
 
-    (fn dispatch [v]
-      "Dispatch when we complete a value"
-      (match (. stack (length stack))
-        nil (set (retval done? whitespace-since-dispatch) (values v true false))
-        {: prefix} (let [source (doto (table.remove stack) set-source-fields)
-                         list (utils.list (utils.sym prefix source) v)]
-                     (each [k v (pairs source)]
-                       (tset list k v))
-                     (dispatch list))
-        top (do
-              (set whitespace-since-dispatch false)
-              (table.insert top v))))
+    (fn dispatch [v ?source ?raw]
+      (set whitespace-since-dispatch false)
+      (let [v (case (and ?source (not= :table (type v))
+                         (utils.hook-opts :parse-literal options v ?source ?raw))
+                hookv hookv
+                _ v)]
+        (case (. stack (length stack))
+          nil (set (retval done?) (values v true))
+          {: prefix} (let [source (doto (table.remove stack) set-source-fields)
+                           list (utils.list (utils.sym prefix source) v)]
+                       (dispatch (utils.copy source list)))
+          top (table.insert top v))))
 
     (fn badend []
       "Throw nice error when we expect more characters but reach end of stream."
@@ -254,7 +254,7 @@ Also returns a second function to clear the buffer in the byte stream."
     (fn escape-char [c]
       (. {7 "\\a" 8 "\\b" 9 "\\t" 10 "\\n" 11 "\\v" 12 "\\f" 13 "\\r"} (c:byte)))
 
-    (fn parse-string []
+    (fn parse-string [source]
       ;; (when (not whitespace-since-dispatch) ; TODO: 2.0
       ;;   (parse-error "expected whitespace before string"))
       (table.insert stack {:closer 34})
@@ -265,7 +265,7 @@ Also returns a second function to clear the buffer in the byte stream."
         (let [raw (table.concat chars)
               formatted (raw:gsub "[\a-\r]" escape-char)]
           (match ((or (rawget _G :loadstring) load) (.. "return " formatted))
-            load-fn (dispatch (load-fn))
+            load-fn (dispatch (load-fn) source raw)
             nil (parse-error (.. "Invalid string: " raw))))))
 
     (fn parse-prefix [b]
@@ -290,7 +290,7 @@ Also returns a second function to clear the buffer in the byte stream."
               (ungetb b))
             chars)))
 
-    (fn parse-number [rawstr]
+    (fn parse-number [rawstr source]
       ;; numbers can have underscores in the middle or end, but not at the start
       (let [number-with-stripped-underscores (and (not (rawstr:find "^_"))
                                                   (rawstr:gsub "_" ""))]
@@ -298,11 +298,11 @@ Also returns a second function to clear the buffer in the byte stream."
             (do
               (dispatch (or (tonumber number-with-stripped-underscores)
                             (parse-error (.. "could not read number \"" rawstr
-                                             "\""))))
+                                             "\""))) source rawstr)
               true)
             (match (tonumber number-with-stripped-underscores)
               x (do
-                  (dispatch x)
+                  (dispatch x source rawstr)
                   true)
               _ false))))
 
@@ -331,14 +331,14 @@ Also returns a second function to clear the buffer in the byte stream."
             rawstr (table.concat (parse-sym-loop [(string.char b)] (getb)))]
         (set-source-fields source)
         (if (= rawstr :true)
-            (dispatch true)
+            (dispatch true source)
             (= rawstr :false)
-            (dispatch false)
+            (dispatch false source)
             (= rawstr "...")
             (dispatch (utils.varg source))
             (rawstr:match "^:.+$")
-            (dispatch (rawstr:sub 2))
-            (not (parse-number rawstr))
+            (dispatch (rawstr:sub 2) source rawstr)
+            (not (parse-number rawstr source))
             (dispatch (utils.sym (check-malformed-sym rawstr) source)))))
 
     (fn parse-loop [b]
@@ -346,7 +346,7 @@ Also returns a second function to clear the buffer in the byte stream."
           (= b 59) (parse-comment (getb) [";"])
           (= (type (. delims b)) :number) (open-table b)
           (. delims b) (close-table b)
-          (= b 34) (parse-string)
+          (= b 34) (parse-string {:bytestart byteindex : filename : line : col})
           (. prefixes b) (parse-prefix b)
           (or (sym-char? b) (= b (string.byte "~"))) (parse-sym b)
           (not (utils.hook-opts :illegal-char options b getb ungetb dispatch))

@@ -41,7 +41,7 @@
 ;;; General-purpose helper functions
 
 ;; if utf8-aware len is available, use it, otherwise use bytes
-(local len (match (pcall require :utf8)
+(local len (case (pcall require :utf8)
              (true utf8) utf8.len
              _ string.len))
 
@@ -88,11 +88,11 @@
 (fn get-in [tbl path]
   (if (not= nil (. path 1))
       (accumulate [t tbl _ k (ipairs path) :until (= nil t)]
-        (match (type t) :table (. t k)))))
+        (if (= (type t) :table) (. t k)))))
 
-(fn copy [from ?to]
+(fn copy [?from ?to]
   "Returns a shallow copy of its table argument. Returns an empty table on nil."
-  (collect [k v (pairs (or from [])) :into (or ?to {})]
+  (collect [k v (pairs (or ?from [])) :into (or ?to {})]
     (values k v)))
 
 (fn member? [x tbl ?n]
@@ -125,7 +125,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
             (do
               (tset seen next-state true)
               (values next-state value))
-            (match (getmetatable t)
+            (case (getmetatable t)
               {: __index} (when (= :table (type __index))
                             (set t __index)
                             (allpairs-next t))))))
@@ -142,9 +142,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 ;; represented without a marker metatable since their metatables are needed to
 ;; store file/line source data.
 
-(fn deref [self]
-  "Get the name of a symbol."
-  (. self 1))
+(fn deref [self] (. self 1)) ; name of certain AST elements
 
 ;; the tostring2 argument is passed in by fennelview; this lets us use the same
 ;; function for regular tostring as for fennelview. when called from fennelview
@@ -333,50 +331,26 @@ When f returns a truthy value, recursively walks the children."
     (set (root.chunk root.scope root.options root.reset)
          (values chunk scope options reset))))
 
-(local lua-keywords {:and true
-                     :break true
-                     :do true
-                     :else true
-                     :elseif true
-                     :end true
-                     :false true
-                     :for true
-                     :function true
-                     :if true
-                     :in true
-                     :local true
-                     :nil true
-                     :not true
-                     :or true
-                     :repeat true
-                     :return true
-                     :then true
-                     :true true
-                     :until true
-                     :while true
-                     :goto true})
+(local lua-keywords {:and true :break true :do true :else true :elseif true
+                     :end true :false true :for true :function true :if true
+                     :in true :local true :nil true :not true :or true
+                     :repeat true :return true :then true :true true :goto true
+                     :until true :while true})
 
 (fn lua-keyword? [str]
-  (or (. lua-keywords str)
-      (?. root.options :keywords str)))
+  (or (. lua-keywords str) (?. root.options :keywords str)))
 
 (fn valid-lua-identifier? [str]
   (and (str:match "^[%a_][%w_]*$") (not (lua-keyword? str))))
 
-(local propagated-options [:allowedGlobals
-                           :indent
-                           :correlate
-                           :useMetadata
-                           :env
-                           :compiler-env
-                           :compilerEnv])
+(local propagated-options [:allowedGlobals :indent :correlate :useMetadata
+                           :env :compiler-env :compilerEnv])
 
 (fn propagate-options [options subopts]
   "Certain options should always get propagated onwards when a function that
 has options calls down into compile."
-  (each [_ name (ipairs propagated-options)]
-    (tset subopts name (. options name)))
-  subopts)
+  (collect [_ name (ipairs propagated-options) &into subopts]
+    name (. options name)))
 
 (fn ast-source [ast]
   "Get a table for the given ast which includes file/line info, if possible."
@@ -386,8 +360,9 @@ has options calls down into compile."
 
 (fn warn [msg ?ast]
   (when (and _G.io _G.io.stderr)
-    (let [loc (case (ast-source ?ast) {: filename : line}
-                    (.. filename ":" line ": ") _ "")]
+    (let [loc (case (ast-source ?ast)
+                {: filename : line} (.. filename ":" line ": ")
+                _ "")]
       (_G.io.stderr:write (: "--WARNING: %s%s\n" :format loc (tostring msg))))))
 
 (local warned {})
@@ -411,7 +386,7 @@ handlers will be skipped."
                    :until (not= nil result)]
         (do
           (check-plugin-version plugin)
-          (match (. plugin event)
+          (case (. plugin event)
             f (f ...)))))))
 
 

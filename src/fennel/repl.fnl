@@ -285,7 +285,7 @@ For more information about the language, see https://fennel-lang.org/reference")
   (run-command read on-error
                #(let [name (tostring $)
                       path (or (utils.multi-sym? name) [name])
-                      (ok? target) (pcall #(or (utils.get-in scope.specials path)
+                      (ok? target) (pcall #(or (. scope.specials path)
                                                (utils.get-in scope.macros path)
                                                (resolve name env scope)))]
                   (if ok?

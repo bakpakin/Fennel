@@ -473,21 +473,19 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
       (get-prev-line (or parent.leaf (. parent (length parent))))
       (or parent "")))
 
-(fn disambiguate? [rootstr parent]
-  (or (rootstr:match "^{")
-      (rootstr:match "^%(")
-      (match (get-prev-line parent)
-        prev-line (prev-line:match "%)$"))))
+(fn needs-separator? [root prev-line]
+  (and (root:match "^%(") prev-line (prev-line:match "%)$")))
 
 (fn SPECIALS.tset [ast scope parent]
   (compiler.assert (< 3 (length ast))
                    "expected table, key, and value arguments" ast)
   (let [root (str1 (compiler.compile1 (. ast 2) scope parent {:nval 1}))
+        root (if (root:match "^{") (string.format "(%s)" root) root)
         keys (fcollect [i 3 (- (length ast) 1)]
                (str1 (compiler.compile1 (. ast i) scope parent {:nval 1})))
         value (str1 (compiler.compile1 (. ast (length ast)) scope parent {:nval 1}))
-        fmtstr (if (disambiguate? root parent)
-                   "do end (%s)[%s] = %s"
+        fmtstr (if (needs-separator? root (get-prev-line parent))
+                   "do end %s[%s] = %s"
                    "%s[%s] = %s")]
     (compiler.emit parent (fmtstr:format root (table.concat keys "][") value) ast)))
 

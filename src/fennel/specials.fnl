@@ -857,9 +857,7 @@ Method name doesn't have to be known at compile-time; if it is, use
   (var (ast len i) (values ast (length ast) 1))
   (fn []
     (set i (+ 1 i))
-    (while (and (= i len)
-                (utils.list? (. ast i))
-                (utils.sym? (. ast i 1) :values))
+    (while (and (= i len) (utils.call-of? (. ast i) :values))
       (set ast (. ast i))
       (set len (length ast))
       (set i 2))
@@ -877,7 +875,8 @@ Method name doesn't have to be known at compile-time; if it is, use
       (utils.list? x)
       (if (utils.sym? (. x 1))
         (case (str1 x)
-          (where (or :fn :hashfn :let :local :var :set :tset :if :each :for :while :do :lua :global)) false
+          (where (or :fn :hashfn :let :local :var :set :tset :if :each
+                     :for :while :do :lua :global)) false
           (where call (. scope.macros call)) false
           _ (faccumulate [ok true i 2 (length x) &until (not ok)]
               (short-circuit-safe? (. x i) scope)))

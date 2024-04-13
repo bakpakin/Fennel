@@ -796,7 +796,7 @@ which we have to do if we don't know."
         (each [i name (ipairs left)]
           (if (utils.sym? name) ; binding directly to a name
               (table.insert left-names (getname name up1))
-              (and (utils.list? name) (utils.sym? (. name 1) "."))
+              (utils.call-of? name ".")
               (table.insert left-names (dynamic-set-target name))
               (let [symname (gensym scope symtype)]
                 ;; further destructuring of tables inside values
@@ -825,7 +825,7 @@ which we have to do if we don't know."
           (destructure-sym left rightexprs up1 top?)
           (utils.table? left)
           (destructure-table left rightexprs top? destructure1)
-          (and (utils.list? left) (utils.sym? (. left 1) "."))
+          (utils.call-of? left ".")
           (destructure-values [left] rightexprs up1 destructure1)
           (utils.list? left)
           (do (assert-compile top? "can't nest multi-value destructuring" left)
@@ -986,10 +986,8 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
             ;; prevent non-gensymed symbols from being bound as an identifier
             (string.format "sym('%s', {quoted=true, filename=%s, line=%s})"
                            symstr filename (or form.line :nil))))
-      (and (utils.list? form) ; unquote
-           (utils.sym? (. form 1)) (= (tostring (. form 1)) :unquote))
-      (let [payload (. form 2)
-            res (unpack (compile1 payload scope parent))]
+      (utils.call-of? form :unquote)
+      (let [res (unpack (compile1 (. form 2) scope parent))]
         (. res 1))
       (utils.list? form)
       (let [mapped (quote-all form true)

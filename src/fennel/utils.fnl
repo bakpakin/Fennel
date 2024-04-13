@@ -302,8 +302,10 @@ Returns nil if passed something other than a multi-sym."
                        (tset parts (+ (length parts) 1) part))))
              (and (next parts) parts)))))
 
-(fn quoted? [symbol]
-  symbol.quoted)
+(fn call-of? [ast callee]
+  (and (list? ast) (. ast 1) (= callee (deref (. ast 1)))))
+
+(fn quoted? [symbol] symbol.quoted)
 
 (fn idempotent-expr? [x]
   "Checks if an object is an idempotent expression. Returns the object if it is."
@@ -418,6 +420,7 @@ handlers will be skipped."
  : table?
  : kv-table?
  : varg?
+ : call-of?
  : quoted?
  : string?
  : idempotent-expr?

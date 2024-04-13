@@ -328,7 +328,15 @@
   (== (tostring (let [t {:st {:v 5 :f #(+ $.v $2)}}
                       x (#(+ $ $2) 1 3)]
                   (t.st:f x)
-                  nil)) "nil"))
+                  nil)) "nil")
+  (== (let [x [:a] y x]
+        (tset (or x y) 2 :b)
+        (. y 2))
+      :b)
+  (== (let [x [#(tset $1 $2 $3)] y x]
+        (: x 1 2 :b)
+        (. y 2))
+      :b))
 
 (fn test-hashfn []
   (== (#$.foo {:foo :bar}) "bar")

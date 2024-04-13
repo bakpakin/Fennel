@@ -857,19 +857,16 @@ Method name doesn't have to be known at compile-time; if it is, use
 ;; When called on an ast like (my-call arg1 arg2 (values arg3 arg4))
 ;; iter-args will yield arg1, arg2, arg3, then arg4
 (fn iter-args [ast]
-  (let [state {: ast
-               :len (length ast)
-               :i 1}]
-    (values (fn [s]
-              (set s.i (+ 1 s.i))
-              (while (and (= s.i s.len)
-                          (utils.list? (. s.ast s.i))
-                          (utils.sym? (. s.ast s.i 1) :values))
-                (set s.ast (. s.ast s.i))
-                (set s.len (length s.ast))
-                (set s.i 2))
-              (. s.ast s.i))
-            state)))
+  (var (ast len i) (values ast (length ast) 1))
+  (fn []
+    (set i (+ 1 i))
+    (while (and (= i len)
+                (utils.list? (. ast i))
+                (utils.sym? (. ast i 1) :values))
+      (set ast (. ast i))
+      (set len (length ast))
+      (set i 2))
+    (. ast i)))
 
 ;; Helper function to improve detection in maybe-short-circuit-protect
 ;; Need to check not only certain forms, but also sometimes sub-forms
@@ -890,60 +887,56 @@ Method name doesn't have to be known at compile-time; if it is, use
         (accumulate [ok true _ v (ipairs x) &until (not ok)]
           (short-circuit-safe? v scope)))))
 
+(fn operator-special-result [ast zero-arity unary-prefix padded-op operands]
+  (case (length operands)
+    0 (if zero-arity
+          (utils.expr zero-arity :literal)
+          (compiler.assert false "Expected more than 0 arguments" ast))
+    1 (if unary-prefix
+          (.. "(" unary-prefix padded-op (. operands 1) ")")
+          (. operands 1))
+    _ (.. "(" (table.concat operands padded-op) ")")))
+
+(fn emit-short-circuit-if [ast scope parent name subast accumulator expr-string setter]
+  ;; two short-circuits in a row shouldn't emit redundant assignment
+  (when (not= accumulator expr-string)
+    (compiler.emit parent (string.format setter accumulator expr-string) ast))
+  ;; We use an if statement to enforce the short circuiting rules,
+  ;; so that when `subast` emits statements, they can be wrapped.
+  (compiler.emit parent (: "if %s then" :format
+                           (if (= name :and) accumulator (.. "not " accumulator)))
+                 subast)
+  (let [chunk []] ; body of "if"
+    (compiler.compile1 subast scope chunk {:nval 1 :target accumulator})
+    (compiler.emit parent chunk))
+  (compiler.emit parent :end))
+
 (fn operator-special [name zero-arity unary-prefix ast scope parent]
   (compiler.assert (not (and (= (length ast) 2)
                              (utils.varg? (. ast 2))))
                    "tried to use vararg with operator" ast)
-  (let [len (length ast)
-        padded-op (.. " " name " ")]
-    (var operands [])
-    (var accumulator nil)
-    (var i 0)
+  (let [padded-op (.. " " name " ")]
+    (var (operands accumulator) [])
     (each [subast (iter-args ast)]
-      (set i (+ i 1))
-      (let [emit-if-statement? (and (not= i 1)
-                                    (or (= name :or) (= name :and))
-                                    ;; TODO: is the following now satisfied?
-                                    ;; https://github.com/bakpakin/Fennel/issues/422
-                                    (not (short-circuit-safe? subast scope)))]
-        (if emit-if-statement?
-            ;; Emit an If statement to ensure we short-circuit all
-            ;; side-effects. without this (or true (tset t :a 1)) doesn't short circuit:
-            ;; See https://todo.sr.ht/~technomancy/fennel/111
-            (let [expr-string (table.concat operands padded-op)
-                  declare-accumulator? (not accumulator)]
-              ;; store previous stuff into the local
-              ;; if there's not yet a local, we need to gensym it
-              (when declare-accumulator?
-                (set accumulator (tostring (compiler.gensym scope name))))
-              (when (not= accumulator expr-string)
-                (compiler.emit parent
-                               (string.format (if declare-accumulator?
-                                                "local %s = %s"
-                                                "%s = %s")
-                                              accumulator
-                                              expr-string)
-                               ast))
-              ;; We use an if statement to enforce the short circuiting rules,
-              ;; so that when `subast` emits statements, they can be wrapped.
-              (compiler.emit parent (string.format "if %s then" (if (= name :and) accumulator (.. "not " accumulator))) subast)
-              ;; body of "if"
-              (let [chunk []]
-                (compiler.compile1 subast scope chunk {:nval 1 :target accumulator})
-                (compiler.emit parent chunk))
-              ;; endif
-              (compiler.emit parent :end)
-              ;; Previous operands have been emitted, so we start fresh
-              (set operands [accumulator]))
-            (table.insert operands (str1 (compiler.compile1 subast scope parent {:nval 1}))))))
-    (case i
-      0 (if zero-arity
-          (utils.expr zero-arity :literal)
-          (compiler.assert false "Expected more than 0 arguments" ast))
-      1 (if unary-prefix
-          (.. "(" unary-prefix padded-op (. operands 1) ")")
-          (. operands 1))
-      _ (.. "(" (table.concat operands padded-op) ")"))))
+      (if (and (not= nil (next operands))
+               (or (= name :or) (= name :and))
+               (not (short-circuit-safe? subast scope)))
+          ;; Emit an If statement to ensure we short-circuit all side-effects.
+          ;; without this (or true (tset t :a 1)) doesn't short circuit:
+          ;; See https://todo.sr.ht/~technomancy/fennel/111
+          (let [expr-string (table.concat operands padded-op)
+                setter (if accumulator "%s = %s" "local %s = %s")]
+            ;; store previous stuff into the local
+            ;; if there's not yet a local, we need to gensym it
+            (when (not accumulator)
+              (set accumulator (tostring (compiler.gensym scope name))))
+            (emit-short-circuit-if ast scope parent name subast accumulator
+                                   expr-string setter)
+            ;; Previous operands have been emitted, so we start fresh
+            (set operands [accumulator]))
+          (table.insert operands (str1 (compiler.compile1 subast scope parent
+                                                          {:nval 1})))))
+    (operator-special-result ast zero-arity unary-prefix padded-op operands)))
 
 (fn define-arithmetic-special [name zero-arity unary-prefix ?lua-name]
   (tset SPECIALS name (partial operator-special (or ?lua-name name) zero-arity

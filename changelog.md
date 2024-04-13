@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Improve compiler output for `and`/`or` forms with potential side-effects.
 * Allow locals in places where they make sense rather than mid-expression.
 * Accept `--keywords` option to add to the list of built-in Lua keywords.
 * REPL completion now works on partial REPL commands: e.g. `,complete ,d` -> `,doc`.
@@ -29,7 +30,7 @@ deprecated forms.
 
 * Fix a bug where `(tail! (f x))` could sometimes compile to `return return f(x)`
 * Make `tail!` ensure its target is not a special form call like `(tail! (or x (f)))`
-* Fix broken man page installation on `make install` in Fennel 1.4.1
+* Fix broken man page installation on `make install`
 
 ## 1.4.1 / 2024-02-19
 

@@ -124,10 +124,10 @@ Also returns a second function to clear the buffer in the byte stream."
 
     (fn badend []
       "Throw nice error when we expect more characters but reach end of stream."
-      (let [accum (utils.map stack :closer)]
+      (let [closers (icollect [_ {: closer} (ipairs stack)] closer)]
         (parse-error (string.format "expected closing delimiter%s %s"
                                     (if (= (length stack) 1) "" :s)
-                                    (string.char (unpack accum))))))
+                                    (string.char (unpack closers))))))
 
     (fn skip-whitespace [b close-table]
       (if (and b (whitespace? b))

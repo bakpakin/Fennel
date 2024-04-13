@@ -29,24 +29,24 @@ will see its values updated as expected, regardless of mangling rules."
                                    (tset env key value)))
                  ;; manually in 5.1
                  :__pairs (fn []
-                            (fn putenv [k v]
-                              (values (if (utils.string? k)
-                                          (compiler.global-unmangling k)
-                                          k)
-                                      v))
-
-                            (values next (utils.kvmap env putenv) nil))}))
+                            (values next
+                                    (collect [k v (utils.stablepairs env)]
+                                      (values (if (utils.string? k)
+                                                  (compiler.global-unmangling k)
+                                                  k) v))
+                                    nil))}))
 
 (fn fennel-module-name [] (or utils.root.options.moduleName :fennel))
 
 (fn current-global-names [?env]
   ;; if there's a metatable on ?env, we need to make sure it's one that has a
   ;; __pairs metamethod, otherwise we give up entirely on globals checking.
-  (let [mt (match (getmetatable ?env)
+  (let [mt (case (getmetatable ?env)
              ;; newer lua versions know about __pairs natively but not 5.1
              {:__pairs mtpairs} (collect [k v (mtpairs ?env)] (values k v))
              nil (or ?env _G))]
-    (and mt (utils.kvmap mt compiler.global-unmangling))))
+    (and mt (icollect [k v (utils.stablepairs mt)]
+              (compiler.global-unmangling k)))))
 
 (fn load-code [code ?env ?filename]
   "Load Lua code with an environment in all recent Lua versions"
@@ -206,17 +206,13 @@ By default, start is 2."
 (fn insert-arglist [meta arg-list]
   ;; Inserts a properly formatted arglist to the metadata table.  Does
   ;; double viewing to quote the resulting string after first view
-  (let [view-opts {:one-line? true
-                   :escape-newlines? true
-                   :line-length math.huge}]
+  (let [opts {:one-line? true :escape-newlines? true :line-length math.huge}
+        view-args (icollect [_ arg (ipairs arg-list)]
+                    (view (view arg opts)))]
     (doto meta
       (table.insert "\"fnl/arglist\"")
       (table.insert
-       (.. "{"
-           (-> arg-list
-               (utils.map #(view (view $ view-opts)))
-               (table.concat ", "))
-           "}")))))
+       (.. "{" (table.concat view-args ", ") "}")))))
 
 (fn set-fn-metadata [f-metadata parent fn-name]
   (when utils.root.options.useMetadata
@@ -656,9 +652,9 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
             (tset destructures raw v)
             (compiler.declare-local raw [] sub-scope ast))))
 
-    (let [bind-vars (utils.map binding destructure-binding)
+    (let [bind-vars (icollect [_ b (ipairs binding)] (destructure-binding b))
           vals (compiler.compile1 iter scope parent)
-          val-names (utils.map vals tostring)
+          val-names (icollect [_ v (ipairs vals)] (tostring v))
           chunk []]
       (compiler.assert (. bind-vars 1) "expected binding and iterator" ast)
       (compiler.emit parent
@@ -773,7 +769,8 @@ Evaluates body once for each value between start and stop (inclusive)." true)
     (for [i 4 (length ast)]
       (let [subexprs (compiler.compile1 (. ast i) scope parent
                                         {:nval (if (not= i (length ast)) 1)})]
-        (utils.map subexprs tostring args)))
+        (icollect [_ subexpr (ipairs subexprs) &into args]
+          (tostring subexpr))))
     (if (and (utils.string? (. ast 3))
              (utils.valid-lua-identifier? (. ast 3)))
         (native-method-call ast scope parent target args)
@@ -975,7 +972,7 @@ Method name doesn't have to be known at compile-time; if it is, use
         (for [i 2 len]
           (let [subexprs (compiler.compile1 (. ast i) scope parent
                                             {:nval (if (not= i len) 1)})]
-            (utils.map subexprs tostring operands)))
+            (icollect [_ s (ipairs subexprs) &into operands] (tostring s))))
         (if (= (length operands) 1)
             (if utils.root.options.useBitLib
                 (.. prefixed-lib-name "(" unary-prefix ", " (. operands 1) ")")

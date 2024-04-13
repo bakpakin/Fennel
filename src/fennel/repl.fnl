@@ -398,7 +398,7 @@ For more information about the language, see https://fennel-lang.org/reference")
             out []
             pp callbacks.pp]
         (set (env._ env.__) (values (. vals 1) vals))
-        ;; utils.map won't work here because of sparse tables
+        ;; ipairs won't work here because of sparse tables
         (for [i 1 (select "#" ...)]
           (table.insert out (pp (. vals i) callbacks.view-opts)))
         (callbacks.onValues out)))

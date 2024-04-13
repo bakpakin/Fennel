@@ -90,34 +90,6 @@
       (accumulate [t tbl _ k (ipairs path) :until (= nil t)]
         (match (type t) :table (. t k)))))
 
-;; Note: the collect/icollect macros mostly make map/kvmap obsolete.
-
-(fn map [t f ?out]
-  "Map function f over sequential table t, removing values where f returns nil.
-Optionally takes a target table to insert the mapped values into."
-  (let [out (or ?out [])
-        f (if (= (type f) :function)
-              f
-              #(. $ f))]
-    (each [_ x (ipairs t)]
-      (match (f x)
-        v (table.insert out v)))
-    out))
-
-(fn kvmap [t f ?out]
-  "Map function f over key/value table t, similar to above, but it can return a
-sequential table if f returns a single value or a k/v table if f returns two.
-Optionally takes a target table to insert the mapped values into."
-  (let [out (or ?out [])
-        f (if (= (type f) :function)
-              f
-              #(. $ f))]
-    (each [k x (stablepairs t)]
-      (match (f k x)
-        (key value) (tset out key value)
-        (value) (table.insert out value)))
-    out))
-
 (fn copy [from ?to]
   "Returns a shallow copy of its table argument. Returns an empty table on nil."
   (collect [k v (pairs (or from [])) :into (or ?to {})]
@@ -174,19 +146,15 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
   "Get the name of a symbol."
   (. self 1))
 
-;; haven't defined sym yet; circularity is needed here
-(var nil-sym nil)
-
 ;; the tostring2 argument is passed in by fennelview; this lets us use the same
 ;; function for regular tostring as for fennelview. when called from fennelview
 ;; the list's contents will also show as being fennelviewed.
 (fn list->string [self ?view ?options ?indent]
-  (let [safe []
-        view (if ?view #(?view $ ?options ?indent) view)
-        max (maxn self)]
-    (for [i 1 max]
-      (tset safe i (or (and (= (. self i) nil) nil-sym) (. self i))))
-    (.. "(" (table.concat (map safe view) " " 1 max) ")")))
+  (let [viewed (fcollect [i 1 (maxn self)]
+                 (if ?view
+                     (?view (. self i) ?options ?indent)
+                     (view (. self i))))]
+    (.. "(" (table.concat viewed " ") ")")))
 
 (fn comment-view [c]
   (values c true))
@@ -235,8 +203,6 @@ and byteend fields."
   (setmetatable (collect [k v (pairs (or ?source [])) :into [str]]
                   (if (= (type k) :string) (values k v)))
                 symbol-mt))
-
-(set nil-sym (sym :nil))
 
 (fn sequence [...]
   "Create a new sequence. Sequences are tables that come from the parser when
@@ -458,8 +424,6 @@ handlers will be skipped."
  : stablepairs
  : copy
  : get-in
- : kvmap
- : map
  : walk-tree
  : member?
  : maxn

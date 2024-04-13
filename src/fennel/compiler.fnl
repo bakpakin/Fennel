@@ -256,7 +256,8 @@ if they have already been declared via declare-local"
           (table.insert new-chunk (peephole (. chunk i))))
         (for [i 1 (length kid)]
           (table.insert new-chunk (. kid i)))
-        new-chunk) (utils.map chunk peephole)))
+        new-chunk)
+      (icollect [_ x (ipairs chunk)] (peephole x))))
 
 (fn flatten-chunk-correlated [main-chunk options]
   "Correlate line numbers in input with line numbers in output."
@@ -281,25 +282,23 @@ if they have already been declared via declare-local"
     (table.concat out "\n")))
 
 (fn flatten-chunk [file-sourcemap chunk tab depth]
-  "Flatten a tree of indented Lua source code lines.
-Tab is what is used to indent a block."
+  "Flatten a tree of indented Lua source code lines. Tab is used to indent."
   (if chunk.leaf
       (let [{: filename : line} (utils.ast-source chunk.ast)]
         (table.insert file-sourcemap [filename line])
         chunk.leaf)
-      (let [tab (match tab
+      (let [tab (case tab
                   true "  "
                   false ""
                   tab tab
                   nil "")]
-        (fn parter [c]
-          (when (or c.leaf (next c))
-            (let [sub (flatten-chunk file-sourcemap c tab (+ depth 1))]
-              (if (< 0 depth)
-                  (.. tab (sub:gsub "\n" (.. "\n" tab)))
-                  sub))))
-
-        (table.concat (utils.map chunk parter) "\n"))))
+        (table.concat (icollect [_ c (ipairs chunk)]
+                        (when (or c.leaf (next c))
+                          (let [sub (flatten-chunk file-sourcemap c tab
+                                                   (+ depth 1))]
+                            (if (< 0 depth)
+                                (.. tab (sub:gsub "\n" (.. "\n" tab)))
+                                sub)))) "\n"))))
 
 ;; Some global state for all fennel sourcemaps. For the time being, this seems
 ;; the easiest way to store the source maps.  Sourcemaps are stored with source
@@ -352,7 +351,7 @@ Tab is what is used to indent a block."
 
 (fn exprs1 [exprs]
   "Convert expressions to Lua string."
-  (table.concat (utils.map exprs tostring) ", "))
+  (table.concat (icollect [_ e (ipairs exprs)] (tostring e)) ", "))
 
 (fn keep-side-effects [exprs chunk ?start ast]
   "Compile side effects for a chunk."
@@ -672,7 +671,8 @@ which we have to do if we don't know."
     (fn compile-top-target [lvalues]
       "Compile the outer most form. We can generate better Lua in this case."
       ;; Calculate initial rvalue
-      (let [inits (utils.map lvalues #(if (. scope.manglings $) $ :nil))
+      (let [inits (icollect [_ l (ipairs lvalues)]
+                    (if (. scope.manglings l) l :nil))
             init (table.concat inits ", ")
             lvalue (table.concat lvalues ", ")
             plast (. parent (length parent))]
@@ -943,13 +943,6 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
             (set level (+ level 1)))
           (table.concat lines "\n")))))
 
-(fn entry-transform [fk fv]
-  "Make a transformer for key / value table pairs, preserving all numeric keys"
-  (fn [k v]
-    (if (= (type k) :number)
-        (values k (fv v))
-        (values (fk k) (fv v)))))
-
 (fn mixed-concat [t joiner]
   (let [seen []]
     (var (ret s) (values "" ""))
@@ -966,8 +959,13 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
 ;; TODO: too long
 (fn do-quote [form scope parent runtime?]
   "Expand a quoted form into a data literal, evaluating unquote"
-  (fn q [x]
-    (do-quote x scope parent runtime?))
+  (fn quote-all [form discard-non-numbers]
+    (collect [k v (utils.stablepairs form)]
+      (if (= (type k) :number)
+          (values k (do-quote v scope parent runtime?))
+          (not discard-non-numbers)
+          (values (do-quote k scope parent runtime?)
+                  (do-quote v scope parent runtime?)))))
 
   (if (utils.varg? form)
       (do
@@ -994,7 +992,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
             res (unpack (compile1 payload scope parent))]
         (. res 1))
       (utils.list? form)
-      (let [mapped (utils.kvmap form (entry-transform #nil q))
+      (let [mapped (quote-all form true)
             filename (if form.filename (string.format "%q" form.filename) :nil)]
         (assert-compile (not runtime?) "lists may only be used at compile time"
                         form)
@@ -1008,7 +1006,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
                        filename (or form.line :nil) (or form.bytestart :nil)
                        (mixed-concat mapped ", ")))
       (utils.sequence? form)
-      (let [mapped (utils.kvmap form (entry-transform q q))
+      (let [mapped (quote-all form)
             source (getmetatable form)
             filename (if source.filename (string.format "%q" source.filename)
                          :nil)]
@@ -1018,7 +1016,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
                        (if source source.line :nil)
                        "(getmetatable(sequence()))['sequence']"))
       (= (type form) :table) ; table
-      (let [mapped (utils.kvmap form (entry-transform q q))
+      (let [mapped (quote-all form)
             source (getmetatable form)
             filename (if source.filename (string.format "%q" source.filename)
                          :nil)]

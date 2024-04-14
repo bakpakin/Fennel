@@ -447,25 +447,22 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 
 (fn kv? [t] (. (icollect [k (pairs t)] (if (not= :number (type k)) k)) 1))
 
-(fn SPECIALS.let [ast scope parent opts]
-  (let [bindings (. ast 2)
-        pre-syms []]
-    (compiler.assert (and (utils.table? bindings) (not (kv? bindings)))
-                     "expected binding sequence" bindings)
-    (compiler.assert (= (% (length bindings) 2) 0)
-                     "expected even number of name/value bindings" (. ast 2))
-    (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
-    ;; we have to gensym the binding for the let body's return value before
-    ;; compiling the binding vector, otherwise there's a possibility to conflict
-    (for [_ 1 (or opts.nval 0)]
-      (table.insert pre-syms (compiler.gensym scope)))
-    (let [sub-scope (compiler.make-scope scope)
-          sub-chunk []]
-      (for [i 1 (length bindings) 2]
-        (compiler.destructure (. bindings i) (. bindings (+ i 1)) ast sub-scope
-                              sub-chunk
-                              {:declaration true :nomulti true :symtype :let}))
-      (SPECIALS.do ast scope parent opts 3 sub-chunk sub-scope pre-syms))))
+(fn SPECIALS.let [[_ bindings &as ast] scope parent opts]
+  (compiler.assert (and (utils.table? bindings) (not (kv? bindings)))
+                   "expected binding sequence" (or bindings (. ast 1)))
+  (compiler.assert (= (% (length bindings) 2) 0)
+                   "expected even number of name/value bindings" bindings)
+  (compiler.assert (<= 3 (length ast)) "expected body expression" (. ast 1))
+  ;; we have to gensym the binding for the let body's return value before
+  ;; compiling the binding vector, otherwise there's a possibility to conflict
+  (let [pre-syms (fcollect [_ 1 (or opts.nval 0)] (compiler.gensym scope))
+        sub-scope (compiler.make-scope scope)
+        sub-chunk []]
+    (for [i 1 (length bindings) 2]
+      (compiler.destructure (. bindings i) (. bindings (+ i 1)) ast sub-scope
+                            sub-chunk
+                            {:declaration true :nomulti true :symtype :let}))
+    (SPECIALS.do ast scope parent opts 3 sub-chunk sub-scope pre-syms)))
 
 (doc-special :let ["[name1 val1 ... nameN valN]" "..."]
              "Introduces a new scope in which a given set of local bindings are used."

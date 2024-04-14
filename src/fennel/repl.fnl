@@ -28,13 +28,9 @@
   (io.write "\n"))
 
 ;; fnlfmt: skip
-(fn default-on-error [errtype err lua-source]
+(fn default-on-error [errtype err]
   (io.write
    (case errtype
-     "Lua Compile" (.. "Bad code generated - likely a bug with the compiler:\n"
-                       "--- Generated Lua Start ---\n"
-                       lua-source
-                       "--- Generated Lua End ---\n")
      "Runtime" (.. (compiler.traceback (tostring err) 4) "\n")
      _ (: "%s error: %s\n" :format errtype (tostring err)))))
 
@@ -135,13 +131,11 @@ For more information about the language, see https://fennel-lang.org/reference")
   ;; Sandbox the reload inside the limited environment, if present.
   (case (pcall (specials.load-code "return require(...)" env) module-name)
     (true old) (let [_ (tset package.loaded module-name nil)
-                     (ok new) (pcall require module-name)
-                     ;; keep the old module if reload failed
-                     new (if (not ok)
-                             (do
-                               (on-values [new])
-                               old)
-                             new)]
+                     new (case (pcall require module-name)
+                           (true new) new
+                           (_ msg) (do ; keep the old module if reload failed
+                                     (on-error :Repl msg)
+                                     old))]
                  (tset specials.macro-loaded module-name nil)
                  ;; if the module isn't a table then we can't make changes
                  ;; which affect already-loaded code, but if it is then we

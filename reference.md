@@ -1744,6 +1744,8 @@ your code.
                  when `opts.comments` is truthy.
 * `view` - `fennel.view` table serializer.
 * `get-scope` - return the scope table for the current macro call site.
+* `copy` - return a shallow copy of an AST node, preserving metatable/type.
+            Accepts optional target table to copy contents into.
 
 * `assert-compile` - works like `assert` but takes a list/symbol as its third
   argument in order to provide pinpointed error messages.

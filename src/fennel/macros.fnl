@@ -3,11 +3,6 @@
 ;; These macros are awkward because their definition cannot rely on the any
 ;; built-in macros, only special forms. (no when, no icollect, etc)
 
-(fn copy [t]
-  (let [out []]
-    (each [_ v (ipairs t)] (table.insert out v))
-    (setmetatable out (getmetatable t))))
-
 (fn ->* [val ...]
   "Thread-first macro.
 Take the first value and splice it into the second form as its first argument.

@@ -119,7 +119,7 @@ Also returns a second function to clear the buffer in the byte stream."
           nil (set (retval done?) (values v true))
           {: prefix} (let [source (doto (table.remove stack) set-source-fields)
                            list (utils.list (utils.sym prefix source) v)]
-                       (dispatch (utils.copy source list)))
+                       (dispatch (utils.copy source list false)))
           top (table.insert top v))))
 
     (fn badend []

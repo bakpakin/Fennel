@@ -88,10 +88,12 @@ local utils = (function()
        return true
     end
 
-    -- Returns a shallow copy of its table argument. Returns an empty table on nil.
-    local function copy(from)
-       local to = {}
-       for k, v in pairs(from or {}) do to[k] = v end
+    local function copy(from, to, copy_metatable)
+       to = (to or {})
+       if (false ~= copy_metatable) then
+          setmetatable(to, getmetatable(from))
+       end
+       for k, v in pairs((from or {})) do to[k] = v end
        return to
     end
 
@@ -2650,6 +2652,7 @@ local specials = (function()
             gensym = function()
                 return utils.sym(compiler.gensym(compiler.scopes.macro or scope))
             end,
+            copy = utils.copy,
             ["list?"] = utils.isList,
             ["multi-sym?"] = utils.isMultiSym,
             ["sym?"] = utils.isSym,
@@ -3105,11 +3108,6 @@ module["compile-string"] = module.compileString
 local stdmacros = [===[
 ;; These macros are awkward because their definition cannot rely on the any
 ;; built-in macros, only special forms. (no when, no icollect, etc)
-
-(fn copy [t]
-  (let [out []]
-    (each [_ v (ipairs t)] (table.insert out v))
-    (setmetatable out (getmetatable t))))
 
 (fn ->* [val ...]
   "Thread-first macro.

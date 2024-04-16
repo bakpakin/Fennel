@@ -700,7 +700,7 @@ order, but can be used with any iterator." true)
 
 (fn for* [ast scope parent]
   (compiler.assert (utils.table? (. ast 2)) "expected binding table" ast)
-  (let [ranges (setmetatable (utils.copy (. ast 2)) (getmetatable (. ast 2)))
+  (let [ranges (utils.copy (. ast 2))
         until-condition (remove-until-condition ranges ast)
         binding-sym (table.remove ranges 1)
         sub-scope (compiler.make-scope scope)
@@ -1118,9 +1118,9 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (var safe-require nil)
 
 (fn safe-compiler-env []
-  {:table (utils.copy table)
-   :math (utils.copy math)
-   :string (utils.copy string)
+  {:table (utils.copy table nil false)
+   :math (utils.copy math nil false)
+   :string (utils.copy string nil false)
    :pairs utils.stablepairs
    : ipairs : select : tostring : tonumber :bit (rawget _G :bit)
    : pcall : xpcall : next : print : type : assert : error
@@ -1162,23 +1162,20 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              :sequence utils.sequence :sequence? utils.sequence?
              :sym utils.sym :sym? utils.sym? :multi-sym? utils.multi-sym?
              :comment utils.comment :comment? utils.comment? :varg? utils.varg?
+             :copy utils.copy
              ;; scoping functions
              :gensym (fn [base]
                        (utils.sym (compiler.gensym (or compiler.scopes.macro
-                                                       scope)
-                                                   base)))
-             :get-scope (fn []
-                          compiler.scopes.macro)
+                                                       scope) base)))
+             :get-scope (fn [] compiler.scopes.macro)
              :in-scope? (fn [symbol]
                           (compiler.assert compiler.scopes.macro
                                            "must call from macro" ast)
-                          (. compiler.scopes.macro.manglings
-                             (tostring symbol)))
+                          (. compiler.scopes.macro.manglings (tostring symbol)))
              :macroexpand (fn [form]
                             (compiler.assert compiler.scopes.macro
                                              "must call from macro" ast)
-                            (compiler.macroexpand form
-                                                  compiler.scopes.macro))}]
+                            (compiler.macroexpand form compiler.scopes.macro))}]
     (set env._G env)
     (setmetatable env
                   {:__index provided

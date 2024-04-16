@@ -487,6 +487,9 @@
                   (fennel.compile-string "(comment \"hello]]lol\")")))
 
 (fn test-nest []
+  ;; you get some REAL WEIRD errors without this:
+  (tset (require :fennel.compiler) :scopes :compiler :manglings :copy nil)
+  (tset (require :fennel.compiler) :scopes :compiler :unmanglings :copy nil)
   (let [nested (fennel.dofile "src/fennel.fnl" {:compilerEnv _G})]
     (t.= fennel.version nested.version)))
 

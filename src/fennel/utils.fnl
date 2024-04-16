@@ -90,10 +90,13 @@
       (accumulate [t tbl _ k (ipairs path) :until (= nil t)]
         (if (= (type t) :table) (. t k)))))
 
-(fn copy [?from ?to]
-  "Returns a shallow copy of its table argument. Returns an empty table on nil."
-  (collect [k v (pairs (or ?from [])) :into (or ?to {})]
-    (values k v)))
+(fn copy [?from ?to ?copy-metatable]
+  "Copy ?from to ?to or new table; preserve metatable unless 3rd arg is false."
+  (let [to (or ?to {})]
+    (when (not= false ?copy-metatable)
+      (setmetatable to (getmetatable ?from)))
+    (collect [k v (pairs (or ?from [])) &into to]
+      (values k v))))
 
 (fn member? [x tbl ?n]
   (match (. tbl (or ?n 1))
@@ -202,6 +205,14 @@ and byteend fields."
                   (if (= (type k) :string) (values k v)))
                 symbol-mt))
 
+(fn view-sequence [seq view inspector indent]
+  (let [opts (doto inspector
+               (tset :empty-as-sequence?
+                     {:once true :after inspector.empty-as-sequence?})
+               (tset :metamethod?
+                     {:once false :after inspector.metamethod?}))]
+    (view seq opts indent)))
+
 (fn sequence [...]
   "Create a new sequence. Sequences are tables that come from the parser when
 it encounters a form with square brackets. They are treated as regular tables
@@ -211,14 +222,7 @@ except when certain macros need to look for binding forms, etc specifically."
   ;; on a sequence, (which we need for error reporting) so embed a marker
   ;; value in the metatable instead.
   (setmetatable [...] {:sequence sequence-marker
-                       :__fennelview
-                       (fn [seq view inspector indent]
-                         (let [opts (doto inspector
-                                      (tset :empty-as-sequence?
-                                            {:once true :after inspector.empty-as-sequence?})
-                                      (tset :metamethod?
-                                            {:once false :after inspector.metamethod?}))]
-                           (view seq opts indent)))}))
+                       :__fennelview view-sequence}))
 
 (fn expr [strcode etype]
   "Create a new expression. etype should be one of:

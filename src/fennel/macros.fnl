@@ -103,7 +103,7 @@ encountering an error before propagating it."
                   ,...)
         closer `(fn close-handlers# [ok# ...]
                   (if ok# ... (error ... 0)))
-        traceback `(. (or (. package.loaded ,(fennel-module-name)) debug)
+        traceback `(. (or (. package.loaded ,(fennel-module-name)) _G.debug {})
                       :traceback)]
     (for [i 1 (length closable-bindings) 2]
       (assert (sym? (. closable-bindings i))

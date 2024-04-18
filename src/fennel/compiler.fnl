@@ -711,6 +711,43 @@ which we have to do if we don't know."
         (when declaration
           (tset scope.symmeta (tostring left) {:var isvar}))))
 
+(fn dynamic-set-target [[_ target & keys]]
+      (assert-compile (utils.sym? target) "dynamic set needs symbol target" ast)
+      (assert-compile (. scope.manglings (tostring target))
+                      (.. "unknown identifier: " (tostring target)) target)
+      (let [keys (icollect [_ k (ipairs keys)]
+                   (tostring (. (compile1 k scope parent {:nval 1}) 1)))]
+        (string.format "%s[%s]" (tostring (symbol-to-expression target scope true))
+                       (table.concat keys "]["))))
+
+    (fn destructure-values [left rightexprs up1 destructure1 top?]
+      (let [(left-names tables) (values [] [])]
+        (each [i name (ipairs left)]
+          (if (utils.sym? name) ; binding directly to a name
+              (table.insert left-names (getname name up1))
+              (utils.call-of? name ".")
+              (table.insert left-names (dynamic-set-target name))
+              (let [symname (gensym scope symtype)]
+                ;; further destructuring of tables inside values
+                (table.insert left-names symname)
+                (tset tables i [name (utils.expr symname :sym)]))))
+        (assert-compile (. left 1) "must provide at least one value" left)
+        (if top?
+            (compile-top-target left-names)
+            ;; TODO: this is dumb, why does it need to be a special case here?
+            (utils.expr? rightexprs)
+            (emit parent (setter:format (table.concat left-names ",")
+                                        (exprs1 rightexprs)) left)
+            (emit parent (compile1 rightexprs scope parent
+                                   {:target (table.concat left-names ",")}) left))
+        (when declaration
+          (each [_ sym (ipairs left)]
+            (when (utils.sym? sym)
+              (tset scope.symmeta (tostring sym) {:var isvar}))))
+        ;; recurse if left-side tables found
+        (each [_ pair (utils.stablepairs tables)]
+          (destructure1 (. pair 1) [(. pair 2)] left))))
+
     ;; TODO: remove in 2.0
     (local unpack-fn "function (t, k, e)
                         local mt = getmetatable(t)
@@ -748,76 +785,48 @@ which we have to do if we don't know."
                         left)
         (destructure1 (. left (+ k 1)) [subexpr] left)))
 
+    (fn optimize-table-destructure? [left right]
+      (and (utils.sequence? left) (utils.sequence? right)
+           (accumulate [all true _ d (ipairs left) &until (not all)]
+             (and all (utils.sym? d) (not (: (tostring d) :find "&"))))))
+
     (fn destructure-table [left rightexprs top? destructure1]
-      (let [right (match (if top?
-                             (exprs1 (compile1 from scope parent))
-                             (exprs1 rightexprs))
-                    "" :nil
-                    right right)
-            s (if (utils.sym? rightexprs) right (gensym scope symtype))
-            excluded-keys []]
-        (when (not (utils.sym? rightexprs))
-          (emit parent (string.format "local %s = %s" s right) left))
-        (each [k v (utils.stablepairs left)]
-          (when (not (and (= :number (type k))
-                          (: (tostring (. left (- k 1))) :find "^&")))
-            (if (and (utils.sym? k) (= (tostring k) "&"))
-                (destructure-kv-rest s v left excluded-keys destructure1)
+      (if (optimize-table-destructure? left rightexprs)
+          (destructure-values (utils.list (unpack left))
+                              (utils.list (utils.sym :values) (unpack rightexprs))
+                              nil destructure1)
+          (let [right (match (if top?
+                                 (exprs1 (compile1 from scope parent))
+                                 (exprs1 rightexprs))
+                        "" :nil
+                        right right)
+                s (if (utils.sym? rightexprs) right (gensym scope symtype))
+                excluded-keys []]
+            (when (not (utils.sym? rightexprs))
+              (emit parent (string.format "local %s = %s" s right) left))
+            (each [k v (utils.stablepairs left)]
+              (when (not (and (= :number (type k))
+                              (: (tostring (. left (- k 1))) :find "^&")))
+                (if (and (utils.sym? k) (= (tostring k) "&"))
+                    (destructure-kv-rest s v left excluded-keys destructure1)
 
-                (and (utils.sym? v) (= (tostring v) "&"))
-                (destructure-rest s k left destructure1)
+                    (and (utils.sym? v) (= (tostring v) "&"))
+                    (destructure-rest s k left destructure1)
 
-                (and (utils.sym? k) (= (tostring k) :&as))
-                (destructure-sym v [(utils.expr (tostring s))] left)
+                    (and (utils.sym? k) (= (tostring k) :&as))
+                    (destructure-sym v [(utils.expr (tostring s))] left)
 
-                (and (utils.sequence? left) (= (tostring v) :&as))
-                (let [(_ next-sym trailing) (select k (unpack left))]
-                  (assert-compile (= nil trailing)
-                                  "expected &as argument before last parameter"
-                                  left)
-                  (destructure-sym next-sym [(utils.expr (tostring s))] left))
+                    (and (utils.sequence? left) (= (tostring v) :&as))
+                    (let [(_ next-sym trailing) (select k (unpack left))]
+                      (assert-compile (= nil trailing)
+                                      "expected &as argument before last parameter"
+                                      left)
+                      (destructure-sym next-sym [(utils.expr (tostring s))] left))
 
-                (let [key (if (= (type k) :string) (serialize-string k) k)
-                      subexpr (utils.expr (: "%s[%s]" :format s key) :expression)]
-                  (when (= (type k) :string) (table.insert excluded-keys k))
-                  (destructure1 v subexpr left)))))))
-
-    (fn dynamic-set-target [[_ target & keys]]
-      (assert-compile (utils.sym? target) "dynamic set needs symbol target" ast)
-      (assert-compile (. scope.manglings (tostring target))
-                      (.. "unknown identifier: " (tostring target)) target)
-      (let [keys (icollect [_ k (ipairs keys)]
-                   (tostring (. (compile1 k scope parent {:nval 1}) 1)))]
-        (string.format "%s[%s]" (tostring (symbol-to-expression target scope true))
-                       (table.concat keys "]["))))
-
-    (fn destructure-values [left rightexprs up1 destructure1 top?]
-      (let [(left-names tables) (values [] [])]
-        (each [i name (ipairs left)]
-          (if (utils.sym? name) ; binding directly to a name
-              (table.insert left-names (getname name up1))
-              (utils.call-of? name ".")
-              (table.insert left-names (dynamic-set-target name))
-              (let [symname (gensym scope symtype)]
-                ;; further destructuring of tables inside values
-                (table.insert left-names symname)
-                (tset tables i [name (utils.expr symname :sym)]))))
-        (assert-compile (. left 1) "must provide at least one value" left)
-        (if top?
-            (compile-top-target left-names)
-            ;; TODO: this is dumb, why does it need to be a special case here?
-            (utils.expr? rightexprs)
-            (emit parent (setter:format (table.concat left-names ",")
-                                        (exprs1 rightexprs)) left)
-            (emit parent (compile1 rightexprs scope parent
-                                   {:target (table.concat left-names ",")}) left))
-        (when declaration
-          (each [_ sym (ipairs left)]
-            (when (utils.sym? sym)
-              (tset scope.symmeta (tostring sym) {:var isvar}))))
-        ;; recurse if left-side tables found
-        (each [_ pair (utils.stablepairs tables)]
-          (destructure1 (. pair 1) [(. pair 2)] left))))
+                    (let [key (if (= (type k) :string) (serialize-string k) k)
+                          subexpr (utils.expr (: "%s[%s]" :format s key) :expression)]
+                      (when (= (type k) :string) (table.insert excluded-keys k))
+                      (destructure1 v subexpr left))))))))
 
     (fn destructure1 [left rightexprs up1 top?]
       "Recursive auxiliary function"

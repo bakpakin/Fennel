@@ -849,6 +849,13 @@ Method name doesn't have to be known at compile-time; if it is, use
 (doc-special :hashfn ["..."]
              "Function literal shorthand; args are either $... OR $1, $2, etc.")
 
+(fn comparator-special-type [ast]
+  (if (= 3 (length ast))
+      :native
+      (utils.every? [(unpack ast 3 (- (length ast) 1))] utils.idempotent-expr?)
+      :idempotent
+      :binding))
+
 ;; Helper iterator to deal with (values) in operators
 ;; When called on an ast like (my-call arg1 arg2 (values arg3 arg4))
 ;; iter-args will yield arg1, arg2, arg3, then arg4
@@ -862,7 +869,7 @@ Method name doesn't have to be known at compile-time; if it is, use
       (set i 2))
     (. ast i)))
 
-;; Helper function to improve detection in maybe-short-circuit-protect
+;; Helper function to improve detection in operator-special
 ;; Need to check not only certain forms, but also sometimes sub-forms
 ;; See https://todo.sr.ht/~technomancy/fennel/196
 (fn short-circuit-safe? [x scope]
@@ -876,6 +883,8 @@ Method name doesn't have to be known at compile-time; if it is, use
         (case (str1 x)
           (where (or :fn :hashfn :let :local :var :set :tset :if :each
                      :for :while :do :lua :global)) false
+          (where (or "<" ">" "<=" ">=" "=" "not=" "~=")
+                 (= (comparator-special-type x) :binding)) false
           (where call (. scope.macros call)) false
           _ (faccumulate [ok true i 2 (length x) &until (not ok)]
               (short-circuit-safe? (. x i) scope)))
@@ -1034,36 +1043,40 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
         chain (string.format " %s " (or chain-op :and))]
     (.. "(" (table.concat comparisons chain) ")")))
 
-(fn double-eval-protected-comparator [op chain-op ast scope parent]
+(fn binding-comparator [op chain-op ast scope parent]
   "Compile a multi-arity comparison to a binary Lua comparison."
-  (let [arglist []
-        comparisons []
+  (let [binding-left []
+        binding-right []
         vals []
         chain (string.format " %s " (or chain-op :and))]
     (for [i 2 (length ast)]
-      (table.insert arglist (tostring (compiler.gensym scope)))
-      (table.insert vals (str1 (compiler.compile1 (. ast i) scope parent {:nval 1}))))
-    (fcollect [i 1 (- (length arglist) 1) :into comparisons]
-      (string.format "(%s %s %s)" (. arglist i) op
-                     (. arglist (+ i 1))))
-    ;; The IIFE function call here introduces some overhead, but it is the only
-    ;; way to compile this safely while preventing both double-evaluation of
-    ;; side-effecting values and early evaluation of values which should never
-    ;; happen in the case of a short-circuited call. See test-short-circuit in
-    ;; test/misc.fnl for an example of the problem.
-    (string.format "(function(%s) return %s end)(%s)"
-                   (table.concat arglist ",") (table.concat comparisons chain)
-                   (table.concat vals ","))))
+      (let [compiled (str1 (compiler.compile1 (. ast i) scope parent {:nval 1}))]
+        (if (or (utils.idempotent-expr? (. ast i)) (= i 2) (= i (length ast)))
+          (table.insert vals compiled)
+          (let [my-sym (tostring (compiler.gensym scope))]
+            (table.insert binding-left my-sym)
+            (table.insert binding-right compiled)
+            (table.insert vals my-sym)))))
+    (compiler.emit parent (string.format "local %s = %s"
+                                         (table.concat binding-left ", ")
+                                         (table.concat binding-right ", ")
+                                         ast))
+    (.. "("
+        (table.concat
+          (fcollect [i 1 (- (length vals) 1)]
+            (string.format "(%s %s %s)" (. vals i) op (. vals (+ i 1))))
+          chain)
+        ")")))
 
 (fn define-comparator-special [name ?lua-op ?chain-op]
   (let [op (or ?lua-op name)]
     (fn opfn [ast scope parent]
       (compiler.assert (< 2 (length ast)) "expected at least two arguments" ast)
-      (if (= 3 (length ast))
-          (native-comparator op ast scope parent)
-          (utils.every? [(unpack ast 2)] utils.idempotent-expr?)
-          (idempotent-comparator op ?chain-op ast scope parent)
-          (double-eval-protected-comparator op ?chain-op ast scope parent)))
+      (match (comparator-special-type ast)
+          :native (native-comparator op ast scope parent)
+          :idempotent (idempotent-comparator op ?chain-op ast scope parent)
+          :binding (binding-comparator op ?chain-op ast scope parent)
+          _ (error "internal compiler error. please report this to the fennel devs.")))
 
     (tset SPECIALS name opfn))
   (doc-special name [:a :b "..."]

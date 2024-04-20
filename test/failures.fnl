@@ -127,7 +127,8 @@
   (test-failures
    {"\n\n(+))" "unknown:3:3: Parse error: unexpected closing delimiter )"
     "(foo:)" "malformed multisym"
-    "(foo.bar:)" "malformed multisym"}))
+    "(foo.bar:)" "malformed multisym"
+    "(let [] (get-string):find)" "expected whitespace"}))
 
 (fn test-core-fails []
   (test-failures
@@ -275,9 +276,7 @@
   (assert-fail (if (var x 10) (print x) (print x)) "can't introduce var")
   (assert-fail (if (fn abc []) abc) "unknown identifier: abc")
   (assert-fail (print (local abc :def)) "can't introduce local here")
-  ;; TODO: uncomment this once `or' gets nval support
-  ;; (assert-fail (or (local x 10) x) "can't introduce local")
-  )
+  (assert-fail (or (local x 10) x) "can't introduce local"))
 
 {: test-global-fails
  : test-fn-fails

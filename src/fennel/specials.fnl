@@ -474,7 +474,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
       (or parent "")))
 
 (fn needs-separator? [root prev-line]
-  (and (root:match "^%(") prev-line))
+  (and (root:match "^%(") prev-line (not (prev-line:find " end$"))))
 
 (fn SPECIALS.tset [ast scope parent]
   (compiler.assert (< 3 (length ast))

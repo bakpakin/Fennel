@@ -711,7 +711,7 @@ which we have to do if we don't know."
         (when declaration
           (tset scope.symmeta (tostring left) {:var isvar}))))
 
-(fn dynamic-set-target [[_ target & keys]]
+    (fn dynamic-set-target [[_ target & keys]]
       (assert-compile (utils.sym? target) "dynamic set needs symbol target" ast)
       (assert-compile (. scope.manglings (tostring target))
                       (.. "unknown identifier: " (tostring target)) target)
@@ -738,8 +738,9 @@ which we have to do if we don't know."
             (utils.expr? rightexprs)
             (emit parent (setter:format (table.concat left-names ",")
                                         (exprs1 rightexprs)) left)
-            (emit parent (compile1 rightexprs scope parent
-                                   {:target (table.concat left-names ",")}) left))
+            (let [names (table.concat left-names ",")
+                  target (if declaration (.. "local " names) names)]
+              (emit parent (compile1 rightexprs scope parent {: target}) left)))
         (when declaration
           (each [_ sym (ipairs left)]
             (when (utils.sym? sym)
@@ -787,14 +788,15 @@ which we have to do if we don't know."
 
     (fn optimize-table-destructure? [left right]
       (and (utils.sequence? left) (utils.sequence? right)
-           (accumulate [all true _ d (ipairs left) &until (not all)]
+           (accumulate [all (next left) _ d (ipairs left) &until (not all)]
              (and all (utils.sym? d) (not (: (tostring d) :find "&"))))))
 
-    (fn destructure-table [left rightexprs top? destructure1]
+    (fn destructure-table [left rightexprs top? destructure1 up1]
       (if (optimize-table-destructure? left rightexprs)
           (destructure-values (utils.list (unpack left))
-                              (utils.list (utils.sym :values) (unpack rightexprs))
-                              nil destructure1)
+                              (utils.list (utils.sym :values)
+                                          (unpack rightexprs))
+                              up1 destructure1)
           (let [right (match (if top?
                                  (exprs1 (compile1 from scope parent))
                                  (exprs1 rightexprs))
@@ -833,7 +835,7 @@ which we have to do if we don't know."
       (if (and (utils.sym? left) (not= (. left 1) :nil))
           (destructure-sym left rightexprs up1 top?)
           (utils.table? left)
-          (destructure-table left rightexprs top? destructure1)
+          (destructure-table left rightexprs top? destructure1 up1)
           (utils.call-of? left ".")
           (destructure-values [left] rightexprs up1 destructure1)
           (utils.list? left)

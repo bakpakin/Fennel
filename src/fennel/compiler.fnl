@@ -789,7 +789,7 @@ which we have to do if we don't know."
     (fn optimize-table-destructure? [left right]
       (and (utils.sequence? left) (utils.sequence? right)
            (accumulate [all (next left) _ d (ipairs left) &until (not all)]
-             (and all (utils.sym? d) (not (: (tostring d) :find "&"))))))
+             (and (utils.sym? d) (not (: (tostring d) :find "^&"))))))
 
     (fn destructure-table [left rightexprs top? destructure1 up1]
       (if (optimize-table-destructure? left rightexprs)

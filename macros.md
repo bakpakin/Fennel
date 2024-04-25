@@ -134,7 +134,7 @@ instead of symbols. It would look like this when run:
 ;; [:if [:ready-to-go?]
 ;;       [:do [:make-it-so!]
 ;;            [:if [:ready-to-go?]
-;;                 [:do [:make-it-so!] 
+;;                 [:do [:make-it-so!]
 ;;                      [:if [:ready-to-go?]
 ;;                           [:do [:make-it-so!]]]]]]]
 ```
@@ -216,8 +216,8 @@ precisely what your macro is expanding to. It's a tool you can run in
 the repl to inspect the results of the macro expansion:
 
 ```fennel
->> (macrodebug (thrice-if (and (transporters-online?) 
-                               (< 8 (torpedo-count))) 
+>> (macrodebug (thrice-if (and (transporters-online?)
+                               (< 8 (torpedo-count)))
                           (make-it-so!)))
 (if (and (transporters-online?) (< 8 (torpedo-count))) (do (make-it-so!) (if (and (transporters-online?) (< 8 (torpedo-count))) (do (make-it-so!) (if (and (transporters-online?) (< 8 (torpedo-count))) (do (make-it-so!)))))))
 ```
@@ -352,7 +352,7 @@ where the macro is called:
 
 ```fennel
 (macro mymacro [a b c]
-  `(mymodule.process (+ b c) a))
+  `(mymodule.process (+ ,b ,c) ,a))
 ```
 
 However, this is error-prone; you shouldn't make any assumptions about the
@@ -364,7 +364,7 @@ form which requires whatever module is needed inside the macroexpansion:
 ```fennel
 (macro mymacro [a b c]
   `(let [mymodule# (require :mymodule)]
-     (mymodule#.process (+ b c) a)))
+     (mymodule#.process (+ ,b ,c) ,a)))
 ```
 
 Remember that `require` caches all modules, so this will be a cheap table lookup.
@@ -442,7 +442,7 @@ It's not required, but it's a nice courtesy to your users.
 
 ## That's all!
 
-Now you're all set: go write a macro or two. 
+Now you're all set: go write a macro or two.
 
 But ... don't go overboard.
 

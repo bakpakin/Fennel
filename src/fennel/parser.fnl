@@ -255,8 +255,8 @@ Also returns a second function to clear the buffer in the byte stream."
       (. {7 "\\a" 8 "\\b" 9 "\\t" 10 "\\n" 11 "\\v" 12 "\\f" 13 "\\r"} (c:byte)))
 
     (fn parse-string [source]
-      ;; (when (not whitespace-since-dispatch) ; TODO: 2.0
-      ;;   (parse-error "expected whitespace before string"))
+      (when (not whitespace-since-dispatch) ; TODO: 2.0
+        (parse-error "expected whitespace before string"))
       (table.insert stack {:closer 34})
       (let [chars ["\""]]
         (when (not (parse-string-loop chars (getb) :base))
@@ -325,8 +325,8 @@ Also returns a second function to clear the buffer in the byte stream."
       rawstr)
 
     (fn parse-sym [b] ; not just syms actually...
-      ;; (when (not whitespace-since-dispatch) ; TODO: 2.0
-      ;;   (parse-error "expected whitespace before token"))
+      (when (not whitespace-since-dispatch)
+        (parse-error "expected whitespace before token"))
       (let [source {:bytestart byteindex : filename : line :col (- col 1)}
             rawstr (table.concat (parse-sym-loop [(string.char b)] (getb)))]
         (set-source-fields source)
@@ -337,7 +337,9 @@ Also returns a second function to clear the buffer in the byte stream."
             (= rawstr "...")
             (dispatch (utils.varg source))
             (rawstr:match "^:.+$")
-            (dispatch (rawstr:sub 2) source rawstr)
+            (do (when (not whitespace-since-dispatch)
+                  (parse-error "expected whitespace before token"))
+                (dispatch (rawstr:sub 2) source rawstr))
             (not (parse-number rawstr source))
             (dispatch (utils.sym (check-malformed-sym rawstr) source)))))
 

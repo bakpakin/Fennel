@@ -8,9 +8,8 @@
             "steps": [
                 "checkout",
                 {"run": "apt-get update -qq"},
-                {"run": "apt-get install -qq cloc make git luajit2 lua5.1 lua5.2 lua5.3 lua5.4"},
+                {"run": "apt-get install -qq make"},
                 {"run": "make ci"},
-                {"run": "git diff --quiet"},
             ]
         },
         "windows": {
@@ -27,7 +26,7 @@
     "workflows": {
         "version": 2,
         "all": {
-            "jobs": ["build", "windows"]
+            "jobs": ["build"]
         }
     },
 

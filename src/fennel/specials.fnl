@@ -735,7 +735,11 @@ Evaluates body once for each value between start and stop (inclusive)." true)
   (let [[_ _ method-string] ast
         call-string (if (or (= target.type :literal)
                             (= target.type :varg)
-                            (= target.type :expression))
+                            (and (= target.type :expression)
+                                 ;; This would be easier if target.type
+                                 ;; was more specific to lua's grammar rules.
+                                 (not (: (. target 1) :match "[%)%]]$"))
+                                 (not (: (. target 1) :match "%.[%a_][%w_]*$"))))
                         "(%s):%s(%s)" "%s:%s(%s)")]
     (utils.expr (string.format call-string (tostring target) method-string
                                (table.concat args ", "))

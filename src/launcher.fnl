@@ -5,9 +5,9 @@
 
 (local help "Usage: fennel [FLAG] [FILE]
 
-Run fennel, a lisp programming language for the Lua runtime.
+Run Fennel, a Lisp programming language for the Lua runtime.
 
-  --repl                   : Command to launch an interactive repl session
+  --repl                   : Command to launch an interactive REPL session
   --compile FILES (-c)     : Command to AOT compile files, writing Lua to stdout
   --eval SOURCE (-e)       : Command to evaluate source code and print result
 
@@ -33,7 +33,7 @@ Run fennel, a lisp programming language for the Lua runtime.
   --plugin FILE            : Activate the compiler plugin in FILE
   --raw-errors             : Disable friendly compile error reporting
   --no-searcher            : Skip installing package.searchers entry
-  --no-fennelrc            : Skip loading ~/.fennelrc when launching repl
+  --no-fennelrc            : Skip loading ~/.fennelrc when launching REPL
   --keywords K1[,K2...]    : Treat these symbols as reserved Lua keywords
 
   --help (-h)              : Display this text
@@ -47,11 +47,11 @@ Metadata is typically considered a development feature and is not recommended
 for production. It is used for docstrings and enabled by default in the REPL.
 
 When not given a command, runs the file given as the first argument.
-When given neither command nor file, launches a repl.
+When given neither command nor file, launches a REPL.
 
 Use the NO_COLOR environment variable to disable escape codes in error messages.
 
-If ~/.fennelrc exists, it will be loaded before launching a repl.")
+If ~/.fennelrc exists, it will be loaded before launching a REPL.")
 
 (local options {:plugins [] :keywords {}})
 

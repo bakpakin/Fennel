@@ -77,6 +77,11 @@ Takes these additional options:
 By default, metadata will be enabled and you can view function signatures and
 docstrings with the `,doc` command in the REPL.
 
+In Fennel 1.4.1 `fennel.repl` was changed from a normal function to a
+callable table. This mostly behaves the same, but it can cause problems with
+certain functions that are very picky about functions. Unfortunately this
+includes `coroutine.create`. You can pass `fennel.repl.repl` instead.
+
 ### Customize REPL default options
 
 Any fields set on `fennel.repl`, which is actually a table with a `__call`

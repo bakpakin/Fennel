@@ -18,6 +18,7 @@ deprecated forms.
 * View settings in REPL can be changed: `(set ___repl___.view-opts.depth 100)`.
 * Support dynamic field names in `(set (. tbl field) val)`.
 * The `fennel.compile` function now accepts an AST, iterator, or file.
+* Catch typos when a space is missing after a string.
 
 ### Bug Fixes
 
@@ -41,6 +42,7 @@ This was the last release that provided Linux arm32 binaries.
 * Iterators accept locals wrapped in parens like all other multi-value bindings.
 * `fennel.repl` is now a callable table, allowing the default `(fennel.repl)`
   options to be customized by setting option fields on the table itself.
+  This accidentally caused **incompatibility** with `coroutine.create`.
 
 ### Bug Fixes
 

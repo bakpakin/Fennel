@@ -841,6 +841,29 @@ Example:
 (do (local (_ _ z) (unpack [:a :b :c :d :e])) z)  => c
 ```
 
+### `tset` set table field
+
+Sets the field of a given table to a new value.
+
+Example:
+
+```fennel
+(let [tbl {:d 32} field :d]
+  (tset tbl field 19) tbl) ; => {:d 19}
+```
+
+You can provide multiple successive field names to perform nested
+sets. For example:
+
+```fennel
+(let [tbl {:a {:b {}}} field :c]
+  (tset tbl :a :b field "d") tbl) ; => {:a {:b {:c "d"}}}
+```
+
+Since 1.5.0, `tset` is mostly redundant because `set` can be used for
+table fields. The main exception is that `tset` works with `doto` and
+`set` does not.
+
 ### `with-open` bind and auto-close file handles
 
 While Lua will automatically close an open file handle when it's garbage collected,
@@ -1884,29 +1907,6 @@ Example:
                   res))})
 (let [[a b & c] t]
   c) ;; => {:3 3 :4 4 :5 5 :6 6}
-```
-
-### `tset` set table field
-
-*(Deprecated in 1.5.0)*
-
-Sets the field of a given table to a new value. The field name does not
-need to be known at compile-time. Works on any table; the table does
-not have to be declared with `var` to change its fields.
-
-Example:
-
-```fennel
-(let [tbl {:d 32} field :d]
-  (tset tbl field 19) tbl) ; => {:d 19}
-```
-
-You can provide multiple successive field names to perform nested
-sets. For example:
-
-```fennel
-(let [tbl {:a {:b {}}} field :c]
-  (tset tbl :a :b field "d") tbl) ; => {:a {:b {:c "d"}}}
 ```
 
 [1]: https://www.lua.org/manual/5.1/

@@ -97,11 +97,12 @@ Takes a Lua identifier and returns the Fennel symbol string that created it."
 
 (var allowed-globals nil)
 
-(fn global-allowed? [name]
+(fn global-allowed? [name scope]
   "If there's a provided list of allowed globals, don't let references thru that
 aren't on the list. This list is set at the compiler entry points of compile
 and compile-stream."
-  (or (not allowed-globals) (utils.member? name allowed-globals)))
+  (or (not allowed-globals) scope.manglings._ENV
+      (utils.member? name allowed-globals)))
 
 (fn unique-mangling [original mangling scope append]
   (if (. scope.unmanglings mangling)
@@ -232,7 +233,7 @@ if they have already been declared via declare-local"
       ;; if it's a reference and not a symbol which introduces a new binding
       ;; then we need to check for allowed globals
       (assert-compile (or (not ?reference?) local? (= :_ENV (. parts 1))
-                          (global-allowed? (. parts 1)))
+                          (global-allowed? (. parts 1) scope))
                       (.. "unknown identifier: " (tostring (. parts 1))) symbol)
       (when (and allowed-globals (not local?) scope.parent)
         (tset scope.parent.refedglobals (. parts 1) true))
@@ -656,7 +657,7 @@ which we have to do if we don't know."
                                 (.. "expected var " raw) symbol))
               (assert-compile (or meta (not opts.noundef)
                                   (and scope.hashfn (= :$ first))
-                                  (global-allowed? first))
+                                  (global-allowed? first scope))
                               (.. "expected local " first) symbol)
               (when forceglobal
                 (assert-compile (not (. scope.symmeta (. scope.unmanglings raw)))

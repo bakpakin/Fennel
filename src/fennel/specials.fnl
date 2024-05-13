@@ -303,7 +303,7 @@ By default, start is 2."
     (compiler.assert (or (not multi) (not multi.multi-sym-method-call))
                      (.. "unexpected multi symbol " (tostring fn-name)) fn-sym)
     (when (and multi (not (. scope.symmeta (. multi 1)))
-               (not (compiler.global-allowed? (. multi 1))))
+               (not (compiler.global-allowed? (. multi 1) scope)))
       (compiler.assert nil (.. "expected local table " (. multi 1)) (. ast 2)))
     (fn destructure-arg [arg]
       (let [raw (utils.sym (compiler.gensym scope))

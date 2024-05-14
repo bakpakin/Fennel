@@ -112,7 +112,12 @@
     (t.= (fennel.view kv) (code:sub kv-source.bytestart kv-source.byteend))
     (t.= (fennel.view list) (code:sub list.bytestart list.byteend))
     ;; but wait! sub is tolerant of going on beyond the last byte!
-    (t.= (length code) list.byteend)))
+    (t.= (length code) list.byteend))
+  (let [code "  #  "
+        (ok? ast) ((fennel.parser code))]
+    (t.is ok?)
+    ; (t.= (line-col ast [1 3]))
+    (t.= (tostring ast) (code:sub ast.bytestart ast.byteend))))
 
 (fn test-plugin-hooks []
   (var parse-error-called nil)

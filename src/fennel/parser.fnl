@@ -272,14 +272,15 @@ Also returns a second function to clear the buffer in the byte stream."
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"
       (table.insert stack {:prefix (. prefixes b) : filename : line
                            :bytestart byteindex :col (- col 1)})
-      (let [nextb (getb)]
-        (when (or (whitespace? nextb) (= true (. delims nextb)))
-          (when (not= b 35)
-            (parse-error "invalid whitespace after quoting prefix"))
+      (let [nextb (getb)
+            trailing-whitespace? (or (whitespace? nextb) (= true (. delims nextb)))]
+        (when (and trailing-whitespace? (not= b 35))
+          (parse-error "invalid whitespace after quoting prefix"))
+        (ungetb nextb)
+        (when (and trailing-whitespace? (= b 35))
           (let [source (table.remove stack)]
             (set-source-fields source)
-            (dispatch (utils.sym "#" source))))
-        (ungetb nextb)))
+            (dispatch (utils.sym "#" source))))))
 
     (fn parse-sym-loop [chars b]
       (if (and b (sym-char? b))

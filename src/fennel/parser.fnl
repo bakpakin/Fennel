@@ -276,8 +276,9 @@ Also returns a second function to clear the buffer in the byte stream."
         (when (or (whitespace? nextb) (= true (. delims nextb)))
           (when (not= b 35)
             (parse-error "invalid whitespace after quoting prefix"))
-          (table.remove stack)
-          (dispatch (utils.sym "#")))
+          (let [source (table.remove stack)]
+            (set-source-fields source)
+            (dispatch (utils.sym "#" source))))
         (ungetb nextb)))
 
     (fn parse-sym-loop [chars b]

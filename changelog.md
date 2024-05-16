@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* More consistent module-not-found warnings for `--require-as-include`.
 * Improve compiler output for `and`/`or` forms with potential side-effects.
 * Allow locals in places where they make sense rather than mid-expression.
 * Accept `--keywords` option to add to the list of built-in Lua keywords.

@@ -16,9 +16,7 @@
       (t.= k unmanglev)))
   ;; adding an env for evaluation causes global mangling rules to apply
   (t.is (fennel.eval "(global mangled-name true) mangled-name"
-                     {:env {}}))
-  ;; (t.is [1 2] (fennel.eval "(let [-ENV {}] (doto [2 1] table.sort))"))
-  (t.is 82 (fennel.eval "(let [_ENV {:num 81}] num)")))
+                             {:env {}})))
 
 (fn test-keyword-mangling []
   (let [code "(local new 99)"

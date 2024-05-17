@@ -285,6 +285,19 @@ introduce for the duration of the body if it does match."
                  _ pattern (ipairs patterns)]
       (math.max longest (count-case-multival pattern)))))
 
+(fn maybe-optimize-table [val clauses]
+  (if (faccumulate [all (sequence? val) i 1 (length clauses) 2 &until (not all)]
+        (and (sequence? (. clauses i))
+             (accumulate [all2 (next (. clauses i))
+                          _ d (ipairs (. clauses i)) &until (not all2)]
+               (and all2 (or (not (sym? d)) (not (: (tostring d) :find "^&")))))))
+      (values `(values ,(unpack val))
+              (fcollect [i 1 (length clauses)]
+                (if (= 1 (% i 2))
+                    (list (unpack (. clauses i)))
+                    (. clauses i))))
+      (values val clauses)))
+
 (fn case-impl [match? val ...]
   "The shared implementation of case and match."
   (assert (not= val nil) "missing subject")
@@ -292,7 +305,7 @@ introduce for the duration of the body if it does match."
           "expected even number of pattern/body pairs")
   (assert (not= 0 (select :# ...))
           "expected at least one pattern/body pair")
-  (let [clauses [...]
+  (let [(val clauses) (maybe-optimize-table val [...])
         vals-count (case-count-syms clauses)
         skips-multiple-eval-protection? (and (= vals-count 1) (double-eval-safe? val))]
     (if skips-multiple-eval-protection?

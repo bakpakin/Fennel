@@ -84,6 +84,7 @@ The ast arg should be unmodified so that its first element is the form called."
 but makes them unlikely. This is the mangling that is exposed to the world."
   (if (utils.valid-lua-identifier? str)
       str
+      ;; TODO: emit _G[str] in 2.0
       (.. :__fnl_global__ (str:gsub "[^%w]" #(string.format "_%02x" ($:byte))))))
 
 (fn global-unmangling [identifier]

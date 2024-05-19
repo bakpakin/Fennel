@@ -685,7 +685,7 @@ which we have to do if we don't know."
           ;; "local " onto the front of it. However, we can't just check
           ;; based on plen, because some forms (such as include) insert new
           ;; chunks at the top of the parent chunk rather than just at the
-          ;; end; this loop checks for this occurance and updates plen to be
+          ;; end; this loop checks for this occurrence and updates plen to be
           ;; the index of the last thing in the parent before compiling the
           ;; new value.
           (for [pi plen (length parent)]

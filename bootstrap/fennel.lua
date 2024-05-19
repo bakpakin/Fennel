@@ -95,7 +95,7 @@ local utils = (function()
        return to
     end
 
-    -- Like pairs, but if the table has an __index metamethod, it will recurisvely
+    -- Like pairs, but if the table has an __index metamethod, it will recursively
     -- traverse upwards, skipping duplicates, to iterate all inherited properties
     local function allpairs(t)
         assert(type(t) == 'table', 'allpairs expects a table')
@@ -1409,7 +1409,7 @@ local compiler = (function()
                 -- just check based on plen, because some forms (such as
                 -- include) insert new chunks at the top of the parent chunk
                 -- rather than just at the end; this loop checks for this
-                -- occurance and updates plen to be the index of the last
+                -- occurrence and updates plen to be the index of the last
                 -- thing in the parent before compiling the new value.
                 for pi = plen, #parent do
                     if parent[pi] == plast then plen = pi end

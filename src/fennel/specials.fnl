@@ -1424,7 +1424,7 @@ Deprecated.")
                            (opts.fallback modexpr true))
                       (include-circular-fallback mod modexpr opts.fallback ast)
                       (. utils.root.scope.includes mod) ; check cache
-                      ;; Find path to Fennel or Lua source; prefering Fennel
+                      ;; Find path to Fennel or Lua source; preferring Fennel
                       (match (search-module mod)
                         fennel-path (include-path ast opts fennel-path mod true)
                         _ (let [lua-path (search-module mod package.path)]

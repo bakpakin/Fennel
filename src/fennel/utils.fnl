@@ -1,5 +1,5 @@
 ;; This module contains mostly general-purpose table-related functionality that
-;; you might expect to see in a standard library in most langugaes, as well as
+;; you might expect to see in a standard library in most languages, as well as
 ;; the definitions of several core compiler types. It could be split into two
 ;; distinct modules along those lines.
 

@@ -196,7 +196,7 @@
 (fn utf8-len [x]
   (accumulate [n 0 _ (string.gmatch x "[%z\001-\127\192-\247]")] (+ n 1)))
 
-;; an alternative to `utils.comment?` to avoid a depedency cycle.
+;; an alternative to `utils.comment?` to avoid a dependency cycle.
 (fn comment? [x]
   (if (= :table (type x))
       (let [fst (. x 1)]

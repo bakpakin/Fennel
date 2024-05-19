@@ -509,7 +509,7 @@
      (+ 20 20)))
 
 (fn test-case-try []
-  ;; ensure we do not unify in a sucess path
+  ;; ensure we do not unify in a success path
   ;; these can be sense checked by running match-try with fresh bindings at
   ;; each step
   (== (case-try 10

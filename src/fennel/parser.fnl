@@ -112,7 +112,7 @@ Also returns a second function to clear the buffer in the byte stream."
     (fn dispatch [v ?source ?raw]
       (set whitespace-since-dispatch false)
       (let [v (case (and ?source (not= :table (type v))
-                         (utils.hook-opts :parse-literal options v ?source ?raw))
+                         (utils.hook-opts :parse-literal options v ?source ?raw stack))
                 hookv hookv
                 _ v)]
         (case (. stack (length stack))

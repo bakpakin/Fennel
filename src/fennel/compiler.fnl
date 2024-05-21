@@ -109,31 +109,15 @@ and compile-stream."
       (unique-mangling original (.. original append) scope (+ append 1))
       mangling))
 
-(fn local-mangling [str scope ast ?temp-manglings]
-  "Creates a symbol from a string by mangling it. ensures that the generated
-symbol is unique if the input string is unique in the scope."
-  (assert-compile (not (utils.multi-sym? str))
-                  (.. "unexpected multi symbol " str) ast)
-  (let [;; Mapping mangling to a valid Lua identifier
-        raw (if (or (utils.lua-keyword? str) (str:match "^%d"))
-                (.. "_" str)
-                str)
-        mangling (-> raw
-                     (string.gsub "-" "_")
-                     (string.gsub "[^%w_]" #(string.format "_%02x" ($:byte))))
-        unique (unique-mangling mangling mangling scope 0)]
-    (tset scope.unmanglings unique (or (. scope.gensym-base str) str))
-    (let [manglings (or ?temp-manglings scope.manglings)]
-      (tset manglings str unique))
-    unique))
-
-(fn apply-manglings [scope new-manglings ast]
+(fn apply-deferred-scope-changes [scope deferred-scope-changes ast]
   "Calling this function will mean that further compilation in scope will use
 these new manglings instead of the current manglings."
-  (each [raw mangled (pairs new-manglings)]
+  (each [raw mangled (pairs deferred-scope-changes.manglings)]
     (assert-compile (not (. scope.refedglobals mangled))
                     (.. "use of global " raw " is aliased by a local") ast)
-    (tset scope.manglings raw mangled)))
+    (tset scope.manglings raw mangled))
+  (each [raw symmeta (pairs deferred-scope-changes.symmeta)]
+    (tset scope.symmeta raw symmeta)))
 
 (fn combine-parts [parts scope]
   "Combine parts of a symbol."
@@ -195,14 +179,27 @@ rather than generating new one."
                     (string.format "macro tried to bind %s without gensym" name)
                     symbol)))
 
-(fn declare-local [symbol meta scope ast ?temp-manglings]
-  "Declare a local symbol"
+(fn declare-local [symbol scope ast ?var? ?deferred-scope-changes]
+  "Declare a local symbol.
+If ?deferred-scope-changes is provided, the local won't be in scope until
+the deferred changes are applied with (apply-deferred-scope-changes)."
   (check-binding-valid symbol scope ast)
-  (let [name (tostring symbol)]
-    (assert-compile (not (utils.multi-sym? name))
-                    (.. "unexpected multi symbol " name) ast)
-    (tset scope.symmeta name meta)
-    (local-mangling name scope ast ?temp-manglings)))
+  (assert-compile (not (utils.multi-sym? symbol))
+                  (.. "unexpected multi symbol " (tostring symbol)) ast)
+  (let [str (tostring symbol)
+        ;; Mapping mangling to a valid Lua identifier
+        raw (if (or (utils.lua-keyword? str) (str:match "^%d"))
+                (.. "_" str)
+                str)
+        mangling (-> raw
+                     (string.gsub "-" "_")
+                     (string.gsub "[^%w_]" #(string.format "_%02x" ($:byte))))
+        unique (unique-mangling mangling mangling scope 0)]
+    (tset scope.unmanglings unique (or (. scope.gensym-base str) str))
+    (let [target (or ?deferred-scope-changes scope)]
+      (tset target.manglings str unique)
+      (tset target.symmeta str {:var ?var? : symbol}))
+    unique))
 
 (fn hashfn-arg-name [name multi-sym-parts scope]
   (if (not scope.hashfn) nil
@@ -634,16 +631,17 @@ which we have to do if we don't know."
         {: isvar : declaration : forceglobal : forceset : symtype} opts
         symtype (.. "_" (or symtype :dst))
         setter (if declaration "local %s = %s" "%s = %s")
-        new-manglings []]
+        deferred-scope-changes {:manglings {} :symmeta {}}]
     (fn getname [symbol ast]
       "Get Lua source for symbol, and check for errors"
       (let [raw (. symbol 1)]
         (assert-compile (not (and opts.nomulti (utils.multi-sym? raw)))
                         (.. "unexpected multi symbol " raw) ast)
         (if declaration
-            ;; Technically this is too early to declare the local, but leaving
-            ;; out the meta table and setting it later works around the problem.
-            (declare-local symbol nil scope symbol new-manglings)
+            ;; Technically this is too early to declare the local, so we provide a
+            ;; deferred-scope-changes table so we can add the symbol to the scope later
+            ;; see https://todo.sr.ht/~technomancy/fennel/12
+            (declare-local symbol scope symbol isvar deferred-scope-changes)
             (let [parts (or (utils.multi-sym? raw) [raw])
                   [first] parts
                   meta (. scope.symmeta first)]
@@ -706,11 +704,7 @@ which we have to do if we don't know."
         (check-binding-valid left scope left)
         (if top?
             (compile-top-target [lname])
-            (emit parent (setter:format lname (exprs1 rightexprs)) left))
-        ;; We have to declare meta for the left *after* compiling the right
-        ;; see https://todo.sr.ht/~technomancy/fennel/12
-        (when declaration
-          (tset scope.symmeta (tostring left) {:var isvar}))))
+            (emit parent (setter:format lname (exprs1 rightexprs)) left))))
 
     (fn dynamic-set-target [[_ target & keys]]
       (assert-compile (utils.sym? target) "dynamic set needs symbol target" ast)
@@ -742,10 +736,6 @@ which we have to do if we don't know."
             (let [names (table.concat left-names ",")
                   target (if declaration (.. "local " names) names)]
               (emit parent (compile1 rightexprs scope parent {: target}) left)))
-        (when declaration
-          (each [_ sym (ipairs left)]
-            (when (utils.sym? sym)
-              (tset scope.symmeta (tostring sym) {:var isvar}))))
         ;; recurse if left-side tables found
         (each [_ pair (utils.stablepairs tables)]
           (destructure1 (. pair 1) [(. pair 2)] left))))
@@ -850,7 +840,7 @@ which we have to do if we don't know."
 
     (let [ret (destructure1 to from ast true)]
       (utils.hook :destructure from to scope opts)
-      (apply-manglings scope new-manglings ast)
+      (apply-deferred-scope-changes scope deferred-scope-changes ast)
       ret)))
 
 (fn require-include [ast scope parent opts]
@@ -1051,7 +1041,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
  : global-mangling
  : global-unmangling
  : global-allowed?
- : apply-manglings
+ : apply-deferred-scope-changes
  :macroexpand macroexpand*
  : declare-local
  : make-scope

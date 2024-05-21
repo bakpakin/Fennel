@@ -229,7 +229,7 @@ By default, start is 2."
 (fn get-fn-name [ast scope f-scope fn-name multi {: nval : tail}]
   (if (and fn-name (not= (. fn-name 1) :nil))
       (values (if (not multi)
-                  (compiler.declare-local fn-name []
+                  (compiler.declare-local fn-name
                                           (if (or (= nval 0) tail)
                                               scope f-scope) ast)
                   (. (compiler.symbol-to-expression fn-name scope) 1))
@@ -307,7 +307,7 @@ By default, start is 2."
       (compiler.assert nil (.. "expected local table " (. multi 1)) (. ast 2)))
     (fn destructure-arg [arg]
       (let [raw (utils.sym (compiler.gensym scope))
-            declared (compiler.declare-local raw [] f-scope ast)]
+            declared (compiler.declare-local raw f-scope ast)]
         (compiler.destructure arg raw ast f-scope f-chunk
                               {:declaration true
                                :nomulti true
@@ -337,7 +337,7 @@ By default, start is 2."
           (utils.sym? arg :&) (destructure-amp i)
           (and (utils.sym? arg) (not= (tostring arg) :nil)
                (not (utils.multi-sym? (tostring arg))))
-          (compiler.declare-local arg [] f-scope ast)
+          (compiler.declare-local arg f-scope ast)
           (utils.table? arg) (destructure-arg arg)
           (compiler.assert false
                            (: "expected symbol for function parameter: %s"
@@ -638,14 +638,14 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
   (let [sub-scope (compiler.make-scope scope)
         (binding iter ?until-condition) (iterator-bindings (. ast 2))
         destructures []
-        new-manglings []]
+        deferred-scope-changes {:manglings {} :symmeta {}}]
     (utils.hook :pre-each ast sub-scope binding iter ?until-condition)
     (fn destructure-binding [v]
       (if (utils.sym? v)
-          (compiler.declare-local v [] sub-scope ast new-manglings)
+          (compiler.declare-local v sub-scope ast nil deferred-scope-changes)
           (let [raw (utils.sym (compiler.gensym sub-scope))]
             (tset destructures raw v)
-            (compiler.declare-local raw [] sub-scope ast))))
+            (compiler.declare-local raw sub-scope ast))))
 
     (let [bind-vars (icollect [_ b (ipairs binding)] (destructure-binding b))
           vals (compiler.compile1 iter scope parent)
@@ -658,7 +658,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
       (each [raw args (utils.stablepairs destructures)]
         (compiler.destructure args raw ast sub-scope chunk
                               {:declaration true :nomulti true :symtype :each}))
-      (compiler.apply-manglings sub-scope new-manglings ast)
+      (compiler.apply-deferred-scope-changes sub-scope deferred-scope-changes ast)
       (compile-until ?until-condition sub-scope chunk)
       (compile-do ast sub-scope chunk 3)
       (compiler.emit parent chunk ast)
@@ -717,7 +717,7 @@ order, but can be used with any iterator." true)
                                          parent {:nval 1}))))
     (compiler.emit parent
                    (: "for %s = %s do" :format
-                      (compiler.declare-local binding-sym [] sub-scope ast)
+                      (compiler.declare-local binding-sym sub-scope ast)
                       (table.concat range-args ", ")) ast)
     (compile-until until-condition sub-scope chunk)
     (compile-do ast sub-scope chunk 3)
@@ -812,9 +812,9 @@ Method name doesn't have to be known at compile-time; if it is, use
         name (compiler.gensym scope)
         symbol (utils.sym name)
         args []]
-    (compiler.declare-local symbol [] scope ast)
+    (compiler.declare-local symbol scope ast)
     (for [i 1 9]
-      (tset args i (compiler.declare-local (utils.sym (.. "$" i)) [] f-scope
+      (tset args i (compiler.declare-local (utils.sym (.. "$" i)) f-scope
                                            ast)))
     ;; recursively walk the AST, transforming $... into ...
     (fn walker [idx node ?parent-node]

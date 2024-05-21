@@ -323,7 +323,7 @@ nil, unless that argument's name begins with a question mark."
       (if (table? a)
           (each [_ a (pairs a)] (check! a))
           (let [as (tostring a)]
-            (and (not (as:match "^?")) (not= as "&") (not= as "_")
+            (and (not (as:find "^?")) (not= as "&") (not (as:find "^_"))
                  (not= as "...") (not= as "&as")))
           (table.insert args check-position
                         `(_G.assert (not= nil ,a)

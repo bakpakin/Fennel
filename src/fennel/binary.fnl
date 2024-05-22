@@ -230,20 +230,12 @@ int main(int argc, char *argv[]) {
                                                (: :match :mingw))
                                           (values "" :.exe false)
                                           (values :-rdynamic "" true))
-        compile-command [cc
-                         :-Os
-                         ;; optimize for size
-                         lua-c-path
-                         (table.concat native " ")
-                         static-lua
-                         rdynamic
-                         :-lm
-                         (if ldl? :-ldl "")
-                         :-o
-                         (.. executable-name bin-extension)
-                         :-I
-                         lua-include-dir
-                         (os.getenv :CC_OPTS)]]
+        compile-command [cc :-Os ; optimize for size
+                         lua-c-path (table.concat native " ")
+                         static-lua rdynamic
+                         :-lm (if ldl? :-ldl "")
+                         :-o (.. executable-name bin-extension)
+                         :-I lua-include-dir (os.getenv :CC_OPTS)]]
     (when (os.getenv :FENNEL_DEBUG)
       (print "Compiling with" (table.concat compile-command " ")))
     (when (not (execute (table.concat compile-command " ")))

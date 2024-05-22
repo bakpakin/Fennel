@@ -147,6 +147,7 @@ Supports early termination with an &until clause."
   (assert (not= nil key-expr) "expected key and value expression")
   (assert (= nil ...)
           "expected 1 or 2 body expressions; wrap multiple expressions with do")
+  (assert (or value-expr (list? key-expr)) "need key and value")
   (let [kv-expr (if (= nil value-expr) key-expr `(values ,key-expr ,value-expr))
         (into iter) (extract-into iter-tbl)]
     `(let [tbl# ,into]

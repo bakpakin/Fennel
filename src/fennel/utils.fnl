@@ -319,7 +319,7 @@ Returns nil if passed something other than a multi-sym."
   "Walks a tree (like the AST), invoking f(node, idx, parent) on each node.
 When f returns a truthy value, recursively walks the children."
   (fn walk [iterfn parent idx node]
-    (when (f idx node parent)
+    (when (and (f idx node parent) (not (sym? node)))
       (each [k v (iterfn node)]
         (walk iterfn node k v))))
 

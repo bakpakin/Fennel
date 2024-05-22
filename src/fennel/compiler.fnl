@@ -221,7 +221,8 @@ if they have already been declared via declare-local"
           etype (or (and (< 1 (length parts)) :expression) :sym)
           local? (. scope.manglings (. parts 1))]
       (when (and local? (. scope.symmeta (. parts 1)))
-        (tset (. scope.symmeta (. parts 1)) :used true))
+        (tset scope.symmeta (. parts 1) :used true)
+        (set symbol.referent (. scope.symmeta (. parts 1) :symbol)))
       (assert-compile (not (. scope.macros (. parts 1)))
                       (.. "tried to reference a macro without calling it") symbol)
       (assert-compile (or (not (. scope.specials (. parts 1)))

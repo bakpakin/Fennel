@@ -128,8 +128,12 @@
                             (: :gsub "table: 0x[0-9a-f]+" "#<TABLE>")
                             (: :gsub "\n%s*" " "))
         code "(macrodebug (when (= 1 1) (let [x :X] {: x})) true)"
-        expected "(if (= 1 1) (do (let [x \"X\"] {:x x})))"]
-    (t.= (eval-normalize code) expected)))
+        expected "(if (= 1 1) (do (let [x \"X\"] {:x x})))"
+        cyclic "(macrodebug (case [1 2] (where (or [x y] [y nil x]) (= 3 (+ x y))) x) true)"]
+    (t.= (eval-normalize code) expected)
+    (t.= (fennel.eval (pick-values 1 (eval-normalize cyclic)))
+         1
+         "cyclic/recursive AST's should serialize to valid syntax")))
 
 ;; many of these are copied wholesale from test-match, pending implementation,
 ;; if match is implemented via case then it should be reasonable to remove much

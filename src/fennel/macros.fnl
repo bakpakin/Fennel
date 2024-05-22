@@ -348,7 +348,9 @@ nil, unless that argument's name begins with a question mark."
   "Print the resulting form after performing macroexpansion.
 With a second argument, returns expanded form as a string instead of printing."
   (let [handle (if return? `do `print)]
-    `(,handle ,(view (macroexpand form _SCOPE)))))
+    ;; TODO: Provide a helpful compiler error in the unlikely edge case of an
+    ;; infinite AST instead of the current "silently expand until max depth"
+    `(,handle ,(view (macroexpand form _SCOPE) {:detect-cycles? false}))))
 
 (fn import-macros* [binding1 module-name1 ...]
   "Bind a table of macros from each macro module according to a binding form.

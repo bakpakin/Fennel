@@ -25,6 +25,7 @@ deprecated forms.
 
 * Propagate compile options into `,compile` repl command.
 * IIFEs emitted by `and`/`or` inside `(fn [...])` now propagate varargs.
+* `macrodebug` on cyclic macro expansions now serialize to valid code (no `@1, ..`)
 
 ## 1.4.2 / 2024-02-23
 

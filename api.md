@@ -710,8 +710,9 @@ the functions listed above. If you're using the compiler programmatically,
 you can include a `:plugins` table in the `options` table to most compiler
 entry point functions.
 
-Your plugin should contain a `:versions` table which contains a list
-of strings indicating every version of Fennel which you have tested it
-with. You should also have a `:name` field with the plugin's name. If
-your plugin is used with a version of Fennel that isn't in the list,
-it will emit a warning.
+Your plugin should contain a `:versions` field which either contains a
+list of strings indicating every version of Fennel which you have
+tested it with, or a string containing a pattern which is checked
+against Fennel's version with `string.find`.  If your plugin is used
+with a version of Fennel that doesn't match `:versions` it will emit a
+warning. You should also have a `:name` field with the plugin's name.

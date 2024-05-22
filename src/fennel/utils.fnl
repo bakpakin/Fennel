@@ -371,6 +371,7 @@ has options calls down into compile."
 
 (fn check-plugin-version [{: name : versions &as plugin}]
   (when (and (not (member? (version:gsub "-dev" "") (or versions [])))
+             (not (and (string? versions) (version:find versions)))
              (not (. warned plugin)))
     (tset warned plugin true)
     (warn (string.format "plugin %s does not support Fennel version %s"

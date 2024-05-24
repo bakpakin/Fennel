@@ -1885,7 +1885,7 @@ them that way instead is recommended for clarity.
 
 ### Rest destructuring metamethod
 
-*(Deprecated in 1.4.1)*
+*(Deprecated in 1.4.1, will be removed in future versions)*
 
 If a table implements `__fennelrest` metamethod it is used to capture the
 remainder of the table. It can be used with custom data structures

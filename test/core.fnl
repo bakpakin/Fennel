@@ -21,7 +21,9 @@
   (== (* 32) 32)
   (== (/ 2) 0.5))
 
+(local stderr io.stderr)
 (fn test-booleans []
+  (set io.stderr nil) ; silence deprecation warnings
   (== (not 39) false)
   (== (and true 12 "hey") "hey")
   (== (or false nil true 12 false) true)
@@ -115,7 +117,8 @@
   (== (do (var i 1)
           (or (lua "i = i + 1" "true") (lua "i = i + 1" "true"))
           i)
-      2))
+      2)
+  (set io.stderr stderr))
 
 (fn test-comparisons []
   (== (= 1 1 2 2) false)

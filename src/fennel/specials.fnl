@@ -921,6 +921,8 @@ Method name doesn't have to be known at compile-time; if it is, use
                    "tried to use vararg with operator" ast)
   (let [padded-op (.. " " name " ")]
     (var (operands accumulator) [])
+    (when (utils.call-of? (. ast (length ast)) :values)
+      (utils.warn "multiple values in operators are deprecated" ast))
     (each [subast (iter-args ast)]
       (if (and (not= nil (next operands))
                (or (= name :or) (= name :and))

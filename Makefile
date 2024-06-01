@@ -67,7 +67,7 @@ test/faith.lua: test/faith.fnl
 check:
 	fennel-ls --check $(SRC)
 
-ci: testall lint fuzz fennel
+ci: testall fuzz fennel
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel.exe \
@@ -214,5 +214,5 @@ guard-%:
 		exit 1; \
 	fi
 
-.PHONY: build test testall fuzz lint count format ci clean coverage install \
+.PHONY: build test testall fuzz count format ci clean coverage install \
 	man upload uploadrock prerelease release rockspec guard-VERSION test-builds

@@ -20,15 +20,15 @@
 ## Reporting bugs
 
 * Check past and current issues to see if your problem has been run into before.
-  Take a look at the [issue tracker][3] and the [mailing list][2].
+  Take a look at the [issue tracker][3], the [mailing list][2], and
+  the [old issue tracker][6].
 * If you can't find a past issue for your problem, you should open a new issue.
   If there is a closed issue that is relevant, make sure to reference it.
 * As with any project, include a comprehensive description of the problem and
   instructions on how to reproduce it. If it is a compiler or language bug,
-  please try to include a minimal example. This means don't post all 200 lines
+  please try to include a minimal example. This means don't post all 800 lines
   of code from your project, but spend some time distilling the problem to just
   the relevant code.
-* Add the appropriate labels to your issue. (bug, enhancement, docs, etc)
 
 ## Codebase Organization
 
@@ -48,6 +48,7 @@ by the compiler is the exact same AST that is exposed to macros.
 * `src/fennel/compiler.fnl`: turns AST into Lua output
 * `src/fennel/specials.fnl`: built-in fundamental language constructs
 * `src/fennel/macros.fnl`: built-in language constructs that use fundamentals
+* `src/fennel/match.fnl`: pattern matching macro implementations
 * `src/fennel/utils.fnl`: definitions of core AST types and helper functions
 
 Finally there are a few miscellaneous modules:
@@ -140,8 +141,7 @@ to your message if you prefer.
 We also accept code contributions on the [GitHub mirror][5] if you
 prefer not to use email. For smaller changes, you can also push your
 changes to a branch on a public git remote hosted anywhere you like
-and ask someone on IRC or the mailing list to take a look. This is not
-a good choice when the change requires nontrivial discussion.
+and ask someone on IRC/Matrix or the mailing list to take a look.
 
 Please note that it is **ethically unacceptable** to submit patches (to
 this project or any other) which you did not author yourself without
@@ -172,7 +172,7 @@ something that may not be able to get merged.
   `make test`) and rely on the CI suite to run the rest, but for larger
   changes please make sure that your changes will work on Lua versions 5.1, 5.2,
   5.3, 5.4, and LuaJIT. Making fennel require LuaJIT or 5.2+ specific
-  features is a non-goal of the project. In general, this means target Lua
+  features is not going to fly. In general, this means target Lua
   5.1, but provide shims for where functionality is different in newer Lua
   versions. Running `make testall` will test against all supported versions,
   assuming they're installed.
@@ -182,6 +182,9 @@ something that may not be able to get merged.
   `changelog.md`. Changes that affect the compiler API should update `api.md`
   while changes to the built-in forms will usually need to update
   `reference.md` to reflect the new behavior.
+* The [fennel-ls][7] analysis gives a lot of false positives on the
+  compiler, but it can be helpful to use it to ensure your own changes
+  don't introduce new warnings.
 * Please be patient if it takes a long time to get feedback on your change;
   there are very few people who review patches, and no one works on Fennel
   for their job.
@@ -191,3 +194,4 @@ something that may not be able to get merged.
 [3]: https://todo.sr.ht/~technomancy/fennel
 [4]: mailto:~technomancy/fennel@lists.sr.ht
 [5]: https://github.com/bakpakin/Fennel
+[6]: https://github.com/bakpakin/Fennel/issues

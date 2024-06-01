@@ -47,26 +47,6 @@ each release.
 (print (fib 10))
 ```
 
-## Building Fennel from source
-
-Building Fennel from source allows you to use versions of Fennel that
-haven't been released, and it allows you to contribute to Fennel.
-
-### To build Fennel from source
-
-This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
-
-1. `cd` to a directory in which you want to download Fennel, such as `~/src`
-2. Run `git clone https://git.sr.ht/~technomancy/fennel`
-3. Run `cd fennel`
-4. Run `make fennel` to create a standalone script called `fennel`
-5. Run `sudo make install` to install system-wide (or `make install
-   PREFIX=$HOME` if `~/bin` is on your `$PATH`)
-
-If you don't have Lua already installed on your system, you can run
-`make fennel-bin LUA=lua/src/lua` instead to build a standalone binary
-that has its own internal version of Lua.
-
 ## Differences from Lua
 
 * Syntax is much more regular and predictable (no statements; no operator precedence)
@@ -82,7 +62,7 @@ that has its own internal version of Lua.
 
 ## Differences from other lisp languages
 
-* Its VM can be embedded in other programs with only 180 kB
+* Its VM can be embedded in other programs with only ~200kb
 * Access to [excellent FFI][4]
 * LuaJIT consistently ranks at the top of performance shootouts
 * Inherits aggressively simple semantics from Lua; easy to learn
@@ -109,12 +89,31 @@ Lua is much more readily-available than it is for Fennel.
 ## Resources
 
 * Join the `#fennel` IRC chat [Libera.Chat][9] 
-* There is also a separate chat [on Matrix][10] if you prefer
+* The chat is also bridged [on Matrix][10] if you prefer
 * The [mailing list][5] has slower-paced discussion and announcements
-* Report issues on the mailing list, [Sourcehut todo][11] or [Github issues][12]
+* Report issues on the mailing list, [Sourcehut todo][11]
+* The mirror on [Github][12] is for people who haven't made a Sourcehut account
 * You can browse and edit [the Wiki][7]
 * View builds in Fennel's [continuous integration][8]
 * Community interactions are subject to the [code of conduct](CODE-OF-CONDUCT.md).
+
+## Building Fennel from source
+
+This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
+
+1. `cd` to a directory in which you want to download Fennel, such as `~/src`
+2. Run `git clone https://git.sr.ht/~technomancy/fennel`
+3. Run `cd fennel`
+4. Run `make fennel` to create a standalone script called `fennel`
+5. Run `sudo make install` to install system-wide (or `make install
+   PREFIX=$HOME` if `~/bin` is on your `$PATH`)
+
+If you don't have Lua already installed on your system, you can run
+`make fennel-bin LUA=lua/src/lua` instead to build a standalone binary
+that has its own internal version of Lua.
+
+See the [contributing guide](CONTRIBUTING.md) for details about how to
+work on the source.
 
 ## License
 

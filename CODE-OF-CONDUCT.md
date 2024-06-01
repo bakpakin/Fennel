@@ -4,10 +4,10 @@
 
 If you see a Code of Conduct violation, follow these steps:
 
-1. Let the person know that what they did is not appropriate and ask them to stop and/or edit their message(s).
+1. Let the person know that what they did is not appropriate and ask them to stop.
 2. That person should immediately stop the behavior and correct the issue.
 3. If this doesn’t happen, or if you're uncomfortable speaking up, [contact admins](#contacting-admins).
-4. As soon as available, an admin will join, identify themselves, and take [further action (see below)](#further-enforcement), starting with a warning, then temporary deactivation, then long-term deactivation.
+4. As soon as available, an admin will identify themselves and take [further action (see below)](#further-enforcement), starting with a warning, then temporary deactivation, then long-term deactivation.
 
 When reporting, please include any relevant details, links, screenshots, context, or other information that may be used to better understand and resolve the situation.
 
@@ -29,14 +29,13 @@ Examples of behavior that contributes to creating a positive environment include
 
 Examples of unacceptable behavior by participants include:
 
-  * The use of sexualized language or imagery and unwelcome sexual attention or advances, including when simulated online. The only exception to sexual topics is channels/spaces specifically for topics of sexual identity.
+  * The use of sexualized language or imagery and unwelcome sexual attention or advances, including when simulated online.
   * Trolling, insulting/derogatory comments, and personal or political attacks.
   * Casual mention of slavery or indentured servitude and/or false comparisons of one's occupation or situation to slavery. Please consider using or asking about alternate terminology when referring to such metaphors in technology.
   * Making light of/making mocking comments about trigger warnings and content warnings.
   * Public or private harassment, deliberate intimidation, or threats.
   * Publishing others' private information, such as a physical or electronic address, without explicit permission. This includes any sort of "outing" of any aspect of someone's identity without their consent.
-  * Publishing screenshots or quotes, especially from identity channels, without all quoted users' *explicit* consent.
-  * Publishing or telling others that a member belongs to a particular identity channel without asking their consent first.
+  * Publishing screenshots or quotes without all quoted users' *explicit* consent.
   * Publishing of non-harassing private communication.
   * Any of the above even when [presented as "ironic" or "joking"](https://en.wikipedia.org/wiki/Hipster_racism).
   * Any attempt to present "reverse-ism" versions of the above as violations. Examples of reverse-isms are "reverse racism", "reverse sexism", "heterophobia", and "cisphobia".
@@ -47,7 +46,7 @@ Examples of unacceptable behavior by participants include:
 
 ## Scope
 
-This Code of Conduct applies both within community spaces and in other spaces involving the community. This includes the Fennel Email list, #fennel IRC channel on Libera Chat, private email communications in the context of the community, and any events where members of the community are participating, as well as adjacent communities and venues affecting the community's members.
+This Code of Conduct applies both within community spaces and in other spaces involving the community. This includes the Fennel Email list, #fennel IRC channel on Libera Chat and Matrix, private email communications in the context of the community, FennelConf and any other events where members of the community are participating, as well as adjacent communities and venues affecting the community's members.
 
 Depending on the violation, the admins may decide that violations of this code of conduct that have happened outside of the scope of the community may deem an individual unwelcome, and take appropriate action to maintain the comfort and safety of its members.
 
@@ -61,9 +60,11 @@ Once the admins get involved, they will follow a documented series of steps and 
 
 You may get in touch with the Fennel admin team through any of the following methods:
 
-  * Contact anyone on the #fennel IRC channel or Email list
-  * Directly message any admin in private (through either IRC PM, Fediverse, or email, as available) if it is a preferred or more comfortable avenue.
-  * More methods coming eventually
+  * In the `#fennel` IRC channel on libera.chat
+  * In the `#fennel:matrix.org` channel, which is bridged to libera
+  * In a private message on IRC
+  * In a direct message or mention on the Fediverse
+  * Over email
 
 ### Further Enforcement
 
@@ -90,7 +91,7 @@ Admins and other leaders who do not follow or enforce the Code of Conduct in goo
 
 The vast majority of situations work out like this, in our experience. This interaction is common, and generally positive.
 
-> Alex: "Yeah I used X and it was really crazy!"
+> Alex: "Yeah I used X and it was really retarded!"
 
 > Patt: "Hey, could you not use that word? What about 'ridiculous' instead?"
 
@@ -114,13 +115,13 @@ Sometimes, though, you need to get admins involved. Admins will do their best to
 
 > MxAdmin1: *removes patt* *DMs patt* "I mean it. Please refer to the CoC in the repository if you have questions, but you can consider this an actual warning. I'd appreciate it if you reworded your messages in #fennel, since they made folks there uncomfortable. Let's try and be kind, yeah?"
 
-> Patt: *Replies to DM* "@mxadmin1 Okay sorry. I'm just frustrated and I'm kinda burnt out and I guess I got carried away. I'll DM Alex a note apologizing and edit my messages. Sorry for the trouble."
+> Patt: *Replies to DM* "@mxadmin1 Okay sorry. I'm just frustrated and I'm kinda burnt out and I guess I got carried away. I'll DM Alex a note apologizing. Sorry for the trouble."
 
-> MxAdmin1: *Replies to DM* "@patt Thanks for that. I hear you on the stress. Burnout sucks :/.  Have a good one!"
+> MxAdmin1: *Replies to DM* "@patt Thanks for that. I hear you on the stress. Burnout sucks :/  Have a good one!"
 
 #### The Nope Case
 
-> PepeTheFrog🐸: "Hi, I am a literal actual nazi and I think white supremacists are quite fashionable."
+> PepeTheFrog: "Hi, I am a literal actual nazi and I think white supremacists are quite fashionable."
 
 > Patt: "NOOOOPE. OH NOPE NOPE."
 
@@ -128,7 +129,7 @@ Sometimes, though, you need to get admins involved. Admins will do their best to
 
 > MxAdmin1: "/kick PepeTheFrog"
 
-> PepeTheFrog🐸 has been kicked.
+> PepeTheFrog has been kicked.
 
 ## Attribution
 

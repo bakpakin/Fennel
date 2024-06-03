@@ -1,7 +1,7 @@
 package = "fennel"
 version = "scm-2"
 source = {
-    url = "git://github.com/bakpakin/Fennel"
+    url = "git://github.com/bakpakin/Fennel",
 }
 description = {
    summary = "Lisp that compiles to Lua",
@@ -9,7 +9,7 @@ description = {
 A lisp-like language that compiles to efficient Lua. Combine
 meta-programming with Lua.]],
    homepage = "https://fennel-lang.org/",
-   license = "MIT"
+   license = "MIT",
 }
 dependencies = {
    "lua >= 5.1"
@@ -24,6 +24,7 @@ build = {
    install_variables = {
        PREFIX = "$(PREFIX)",
        BINDIR = "$(BINDIR)",
-       LUADIR = "$(LUADIR)",
+       LUA_LIB_DIR = "$(LUADIR)",
+       MAN_DIR = "$(PREFIX)",
    },
 }

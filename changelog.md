@@ -23,6 +23,7 @@ deprecated forms.
 
 ### Bug Fixes
 
+* Don't non-nil assert on `_foo` arguments in `lambda`.
 * Propagate compile options into `,compile` repl command.
 * IIFEs emitted by `and`/`or` inside `(fn [...])` now propagate varargs.
 * `macrodebug` on cyclic macro expansions now serialize to valid code (no `@1, ..`)

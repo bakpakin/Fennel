@@ -66,17 +66,10 @@ The ast arg should be unmodified so that its first element is the form called."
 (set scopes.compiler (make-scope scopes.global))
 (set scopes.macro scopes.global)
 
-;; Allow printing a string to Lua, also keep as 1 line.
-(local serialize-subst {"\a" "\\a"
-                        "\b" "\\b"
-                        "\t" "\\t"
-                        "\n" :n
-                        "\v" "\\v"
-                        "\f" "\\f"})
-
 (fn serialize-string [str]
   (-> (string.format "%q" str)
-      (string.gsub "." serialize-subst)
+      (string.gsub "\\\n" "\\n") ; keep it as one line
+      (string.gsub "\\9" "\\t")
       (string.gsub "[\128-\255]" #(.. "\\" ($:byte)))))
 
 (fn global-mangling [str]

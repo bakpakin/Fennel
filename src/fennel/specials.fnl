@@ -764,9 +764,9 @@ Evaluates body once for each value between start and stop (inclusive)." true)
 (fn binding-method-call [ast scope parent target args]
   "When double-evaluation is a concern, we have to bind to a local."
   (let [method-string (str1 (compiler.compile1 (. ast 3) scope parent {:nval 1}))
-        target-local (compiler.gensym scope :tgt)
-        args [(tostring target-local) (unpack args)]]
-    (compiler.emit parent (string.format "local %s = %s" target-local target))
+        target-local (tostring (compiler.gensym scope :tgt))
+        args [target-local (unpack args)]]
+    (compiler.emit parent (string.format "local %s = %s" target-local (tostring target)))
     (utils.expr (string.format "(%s)[%s](%s)" target-local method-string
                                (table.concat args ", "))
                 :statement)))

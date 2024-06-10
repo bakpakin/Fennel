@@ -59,6 +59,11 @@
           (let [t {:a 521}] (or true (ts t :a 1)) t.a)) 521)
   (== ((fn [...] (or (doto [...] (tset 4 4)) :never)) 1 2 3)
       [1 2 3 4])
+  ;; short-circuit with methods
+  (== (do (var i 1) (let [x {:method #(set i 2)}] (and false (: (#x) (#:method))) i)) 1)
+  (== (do (var i 1) (let [x {:method #(set i 2)}] (and true (: (#x) (#:method))) i)) 2)
+  (== (do (var i 1) (let [x {:method #nil}] (and false (: (#x) (#:method) (set i 2))) i)) 1)
+  (== (do (var i 1) (let [x {:method #nil}] (and true (: (#x) (#:method) (set i 2))) i)) 2)
   ;; address (not expr) bypassing short-circuit protections
   (== (do (var i 1) (fn i++! [] (set i (+ i 1)) i) (or true (not (do (i++!)))) i)
       1)

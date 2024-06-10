@@ -730,6 +730,14 @@ order, but can be used with any iterator." true)
              "Numeric loop construct.
 Evaluates body once for each value between start and stop (inclusive)." true)
 
+(fn method-special-type [ast]
+  (if (and (utils.string? (. ast 3))
+           (utils.valid-lua-identifier? (. ast 3)))
+      :native
+      (utils.sym? (. ast 2))
+      :nonnative
+      :binding))
+
 (fn native-method-call [ast _scope _parent target args]
   "Prefer native Lua method calls when method name is a valid Lua identifier."
   (let [[_ _ method-string] ast
@@ -753,12 +761,14 @@ Evaluates body once for each value between start and stop (inclusive)." true)
                                (table.concat args ", "))
                 :statement)))
 
-(fn double-eval-protected-method-call [ast scope parent target args]
-  "When double-evaluation is a concern, we have to wrap an IIFE."
+(fn binding-method-call [ast scope parent target args]
+  "When double-evaluation is a concern, we have to bind to a local."
   (let [method-string (str1 (compiler.compile1 (. ast 3) scope parent {:nval 1}))
-        call "(function(tgt, m, ...) return tgt[m](tgt, ...) end)(%s, %s)"]
-    (table.insert args 1 method-string)
-    (utils.expr (string.format call (tostring target) (table.concat args ", "))
+        target-local (compiler.gensym scope :tgt)
+        args [(tostring target-local) (unpack args)]]
+    (compiler.emit parent (string.format "local %s = %s" target-local target))
+    (utils.expr (string.format "(%s)[%s](%s)" target-local method-string
+                               (table.concat args ", "))
                 :statement)))
 
 (fn method-call [ast scope parent]
@@ -770,17 +780,15 @@ Evaluates body once for each value between start and stop (inclusive)." true)
                                         {:nval (if (not= i (length ast)) 1)})]
         (icollect [_ subexpr (ipairs subexprs) &into args]
           (tostring subexpr))))
-    (if (and (utils.string? (. ast 3))
-             (utils.valid-lua-identifier? (. ast 3)))
-        (native-method-call ast scope parent target args)
-        (= target.type :sym)
-        (nonnative-method-call ast scope parent target args)
+    (case (method-special-type ast)
+        :native (native-method-call ast scope parent target args)
+        :nonnative (nonnative-method-call ast scope parent target args)
         ;; When the target is an expression, we can't use the naive
         ;; nonnative-method-call approach, because it will cause the target
         ;; to be evaluated twice. This is fine if it's a symbol but if it's
         ;; the result of a function call, that function could have side-effects.
         ;; See test-short-circuit in test/misc.fnl for an example of the problem.
-        (double-eval-protected-method-call ast scope parent target args))))
+        :binding (binding-method-call ast scope parent target args))))
 
 (tset SPECIALS ":" method-call)
 
@@ -886,6 +894,8 @@ Method name doesn't have to be known at compile-time; if it is, use
           (where (or "<" ">" "<=" ">=" "=" "not=" "~=")
                  (= (comparator-special-type x) :binding)) false
           (where call (. scope.macros call)) false
+          (where ":"
+                 (= (method-special-type x) :binding)) false
           _ (faccumulate [ok true i 2 (length x) &until (not ok)]
               (short-circuit-safe? (. x i) scope)))
         (accumulate [ok true _ v (ipairs x) &until (not ok)]

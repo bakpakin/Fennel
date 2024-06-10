@@ -364,7 +364,11 @@
   (== (do
         (var x 0) (each [_ [a b] (ipairs [[1 2] [3 4]])]
                     (set x (+ x (* a b))))
-        x) 14))
+        x) 14)
+  (== (let [[a b & c &as t] [1 2 3 4]] a) 1)
+  (== (let [[a b & c &as t] [1 2 3 4]] b) 2)
+  (== (let [[a b & c &as t] [1 2 3 4]] c) [3 4])
+  (== (let [[a b & c &as t] [1 2 3 4]] t) [1 2 3 4]))
 
 (fn test-edge []
   (== (do (local x (lua "y = 4" "6")) (* _G.y x)) 24)
@@ -516,7 +520,7 @@
                 "added keys should be sorted: numbers>booleans>strings>tables>other"]]]
     (each [_ [input expected msg] (ipairs cases)]
       (t.= (: (fennel.compile-string input) :gsub "^return%s*" "")
-                      expected msg))))
+           expected msg))))
 
 {: setup
 

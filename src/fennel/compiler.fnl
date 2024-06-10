@@ -766,7 +766,9 @@ which we have to do if we don't know."
             formatted (string.format (string.gsub unpack-str "\n%s*" " ") s k)
             subexpr (utils.expr formatted :expression)]
         (assert-compile (and (utils.sequence? left)
-                             (= nil (. left (+ k 2))))
+                             (let [next-symbol (. left (+ k 2))]
+                               (or (= nil next-symbol)
+                                   (utils.sym? next-symbol "&as"))))
                         "expected rest argument before last parameter"
                         left)
         (destructure1 (. left (+ k 1)) [subexpr] left)))

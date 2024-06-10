@@ -116,6 +116,7 @@
   (assert-fail (let [t {:a 1}] (+ t.a BAD)) "BAD")
   (assert-fail (local 47 :forty-seven) "unable to bind number 47")
   (assert-fail (set (. 98) true) "needs symbol target")
+  (assert-fail (let [[first &as list & rest] []]  true) "&as argument before last parameter")
   (test-failures {"(local a~b 3)" "invalid character: ~"
                   "(let [t []] (set t.:x :y))" "malformed multisym: t.:x"
                   "(let [t []] (set t::x :y))" "malformed multisym: t::x"

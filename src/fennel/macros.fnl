@@ -411,6 +411,15 @@ REPL `,return` command returns values to assert in place to continue execution."
            (_G.assert (fennel#.repl opts#)))
          (values (unpack# vals# 1 vals#.n)))))
 
+(fn struct* [& fields]
+  (let [out {:make `(lambda [,(unpack fields)] [,(unpack fields)])}]
+    (each [i field (ipairs fields)]
+      (assert (sym? field) "expected symbols for fields")
+      (tset out (tostring field) `(fn [self#] (list (sym :.) self# ,i)))
+      (tset out (.. "set-" (tostring field))
+            `(fn [self# val#] (list (sym :tset) self# ,i val#))))
+    out))
+
 {:-> ->*
  :->> ->>*
  :-?> -?>*
@@ -429,6 +438,7 @@ REPL `,return` command returns values to assert in place to continue execution."
  :λ lambda*
  :pick-args pick-args*
  :pick-values pick-values*
+ :struct struct* ; TODO: this should only be visible in compile scope
  :macro macro*
  :macrodebug macrodebug*
  :import-macros import-macros*

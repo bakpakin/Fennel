@@ -779,6 +779,14 @@
     (t.is ok? "should be able to recover from nil assertion.")
     (t.= "nerevar" val)))
 
+(fn test-struct []
+  (== (do (import-macros point :test.mod.point)
+          (local p (point.make 1 9 5 1))
+          (point.set-h p 2)
+          [(+ (point.x p) (point.w p))
+           (+ (point.y p) (point.h p))])
+      [6 11]))
+
 (fn test-lambda []
   (lambda arglist-lambda [x]
     "docstring"
@@ -815,4 +823,5 @@
  : test-match-try
  : test-case-try
  : test-lambda
+ : test-struct
  : test-literal}

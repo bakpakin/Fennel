@@ -180,7 +180,7 @@ end)
 Macro searchers store loaded macro modules in the `fennel.macro-loaded`
 table which works the same as `package.loaded` but for macro modules.
 
-## Get Fennel-aware stack traces.
+## Get Fennel-aware stack information
 
 The `fennel.traceback` function works like Lua's `debug.traceback`
 function, except it tracks line numbers from Fennel code correctly.
@@ -193,6 +193,16 @@ debug.traceback = fennel.traceback
 ```
 
 Note that some systems print stack traces from C, which will not be affected.
+
+The `fennel.getinfo` function works like Lua's `debug.getinfo`
+function, except it tracks line numbers from Fennel code correctly.
+Functions defined from Fennel will have the `what` field set to
+`"Fennel"` instead of `"Lua"`.
+
+```lua
+local mymodule = require("module")
+print(fennel.getinfo(mymodule.func1).linedefined)
+```
 
 ## Compile Fennel code to Lua
 

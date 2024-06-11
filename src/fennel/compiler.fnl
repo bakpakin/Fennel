@@ -276,8 +276,10 @@ if they have already been declared via declare-local"
 (fn flatten-chunk [file-sourcemap chunk tab depth]
   "Flatten a tree of indented Lua source code lines. Tab is used to indent."
   (if chunk.leaf
-      (let [{: filename : line} (utils.ast-source chunk.ast)]
-        (table.insert file-sourcemap [filename line])
+      (let [{: filename : line : endline} (utils.ast-source chunk.ast)]
+        (if (= "end" chunk.leaf)
+            (table.insert file-sourcemap [filename (or endline line)])
+            (table.insert file-sourcemap [filename line]))
         chunk.leaf)
       (let [tab (case tab
                   true "  "
@@ -915,6 +917,8 @@ which we have to do if we don't know."
             (string.format "\t%s:%d: in main chunk" info.short_src
                            info.currentline)))))
 
+(local lua-getinfo debug.getinfo)
+
 (fn traceback [?msg ?start]
   "A custom traceback function for Fennel that looks similar to debug.traceback.
 Use with xpcall to produce fennel specific stacktraces. Skips frames from the
@@ -935,11 +939,32 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
           ;; This would be cleaner factored out into its own recursive
           ;; function, but that would interfere with the traceback itself!
           (while (not done?)
-            (match (debug.getinfo level :Sln)
+            (match (lua-getinfo level :Sln)
               nil (set done? true)
               info (table.insert lines (traceback-frame info)))
             (set level (+ level 1)))
           (table.concat lines "\n")))))
+
+(fn getinfo [thread-or-level ...]
+  ;; if we're given a level, we have to add 1 because fennel.getinfo
+  ;; itself is on the stack. but if we're given a coro AND a level
+  ;; then no level manipulation is necessary.
+  (let [thread-or-level (if (= :number (type thread-or-level))
+                            (+ 1 thread-or-level)
+                            thread-or-level)
+        info (lua-getinfo thread-or-level ...)
+        mapped (and info (. sourcemap info.source))]
+    (when mapped
+      (each [_ key (ipairs [:currentline :linedefined :lastlinedefined])]
+        (let [mapped-value (?. mapped (. info key) 2)]
+          (when (and (. info key) mapped-value)
+            (tset info key mapped-value))))
+      (when info.activelines
+        (set info.activelines (collect [line (pairs info.activelines)]
+                                (. mapped line 2) true)))
+      (when (= info.what "Lua")
+        (set info.what "Fennel")))
+    info))
 
 (fn mixed-concat [t joiner]
   (let [seen []]
@@ -1047,5 +1072,6 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
  :assert assert-compile
  : scopes
  : traceback
+ : getinfo
  :metadata (make-metadata)
  : sourcemap}

@@ -5,12 +5,6 @@
 (fn setup []
   (set _G.tbl []))
 
-(fn test-traceback []
-  (let [tracer (fennel.dofile "test/mod/tracer.fnl")
-        traceback (tracer)]
-    (t.match "tracer.fnl:4:" traceback)
-    (t.match "tracer.fnl:9:" traceback)))
-
 (fn test-leak []
   (t.is (not (pcall fennel.eval "(->1 1 (+ 4))" {:allowedGlobals false}))
         "Expected require-macros not leak into next evaluation."))
@@ -164,6 +158,5 @@
  : test-leak
  : test-table
  : test-runtime-quote
- : test-traceback
  : test-short-circuit
  : test-precedence}

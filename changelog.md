@@ -10,6 +10,8 @@ deprecated forms.
 
 ### New Features
 
+* Add `fennel.getinfo` as source-map-aware equivalent of `debug.getinfo`.
+* Allow `&` and `&as` in the same destructure clause.
 * More consistent module-not-found warnings for `--require-as-include`.
 * Improve compiler output for `and`/`or` forms with potential side-effects.
 * Allow locals in places where they make sense rather than mid-expression.

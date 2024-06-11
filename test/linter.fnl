@@ -26,7 +26,12 @@ https://todo.sr.ht/~technomancy/fennel/12"
   (t.is (not (pcall fennel.compile-string "(var x 1) (+ x 9)" options)))
   (t.is (pcall fennel.compile-string "(var x 1) (set x 9)" options)))
 
+(fn teardown []
+  (let [utils (require :fennel.utils)]
+    (set utils.root.options.plugins {})))
+
 {: test-used
  : test-arity-check
  : test-missing-fn
- : test-var-never-set}
+ : test-var-never-set
+ : teardown}

@@ -128,6 +128,7 @@
             :doc specials.doc
             :metadata compiler.metadata
             :traceback compiler.traceback
+            :getinfo compiler.getinfo
             :version utils.version
             :runtime-version utils.runtime-version
             :ast-source utils.ast-source

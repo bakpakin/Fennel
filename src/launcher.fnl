@@ -102,6 +102,12 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
   (match (. arg i)
     :--lua (handle-lua i)))
 
+(fn load-plugin [filename]
+  (if (filename:find "%.lua$")
+      (dofile filename)
+      (let [opts {:env :_COMPILER :useMetadata true :compiler-env _G}]
+        (fennel.dofile filename opts))))
+
 (let [commands {:--repl true
                :--compile true :-c true
                :--compile-binary true
@@ -174,8 +180,7 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
       :--raw-errors (do
                       (set options.unfriendly true)
                       (table.remove arg i))
-      :--plugin (let [opts {:env :_COMPILER :useMetadata true :compiler-env _G}
-                      plugin (fennel.dofile (table.remove arg (+ i 1)) opts)]
+      :--plugin (let [plugin (load-plugin (table.remove arg (+ i 1)))]
                   (table.insert options.plugins 1 plugin)
                   (table.remove arg i))
       :--keywords (do

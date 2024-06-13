@@ -11,7 +11,7 @@
 ;; `faith` module.
 
 ;; Copyright © 2009-2013 Scott Vokes and contributors
-;; Copyright © 2023 Phil Hagelberg and contributors
+;; Copyright © 2023-2024 Phil Hagelberg and contributors
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -48,21 +48,11 @@
    :approx (os.time)
    :cpu (os.clock)})
 
-(fn result-table [name]
-  {:started-at (now) :err [] :fail [] : name :pass [] :skip [] :ran 0 :tests []})
-
-(fn combine-results [to from]
-  (each [_ s (ipairs [:pass :fail :skip :err])]
-    (each [name val (pairs (. from s))]
-      (tset (. to s) name val))))
-
 (fn fn? [v] (= (type v) :function))
 
-(fn count [t] (accumulate [c 0 _ (pairs t)] (+ c 1)))
-
 (fn fail->string [{: where : reason : msg} name]
-  (string.format "FAIL: %s: %s\n  %s%s\n"
-                 where name (or reason "")
+  (string.format "FAIL: %s:\n%s: %s%s\n"
+                 name where (or reason "")
                  (or (and msg (.. " - " (tostring msg))) "")))
 
 (fn err->string [{: msg} name]
@@ -71,7 +61,7 @@
 
 (fn get-where [start]
   (let [traceback (fennel.traceback nil start)
-        (_ _ where) (traceback:find "\n *([^:]+:[0-9]+):")]
+        (_ _ where) (traceback:find "\n\t*([^:]+:[0-9]+):")]
     (or where "?")))
 
 ;;; assertions
@@ -81,6 +71,10 @@
 ;; themselves do not have access to any stateful arguments given that they
 ;; are called directly from user code.
 (var checked 0)
+(var diff-cmd (or (os.getenv "FAITH_DIFF")
+                  (if (os.getenv "NO_COLOR")
+                      "diff -u %s %s"
+                      "diff -u --color=always %s %s")))
 
 (macro wrap [flag msg ...]
   `(do (set ,(sym :checked) (+ ,(sym :checked) 1))
@@ -124,9 +118,30 @@
   (or (= x y)
       (and (= (type x) :table (type y)) (table= x y equal?))))
 
+(fn diff-report [expv gotv]
+  (let [exp-file (os.tmpname "faithdiff1")
+        got-file (os.tmpname "faithdiff2")]
+    (with-open [f (io.open exp-file :w)]
+      (f:write expv))
+    (with-open [f (io.open got-file :w)]
+      (f:write gotv))
+    (let [diff (doto (io.popen (diff-cmd:format exp-file got-file))
+                 (: :read) (: :read) (: :read)) ; omit header lines
+          out (diff:read :*all)]
+      (os.remove exp-file)
+      (os.remove got-file)
+      (let [(closed _ code) (diff:close)]
+        (if (or closed (= 1 code))
+            (.. "\n" out)
+            (string.format "Expected:\n%s\nGot:\n%s" expv gotv))))))
+
 (fn =* [exp got ?msg]
-  (wrap (equal? exp got) ?msg "Expected %s, got %s"
-        (fennel.view exp) (fennel.view got)))
+  (let [expv (fennel.view exp)
+        gotv (fennel.view got)
+        report (if (and (not= expv gotv) (or (expv:find "\n") (gotv:find "\n")))
+                   (diff-report expv gotv)
+                   (string.format "Expected %s, got %s" expv gotv))]
+    (wrap (equal? exp got) ?msg report)))
 
 (fn not=* [exp got ?msg]
   (wrap (not (equal? exp got)) ?msg "Expected something other than %s"
@@ -155,7 +170,7 @@
         "Expected %s +/- %s, got %s" exp tolerance got))
 
 (fn identical [exp got ?msg]
-  (wrap (= exp got) ?msg
+  (wrap (rawequal exp got) ?msg
         "Expected %s, got %s" (fennel.view exp) (fennel.view got)))
 
 (fn match* [pat s ?msg]
@@ -168,19 +183,23 @@
 
 ;;; running
 
-(fn dot [c ran]
-  (io.write c)
-  (when (= 0 (math.fmod ran 76))
+(fn dot [char total-count]
+  (io.write char)
+  (when (= 0 (math.fmod total-count 76))
     (io.write "\n"))
   (io.stdout:flush))
 
-(fn print-totals [{: pass : fail : skip : err : started-at : ended-at}]
-  (let [duration (fn [start end]
+(fn print-totals [report]
+  (let [{: started-at : ended-at : results} report
+        duration (fn [start end]
                    (let [decimal-places 2]
                      (: (.. "%." (tonumber decimal-places) "f")
                         :format
                         (math.max (- end start)
-                                  (^ 10 (- decimal-places))))))]
+                                  (^ 10 (- decimal-places))))))
+        counts (accumulate [counts {:pass 0 :fail 0 :err 0 :skip 0}
+                            _ {:type type*} (ipairs results)]
+                 (doto counts (tset type* (+ (. counts type*) 1))))]
     (print (: (.. "Testing finished %s with %d assertion(s)\n"
                   "%d passed, %d failed, %d error(s), %d skipped\n"
                   "%.2f second(s) of CPU time used")
@@ -191,25 +210,30 @@
                   (: "in approximately %s second(s)" :format
                      (- ended-at.approx started-at.approx)))
               checked
-              (count pass) (count fail) (count err) (count skip)
+              counts.pass
+              counts.fail
+              counts.err
+              counts.skip
               (duration started-at.cpu ended-at.cpu)))))
 
-(fn begin-module [s-env tests]
+(fn begin-module [report tests]
   (print (string.format "\nStarting module %s with %d test(s)"
-                        s-env.name (count tests))))
-(fn done [results]
+                        report.module-name
+                        (accumulate [count 0 _ (pairs tests)] (+ count 1)))))
+
+(fn done [report]
   (print "\n")
-  (each [_ ts (ipairs [results.fail results.err results.skip])]
-    (each [name result (pairs ts)]
-      (when result.tostring (print (result:tostring name)))))
-  (print-totals results))
+  (each [_ result (ipairs report.results)]
+    (when result.tostring (print (result:tostring result.name))))
+  (print-totals report))
 
 (local default-hooks {:begin false
                       : done
                       : begin-module
                       :end-module false
                       :begin-test false
-                      :end-test (fn [_name result ran] (dot result.char ran))})
+                      :end-test (fn [_name result total-count]
+                                  (dot result.char total-count))})
 
 (fn test-key? [k]
   (and (= (type k) :string) (k:match :^test.*)))
@@ -223,80 +247,94 @@
         (error-result (-> (string.format "\nERROR: %s:\n%s\n" name e)
                           (fennel.traceback 4))))))
 
-(fn run-test [name ?setup test ?teardown module-result hooks context]
+(fn run-test [name ?setup test ?teardown report hooks context]
   (when (fn? hooks.begin-test) (hooks.begin-test name))
   (let [result (case-try (if ?setup (xpcall ?setup (err-handler name)) true)
                  true (xpcall #(test (unpack context)) (err-handler name))
                  true (pass)
                  (catch (_ err) err))]
     (when ?teardown (pcall ?teardown (unpack context)))
-    (tset module-result result.type name result)
-    (set module-result.ran (+ module-result.ran 1))
-    (when (fn? hooks.end-test) (hooks.end-test name result module-result.ran))))
+    (table.insert report.results (doto result (tset :name name)))
+    (when (fn? hooks.end-test)
+      (hooks.end-test name result (length report.results)))))
 
-(fn run-setup-all [setup-all results module-name]
+(fn run-setup-all [setup-all report module-name]
   (if (fn? setup-all)
       (case [(pcall setup-all)]
         [true & context] context
         [false err] (let [msg (: "ERROR in test module %s setup-all: %s"
                                  :format module-name err)]
-                      (tset results.err module-name (error-result msg))
+                      (table.insert report.results
+                                    (doto (error-result msg)
+                                      (tset :name module-name)))
                       (values nil err)))
       []))
 
-(fn run-module [hooks results module-name test-module]
-  (assert (= :table (type test-module)) (.. "test module must be table: "
-                                            module-name))
-  (let [result (result-table module-name)]
-    (case (run-setup-all test-module.setup-all results module-name)
+(fn run-module [hooks report module-name test-module]
+  (assert (= :table (type test-module))
+          (.. "test module must be table: " module-name))
+  (let [module-report {: module-name :started-at (now) :results []}]
+    (case (run-setup-all test-module.setup-all report module-name)
       context (do
-                (when hooks.begin-module (hooks.begin-module result test-module))
-                (each [name test (pairs test-module)]
-                  (when (test-key? name)
-                    (table.insert result.tests test)
-                    (run-test name
-                              test-module.setup
-                              test
-                              test-module.teardown
-                              result
-                              hooks
-                              context)))
+                (when hooks.begin-module
+                  (hooks.begin-module module-report test-module))
+                (each [_ {: name : test}
+                       (ipairs (doto (icollect [name test (pairs test-module)]
+                                       (if (test-key? name)
+                                           {:line (. (debug.getinfo test :S)
+                                                     :linedefined)
+                                            : name : test}))
+                                 (table.sort #(< $1.line $2.line))))]
+                  (run-test name
+                            test-module.setup
+                            test
+                            test-module.teardown
+                            module-report
+                            hooks
+                            context))
                 (case test-module.teardown-all
                   teardown (pcall teardown (unpack context)))
-                (when hooks.end-module (hooks.end-module result))
-                (combine-results results result)))))
+                (when hooks.end-module (hooks.end-module module-report))
+                (icollect [_ value
+                           (ipairs module-report.results)
+                           &into report.results]
+                  value)))))
 
 (fn exit [hooks]
   (if hooks.exit (hooks.exit 1)
       _G.___replLocals___ :failed
       (and os os.exit) (os.exit 1)))
 
-(fn run [module-names ?hooks]
-  (set checked 0)
+(fn run [module-names ?opts]
+  (set (checked diff-cmd) (values 0 (or (and ?opts ?opts.diff-cmd) diff-cmd)))
   (io.stdout:setvbuf :line)
   ;; don't count load time against the test runtime
-  (each [_ m (ipairs module-names)]
-    (when (not (pcall require m))
-      (tset package.loaded m nil)))
-  (let [hooks (setmetatable (or ?hooks {}) {:__index default-hooks})
-        results (result-table :main)]
+  (each [_ m (ipairs module-names)] (require m))
+  (let [hooks (setmetatable (or (?. ?opts :hooks) {}) {:__index default-hooks})
+        report {:module-name :main :started-at (now) :results []}]
     (when hooks.begin
-      (hooks.begin results module-names))
+      (hooks.begin report module-names))
     (each [_ module-name (ipairs module-names)]
       (case (pcall require module-name)
-        (true test-mod) (run-module hooks results module-name test-mod)
-        (false err) (tset results.err module-name
-                          (error-result (: "ERROR: Cannot load %q:\n%s"
-                                           :format module-name err)))))
-    (set results.ended-at (now))
-    (when hooks.done (hooks.done results))
-    (when (or (next results.err) (next results.fail))
+        (true test-module) (run-module hooks report module-name test-module)
+        (false err) (let [error (: "ERROR: Cannot load %q:\n%s"
+                                   :format module-name err)]
+                      (table.insert report.results
+                                    (doto (error-result error)
+                                      (tset :name module-name))))))
+    (set report.ended-at (now))
+    (when hooks.done (hooks.done report))
+    (when (accumulate [red false
+                       _ {:type type*} (ipairs report.results)
+                       &until red]
+            (or (= type* :fail)
+                (= type* :err)))
       (exit hooks))))
 
 (when (= ... "--tests")
   (run (doto [...] (table.remove 1)))
   (os.exit 0))
 
-{: run : skip :version "0.1.3-dev"
+{: run : skip :version "0.2.0"
  : is :error error* := =* :not= not=* :< <* :<= <=* : almost=
  : identical :match match* : not-match}

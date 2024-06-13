@@ -206,9 +206,7 @@ For more information about the language, see https://fennel-lang.org/reference")
   ;; _G. part is stripped from patterns to provide more stable output.
   ;; The order we traverse package.loaded is arbitrary, so we may see
   ;; top level functions either as is or under the _G module.
-  (let [names (apropos* pattern package.loaded "" {} [])]
-    (icollect [_ name (ipairs names)]
-      (name:gsub "^_G%." ""))))
+  (apropos* (pattern:gsub "^_G%." "") package.loaded "" {} []))
 
 (fn commands.apropos [_env read on-values on-error _scope]
   (run-command read on-error #(on-values (apropos (tostring $)))))

@@ -360,11 +360,13 @@ has options calls down into compile."
       (= :table (type ast)) ast
       {}))
 
-(fn warn [msg ?ast]
+(fn warn [msg ?ast ?filename ?line]
   (when (and _G.io _G.io.stderr)
     (let [loc (case (ast-source ?ast)
                 {: filename : line} (.. filename ":" line ": ")
-                _ "")]
+                _ (if (and ?filename ?line)
+                      (.. ?filename ":" ?line ": ")
+                      ""))]
       (_G.io.stderr:write (: "--WARNING: %s%s\n" :format loc (tostring msg))))))
 
 (local warned {})

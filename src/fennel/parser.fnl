@@ -256,7 +256,7 @@ Also returns a second function to clear the buffer in the byte stream."
 
     (fn parse-string [source]
       (when (not whitespace-since-dispatch)
-        (parse-error "expected whitespace before string"))
+        (utils.warn "expected whitespace before string" nil filename line))
       (table.insert stack {:closer 34})
       (let [chars ["\""]]
         (when (not (parse-string-loop chars (getb) :base))
@@ -327,9 +327,8 @@ Also returns a second function to clear the buffer in the byte stream."
       rawstr)
 
     (fn parse-sym [b] ; not just syms actually...
-      ;; be strict about colon strings because of ambiguity with multisyms
-      (when (and (= b 58) (not whitespace-since-dispatch))
-        (parse-error "expected whitespace before token"))
+      (when (not whitespace-since-dispatch)
+        (utils.warn "expected whitespace before token" nil filename line))
       (let [source {:bytestart byteindex : filename : line :col (- col 1)}
             rawstr (table.concat (parse-sym-loop [(string.char b)] (getb)))]
         (set-source-fields source)

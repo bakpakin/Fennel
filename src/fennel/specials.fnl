@@ -138,15 +138,21 @@ By default, start is 2."
 
 (fn SPECIALS.values [ast scope parent opts]
   (let [len (length ast)
-        exprs []]
+        exprs []
+        nval (case opts
+               {: nval} nval
+               ;; resolve nval from opts.target when not passed by parent.
+               ;; TODO: address this in compiler.destructure instead.
+               {: target} (accumulate [n 0 _ (target:gmatch "[^,]+")] (+ 1 n)))]
     (for [i 2 len]
+
+      ;; Compile each operand w/ an nval based on parent nval + position offset
       (let [subexprs (compiler.compile1 (. ast i) scope parent
                                         {:nval (if (not= i len) 1
-                                                    opts.nval (math.max 1 (- opts.nval (- len 2))))})]
+                                                   nval (math.max 1 (- nval (- len 2))))})]
         (table.insert exprs (. subexprs 1))
         (when (= i len)
-          (for [j 2 (length subexprs)]
-            (table.insert exprs (. subexprs j))))))
+          (for [j 2 (length subexprs)] (table.insert exprs (. subexprs j))))))
     exprs))
 
 (doc-special :values ["..."]

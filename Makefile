@@ -71,7 +71,7 @@ ci: testall fuzz fennel
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel.exe \
-		*_binary.c luacov.* fennel-*.src.rock bootstrap/view.lua \
+		*_binary.c luacov.* bootstrap/view.lua \
 		test/faith.lua build/manfilter.lua fennel-bin-luajit
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
 	$(MAKE) -C $(BIN_LUAJIT_DIR) clean || true # this dir might not exist
@@ -158,17 +158,6 @@ man/man7/fennel-%.7: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
 
 SSH_KEY ?= ~/.ssh/id_ed25519.pub
 
-uploadrock: rockspecs/fennel-$(VERSION)-1.rockspec
-	luarocks upload --api-key $(shell pass luarocks-api-key) $<
-
-rockspecs/fennel-$(VERSION)-1.rockspec: rockspecs/template.fnl
-	@echo TODO: this depends on the broken tarball
-	exit 1
-	VERSION=$(VERSION) fennel --no-compiler-sandbox -c $< > $@
-	git add $@
-
-rockspec: rockspecs/fennel-$(VERSION)-1.rockspec
-
 test-builds: fennel test/faith.lua
 	./fennel --metadata --eval "(require :test.init)"
 	$(MAKE) install PREFIX=/tmp/opt
@@ -190,7 +179,7 @@ upload: fennel fennel.lua fennel-bin fennel.exe
 	rsync -rtAv downloads/fennel-$(VERSION)* \
 		fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
-release: guard-VERSION upload uploadrock
+release: guard-VERSION upload
 	git push
 	git push --tags
 	@echo "* Update the submodule in the fennel-lang.org repository."
@@ -202,7 +191,7 @@ prerelease: guard-VERSION ci test-builds
 	@echo "Did you look for changes that need to be mentioned in help/man text?"
 	exit 1 # TODO: update setup.md to stop linking to tarball
 	sed -i s/$(VERSION)-dev/$(VERSION)/ src/fennel/utils.fnl
-	$(MAKE) man rockspec
+	$(MAKE) man
 	grep "$(VERSION)" setup.md > /dev/null
 	! grep "???" changelog.md
 	git commit -a -m "Release $(VERSION)"
@@ -215,4 +204,4 @@ guard-%:
 	fi
 
 .PHONY: build test testall fuzz count format ci clean coverage install \
-	man upload uploadrock prerelease release rockspec guard-VERSION test-builds
+	man upload prerelease release guard-VERSION test-builds

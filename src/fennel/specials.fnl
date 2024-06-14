@@ -136,12 +136,13 @@ By default, start is 2."
 
 (doc-special :do ["..."] "Evaluate multiple forms; return last value." true)
 
-(fn SPECIALS.values [ast scope parent]
+(fn SPECIALS.values [ast scope parent opts]
   (let [len (length ast)
         exprs []]
     (for [i 2 len]
       (let [subexprs (compiler.compile1 (. ast i) scope parent
-                                        {:nval (and (not= i len) 1)})]
+                                        {:nval (if (not= i len) 1
+                                                 opts.nval (math.max 1 (- opts.nval (- len 2))))})]
         (table.insert exprs (. subexprs 1))
         (when (= i len)
           (for [j 2 (length subexprs)]

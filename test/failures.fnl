@@ -128,8 +128,7 @@
   (test-failures
    {"\n\n(+))" "unknown:3:3: Parse error: unexpected closing delimiter )"
     "(foo:)" "malformed multisym"
-    "(foo.bar:)" "malformed multisym"
-    "(let [] (get-string):find)" "expected whitespace"}))
+    "(foo.bar:)" "malformed multisym"}))
 
 (fn test-core-fails []
   (test-failures

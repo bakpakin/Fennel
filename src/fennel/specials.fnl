@@ -142,7 +142,7 @@ By default, start is 2."
     (for [i 2 len]
       (let [subexprs (compiler.compile1 (. ast i) scope parent
                                         {:nval (if (not= i len) 1
-                                                 opts.nval (math.max 1 (- opts.nval (- len 2))))})]
+                                                    opts.nval (math.max 1 (- opts.nval (- len 2))))})]
         (table.insert exprs (. subexprs 1))
         (when (= i len)
           (for [j 2 (length subexprs)]
@@ -765,7 +765,7 @@ Evaluates body once for each value between start and stop (inclusive)." true)
 (fn binding-method-call [ast scope parent target args]
   "When double-evaluation is a concern, we have to bind to a local."
   (let [method-string (str1 (compiler.compile1 (. ast 3) scope parent {:nval 1}))
-        target-local (tostring (compiler.gensym scope :tgt))
+        target-local (compiler.gensym scope :tgt)
         args [target-local (unpack args)]]
     (compiler.emit parent (string.format "local %s = %s" target-local (tostring target)))
     (utils.expr (string.format "(%s)[%s](%s)" target-local method-string
@@ -947,7 +947,7 @@ Method name doesn't have to be known at compile-time; if it is, use
             ;; store previous stuff into the local
             ;; if there's not yet a local, we need to gensym it
             (when (not accumulator)
-              (set accumulator (tostring (compiler.gensym scope name))))
+              (set accumulator (compiler.gensym scope name)))
             (emit-short-circuit-if ast scope parent name subast accumulator
                                    expr-string setter)
             ;; Previous operands have been emitted, so we start fresh
@@ -1067,7 +1067,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
       (let [compiled (str1 (compiler.compile1 (. ast i) scope parent {:nval 1}))]
         (if (or (utils.idempotent-expr? (. ast i)) (= i 2) (= i (length ast)))
           (table.insert vals compiled)
-          (let [my-sym (tostring (compiler.gensym scope))]
+          (let [my-sym (compiler.gensym scope)]
             (table.insert binding-left my-sym)
             (table.insert binding-right compiled)
             (table.insert vals my-sym)))))
@@ -1496,7 +1496,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
         (do
           (for [i 3 (length ast)]
             (-> (compiler.compile1 (. ast i) scope parent {:nval 0})
-                (compiler.keep-side-effects parent nil ast)))
+                (compiler.keep-side-effects parent nil (. ast i))))
           [])
         (let [syms (fcollect [_ 1 n &into (utils.list)]
                      (utils.sym (compiler.gensym scope :pv)))]

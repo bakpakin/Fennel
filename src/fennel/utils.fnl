@@ -303,7 +303,7 @@ Returns nil if passed something other than a multi-sym."
              (and (next parts) parts)))))
 
 (fn call-of? [ast callee]
-  (and (list? ast) (. ast 1) (= callee (deref (. ast 1)))))
+  (and (list? ast) (sym? (. ast 1) callee)))
 
 (fn quoted? [symbol] symbol.quoted)
 

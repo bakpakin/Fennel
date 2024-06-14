@@ -478,8 +478,12 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 (fn SPECIALS.tset [ast scope parent]
   (compiler.assert (< 3 (length ast))
                    "expected table, key, and value arguments" ast)
+  (compiler.assert (and (not= (type (. ast 2)) "boolean")
+                        (not= (type (. ast 2)) "number"))
+                   "cannot set field of literal value" ast)
   (let [root (str1 (compiler.compile1 (. ast 2) scope parent {:nval 1}))
-        root (if (root:match "^{") (string.format "(%s)" root) root)
+        ;; table, string, and varg need to be wrapped
+        root (if (root:match "^[.{\"]") (string.format "(%s)" root) root)
         keys (fcollect [i 3 (- (length ast) 1)]
                (str1 (compiler.compile1 (. ast i) scope parent {:nval 1})))
         value (str1 (compiler.compile1 (. ast (length ast)) scope parent {:nval 1}))

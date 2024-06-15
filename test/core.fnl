@@ -413,6 +413,8 @@
         (tset (or x y) 2 :b)
         (. y 2))
       :b)
+  ;; we have to let fn names escape into surrounding scope
+  (== (let [f (fn abc-def [] 99)] (abc-def)) 99)
   (== (let [x [#(tset $1 $2 $3)] y x]
         (: x 1 2 :b)
         (. y 2))

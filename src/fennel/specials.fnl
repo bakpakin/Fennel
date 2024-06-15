@@ -227,12 +227,10 @@ By default, start is 2."
                        (: "pcall(function() %s:setall(%s, %s) end)" :format
                           meta-str fn-name (table.concat meta-fields ", ")))))))
 
-(fn get-fn-name [ast scope f-scope fn-name multi {: nval : tail}]
+(fn get-fn-name [ast scope fn-name multi]
   (if (and fn-name (not= (. fn-name 1) :nil))
       (values (if (not multi)
-                  (compiler.declare-local fn-name
-                                          (if (or (= nval 0) tail)
-                                              scope f-scope) ast)
+                  (compiler.declare-local fn-name scope ast)
                   (. (compiler.symbol-to-expression fn-name scope) 1))
               (not multi) 3)
       (values nil true 2)))
@@ -298,7 +296,7 @@ By default, start is 2."
         f-chunk []
         fn-sym (utils.sym? (. ast 2))
         multi (and fn-sym (utils.multi-sym? (. fn-sym 1)))
-        (fn-name local? index) (get-fn-name ast scope f-scope fn-sym multi opts)
+        (fn-name local? index) (get-fn-name ast scope fn-sym multi opts)
         arg-list (compiler.assert (utils.table? (. ast index))
                                   "expected parameters table" ast)]
     (compiler.assert (or (not multi) (not multi.multi-sym-method-call))

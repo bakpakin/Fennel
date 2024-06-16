@@ -12,7 +12,10 @@
                                       (tset :eval-compiler nil)))] k))
 
 (fn generate.generators.sym []
-  (fennel.sym (generate.generators.string)))
+  (case (: (generate.generators.string) :gsub "."
+           (fn [c] (if (not (fennel.sym-char? c)) "")))
+    "" (generate.generators.sym)
+    name (fennel.sym name)))
 
 (fn generate.generators.list [gen depth]
   (let [f (fennel.sym (. keywords (math.random (length keywords))))

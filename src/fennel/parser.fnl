@@ -324,11 +324,11 @@ Also returns a second function to clear the buffer in the byte stream."
           (rawstr:match ":.+[%.:]")
           (parse-error (.. "method must be last component of multisym: " rawstr)
                        (col-adjust ":.+[%.:]")))
+      (when (not whitespace-since-dispatch)
+        (utils.warn "expected whitespace before token" nil filename line))
       rawstr)
 
     (fn parse-sym [b] ; not just syms actually...
-      (when (not whitespace-since-dispatch)
-        (utils.warn "expected whitespace before token" nil filename line))
       (let [source {:bytestart byteindex : filename : line :col (- col 1)}
             rawstr (table.concat (parse-sym-loop [(string.char b)] (getb)))]
         (set-source-fields source)

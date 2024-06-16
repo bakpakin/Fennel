@@ -12,6 +12,7 @@ deprecated forms.
 
 * Macro `pick-values` is now a special, allowing it to avoid emitting IIFE's.
 * Add `fennel.getinfo` as source-map-aware equivalent of `debug.getinfo`.
+* Optimize allocation away when destructuring tables to tables.
 * Allow `&` and `&as` in the same destructure clause.
 * More consistent module-not-found warnings for `--require-as-include`.
 * Improve compiler output for `and`/`or` forms with potential side-effects.

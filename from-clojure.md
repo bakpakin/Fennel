@@ -464,6 +464,20 @@ other macros.
 
 Lists and symbols are strictly compile-time concepts in Fennel.
 
+## Discards
+
+Just like Clojure, Fennel supports the `#_` <https://clojure.org/guides/weird_characters#_discard>
+
+```fennel
+[1 #_ {:a :b} 3 #_ #_ (+ 4 5) 6 7 #_]
+```
+
+expands to
+
+```fennel
+[1 3 7]
+```
+
 ## Errors
 
 There are two kinds of ways to represent failure in Lua and

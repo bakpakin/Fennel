@@ -13,6 +13,7 @@ deprecated forms.
 * Precompile built-in macros, improving startup time significantly.
 * Accept `:global-mangle false` in compiler opts to disable global mangling.
 * Macro sandbox can now read (but not write) files.
+* Add support for discarding (Clojure's `#_`).
 
 ### Bug Fixes
 

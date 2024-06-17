@@ -419,9 +419,6 @@ if opts contains the nval option."
         nil (tset parent i (utils.sym "nil")))))
   (values index node parent))
 
-(fn comp [f g]
-  (fn [...] (f (g ...))))
-
 (fn built-in? [m]
   (accumulate [found? false _ f (pairs scopes.global.macros) :until found?]
     (= f m)))
@@ -439,8 +436,7 @@ if opts contains the nval option."
                                               tostring
                                               debug.traceback))]
              (utils.walk-tree transformed
-                              (comp (partial propagate-trace-info ast)
-                                    quote-literal-nils))
+                              #(propagate-trace-info ast (quote-literal-nils $...)))
              (set scopes.macro old-scope)
              (assert-compile ok transformed ast)
              (utils.hook :macroexpand ast transformed scope)

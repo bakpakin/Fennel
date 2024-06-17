@@ -8,6 +8,10 @@ deprecated forms.
 
 ## 1.5.1 / ???
 
+### New Features
+
+* Add support for discarding (Clojure's `#_`).
+
 ### Bug Fixes
 
 * `,doc`/`fennel.doc`: Don't mutate `:fnl/arglist` directly when showing callable form

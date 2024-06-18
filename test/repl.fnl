@@ -2,6 +2,30 @@
 (local fennel (require :fennel))
 (local specials (require :fennel.specials))
 
+(local saved-globals {})
+
+;; Prevent leaking _G.___replLocals___ (and _G.___repl__) into global env.
+;; TODO: We should probably just not let it leak these globals in the first
+;; place, since we aren't relying on them being exposed. If we did, setup and
+;; teardown could manage a custom env for REPL use, without it touching faith's
+;; environment.
+;;
+;; Better yet, we should consider preventing fennel.repl from leaking globals
+;; after the REPL exits.
+(fn setup-all []
+  "Saves off faith's _G.___replLocals___ / _G.___repl___ to prevent leakage"
+  (set saved-globals.___repl___       _G.___repl___)
+  (set saved-globals.___replLocals___ _G.___replLocals___))
+
+(fn teardown-all []
+  (set _G.___repl___       saved-globals.___repl___)
+  (set _G.___replLocals___ saved-globals.___replLocals___))
+
+(fn setup []
+  "Reset _G.___repl___ and _G.___replLocals___ to nil before each test"
+  (set _G.___repl___ nil)
+  (set _G.___replLocals___ nil))
+
 ;; allow inputs to be structured as a form but converted to a string
 (macro v [form] (view form))
 
@@ -20,7 +44,7 @@
       (fn opts.onValues [x]
         (when (not= :function (type (. x 1)))
           (table.insert output (table.concat x "\t"))))
-      (fn opts.onError [e-type e lua-src]
+      (fn opts.onError [_e-type e _lua-src]
         (table.insert output (.. "error: " e)))
       (fn opts.registerCompleter [x]
         (set repl-complete x))
@@ -490,7 +514,10 @@
 ;; testing it on PUC 5.1, so skip it.
 (if (and (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
          (= "/" (package.config:sub 1 1)))
-    {: test-sym-completion
+    {: setup-all
+     : teardown-all
+     : setup
+     : test-sym-completion
      : test-macro-completion
      : test-method-completion
      : test-command-completion

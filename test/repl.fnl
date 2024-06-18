@@ -263,6 +263,12 @@
 (fn test-docstrings []
   (let [send (wrap-repl)]
     (tset fennel.macro-loaded :test.macros nil)
+    (t.= (.. "(if cond1 body1 ... condN bodyN)\n"
+             "  Conditional form.\n"
+             "  Takes any number of condition/body pairs and evaluates the first body where\n"
+             "  the condition evaluates to truthy. Similar to cond in other lisps.")
+         (send ",doc if")
+         "docstrings for specials")
     (t.= (.. "(doto val ...)\n  Evaluate val and splice it into the first "
              "argument of subsequent forms.")
          (send ",doc doto")

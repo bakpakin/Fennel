@@ -123,15 +123,20 @@ these new manglings instead of the current manglings."
         (set ret (.. ret "[" (serialize-string (. parts i)) "]"))))
   ret)
 
-(fn next-append []
-  (set utils.root.scope.gensym-append (+ (or utils.root.scope.gensym-append 0) 1))
-  (.. "_" utils.root.scope.gensym-append "_"))
+(fn root-scope [scope]
+  (or (and utils.root utils.root.scope)
+      (and scope.parent (root-scope scope.parent)) scope))
+
+(fn next-append [given-scope]
+  (let [scope (root-scope given-scope)]
+    (set scope.gensym-append (+ (or scope.gensym-append 0) 1))
+    (.. "_" scope.gensym-append "_")))
 
 (fn gensym [scope ?base ?suffix]
   "Generates a unique symbol in the scope."
-  (var mangling (.. (or ?base "") (next-append) (or ?suffix "")))
+  (var mangling (.. (or ?base "") (next-append scope) (or ?suffix "")))
   (while (. scope.unmanglings mangling)
-    (set mangling (.. (or ?base "") (next-append) (or ?suffix ""))))
+    (set mangling (.. (or ?base "") (next-append scope) (or ?suffix ""))))
   (when (and ?base (< 0 (length ?base)))
     (tset scope.gensym-base mangling ?base))
   (tset scope.gensyms mangling true)

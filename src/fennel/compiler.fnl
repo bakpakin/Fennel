@@ -127,20 +127,20 @@ these new manglings instead of the current manglings."
   (or (and utils.root utils.root.scope)
       (and scope.parent (root-scope scope.parent)) scope))
 
-(fn next-append [given-scope]
-  (let [scope (root-scope given-scope)]
-    (set scope.gensym-append (+ (or scope.gensym-append 0) 1))
-    (.. "_" scope.gensym-append "_")))
+(fn next-append [root-scope*]
+  (set root-scope*.gensym-append (+ (or root-scope*.gensym-append 0) 1))
+  (.. "_" root-scope*.gensym-append "_"))
 
 (fn gensym [scope ?base ?suffix]
   "Generates a unique symbol in the scope."
-  (var mangling (.. (or ?base "") (next-append scope) (or ?suffix "")))
-  (while (. scope.unmanglings mangling)
-    (set mangling (.. (or ?base "") (next-append scope) (or ?suffix ""))))
-  (when (and ?base (< 0 (length ?base)))
-    (tset scope.gensym-base mangling ?base))
-  (tset scope.gensyms mangling true)
-  mangling)
+  (let [root-scope* (root-scope scope)]
+    (var mangling (.. (or ?base "") (next-append root-scope*) (or ?suffix "")))
+    (while (. scope.unmanglings mangling)
+      (set mangling (.. (or ?base "") (next-append root-scope*) (or ?suffix ""))))
+    (when (and ?base (< 0 (length ?base)))
+      (tset scope.gensym-base mangling ?base))
+    (tset scope.gensyms mangling true)
+    mangling))
 
 (fn combine-auto-gensym [parts first]
   (tset parts 1 first)

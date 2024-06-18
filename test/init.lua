@@ -12,4 +12,4 @@ local modules = {"test.core", "test.mangling", "test.quoting", "test.bit",
 
 if(#arg ~= 0 and arg[1] ~= "--eval") then modules = arg end
 
-t.run(modules,{exit=dofile("test/irc.lua")})
+t.run(modules,{hooks={exit=dofile("test/irc.lua")}})

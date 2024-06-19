@@ -300,9 +300,9 @@
                            &into report.results]
                   value)))))
 
-(fn exit [failure-count {: hooks : in-repl?}]
-  (if hooks.exit (hooks.exit failure-count)
-      in-repl? :failed
+(fn exit [hooks]
+  (if hooks.exit (hooks.exit 1)
+      _G.___replLocals___ :failed
       (and os os.exit) (os.exit 1)))
 
 (fn run [module-names ?opts]
@@ -311,13 +311,7 @@
   ;; don't count load time against the test runtime
   (each [_ m (ipairs module-names)] (require m))
   (let [hooks (setmetatable (or (?. ?opts :hooks) {}) {:__index default-hooks})
-        report {:module-name :main :started-at (now) :results []}
-        ;; Check for _G.___replLocals___ BEFORE running any tests to prevent
-        ;; false positives from _G pollution.
-        ;; TODO: Stop _G ___replLocals___ / __repl__ leakage in the first place
-        ;; and/or find a more reliable way io check whether code is running in
-        ;; a REPL. Consider having faith run tests in an insulated copy of _G.
-        in-repl? (= :table (type _G.___replLocals___))]
+        report {:module-name :main :started-at (now) :results []}]
     (when hooks.begin
       (hooks.begin report module-names))
     (each [_ module-name (ipairs module-names)]
@@ -327,12 +321,15 @@
                                    :format module-name err)]
                       (table.insert report.results
                                     (doto (error-result error)
-                                          (tset :name module-name))))))
+                                      (tset :name module-name))))))
     (set report.ended-at (now))
     (when hooks.done (hooks.done report))
-    (case (accumulate [red-count 0 _ {:type type*} (ipairs report.results)]
-            (+ red-count (if (or (= type* :fail) (= type* :err)) 1 0)))
-      (where red-count (< 0 red-count)) (exit red-count {: hooks : in-repl?}))))
+    (when (accumulate [red false
+                       _ {:type type*} (ipairs report.results)
+                       &until red]
+            (or (= type* :fail)
+                (= type* :err)))
+      (exit hooks))))
 
 (when (= ... "--tests")
   (run (doto [...] (table.remove 1)))

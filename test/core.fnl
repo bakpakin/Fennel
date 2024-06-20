@@ -1,9 +1,6 @@
 (local t (require :test.faith))
 (local fennel (require :fennel))
 
-(fn setup []
-  (set _G.tbl []))
-
 (macro == [form expected ?opts]
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
      (t.is ok# val#)
@@ -143,7 +140,8 @@
   (== (>= 22 (+ 21 1)) true)
   (== (not= 33 1) true)
   (== (> 2 0) true)
-  (== (let [f (fn [] (tset tbl :dbl (+ 1 (or (. tbl :dbl) 0))) 1)]
+  (== (let [tbl {}
+            f (fn [] (tset tbl :dbl (+ 1 (or (. tbl :dbl) 0))) 1)]
         (< 0 (f) 2) (. tbl :dbl)) 1))
 
 (fn test-functions []
@@ -601,9 +599,7 @@
       (t.= (: (fennel.compile-string input) :gsub "^return%s*" "")
            expected msg))))
 
-{: setup
-
- : test-booleans
+{: test-booleans
  : test-calculations
  : test-comparisons
  : test-conditionals

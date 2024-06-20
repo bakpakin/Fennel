@@ -2,9 +2,6 @@
 (local fennel (require :fennel))
 (local view (require :fennel.view))
 
-(fn setup []
-  (set _G.tbl []))
-
 (fn test-leak []
   (t.is (not (pcall fennel.eval "(->1 1 (+ 4))" {:allowedGlobals false}))
         "Expected require-macros not leak into next evaluation."))
@@ -149,9 +146,7 @@
   (t.is (pcall fennel.eval "(let [x {:0 #$1 :& #$1}] (x:0) (x:&) (x.0) (x.&))" {:allowedGlobals false})
         "Expected to be able to use multisyms with digits and & in their second part"))
 
-{: setup
-
- : test-empty-values
+{: test-empty-values
  : test-env-iteration
  : test-global-mangling
  : test-include
@@ -159,4 +154,5 @@
  : test-table
  : test-runtime-quote
  : test-short-circuit
- : test-precedence}
+ : test-precedence
+ : test-multisyms}

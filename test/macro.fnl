@@ -741,7 +741,6 @@
       {:hello "world" :greetings "comrade"}))
 
 (fn test-assert-repl []
-  (set _G.x 3)
   (let [inputs ["x\n" "(inc x)\n" "(length hello)\n" ",return 22\n"]
         outputs []
         _ (do (set fennel.repl.readChunk #(table.remove inputs 1))

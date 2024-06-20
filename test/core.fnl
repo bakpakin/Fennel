@@ -490,6 +490,9 @@
   (== (do (var i 0) (fn i++ [] (set i (+ 1 i)) i)
           [(values (i++) (values (do (i++)) (do (i++))))])
       [2 1 3])
+  (== (do (macro myvalues [x y z] `(values ,x ,y ,z))
+          [(values 1 2 (myvalues 3 4))])
+      [1 2 3 4])
   (assert-iife (do (var i 0) (fn i++ [] (set i (+ 1 i)) i)
                    [(values (i++) (values (do (i++)) (do (i++))))])
                "expected IIFE because values lacks opts.target or opts.nval"))
@@ -535,7 +538,7 @@
   (== (do (var i 0) (fn i++ [] (set i (+ i 1)) i)
           (doto [(pick-values 2 (i++) (select 1 (i++) :X) (values (i++) (i++)))]
                 (table.insert i)))
-      [2 3 4])
+      [1 2 4])
   (== (let [pack (or table.pack #(doto [$...] (tset :n (select :# $...))))
             t (pack (pick-values 3 (pick-values 1 (values :x :y :z))))]
         [t.n ((or _G.unpack table.unpack) t)])

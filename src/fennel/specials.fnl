@@ -136,22 +136,34 @@ By default, start is 2."
 
 (doc-special :do ["..."] "Evaluate multiple forms; return last value." true)
 
+;; Helper iterator to deal with (values) in operators
+;; When called on an ast like (my-call arg1 arg2 (values arg3 arg4))
+;; iter-args will yield arg1, arg2, arg3, then arg4
+(fn iter-args [ast]
+  (var (ast len i) (values ast (length ast) 1))
+  (fn []
+    (set i (+ 1 i))
+    (while (and (= i len) (utils.call-of? (. ast i) :values))
+      (set ast (. ast i))
+      (set len (length ast))
+      (set i 2))
+    (values (. ast i) (= nil (. ast (+ i 1))))))
+
 (fn SPECIALS.values [ast scope parent opts]
-  (let [len (length ast)
-        exprs []
+  (let [exprs []
         nval (case opts
                {: nval} nval
                ;; resolve nval from opts.target when not passed by parent.
                ;; TODO: address this in compiler.destructure instead.
                {: target} (accumulate [n 0 _ (target:gmatch "[^,]+")] (+ 1 n)))]
-    (for [i 2 len]
-
+    (each [subast last? (iter-args ast)]
       ;; Compile each operand w/ an nval based on parent nval + position offset
-      (let [subexprs (compiler.compile1 (. ast i) scope parent
-                                        {:nval (if (not= i len) 1
-                                                   nval (math.max 1 (- nval (- len 2))))})]
+      (let [subnval (if (not last?) 1
+                        nval (math.max 1 (- nval (+ (length exprs) 1))))
+            subexprs (compiler.compile1 subast scope parent
+                                        {:nval subnval})]
         (table.insert exprs (. subexprs 1))
-        (when (= i len)
+        (when last?
           (for [j 2 (length subexprs)] (table.insert exprs (. subexprs j))))))
     exprs))
 
@@ -872,19 +884,6 @@ Method name doesn't have to be known at compile-time; if it is, use
       (utils.every? [(unpack ast 3 (- (length ast) 1))] utils.idempotent-expr?)
       :idempotent
       :binding))
-
-;; Helper iterator to deal with (values) in operators
-;; When called on an ast like (my-call arg1 arg2 (values arg3 arg4))
-;; iter-args will yield arg1, arg2, arg3, then arg4
-(fn iter-args [ast]
-  (var (ast len i) (values ast (length ast) 1))
-  (fn []
-    (set i (+ 1 i))
-    (while (and (= i len) (utils.call-of? (. ast i) :values))
-      (set ast (. ast i))
-      (set len (length ast))
-      (set i 2))
-    (. ast i)))
 
 ;; Helper function to improve detection in operator-special
 ;; Need to check not only certain forms, but also sometimes sub-forms

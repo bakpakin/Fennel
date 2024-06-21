@@ -9,9 +9,6 @@
 (macro assert-no-iife [code ...]
   `(t.not-match "function _[0-9]+_" (fennel.compile-string ,(view code)) ,...))
 
-(macro assert-iife [code ...]
-  `(t.match "function _[0-9]+_" (fennel.compile-string ,(view code)) ,...))
-
 (fn test-calculations []
   (== (% 1 2 (- 1 2)) 0)
   (== (* 1 2 (/ 1 2)) 1)
@@ -369,9 +366,7 @@
   (== (let [[a b & c &as t] [1 2 3 4]] a) 1)
   (== (let [[a b & c &as t] [1 2 3 4]] b) 2)
   (== (let [[a b & c &as t] [1 2 3 4]] c) [3 4])
-  (== (let [[a b & c &as t] [1 2 3 4]] t) [1 2 3 4])
-  ;; multival destructuring
-  (assert-no-iife (local (x y) (values :x (do :y)))))
+  (== (let [[a b & c &as t] [1 2 3 4]] t) [1 2 3 4]))
 
 (fn test-edge []
   (== (do (local x (lua "y = 4" "6")) (* _G.y x)) 24)
@@ -476,13 +471,11 @@
 (fn test-values []
   (== (let [(x y) (values :x (do :y))] [x y])
       [:x :y])
-  (assert-no-iife (let [(x y) (values :x (do :y))] [x y]))
   (== [(values 1 2 (values 3 4) 4)]
       [1 2 3 4])
   (assert-no-iife [(values 1 2 (values 3 4) 4)])
   (== (let [(x y z Z) (values :x (do :y) (values :z (do :Z)))] [x y z Z])
       [:x :y :z :Z])
-  (assert-no-iife (let [(x y z Z) (values :x (do :y) (values :z (do :Z)))] [x y z Z]))
   (== (let [t {:field :hi} f #t]
         (tset (f :bork :bork) :field (values (do :BYE) (do :HI)))
         t)
@@ -492,21 +485,13 @@
       [2 1 3])
   (== (do (macro myvalues [x y z] `(values ,x ,y ,z))
           [(values 1 2 (myvalues 3 4))])
-      [1 2 3 4])
-  (assert-iife (do (var i 0) (fn i++ [] (set i (+ 1 i)) i)
-                   [(values (i++) (values (do (i++)) (do (i++))))])
-               "expected IIFE because values lacks opts.target or opts.nval"))
+      [1 2 3 4]))
 
 (fn test-pick-values []
-  ;; This test case should match the final case in test-values above, but
-  ;; differs due to the latest patch reducing IIFE's in (values ..) thanks to
-  ;; `values` seeing the opts.target set by pick-values
+  (== [(pick-values 4 0 (#(values 1 2 3 4)))] [0 1 2 3])
   (== (do (var i 0) (fn i++ [] (set i (+ 1 i)) i)
           [(pick-values 3 (i++) (do (i++)) (do (i++)))])
-      [3 1 2])
-  (assert-no-iife (do (var i 0) (fn i++ [] (set i (+ 1 i)) i)
-                      [(pick-values 3 (i++) (do (i++)) (do (i++)))])
-                  "no IIFE expected, because pick-values sets opts.target")
+      [2 1 3])
   (== (select :# (pick-values 3))
       3)
   (== [(pick-values 0 (select 1 :a :b :c))]
@@ -523,7 +508,6 @@
   (== (let [ret [(pick-values 3 :x :y (do :z) :A (do :B))]]
         [ret (length ret)])
     [[:x :y :z] 3])
-  (assert-no-iife [(pick-values 3 :x :y (do :z) :A (do :B))])
   (== (do (var i 0) (fn i++ [] (set i (+ i 1)) i)
           (doto [(pick-values 1 (i++) (i++) (i++))]
                 (table.insert i)))
@@ -545,8 +529,7 @@
       [3 :x])
   (== (let [pack (or table.pack #(doto [$...] (tset :n (select :# ...))))]
         (pack (pick-values 5 :x (do :y) (do :z))))
-      {1 :x 2 :y 3 :z :n 5})
-  (assert-no-iife (pick-values 2 (do 1))))
+      {1 :x 2 :y 3 :z :n 5}))
 
 (fn test-with-open []
   (== (do

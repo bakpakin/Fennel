@@ -10,7 +10,7 @@ deprecated forms.
 
 ### New Features
 
-* Macro `pick-values` is now a special, allowing it to avoid emitting IIFE's.
+* Macro `pick-values` is now a special, allowing it to emit better Lua output.
 * Add `fennel.getinfo` as source-map-aware equivalent of `debug.getinfo`.
 * Optimize allocation away when destructuring tables to tables.
 * Allow `&` and `&as` in the same destructure clause.

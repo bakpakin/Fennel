@@ -150,13 +150,12 @@ By default, start is 2."
     (values (. ast i) (= nil (. ast (+ i 1))))))
 
 (fn SPECIALS.values [ast scope parent]
-  (let [len (length ast)
-        exprs []]
-    (for [i 2 len]
-      (let [subexprs (compiler.compile1 (. ast i) scope parent
-                                        {:nval (and (not= i len) 1)})]
+  (let [exprs []]
+    (each [subast last? (iter-args ast)]
+      (let [subexprs (compiler.compile1 subast scope parent
+                                        {:nval (and (not last?) 1)})]
         (table.insert exprs (. subexprs 1))
-        (when (= i len)
+        (when last?
           (for [j 2 (length subexprs)]
             (table.insert exprs (. subexprs j))))))
     exprs))

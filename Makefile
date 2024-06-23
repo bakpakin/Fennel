@@ -180,6 +180,7 @@ upload: fennel fennel.lua fennel-bin fennel.exe
 		fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
 release: guard-VERSION upload
+	git tag -v $(VERSION) # created by prerelease target
 	git push
 	git push --tags
 	@echo "* Update the submodule in the fennel-lang.org repository."
@@ -189,7 +190,6 @@ release: guard-VERSION upload
 
 prerelease: guard-VERSION ci test-builds
 	@echo "Did you look for changes that need to be mentioned in help/man text?"
-	exit 1 # TODO: update setup.md to stop linking to tarball
 	sed -i s/$(VERSION)-dev/$(VERSION)/ src/fennel/utils.fnl
 	$(MAKE) man
 	grep "$(VERSION)" setup.md > /dev/null

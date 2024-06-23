@@ -205,3 +205,15 @@ guard-%:
 
 .PHONY: build test testall fuzz count format ci clean coverage install \
 	man upload prerelease release guard-VERSION test-builds
+
+# Steps to release a new Fennel version
+
+# The `make release` command should be run on a system with the lowest
+# available glibc for maximum compatibility.
+
+# 1. Check for changes which need to be mentioned in help text or man page
+# 2. Date `changelog.md` and update download links in `setup.md`
+# 3. Run `make prerelease VERSION=$VERSION`
+# 4. Run `make release VERSION=$VERSION`
+# 5. Update fennel submodule in fennel-lang.org and make upload there
+# 6. Announce on the mailing list

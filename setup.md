@@ -91,19 +91,18 @@ them all here; please [see the wiki page on distribution for details](https://wi
 
 ### Embedding the Fennel compiler in a Lua application
 
-The Fennel compiler can be added to your code repository, and then
-loaded from Lua.
+The Fennel compiler can be added to your application and then loaded from Lua.
 
- 1. Build `fennel.lua` by running `make` in a source checkout.
- 2. Add `fennel.lua` to your code repository.
- 3. Add the following lines to your Lua code:
+ 1. Add [fennel.lua](https://fennel-lang.org/downloads/fennel-1.5.0.lua) to your code repository.
+ 2. Add the following line to your Lua code:
 
 ```lua
 require("fennel").install().dofile("main.fnl")
 ```
 
-You can pass [options](api.md) to the fennel compiler by passing a
-table to the `install` function.
+Replace `main.fnl` with whatever filename you use as an entry
+point. You can pass [options](api.md) to the fennel compiler by
+passing a table to the `install` function.
 
 Be sure to use the `fennel.lua` library and not the file for the
 entire `fennel` executable.

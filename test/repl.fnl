@@ -403,9 +403,13 @@
     (send (v (import-macros m :test.macros)))
     (t.= "(m.inc n)\n  Increments n by 1"
          (send ",doc m.inc")
-         ",doc should work on macro tables")
+         ",doc works on macro tables")
     (t.= (send ",doc while") (send ",doc while")
-         ",doc <callable> does not mutate target's :fnl/arglist metadata")))
+         ",doc <callable> does not mutate target's :fnl/arglist metadata")
+    (send "(local tbl {})")
+    (send "(: (. (require :fennel) :metadata) :set tbl :fnl/docstring \"A TABLE\")")
+    (t.= "tbl\n  A TABLE" (send ",doc tbl")
+         ",doc works on tables")))
 
 (fn test-no-undocumented []
   (let [send (wrap-repl)

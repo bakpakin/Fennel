@@ -56,22 +56,21 @@ will see its values updated as expected, regardless of mangling rules."
                              (doto f (setfenv env)))
       _ (assert (load code ?filename :t env)))))
 
+(fn v->docstring [tgt]
+  (-> (compiler.metadata:get tgt :fnl/docstring)
+      (or "#<undocumented>") (: :gsub "\n$" "") (: :gsub "\n" "\n  ")))
+
 (fn doc* [tgt name]
   "Return a docstring for tgt."
+  (assert (= :string (type name)) "name must be a string")
   (if (not tgt)
       (.. name " not found")
-      (let [docstring (-> (compiler.metadata:get tgt :fnl/docstring)
-                          (or "#<undocumented>")
-                          (: :gsub "\n$" "")
-                          (: :gsub "\n" "\n  "))
-            mt (getmetatable tgt)]
-        (if (or (= (type tgt) :function)
-                (and (= (type mt) :table) (= (type (. mt :__call)) :function)))
-            (let [elts (doto (or (compiler.metadata:get tgt :fnl/arglist)
-                                 ["#<unknown-arguments>"])
-                         (table.insert 1 name))]
-              (string.format "(%s)\n  %s" (table.concat elts " ") docstring))
-            (string.format "%s\n  %s" name docstring)))))
+      (or (= (type tgt) :function)
+          (case (getmetatable tgt) {: __call} (= :function (type __call))))
+      (let [elts [name (unpack (or (compiler.metadata:get tgt :fnl/arglist)
+                                   ["#<unknown-arguments>"]))]]
+        (string.format "(%s)\n  %s" (table.concat elts " ") (v->docstring tgt)))
+      (string.format "%s\n  %s" name (v->docstring tgt))))
 
 ;; TODO: replace this with using the special fn's own docstring
 (fn doc-special [name arglist docstring body-form?]

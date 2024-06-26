@@ -8,7 +8,9 @@ deprecated forms.
 
 ## 1.5.1 / ???
 
-* ???
+### Bug Fixes
+
+* `,doc`/`fennel.doc`: Don't mutate `:fnl/arglist` directly when showing callable form
 
 ## 1.5.0 / 2024-06-23
 

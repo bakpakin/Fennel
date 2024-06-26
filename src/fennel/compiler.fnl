@@ -89,13 +89,12 @@ Takes a Lua identifier and returns the Fennel symbol string that created it."
                                    #(string.char (tonumber ($:sub 2) 16))))
     _ identifier))
 
-(var allowed-globals nil)
-
 (fn global-allowed? [name]
   "If there's a provided list of allowed globals, don't let references thru that
 aren't on the list. This list is set at the compiler entry points of compile
 and compile-stream."
-  (or (not allowed-globals) (utils.member? name allowed-globals)))
+  (let [allowed (?. utils.root.options :allowedGlobals)]
+    (or (not allowed) (utils.member? name allowed))))
 
 (fn unique-mangling [original mangling scope append]
   (if (. scope.unmanglings mangling)
@@ -231,7 +230,8 @@ if they have already been declared via declare-local"
       (assert-compile (or (not ?reference?) local? (= :_ENV (. parts 1))
                           (global-allowed? (. parts 1)))
                       (.. "unknown identifier: " (tostring (. parts 1))) symbol)
-      (when (and allowed-globals (not local?) scope.parent)
+      (when (and (?. utils.root.options :allowedGlobals)
+                 (not local?) scope.parent)
         (tset scope.parent.refedglobals (. parts 1) true))
       (utils.expr (combine-parts parts scope) etype))))
 
@@ -314,11 +314,12 @@ if they have already been declared via declare-local"
 
 (fn flatten [chunk options]
   "Return Lua source and source map table."
-  (let [chunk (peephole chunk)]
+  (let [chunk (peephole chunk)
+        indent (or options.indent "  ")]
     (if options.correlate
         (values (flatten-chunk-correlated chunk options) [])
         (let [file-sourcemap {}
-              src (flatten-chunk file-sourcemap chunk options.indent 0)]
+              src (flatten-chunk file-sourcemap chunk indent 0)]
           (set file-sourcemap.short_src (or options.filename
                                             (make-short-src (or options.source src))))
           (set file-sourcemap.key (if options.filename (.. "@" options.filename) src))
@@ -660,8 +661,8 @@ which we have to do if we don't know."
                                 symbol)
                 (tset scope.manglings raw (global-mangling raw))
                 (tset scope.unmanglings (global-mangling raw) raw)
-                (when allowed-globals
-                  (table.insert allowed-globals raw)))
+                (when (?. utils.root.options :allowedGlobals)
+                  (table.insert (?. utils.root.options :allowedGlobals) raw)))
               (. (symbol-to-expression symbol scope) 1)))))
 
     (fn compile-top-target [lvalues]
@@ -852,15 +853,8 @@ which we have to do if we don't know."
 
   (scopes.global.specials.include ast scope parent opts))
 
-(fn opts-for-compile [options]
-  (let [opts (utils.copy options)]
-    (set opts.indent (or opts.indent "  "))
-    (set allowed-globals opts.allowedGlobals)
-    opts))
-
 (fn compile-asts [asts options]
-  (let [old-globals allowed-globals
-        opts (opts-for-compile options)
+  (let [opts (utils.copy options)
         scope (or opts.scope (make-scope scopes.global))
         chunk []]
     (when opts.requireAsInclude
@@ -877,7 +871,6 @@ which we have to do if we don't know."
         (keep-side-effects exprs chunk nil (. asts i))
         (when (= i (length asts))
           (utils.hook :chunk (. asts i) scope))))
-    (set allowed-globals old-globals)
     (utils.root.reset)
     (flatten chunk opts)))
 

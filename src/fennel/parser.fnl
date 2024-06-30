@@ -60,6 +60,9 @@ Also returns a second function to clear the buffer in the byte stream."
 
 (fn char-starter? [b] (or (< 1 b 127) (< 192 b 247)))
 
+(local escapes {:a "\a" :b "\b" :f "\f" :n "\n" :r "\r" :t "\t" :v "\v"
+                "\\" "\\" "\"" "\"" "'" "'" "\n" "\n"})
+
 (fn parser-fn [getbyte filename {: source : unfriendly : comments &as options}]
   (var stack []) ; stack of unfinished values
   ;; Provide one character buffer and keep track of current line and byte index
@@ -250,8 +253,12 @@ Also returns a second function to clear the buffer in the byte stream."
             (parse-string-loop chars (getb) state)
             b)))
 
-    (fn escape-char [c]
-      (. {7 "\\a" 8 "\\b" 9 "\\t" 10 "\\n" 11 "\\v" 12 "\\f" 13 "\\r"} (c:byte)))
+    (fn escape-sequence [c]
+      (case (tonumber c)
+        n (string.char n)
+        nil (case (. escapes (c:sub 1 1))
+              escaped (.. escaped (c:sub 2 3))
+              _ (parse-error (.. "Invalid string: " c)))))
 
     (fn parse-string [source]
       (when (not whitespace-since-dispatch)
@@ -262,10 +269,8 @@ Also returns a second function to clear the buffer in the byte stream."
           (badend))
         (table.remove stack)
         (let [raw (table.concat chars)
-              formatted (raw:gsub "[\a-\r]" escape-char)]
-          (match ((or (rawget _G :loadstring) load) (.. "return " formatted))
-            load-fn (dispatch (load-fn) source raw)
-            nil (parse-error (.. "Invalid string: " raw))))))
+              escaped (: (raw:sub 2 -2) :gsub "\\(.%d?%d?)" escape-sequence)]
+          (dispatch escaped source raw))))
 
     (fn parse-prefix [b]
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"

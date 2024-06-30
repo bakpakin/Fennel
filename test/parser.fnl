@@ -15,7 +15,8 @@
                ;; leading underscores aren't numbers
                "(let [_0 :zero] _0)" "zero"
                ;; backslash+newline becomes just a newline like Lua
-               "\"foo\\\nbar\"" "foo\nbar"}
+               "\"foo\\\nbar\"" "foo\nbar"
+               "\"\\x20\"" " "}
         (amp-ok? amp) ((fennel.parser (fennel.string-stream "&abc ")))]
     (each [code expected (pairs cases)]
       (t.= (fennel.eval code) expected code))

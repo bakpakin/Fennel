@@ -254,11 +254,11 @@ Also returns a second function to clear the buffer in the byte stream."
             b)))
 
     (fn escape-sequence [c]
-      (case (tonumber c)
-        n (string.char n)
-        nil (case (. escapes (c:sub 1 1))
-              escaped (.. escaped (c:sub 2 3))
-              _ (parse-error (.. "Invalid string: " c)))))
+      (let [c1 (c:sub 1 1)]
+        (if (. escapes c1) (.. (. escapes c1) (c:sub 2 3))
+            (tonumber c) (string.char (tonumber c))
+            (= :x c1) (string.char (tonumber (c:sub 2 3) 16))
+            (parse-error (.. "Invalid string: " c)))))
 
     (fn parse-string [source]
       (when (not whitespace-since-dispatch)

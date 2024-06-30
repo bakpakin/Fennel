@@ -239,6 +239,27 @@ Also returns a second function to clear the buffer in the byte stream."
             (= b 93) (close-sequence top)
             (close-curly-table top))))
 
+    (fn bitrange [codepoint low high]
+      (% (math.floor (/ codepoint (^ 2 low))) (math.floor (^ 2 (- high low)))))
+
+    (fn encode-utf8 [codepoint-str]
+      (case (tonumber (codepoint-str:sub 4 -2) 16)
+        codepoint (if (<= 0       codepoint   0x7F)
+                      (string.char codepoint)
+                      (<= 0x80    codepoint   0x7FF)
+                      (string.char (+ 0xC0 (bitrange codepoint 6 12))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      (<= 0x800   codepoint   0xFFFF)
+                      (string.char (+ 0xE0 (bitrange codepoint 12 18))
+                                   (+ 0x80 (bitrange codepoint 6 12))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      (<= 0x10000 codepoint   0x10FFFF)
+                      (string.char (+ 0xF0 (bitrange codepoint 18 21))
+                                   (+ 0x80 (bitrange codepoint 12 18))
+                                   (+ 0x80 (bitrange codepoint 6 12))
+                                   (+ 0x80 (bitrange codepoint 0 6))))
+        _ (parse-error (.. "Illegal string: " codepoint-str))))
+
     (fn parse-string-loop [chars b state]
       (when b
         (table.insert chars (string.char b)))
@@ -255,9 +276,10 @@ Also returns a second function to clear the buffer in the byte stream."
 
     (fn escape-sequence [c]
       (let [c1 (c:sub 1 1)]
-        (if (. escapes c1) (.. (. escapes c1) (c:sub 2 3))
-            (tonumber c) (string.char (tonumber c))
-            (= :x c1) (string.char (tonumber (c:sub 2 3) 16))
+        (if (= :u c1) c ; utf8 is handled in the next gsub
+            (= :x c1) (string.char (tonumber (c:sub 2 3) 16)) ; hex
+            (tonumber c) (string.char (tonumber c)) ; decimal
+            (. escapes c1) (.. (. escapes c1) (c:sub 2 3))
             (parse-error (.. "Invalid string: " c)))))
 
     (fn parse-string [source]
@@ -269,7 +291,9 @@ Also returns a second function to clear the buffer in the byte stream."
           (badend))
         (table.remove stack)
         (let [raw (table.concat chars)
-              escaped (: (raw:sub 2 -2) :gsub "\\(.%d?%d?)" escape-sequence)]
+              escaped (-> (raw:sub 2 -2)
+                          (: :gsub "\\(.%x?%x?)" escape-sequence)
+                          (: :gsub "\\u{[0-9a-f]+}" encode-utf8))]
           (dispatch escaped source raw))))
 
     (fn parse-prefix [b]

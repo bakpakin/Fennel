@@ -5,6 +5,11 @@
 (fn == [a b msg]
   (t.= (fennel.view a) (fennel.view b) msg))
 
+(fn parse= [expected str msg]
+  (let [(ok? parsed) ((fennel.parser str))]
+    (t.is ok?)
+    (t.= expected parsed msg)))
+
 (fn test-basics []
   (let [cases {"\"\\\\\"" "\\"
                "\"abc\n\\240\"" "abc\n\240"
@@ -15,17 +20,35 @@
                ;; leading underscores aren't numbers
                "(let [_0 :zero] _0)" "zero"
                ;; backslash+newline becomes just a newline like Lua
-               "\"foo\\\nbar\"" "foo\nbar"
-               "\"\\x20\"" " "}
+               "\"foo\\\nbar\"" "foo\nbar"}
         (amp-ok? amp) ((fennel.parser (fennel.string-stream "&abc ")))]
     (each [code expected (pairs cases)]
       (t.= (fennel.eval code) expected code))
     (t.is amp-ok?)
     (t.= "&abc" (tostring amp))))
 
+(fn test-escapes []
+  (parse= " " "\"\032\"")
+  (parse= " " "\"\\x20\"")
+  (parse= " " "\"\\u{20}\"")
+  (parse= "\t\n\v" "\"\\t\\n\\v\"")
+  ;; extra unicode cases
+  (parse= "\x24" "\"\\u{24}\"")
+  (parse= "\xC2\xA2" "\"\\u{a2}\"")
+  (parse= "\xE2\x82\xAC" "\"\\u{20ac}\"")
+  (parse= "\xF0\xA4\xAD\xA2" "\"\\u{24b62}\"")
+  (parse= "\x7F" "\"\\u{7f}\"")
+  (parse= "\xC2\x80" "\"\\u{80}\"")
+  (parse= "\xDF\xBF" "\"\\u{7ff}\"")
+  (parse= "\xE0\xA0\x80" "\"\\u{800}\"")
+  (parse= "\xEF\xBF\xBF" "\"\\u{ffff}\"")
+  (parse= "\xF0\x90\x80\x80" "\"\\u{10000}\"")
+  (parse= "\xF4\x8F\xBF\xBF" "\"\\u{10ffff}\""))
+
 (fn test-comments []
   (let [(ok? ast) ((fennel.parser (fennel.string-stream ";; abc")
                                   "" {:comments true}))]
+    (t.is ok?)
     (t.= :table (type (utils.comment? ast)))
     (t.= ";; abc" (tostring ast)))
   (let [code "{;; one\n1 ;; hey\n2 ;; what\n:is \"up\" ;; here\n}"
@@ -123,11 +146,9 @@
 (fn test-plugin-hooks []
   (var parse-error-called nil)
   (let [code "(there is a parse error here (((("
-        plugin {:versions [(: fennel.version :gsub "-dev" "")]
-                :parse-error
-                (fn parse-error [msg filename line col source root-reset]
-                  (set parse-error-called true))}
-        (ok? ok2? ast) (pcall (fennel.parser code "" {:plugins [plugin]}))]
+        plugin {:versions [(fennel.version:gsub "-dev" "")]
+                :parse-error (fn [] (set parse-error-called true))}
+        ok? (pcall (fennel.parser code "" {:plugins [plugin]}))]
     (t.is (not ok?) "parse error is expected")
     (t.is parse-error-called "plugin wasn't called")))
 
@@ -136,4 +157,5 @@
  : test-comments
  : test-prefixes
  : test-source-meta
+ : test-escapes
  : test-plugin-hooks}

@@ -28,7 +28,7 @@
     (t.= "&abc" (tostring amp))))
 
 (fn test-escapes []
-  (parse= " " "\"\032\"")
+  (parse= " " "\"\\032\"")
   (parse= " " "\"\\x20\"")
   (parse= " " "\"\\u{20}\"")
   (parse= "\t\n\v" "\"\\t\\n\\v\"")

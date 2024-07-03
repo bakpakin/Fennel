@@ -1019,7 +1019,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         ;; contents is how we construct lists in the parser and works around
         ;; this problem; allowing # to work in a way that lets us see the nils.
         (string.format (.. "setmetatable({filename=%s, line=%s, bytestart=%s, %s}"
-                           ", getmetatable(list()))")
+                           ", getmetatable(_G.list()))")
                        filename (or form.line :nil) (or form.bytestart :nil)
                        (mixed-concat mapped ", ")))
       (utils.sequence? form)
@@ -1031,7 +1031,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         (string.format "setmetatable({%s}, {filename=%s, line=%s, sequence=%s})"
                        (mixed-concat mapped ", ") filename
                        (if source source.line :nil)
-                       "(getmetatable(sequence()))['sequence']"))
+                       "(getmetatable(_G.sequence()))['sequence']"))
       (= (type form) :table) ; table
       (let [mapped (quote-all form)
             source (getmetatable form)

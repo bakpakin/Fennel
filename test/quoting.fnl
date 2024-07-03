@@ -6,8 +6,9 @@
   (fennel.compileString code {:allowedGlobals false :compiler-env _G}))
 
 (fn v [code]
-  (view ((fennel.loadCode (c code) (setmetatable {:sequence fennel.sequence}
-                                                 {:__index _G})))
+  (view ((fennel.loadCode (c code) (let [env {:sequence fennel.sequence}]
+                                     (set env._G env)
+                                     (setmetatable env {:__index _G}))))
         {:one-line? true}))
 
 (fn test-quote []

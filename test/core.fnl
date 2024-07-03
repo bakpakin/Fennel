@@ -426,7 +426,12 @@
   (== (let [x [#(tset $1 $2 $3)] y x]
         (: x 1 2 :b)
         (. y 2))
-      :b))
+      :b)
+  (== (do (macro m [] (let [list :bork] `(do :x))) (m))
+      :x)
+  (== (do (macro m [] (let [sequence :bork] `[:x])) (m))
+      [:x])
+  )
 
 (fn test-hashfn []
   (== (#$.foo {:foo :bar}) "bar")

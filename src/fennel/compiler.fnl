@@ -706,8 +706,9 @@ which we have to do if we don't know."
 
     (fn dynamic-set-target [[_ target & keys]]
       (assert-compile (utils.sym? target) "dynamic set needs symbol target" ast)
-      (assert-compile (. scope.manglings (tostring target))
-                      (.. "unknown identifier: " (tostring target)) target)
+      ;; symbol-to-expression validates target against scope.manglings, allowed
+      ;; globals, and exceptions like $, $1...$9 in hashfn, so we omit here
+      (assert-compile (next keys) "dynamic set needs at least one key" ast)
       (let [keys (icollect [_ k (ipairs keys)]
                    (tostring (. (compile1 k scope parent {:nval 1}) 1)))]
         (string.format "%s[%s]" (tostring (symbol-to-expression target scope true))

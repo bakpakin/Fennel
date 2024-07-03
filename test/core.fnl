@@ -267,6 +267,13 @@
         (set x 87)
         (.. x (table.concat t " ") (table.concat (. tt 1))))
       "87lol hehe lmaohey")
+  (== (do (set (. _G :dynamic-set-global?) true) _G.dynamic-set-global?)
+      true
+      {:env {:_G {}}})
+  (== (let [set-x #(do (set (. $1 :x) $2) $1)] (set-x {} :aw-yiss))
+      {:x :aw-yiss})
+  (== (let [t [8 9]] (set [(. t 1) (. t 2)] [(. t 2) (. t 1)]) t)
+      [9 8])
   (== (let [x 17] (. 17)) 17)
   (== (let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key) "val")
   (== (let [t {} _ (tset t :a 84)] (. t :a)) 84)

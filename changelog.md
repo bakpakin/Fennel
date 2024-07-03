@@ -11,6 +11,7 @@ deprecated forms.
 ### Bug Fixes
 
 * `,doc`/`fennel.doc`: Don't mutate `:fnl/arglist` directly when showing callable form
+* `(set (. tgt k1 ...) v)` now works on known globals and `$, $1 ... $9` in hashfns
 
 ## 1.5.0 / 2024-06-23
 

@@ -12,7 +12,7 @@ deprecated forms.
 
 * `,doc`/`fennel.doc`: Don't mutate `:fnl/arglist` directly when showing callable form
 * `(set (. tgt k1 ...) v)` now works on known globals and `$, $1 ... $9` in hashfns
-* Macro quote expansion no longer breaks when `list` or `sequence` is shadowed
+* Macro quote expansion no longer breaks when `sym`, `list` or `sequence` is shadowed
 
 ## 1.5.0 / 2024-06-23
 

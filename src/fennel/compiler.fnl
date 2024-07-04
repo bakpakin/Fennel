@@ -999,11 +999,11 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         ;; We should be able to use "%q" for this but Lua 5.1 throws an error
         ;; when you try to format nil, because it's extremely bad.
         (if (or (symstr:find "#$") (symstr:find "#[:.]")) ; autogensym
-            (string.format "sym('%s', {filename=%s, line=%s})"
+            (string.format "_G.sym('%s', {filename=%s, line=%s})"
                            (autogensym symstr scope) filename
                            (or form.line :nil))
             ;; prevent non-gensymed symbols from being bound as an identifier
-            (string.format "sym('%s', {quoted=true, filename=%s, line=%s})"
+            (string.format "_G.sym('%s', {quoted=true, filename=%s, line=%s})"
                            symstr filename (or form.line :nil))))
       (utils.call-of? form :unquote)
       (let [res (unpack (compile1 (. form 2) scope parent))]

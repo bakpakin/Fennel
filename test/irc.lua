@@ -2,7 +2,7 @@ local server_port = (os.getenv("IRC_HOST_PORT") or "irc.libera.chat 6667")
 local channel = os.getenv("IRC_CHANNEL")
 local url = os.getenv("JOB_URL") or "???"
 
-local origin_job_prefix = 'https://builds.sr.ht/technomancy/job/'
+local origin_job_prefix = 'https://builds.sr.ht/~technomancy/job/'
 local is_origin = url:sub(1, #origin_job_prefix) == origin_job_prefix
 
 local branch = io.popen("git rev-parse --abbrev-ref HEAD"):read('*a')

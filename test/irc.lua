@@ -2,11 +2,10 @@ local server_port = (os.getenv("IRC_HOST_PORT") or "irc.libera.chat 6667")
 local channel = os.getenv("IRC_CHANNEL")
 local url = os.getenv("JOB_URL") or "???"
 
-local remote = io.popen("git remote show origin"):read('*a')
-local is_origin = remote:find('~technomancy/fennel')
+local remote = io.popen("git remote get-url origin"):read('*l')
+local is_origin = remote:find('~technomancy/fennel$') ~= nil
 
-local branch = io.popen("git rev-parse --abbrev-ref HEAD"):read('*a')
-                 :gsub('\n$', '')
+local branch = io.popen("git rev-parse --abbrev-ref HEAD"):read('*l')
 local is_main = branch == 'main'
 
 -- This may fail in future if libera chat once again blocks builds.sr.ht

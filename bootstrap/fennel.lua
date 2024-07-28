@@ -24,7 +24,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -- Changelog: (since 0.4.3)
 
 -- * backport idempotency checks in 3+ arity operator calls
-
+-- * backport some IIFE avoidance
+-- * add workaround for luajit bug
+-- * add support for &until in addition to :until in loops
+-- * fix setReset to not accidentally set a global
 
 -- Make global variables local.
 local setmetatable = setmetatable
@@ -329,16 +332,16 @@ local utils = (function()
         -- have dynamic scope, so we fake it by ensuring we call this at every
         -- exit point, including errors.
         reset=function() end,
-
-        setReset=function(root)
-            local chunk, scope, options = root.chunk, root.scope, root.options
-            local oldResetRoot = root.reset -- this needs to nest!
-            root.reset = function()
-                root.chunk, root.scope, root.options = chunk, scope, options
-                root.reset = oldResetRoot
-            end
-        end,
     }
+
+    root.setReset=function(root)
+       local chunk, scope, options = root.chunk, root.scope, root.options
+       local oldResetRoot = root.reset -- this needs to nest!
+       root.reset = function()
+          root.chunk, root.scope, root.options = chunk, scope, options
+          root.reset = oldResetRoot
+       end
+    end
 
     return {
         -- basic general table functions:

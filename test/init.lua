@@ -1,4 +1,8 @@
 local t = require("test.faith")
+
+-- Ensure we don't accidentally set globals when loading or running the compiler
+setmetatable(_G, {__newindex=function(_, k) error("set global "..k) end})
+
 local oldfennel = require("bootstrap.fennel")
 local opts = {useMetadata = true, correlate = true}
 oldfennel.dofile("src/fennel.fnl", {compilerEnv=_G}).install(opts)

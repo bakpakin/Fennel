@@ -2,30 +2,6 @@
 (local fennel (require :fennel))
 (local specials (require :fennel.specials))
 
-(local saved-globals {})
-
-;; Prevent leaking _G.___replLocals___ (and _G.___repl__) into global env.
-;; TODO: We should probably just not let it leak these globals in the first
-;; place, since we aren't relying on them being exposed. If we did, setup and
-;; teardown could manage a custom env for REPL use, without it touching faith's
-;; environment.
-;;
-;; Better yet, we should consider preventing fennel.repl from leaking globals
-;; after the REPL exits.
-(fn setup-all []
-  "Saves off faith's _G.___replLocals___ / _G.___repl___ to prevent leakage"
-  (set saved-globals.___repl___       _G.___repl___)
-  (set saved-globals.___replLocals___ _G.___replLocals___))
-
-(fn teardown-all []
-  (set _G.___repl___       saved-globals.___repl___)
-  (set _G.___replLocals___ saved-globals.___replLocals___))
-
-(fn setup []
-  "Reset _G.___repl___ and _G.___replLocals___ to nil before each test"
-  (set _G.___repl___ nil)
-  (set _G.___replLocals___ nil))
-
 ;; allow inputs to be structured as a form but converted to a string
 (macro v [form] (view form))
 
@@ -49,6 +25,8 @@
       (fn opts.registerCompleter [x]
         (set repl-complete x))
       (fn opts.pp [x] x)
+      (set opts.env {: table : math : string : require : pcall : ipairs})
+      (set opts.env._G opts.env)
       (set opts.error-pinpoint ["«" "»"])
       (fennel.repl opts)))
   (let [repl-send (coroutine.wrap send)]
@@ -494,7 +472,8 @@
 
 (fn test-return []
   (let [opts {:readChunk #",return (.. :return :value)"
-              :onValues #nil}]
+              :onValues #nil
+              :env {}}]
     (t.= :returnvalue (fennel.repl opts))))
 
 (fn test-decorating-repl []
@@ -502,17 +481,18 @@
   (let [send (wrap-repl)]
     (send (v (let [readChunk ___repl___.readChunk]
                (fn ___repl___.readChunk [parser-state]
+                 (set ___repl___.readChunk readChunk)
                  (string.format "(- %s)" (readChunk parser-state))))))
-    (t.= (send (v (+ 1 2 3)))
-         "-6" "expected the result to be negated by the new readChunk")
+    (t.= "-6" (send (v (+ 1 2 3)))
+         "expected the result to be negated by the new readChunk")
     (send (v (let [onValues ___repl___.onValues]
                (fn ___repl___.onValues [vals]
                  (onValues (icollect [_ v (ipairs vals)]
-                             (.. "res: " v)))))))
-    (t.= (send (v (+ 1 2 3 4)))
-         "res: -10" "expected result to include \"res: \" preffix")
+                             (string.format "res: %s" v)))))))
+    (t.= "res: 10" (send (v (+ 1 2 3 4)))
+         "expected result to include \"res: \" preffix")
     (send (v (fn ___repl___.onError [errtype err lua-source] nil)))
-    (t.= (send (v (error :foo))) "" "expected error to be ignored")))
+    (t.= "" (send (v (error :foo))) "expected error to be ignored")))
 
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
@@ -520,10 +500,7 @@
 ;; testing it on PUC 5.1, so skip it.
 (if (and (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
          (= "/" (package.config:sub 1 1)))
-    {: setup-all
-     : teardown-all
-     : setup
-     : test-sym-completion
+    {: test-sym-completion
      : test-macro-completion
      : test-method-completion
      : test-command-completion

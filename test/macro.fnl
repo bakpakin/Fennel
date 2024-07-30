@@ -2,6 +2,9 @@
 (local t (require :test.faith))
 (local fennel (require :fennel))
 
+(local env (setmetatable {} {:__index _G}))
+(set env._G env)
+
 (macro view [x] (view x))
 
 (macro == [form expected ?msg ?opts]
@@ -77,7 +80,7 @@
   (== (do (import-macros {:defn1 defn : ->1} :test.macros)
           (defn join [sep ...] (table.concat [...] sep))
           (join :: :num (->1 5 (* 2) (+ 8))))
-      "num:18")
+      "num:18" nil {: env})
   (== (do (import-macros {: unsandboxed} :test.macros) (unsandboxed))
       "[\"no\" \"sandbox\"]" "should disable sandbox" {:compiler-env _G})
   (let [not-unqualified "(import-macros hi :test.macros) (print (inc 1))"]
@@ -102,7 +105,9 @@
 (fn test-require-macros []
   (== (do (require-macros :test.macros) (->1 9 (+ 2) (* 11))) 121)
   (== (do (require-macros :test.macros)
-          (defn1 hui [x y] (global z (+ x y))) (hui 8 4) z) 12))
+          (defn1 hui [x y] (global z (+ x y)))
+          (hui 8 4) z)
+      12 nil {: env}))
 
 (fn test-inline-macros []
   (== (do (macro five [] 5) (five)) 5)
@@ -117,7 +122,7 @@
           (when2 true :when2)) "when2")
   (== (do (macros {:plus (fn [x y] `(+ ,x ,y))}) (plus 9 9)) 18)
   (== (do (macros {:m (fn [x] (set _G.sided x))}) (m 952) _G.sided) 952
-      "should disable sandbox" {:compiler-env _G})
+      "should disable sandbox" {:compiler-env env : env})
   (== (do (macro n [] 1) (local x (n)) (macro n [] 2) (values x (n)))
       (values 1 2) "macro-macro shadowing should be allowed")
   (== (do (macros (let [noop #nil] {: noop})) (noop))

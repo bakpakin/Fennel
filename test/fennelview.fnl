@@ -290,9 +290,7 @@
                "(fn pp-list [x pp opts indent] (values (icollect [i v (ipairs x)] (let [v (pp v opts (+ 1 indent) true)] (values (if (= i 1) (.. \"(\" v) (= i (length x)) (.. \" \" v \")\") (.. \" \" v))))) true)) (local l1 (setmetatable [1 2 3] {:__fennelview pp-list})) (local l2 (setmetatable [\"a\" \"a b\" [1 2 3] {:a l1 :b []}] {:__fennelview pp-list})) ((require :fennel.view) {:abc [l1]} {:one-line? true})"
                "{:abc [(1 2 3)]}"
                ;; ensure it works on lists/syms inside compiler
-               "(eval-compiler
-                  (set _G.out ((require :fennel.view) '(a {} [1 2]))))
-                _G.out"
+               "(eval-compiler (view (view '(a {} [1 2]))))"
                "(a {} [1 2])"
                ;; ensure that `__fennelview' has higher priority than `:prefer-colon?'
                "(local styles (setmetatable [:colon :quote :depends]

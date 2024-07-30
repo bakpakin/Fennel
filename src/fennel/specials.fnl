@@ -45,7 +45,7 @@ will see its values updated as expected, regardless of mangling rules."
              ;; newer lua versions know about __pairs natively but not 5.1
              {:__pairs mtpairs} (collect [k v (mtpairs ?env)] (values k v))
              nil (or ?env _G))]
-    (and mt (icollect [k v (utils.stablepairs mt)]
+    (and mt (icollect [k (utils.stablepairs mt)]
               (compiler.global-unmangling k)))))
 
 (fn load-code [code ?env ?filename]

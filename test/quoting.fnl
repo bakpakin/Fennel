@@ -53,12 +53,12 @@
          "shadowing the compiler env in a macro doesn't break quoting")))
 
 (fn test-quoted-source []
-  (c "\n\n(eval-compiler (set _G.source-line (. `abc :line)))")
-  (t.= (. _G "source-line") 3 "syms have source data")
-  (c "\n(eval-compiler (set _G.source-line (. `abc# :line)))")
-  (t.= (. _G "source-line") 2 "autogensyms have source data")
-  (c "\n\n\n(eval-compiler (set _G.source-line (. `(abc) :line)))")
-  (t.= (. _G "source-line") 4 "lists have source data")
+  (t.= "return 3" (c "\n\n(eval-compiler (. `abc :line))")
+       "syms have source data")
+  (t.= "return 2" (c "\n(eval-compiler (. `abc# :line))")
+       "autogensyms have source data")
+  (t.= "return 4" (c "\n\n\n(eval-compiler (. `(abc) :line))")
+       "lists have source data")
   (let [(_ msg) (pcall c "\n\n\n\n(macro abc [] `(fn [... a#] 1)) (abc)")]
     (t.match "unknown:5" msg "quoted tables have source data")))
 

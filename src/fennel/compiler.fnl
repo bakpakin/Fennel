@@ -856,6 +856,8 @@ which we have to do if we don't know."
 
 (fn compile-asts [asts options]
   (let [opts (utils.copy options)
+        _ (when (= :_COMPILER opts.scope)
+            (set opts.scope scopes.compiler))
         scope (or opts.scope (make-scope scopes.global))
         chunk []]
     (when opts.requireAsInclude

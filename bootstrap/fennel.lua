@@ -23,6 +23,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 -- Changelog: (since 0.4.3)
 
+-- * set _G in compiler env
+-- * backport magic :_COMPILER scope option
+-- * replace global mangling with _G["whatever?"] <- backwards incompatibility!
 -- * backport idempotency checks in 3+ arity operator calls
 -- * backport some IIFE avoidance
 -- * add workaround for luajit bug
@@ -785,10 +788,7 @@ local compiler = (function()
         if utils.isValidLuaIdentifier(str) then
             return str
         end
-        -- Use underscore as escape character
-        return '__fnl_global__' .. str:gsub('[^%w]', function (c)
-            return ('_%02x'):format(c:byte())
-        end)
+        return ("_G[%q]"):format(str)
     end
 
     -- Reverse a global mangling. Takes a Lua identifier and
@@ -1513,6 +1513,7 @@ local compiler = (function()
         utils.root:setReset()
         allowedGlobals = opts.allowedGlobals
         if opts.indent == nil then opts.indent = '  ' end
+        if opts.scope == "_COMPILER" then opts.scope = scopes.compiler end
         local scope = opts.scope or makeScope(scopes.global)
         if opts.requireAsInclude then scope.specials.require = requireInclude end
         local vals = {}
@@ -2631,7 +2632,7 @@ local specials = (function()
 
     local function makeCompilerEnv(ast, scope, parent)
         local viewok, view = pcall(require, "bootstrap.view")
-        return setmetatable({
+        local env = {
             -- State of compiler if needed
             _SCOPE = scope,
             _CHUNK = parent,
@@ -2668,7 +2669,9 @@ local specials = (function()
                 compiler.assert(compiler.scopes.macro, "must call from macro", ast)
                 return compiler.macroexpand(form, compiler.scopes.macro)
             end,
-        }, { __index = _ENV or _G })
+        }
+        env._G = env
+        return setmetatable(env, { __index = _ENV or _G })
     end
 
     -- have searchModule use package.config to process package.path (windows compat)

@@ -96,7 +96,7 @@ disable the highlighting of compiler and parse errors.
 .SH START A CONFIGURABLE REPL
 .IP
 .nf
-\f[C]
+\f[CR]
 fennel.repl([options])
 \f[R]
 .fi
@@ -143,7 +143,7 @@ defaults are applied, allowing one to customize the default behavior of
 \f[V](fennel.repl)\f[R]:
 .IP
 .nf
-\f[C]
+\f[CR]
 fennel.repl.onError = custom_error_handler
 -- In rare cases this needs to be temporary, overrides
 -- can be cleared by simply clearing the entire table
@@ -155,7 +155,7 @@ end
 .SH EVALUATE A STRING OF FENNEL
 .IP
 .nf
-\f[C]
+\f[CR]
 local result = fennel.eval(str[, options[, ...]])
 \f[R]
 .fi
@@ -170,7 +170,7 @@ available as \f[V]...\f[R].
 .SH EVALUATE A FILE OF FENNEL
 .IP
 .nf
-\f[C]
+\f[CR]
 local result = fennel.dofile(filename[, options[, ...]])
 \f[R]
 .fi
@@ -180,7 +180,7 @@ available as \f[V]...\f[R].
 .SH USE LUA\[aq]S BUILT-IN REQUIRE FUNCTION
 .IP
 .nf
-\f[C]
+\f[CR]
 require(\[dq]fennel\[dq]).install().dofile(\[dq]main.fnl\[dq])
 \f[R]
 .fi
@@ -188,7 +188,7 @@ require(\[dq]fennel\[dq]).install().dofile(\[dq]main.fnl\[dq])
 This is the equivalent of this code:
 .IP
 .nf
-\f[C]
+\f[CR]
 local fennel = require(\[dq]fennel\[dq])
 table.insert(package.loaders or package.searchers, fennel.searcher)
 fennel.dofile(\[dq]main.fnl\[dq]) -- require calls in main.fnl can load fennel modules
@@ -235,7 +235,7 @@ C modules.
 Here\[aq]s an example of some code which would allow that to work:
 .IP
 .nf
-\f[C]
+\f[CR]
 table.insert(fennel[\[dq]macro-searchers\[dq]], function(module_name)
   local filename = fennel[\[dq]search-module\[dq]](module_name, package.cpath)
   if filename then
@@ -259,7 +259,7 @@ If you are working on an application written in Fennel, you can override
 the default traceback function to replace it with Fennel\[aq]s:
 .IP
 .nf
-\f[C]
+\f[CR]
 debug.traceback = fennel.traceback
 \f[R]
 .fi
@@ -274,7 +274,7 @@ Functions defined from Fennel will have the \f[V]what\f[R] field set to
 \f[V]\[dq]Fennel\[dq]\f[R] instead of \f[V]\[dq]Lua\[dq]\f[R].
 .IP
 .nf
-\f[C]
+\f[CR]
 local mymodule = require(\[dq]module\[dq])
 print(fennel.getinfo(mymodule.func1).linedefined)
 \f[R]
@@ -283,7 +283,7 @@ print(fennel.getinfo(mymodule.func1).linedefined)
 .SS Compile a file, AST, or byte iterator
 .IP
 .nf
-\f[C]
+\f[CR]
 local lua = fennel.compile(fennelSource[, options])
 \f[R]
 .fi
@@ -299,7 +299,7 @@ Accepts \f[V]filename\f[R] in \f[V]options\f[R] like
 .SS Compile a string of Fennel code
 .IP
 .nf
-\f[C]
+\f[CR]
 local lua = fennel.compileString(fennelcode[, options])
 \f[R]
 .fi
@@ -316,7 +316,7 @@ Returns nil when it reaches the end.
 Raises an error if it can\[aq]t parse the input.
 .IP
 .nf
-\f[C]
+\f[CR]
 local parse = fennel.parser(text)
 local ok, ast = assert(parse()) -- just get the first form
 
@@ -458,7 +458,7 @@ instead, keyed by the key or value they were attached to.
 .SH SEARCH THE PATH FOR A MODULE WITHOUT LOADING IT
 .IP
 .nf
-\f[C]
+\f[CR]
 print(fennel.searchModule(\[dq]my.mod\[dq], package.path))
 \f[R]
 .fi
@@ -480,7 +480,7 @@ It will emit an unreadable placeholder for coroutines, compiled
 functions, and userdata, which cannot be understood by the parser.
 .IP
 .nf
-\f[C]
+\f[CR]
 print(fennel.view({abc=123}[, options])
 {:abc 123}
 \f[R]
@@ -543,7 +543,7 @@ function as its second argument, options table as third argument, and
 current amount of indentation as its last argument:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn [t view options indent] ...)
 \f[R]
 .fi
@@ -590,7 +590,7 @@ structure.
 For example, if you want to print a multi-line table, like this:
 .IP
 .nf
-\f[C]
+\f[CR]
 \[at]my-table[1
           2
           3]
@@ -600,7 +600,7 @@ For example, if you want to print a multi-line table, like this:
 \f[V]__fennelview\f[R] should return a sequence of lines:
 .IP
 .nf
-\f[C]
+\f[CR]
 [\[dq]\[at]my-table[1\[dq]
  \[dq]          2\[dq]
  \[dq]          3]\[dq]]
@@ -616,7 +616,7 @@ Here\[aq]s an implementation of such pretty-printer for an arbitrary
 sequential table:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn pp-doc-example [t view options indent]
   (let [lines (icollect [i v (ipairs t)]
                 (let [v (view v options (+ 10 indent))]
@@ -632,7 +632,7 @@ Setting table\[aq]s \f[V]__fennelview\f[R] metamethod to this function
 will provide correct results regardless of nesting:
 .IP
 .nf
-\f[C]
+\f[CR]
 >> {:my-table (setmetatable [[1 2 3 4 5]
                              {:smalls [6 7 8 9 10 11 12]
                               :bigs [500 1000 2000 3000 4000]}]
@@ -662,7 +662,7 @@ output that Fennel can no longer parse.
 For example, to force the use of hex escapes:
 .IP
 .nf
-\f[C]
+\f[CR]
 (print (fennel.view {:clear-screen \[dq]\[rs]027[H\[rs]027[2J\[dq]}
                     {:byte-escape #(: \[dq]\[rs]\[rs]x%2x\[dq] :format $)}))
 ;; > {:clear-screen \[dq]\[rs]x1b[H\[rs]x1b[2J\[dq]}
@@ -701,7 +701,7 @@ Utilized by the \f[V],doc\f[R] command, name is whatever symbol you
 operate on that\[aq]s bound to the function.
 .IP
 .nf
-\f[C]
+\f[CR]
 local greet = fennel.eval(\[aq](\[*l] greet [name] \[dq]Say hello\[dq] (print \[dq]Hello,\[dq] name))\[aq],
                           {useMetadata = true})
 
@@ -737,7 +737,7 @@ can provide you with data about what forms and keywords to treat
 specially.
 .IP
 .nf
-\f[C]
+\f[CR]
 local syntax = fennel.syntax()
 print(fennel.view(syntax[\[dq]icollect\[dq]]))
 --> {:binding-form? true :body-form? true :macro? true}
@@ -766,7 +766,7 @@ run inside that environment, in a way that\[aq]s portable across any Lua
 5.1+ version.
 .IP
 .nf
-\f[C]
+\f[CR]
 local f = fennel.loadCode(luaCode, { x = y }, \[dq]myfile.lua\[dq])
 \f[R]
 .fi
@@ -778,13 +778,13 @@ Useful for displaying an \[dq]About\[dq] dialog in your Fennel app that
 matches the REPL and \f[V]--version\f[R] CLI flag.
 .IP
 .nf
-\f[C]
+\f[CR]
 (fennel.runtime-version)
 \f[R]
 .fi
 .IP
 .nf
-\f[C]
+\f[CR]
 print(fennel.runtimeVersion())
 -- > Fennel 1.0.0 on PUC Lua 5.4
 \f[R]
@@ -799,7 +799,7 @@ If an optional argument is given, returns version information as a
 table:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fennel.runtime-version :as-table)
 ;; > {:fennel \[dq]1.3.1\[dq] :lua \[dq]PUC Lua 5.4\[dq]}
 \f[R]
@@ -872,7 +872,7 @@ other whitespace), a function which is used to print normal values, and
 one which is used to print errors.
 .IP
 .nf
-\f[C]
+\f[CR]
 (local fennel (require :fennel)
 (fn locals [env read on-values on-error scope chars opts]
   \[dq]Print all locals in repl session scope.\[dq]
@@ -883,7 +883,7 @@ one which is used to print errors.
 .fi
 .IP
 .nf
-\f[C]
+\f[CR]
 $ fennel --plugin locals-plugin.fnl
 Welcome to Fennel 0.8.0 on Lua 5.4!
 Use ,help to see available commands.

@@ -150,9 +150,15 @@ build/manfilter.lua: build/manfilter.fnl fennel.lua fennel
 
 man: $(dir $(MAN_DOCS)) $(MAN_DOCS)
 man/man%/: ; mkdir -p $@
-man/man3/fennel-%.3: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
-man/man5/fennel-%.5: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
-man/man7/fennel-%.7: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
+man/man3/fennel-%.3: %.md build/manfilter.lua
+	$(MAN_PANDOC) $< -o $@
+	sed -i 's/\\f\[C\]/\\f[CR]/g' $@ # work around pandoc 2.x bug
+man/man5/fennel-%.5: %.md build/manfilter.lua
+	$(MAN_PANDOC) $< -o $@
+	sed -i 's/\\f\[C\]/\\f[CR]/g' $@
+man/man7/fennel-%.7: %.md build/manfilter.lua
+	$(MAN_PANDOC) $< -o $@
+	sed -i 's/\\f\[C\]/\\f[CR]/g' $@
 
 ## Release-related tasks:
 

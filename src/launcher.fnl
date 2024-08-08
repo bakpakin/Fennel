@@ -95,8 +95,6 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
       (where (or (true :exit) 0)) (os.exit 0 true)
       _ (os.exit 1 true))))
 
-(assert arg "Using the launcher from non-CLI context; use fennel.lua instead.")
-
 ;; check for --lua first to ensure its child process retains all flags
 (for [i (length arg) 1 -1]
   (match (. arg i)

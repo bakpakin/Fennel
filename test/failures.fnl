@@ -127,11 +127,18 @@
                   "(let [x {:y {:foo (fn [self] self.bar) :bar :baz}}] x:y:foo)"
                   "method must be last component of multisym: x:y:foo"}))
 
+(fn parse-fail [code]
+  #(each [p (assert (fennel.parser code))] (assert p)))
+
 (fn test-parse-fails []
-  (test-failures
-   {"\n\n(+))" "unknown:3:3: Parse error: unexpected closing delimiter )"
-    "(foo:)" "malformed multisym"
-    "(foo.bar:)" "malformed multisym"}))
+  (t.error "malformed multisym" (parse-fail "(foo:)"))
+  (t.error "malformed multisym" (parse-fail "(foo.bar:)"))
+  (t.error "unknown:3:0: Parse error: expected closing delimiter %)"
+           (parse-fail "(do\n\n"))
+  (t.error "unknown:3:3: Parse error: unexpected closing delimiter %)"
+           (parse-fail "\n\n(+))"))
+  (t.error "mismatched closing delimiter }, expected %]"
+           (parse-fail "(fn \n[})")))
 
 (fn test-core-fails []
   (test-failures

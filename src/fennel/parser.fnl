@@ -126,7 +126,7 @@ Also returns a second function to clear the buffer in the byte stream."
       (let [closers (icollect [_ {: closer} (ipairs stack)] closer)]
         (parse-error (string.format "expected closing delimiter%s %s"
                                     (if (= (length stack) 1) "" :s)
-                                    (string.char (unpack closers))))))
+                                    (string.char (unpack closers))) 0)))
 
     (fn skip-whitespace [b close-table]
       (if (and b (whitespace? b))

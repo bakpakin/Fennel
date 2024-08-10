@@ -25,7 +25,8 @@
       (fn opts.registerCompleter [x]
         (set repl-complete x))
       (fn opts.pp [x] x)
-      (set opts.env {: table : math : string : require : pcall : ipairs})
+      (set opts.env {: table : math : string : require
+                     : pcall : ipairs :bit _G.bit})
       (set opts.env._G opts.env)
       (set opts.error-pinpoint ["«" "»"])
       (fennel.repl opts)))
@@ -189,10 +190,11 @@
 
 (fn test-options []
   ;; ensure options.useBitLib propagates to repl
-  (let [send (wrap-repl {:useBitLib true :onError (fn [e] (values :ERROR e))})
+  (let [send (wrap-repl {:useBitLib true
+                         :onError (fn [e] (values :ERROR e))})
         bxor-result (send (v (bxor 0 0)))]
     (if _G.jit
-      (t.= bxor-result :0)
+      (t.= :0 bxor-result)
       (t.match "error:.*attempt to index.*global 'bit'" bxor-result
                "--use-bit-lib should make bitops fail in non-luajit"))))
 

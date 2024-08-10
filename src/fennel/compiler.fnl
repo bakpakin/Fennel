@@ -920,27 +920,30 @@ which we have to do if we don't know."
   "A custom traceback function for Fennel that looks similar to debug.traceback.
 Use with xpcall to produce fennel specific stacktraces. Skips frames from the
 compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
-  (let [msg (tostring (or ?msg ""))]
-    (if (and (or (msg:find "^%g+:%d+:%d+ Compile error:.*")
-                 (msg:find "^%g+:%d+:%d+ Parse error:.*"))
-             (not (utils.debug-on? :trace)))
-        msg ; skip the trace because it's compiler internals.
-        (let [lines []]
-          (if (or (msg:find "^%g+:%d+:%d+ Compile error:")
-                  (msg:find "^%g+:%d+:%d+ Parse error:"))
-              (table.insert lines msg)
-              (let [newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
-                (table.insert lines newmsg)))
-          (table.insert lines "stack traceback:")
-          (var (done? level) (values false (or ?start 2)))
-          ;; This would be cleaner factored out into its own recursive
-          ;; function, but that would interfere with the traceback itself!
-          (while (not done?)
-            (match (lua-getinfo level :Sln)
-              nil (set done? true)
-              info (table.insert lines (traceback-frame info)))
-            (set level (+ level 1)))
-          (table.concat lines "\n")))))
+  (case (type ?msg)
+    (where (or :nil :string))
+    (let [msg (or ?msg "")]
+      (if (and (or (msg:find "^%g+:%d+:%d+ Compile error:.*")
+                   (msg:find "^%g+:%d+:%d+ Parse error:.*"))
+               (not (utils.debug-on? :trace)))
+          msg        ; skip the trace because it's compiler internals.
+          (let [lines []]
+            (if (or (msg:find "^%g+:%d+:%d+ Compile error:")
+                    (msg:find "^%g+:%d+:%d+ Parse error:"))
+                (table.insert lines msg)
+                (let [newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
+                  (table.insert lines newmsg)))
+            (table.insert lines "stack traceback:")
+            (var (done? level) (values false (or ?start 2)))
+            ;; This would be cleaner factored out into its own recursive
+            ;; function, but that would interfere with the traceback itself!
+            (while (not done?)
+              (match (lua-getinfo level :Sln)
+                nil (set done? true)
+                info (table.insert lines (traceback-frame info)))
+              (set level (+ level 1)))
+            (table.concat lines "\n"))))
+    _ ?msg))
 
 (fn getinfo [thread-or-level ...]
   ;; if we're given a level, we have to add 1 because fennel.getinfo

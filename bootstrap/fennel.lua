@@ -1981,10 +1981,16 @@ local specials = (function()
                                  :gsub('\\', '\\\\'):gsub('\n', '\\n')
                                  :gsub('"', '\\"') .. '"')
             end
-            local metaStr = ('require("%s").metadata'):
-                format(utils.root.options.moduleName or "fennel")
-            compiler.emit(parent, string.format('pcall(function() %s:setall(%s, %s) end)',
-                                       metaStr, fnName, table.concat(metaFields, ', ')))
+            if(type(utils.root.options.useMetadata) == "string") then
+               compiler.emit(parent, string.format('%s:setall(%s, %s)',
+                                                   utils.root.options.useMetadata, fnName,
+                                                   table.concat(metaFields, ', ')))
+            else
+               local metaStr = ('require("%s").metadata'):
+                  format(utils.root.options.moduleName or "fennel")
+               compiler.emit(parent, string.format('pcall(function() %s:setall(%s, %s) end)',
+                                                   metaStr, fnName, table.concat(metaFields, ', ')))
+            end
         end
 
         return utils.expr(fnName, 'sym')

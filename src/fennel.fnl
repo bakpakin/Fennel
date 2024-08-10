@@ -173,13 +173,13 @@
 ;; stash it in the utils table, but we should untangle it
 (set utils.fennel-module mod)
 
-(macro embed-src [filename module-name]
+(macro embed-src [filename]
   `(eval-compiler
      (let [FENNEL_SRC# (and (= :table (type os)) os.getenv
                             (os.getenv :FENNEL_SRC))
            root# (if FENNEL_SRC# (.. FENNEL_SRC# :/) "")
-           opts# {:useMetadata false :allowedGlobals false
-                  :module-name ,module-name :scope :_COMPILER}]
+           opts# {:useMetadata "utils['fennel-module'].metadata"
+                  :allowedGlobals false :scope :_COMPILER}]
        (with-open [f# (assert (io.open (.. root# ,filename)))]
          (.. "[===[" (fennel.compileString (f#:read :*all) opts#) "]===]")))))
 
@@ -189,10 +189,10 @@
       (tset compiler.scopes.global.macros k v))))
 
 ;; Load the built-in macros from macros.fnl and match.fnl
-(let [env (doto (specials.make-compiler-env nil compiler.scopes.compiler {})
-            (tset :utils utils) ; for import-macros to propagate compile opts
-            (tset :get-function-metadata specials.get-function-metadata))]
-  (load-macros (embed-src :src/fennel/macros.fnl :fennel.macros) env)
-  (load-macros (embed-src :src/fennel/match.fnl :fennel.macros) env))
+(let [env (specials.make-compiler-env nil compiler.scopes.compiler {})]
+  (set env.utils utils) ; for import-macros to propagate compile opts
+  (set env.get-function-metadata specials.get-function-metadata)
+  (load-macros (embed-src :src/fennel/macros.fnl) env)
+  (load-macros (embed-src :src/fennel/match.fnl) env))
 
 mod

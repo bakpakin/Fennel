@@ -232,10 +232,14 @@ By default, start is 2."
         (if (= k :fnl/arglist)
             (insert-arglist meta-fields v)
             (insert-meta meta-fields k v)))
-      (let [meta-str (: "require(\"%s\").metadata" :format (fennel-module-name))]
-        (compiler.emit parent
-                       (: "pcall(function() %s:setall(%s, %s) end)" :format
-                          meta-str fn-name (table.concat meta-fields ", ")))))))
+      (if (= (type utils.root.options.useMetadata) :string)
+          (compiler.emit parent
+                         (: "%s:setall(%s, %s)" :format utils.root.options.useMetadata
+                            fn-name (table.concat meta-fields ", ")))
+          (let [meta-str (: "require(\"%s\").metadata" :format (fennel-module-name))]
+            (compiler.emit parent
+                           (: "pcall(function() %s:setall(%s, %s) end)" :format
+                              meta-str fn-name (table.concat meta-fields ", "))))))))
 
 (fn get-fn-name [ast scope fn-name multi]
   (if (and fn-name (not= (. fn-name 1) :nil))

@@ -284,9 +284,9 @@
 
 (fn number->string [n]
   ;; Transform number to a string without depending on correct `os.locale`
-  (pick-values 1 (-> n
-                     tostring
-                     (string.gsub "," "."))))
+  (if (= (math.floor n) n)
+      (string.format "%d" n)
+      (pick-values 1 (string.gsub (tostring n) "," "."))))
 
 (fn colon-string? [s]
   ;; Test if given string is valid colon string.

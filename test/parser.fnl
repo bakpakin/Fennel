@@ -6,21 +6,22 @@
   (t.= (fennel.view a) (fennel.view b) msg))
 
 (fn test-basics []
-  (let [cases {"\"\\\\\"" "\\"
-               "\"abc\n\\240\"" "abc\n\240"
-               "\"abc\\\"def\"" "abc\"def"
-               "\"abc\\240\"" "abc\240"
-               :150_000 150000
-               "\"\n5.2\"" "\n5.2"
-               ;; leading underscores aren't numbers
-               "(let [_0 :zero] _0)" "zero"
-               ;; backslash+newline becomes just a newline like Lua
-               "\"foo\\\nbar\"" "foo\nbar"}
-        (amp-ok? amp) ((fennel.parser (fennel.string-stream "&abc ")))]
-    (each [code expected (pairs cases)]
-      (t.= (fennel.eval code) expected code))
-    (t.is amp-ok?)
-    (t.= "&abc" (tostring amp))))
+  (t.= "\\" (fennel.eval "\"\\\\\""))
+  (t.= "abc\n\240" (fennel.eval "\"abc\n\\240\""))
+  (t.= "abc\"def" (fennel.eval "\"abc\\\"def\""))
+  (t.= "abc\240" (fennel.eval "\"abc\\240\""))
+  (t.= 150000 (fennel.eval "150_000"))
+  (t.= "\n5.2" (fennel.eval "\"\n5.2\""))
+  ;; leading underscores aren't numbers
+  (t.= "zero" (fennel.eval "(let [_0 :zero] _0)"))
+  ;; backslash+newline becomes just a newline like Lua
+  (t.= "foo\nbar" (fennel.eval "\"foo\\\nbar\""))
+  (t.= [true (fennel.sym "&abc")]
+       [((fennel.parser (fennel.string-stream "&abc ")))])
+  (t.= "141791343654238"
+       (fennel.view (fennel.eval "141791343654238")))
+  (t.= "14179134365.125"
+       (fennel.view (fennel.eval "14179134365.125"))))
 
 (fn test-comments []
   (let [(ok? ast) ((fennel.parser (fennel.string-stream ";; abc")

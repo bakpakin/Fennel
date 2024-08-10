@@ -534,8 +534,9 @@ if opts contains the nval option."
 ;; We do gsub transformation because some locales use , for
 ;; decimal separators, which will not be accepted by Lua.
 (fn serialize-number [n]
-  (pick-values 1 (-> (tostring n)
-                     (string.gsub "," "."))))
+  (if (= (math.floor n) n)
+      (string.format "%d" n)
+      (string.gsub (tostring n) "," ".")))
 
 (fn compile-scalar [ast _scope parent opts]
   (let [serialize (match (type ast)

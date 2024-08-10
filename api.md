@@ -18,7 +18,8 @@ usually accept these fields:
   current environment.
 * `correlate`: when this is set, Fennel attempts to emit Lua where the line
   numbers match up with the Fennel input code; useful for situation where code
-  that isn't under your control will print the stack traces.
+  that isn't under your control will print the stack traces. This is meant
+  as a debugging aid and cannot give exact numbers in all cases.
 * `useMetadata`: enables or disables [metadata](#work-with-docstrings-and-metadata),
   allowing use of the `,doc` repl command. Intended for development purposes
   (see [performance note](#metadata-performance-note)); defaults to

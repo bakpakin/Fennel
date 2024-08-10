@@ -11,7 +11,7 @@ Run Fennel, a Lisp programming language for the Lua runtime.
   --compile FILES (-c)     : Command to AOT compile files, writing Lua to stdout
   --eval SOURCE (-e)       : Command to evaluate source code and print result
 
-  --correlate              : Make Lua output line numbers match Fennel input
+  --correlate              : Make Lua output line numbers try to match Fennel's
   --load FILE (-l)         : Load the specified FILE before executing command
   --no-compiler-sandbox    : Don't limit compiler environment to minimal sandbox
   --compile-binary FILE

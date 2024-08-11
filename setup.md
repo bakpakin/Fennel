@@ -35,12 +35,12 @@ installed on your system.
 This method requires you to manually update the `fennel` script when
 you want to use a newer version that has come out.
 
- 1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-1.5.0)
- 2. Run `chmod +x fennel-1.5.0` to make it executable
- 3. Download the [signature](https://fennel-lang.org/downloads/fennel-1.5.0.asc)
-    and confirm it matches using `gpg --verify fennel-1.5.0*.asc`
-    (optional but recommended).
- 4. Move `fennel-1.5.0` to a directory on your `$PATH`, such as `/usr/local/bin`
+1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-1.5.0)
+2. Run `chmod +x fennel-1.5.0` to make it executable
+3. Download [and verify](https://fennel-lang.org/security#signatures)
+   the [signature](https://fennel-lang.org/downloads/fennel-1.5.0.asc)
+   (optional).
+4. Move `fennel-1.5.0` to a directory on your `$PATH`, such as `/usr/local/bin`
 
 **Note**: You can rename the script to `fennel` for convenience. Or
 you can leave the version in the name, which makes it easy to keep
@@ -62,8 +62,8 @@ you want to use a newer version that has come out.
       - [Windows x86 32-bit](https://fennel-lang.org/downloads/fennel-1.5.0-windows32.exe)
         ([signature](https://fennel-lang.org/downloads/fennel-1.5.0-windows32.exe.asc))
  2. Run `chmod +x fennel-1.5.0*` to make it executable
- 3. Download the signature and confirm it matches using `gpg --verify fennel-1.5.0*.asc`
-    (optional but recommended).
+ 3. Download [and verify](https://fennel-lang.org/security#signatures) the signature
+    (optional).
  4. Move the downloaded binary to a directory on your `$PATH`, such as `/usr/local/bin`
 
 

@@ -282,11 +282,27 @@
     (set options.level (- options.level 1))
     x))
 
+;; A modified copy of compiler.serialize-number that doesn't handle
+;; the infinity cases
 (fn number->string [n]
   ;; Transform number to a string without depending on correct `os.locale`
-  (if (= (math.floor n) n)
-      (string.format "%d" n)
-      (pick-values 1 (string.gsub (tostring n) "," "."))))
+  ;; Makes best effort to keep the original notation of the number.
+  (let [val (if (= (math.floor n) n)
+                (let [s1 (string.format "%.f" n)]
+                  (if (= s1 (tostring n)) s1 ; no precision loss
+                      (or (faccumulate [s nil
+                                        i 0 308 ; beyond 308 every number turns to inf
+                                        :until s]
+                            (let [s (string.format (.. "%." i "e") n)]
+                              (when (= n (tonumber s))
+                                (let [exp (s:match "e%+?(%d+)$")]
+                                  ;; Lua keeps numbers in standard notation up to e+14
+                                  (if (and exp (> (tonumber exp) 14))
+                                      s
+                                      s1)))))
+                          s1)))
+                (tostring n))]
+    (pick-values 1 (string.gsub val "," "."))))
 
 (fn colon-string? [s]
   ;; Test if given string is valid colon string.

@@ -15,6 +15,7 @@ deprecated forms.
 * Macro quote expansion no longer breaks when `sym`, `list` or `sequence` is shadowed
 * Bring `fennel.traceback` behavior closer to Lua's `traceback` by
   not modifying non-string and non-`nil` values.
+* Avoid losing precision when compiling large numbers on LuaJIT.
 
 ## 1.5.0 / 2024-06-23
 

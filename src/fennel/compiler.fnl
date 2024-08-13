@@ -533,10 +533,26 @@ if opts contains the nval option."
 
 ;; We do gsub transformation because some locales use , for
 ;; decimal separators, which will not be accepted by Lua.
+;; Makes best effort to keep the original notation of the number.
 (fn serialize-number [n]
-  (if (= (math.floor n) n)
-      (string.format "%d" n)
-      (string.gsub (tostring n) "," ".")))
+  (let [val (if (= (math.floor n) n)
+                (let [s1 (string.format "%.f" n)]
+                  (if (= s1 "inf") "(1/0)" ; portable inf
+                      (= s1 "-inf") "(-1/0)"
+                      (= s1 (tostring n)) s1 ; no precision loss
+                      (or (faccumulate [s nil
+                                        i 0 308 ; beyond 308 every number turns to inf
+                                        :until s]
+                            (let [s (string.format (.. "%." i "e") n)]
+                              (when (= n (tonumber s))
+                                (let [exp (s:match "e%+?(%d+)$")]
+                                  ;; Lua keeps numbers in standard notation up to e+14
+                                  (if (and exp (> (tonumber exp) 14))
+                                      s
+                                      s1)))))
+                          s1)))
+                (tostring n))]
+    (pick-values 1 (string.gsub val "," "."))))
 
 (fn compile-scalar [ast _scope parent opts]
   (let [serialize (match (type ast)

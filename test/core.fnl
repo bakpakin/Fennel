@@ -561,7 +561,14 @@
       ["asdf" "closed file" "closed file"])
   (== [(with-open [proc1 (io.popen "echo hi") proc2 (io.popen "echo bye")]
          (values (proc1:read) (proc2:read)))]
-      ["hi" "bye"]))
+      ["hi" "bye"])
+  (== (do
+        (var fh nil)
+        (local (ok msg) (pcall #(with-open [f (io.tmpfile)]
+                                  (set fh f)
+                                  (error {:bork! :bark!}))))
+        [(io.type fh) ok (case msg {:bork! :bark!} msg _ "didn't match")])
+      ["closed file" false {:bork! :bark!}]))
 
 (fn test-comment []
   (t.= "--[[ hello world ]]\nreturn nil"

@@ -20,8 +20,28 @@
        [((fennel.parser (fennel.string-stream "&abc ")))])
   (t.= "141791343654238"
        (fennel.view (fennel.eval "141791343654238")))
+  (t.= "141791343654238"
+       (fennel.view (fennel.eval "1.41791343654238e+14")))
+  (t.= "1.41791343654238e+15"
+       (fennel.view (fennel.eval "1.41791343654238e+15")))
   (t.= "14179134365.125"
-       (fennel.view (fennel.eval "14179134365.125"))))
+       (fennel.view (fennel.eval "14179134365.125")))
+  (t.= "2.3456789012e+76"
+       (fennel.view (fennel.eval "23456789012000000000000000000000000000000000000000000000000000000000000000000")))
+  (t.= "1.23456789e-13"
+       (fennel.view (fennel.eval "1.23456789e-13")))
+  (t.= "inf"
+       (fennel.view (fennel.eval "1e+999999")))
+  (t.= "-inf"
+       (fennel.view (fennel.eval "-1e+999999")))
+  (t.= "1e+308"
+       (fennel.view (fennel.eval (faccumulate [res "" _ 1 308] (.. res "9")))))
+  (t.= "inf"
+       (fennel.view (fennel.eval (faccumulate [res "" _ 1 309] (.. res "9")))))
+  (t.= "inf"
+       (fennel.view (fennel.eval "(/ 1 0)")))
+  (t.= "-inf"
+       (fennel.view (fennel.eval "(/ -1 0)"))))
 
 (fn test-comments []
   (let [(ok? ast) ((fennel.parser (fennel.string-stream ";; abc")

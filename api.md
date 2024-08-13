@@ -41,6 +41,8 @@ usually accept these fields:
 * `error-pinpoint`: a list of two strings indicating what to wrap compile errors in
 * `keywords`: a table of the form `{:keyword1 true :keyword2 true}` containing
   symbols that should be treated as reserved Lua keywords.
+* `global-mangle`: whether to mangle globals in compiler output; set to `false`
+  to turn global references that aren't valid Lua into `_G['hello-world']`.
 
 You can pass the string `"_COMPILER"` as the value for `env`; it will
 cause the code to be run/compiled in a context which has all

@@ -73,19 +73,17 @@ The ast arg should be unmodified so that its first element is the form called."
       (string.gsub "[\128-\255]" #(.. "\\" ($:byte)))))
 
 (fn global-mangling [str]
-  "Mangler for global symbols. Does not protect against collisions,
-but makes them unlikely. This is the mangling that is exposed to the world."
-  (if (utils.valid-lua-identifier? str)
-      str
-      ;; TODO: emit _G[str] in 2.0
+  "Turn a global symbol into a Lua-friendly expression."
+  (if (utils.valid-lua-identifier? str) str
+      ;; TODO: default to true in 2.0
+      (= (?. utils.root.options :global-mangle) false) (: "_G[%q]" :format str)
       (.. :__fnl_global__ (str:gsub "[^%w]" #(string.format "_%02x" ($:byte))))))
 
 (fn global-unmangling [identifier]
   "Reverse a global mangling.
 Takes a Lua identifier and returns the Fennel symbol string that created it."
   (match (string.match identifier "^__fnl_global__(.*)$")
-    rest (pick-values 1
-                      (string.gsub rest "_[%da-f][%da-f]"
+    rest (pick-values 1 (rest:gsub "_[%da-f][%da-f]"
                                    #(string.char (tonumber ($:sub 2) 16))))
     _ identifier))
 
@@ -856,9 +854,9 @@ which we have to do if we don't know."
 
 (fn compile-asts [asts options]
   (let [opts (utils.copy options)
-        _ (when (= :_COMPILER opts.scope)
-            (set opts.scope scopes.compiler))
-        scope (or opts.scope (make-scope scopes.global))
+        scope (if (= :_COMPILER opts.scope) scopes.compiler
+                  opts.scope opts.scope
+                  (make-scope scopes.global))
         chunk []]
     (when opts.requireAsInclude
       (set scope.specials.require require-include))

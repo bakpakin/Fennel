@@ -572,9 +572,6 @@
                   (fennel.compile-string "(comment \"hello]]lol\")")))
 
 (fn test-nest []
-  ;; precompiled macros break this test badly because of metatable mismatch
-  ;; just don't run it at all for now.
-  (t.is false)
   (let [env (collect [k v (pairs _G) &into {: fennel}] k v)
         nested (fennel.dofile "src/fennel.fnl" {: env :compilerEnv env})]
     (t.= 51 (fennel.eval "((fn [] (+ 49 2)))"))

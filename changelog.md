@@ -6,6 +6,13 @@ Note that since 0.3.0, no deprecations have actually resulted in
 removals. They are advisory only and we have no plans to break the
 deprecated forms.
 
+## 1.6.0 / ???
+
+### New Features
+
+* Precompile built-in macros, improving startup time significantly.
+* Accept `:global-mangle false` in compiler opts to disable global mangling.
+
 ## 1.5.1 / ???
 
 ### Bug Fixes

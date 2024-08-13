@@ -179,7 +179,8 @@
                             (os.getenv :FENNEL_SRC))
            root# (if FENNEL_SRC# (.. FENNEL_SRC# :/) "")
            opts# {:useMetadata "utils['fennel-module'].metadata"
-                  :allowedGlobals false :scope :_COMPILER}]
+                  :allowedGlobals false :scope :_COMPILER
+                  :global-mangle false}]
        (with-open [f# (assert (io.open (.. root# ,filename)))]
          (.. "[===[" (fennel.compileString (f#:read :*all) opts#) "]===]")))))
 

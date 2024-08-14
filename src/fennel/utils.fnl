@@ -361,13 +361,15 @@ has options calls down into compile."
       {}))
 
 (fn warn [msg ?ast ?filename ?line]
-  (when (and _G.io _G.io.stderr)
-    (let [loc (case (ast-source ?ast)
-                {: filename : line} (.. filename ":" line ": ")
-                _ (if (and ?filename ?line)
-                      (.. ?filename ":" ?line ": ")
-                      ""))]
-      (_G.io.stderr:write (: "--WARNING: %s%s\n" :format loc (tostring msg))))))
+  (case (?. root.options :warn)
+    opt-warn (opt-warn msg ?ast ?filename ?line)
+    _ (when (and _G.io _G.io.stderr)
+        (let [loc (case (ast-source ?ast)
+                    {: filename : line} (.. filename ":" line ": ")
+                    _ (if (and ?filename ?line)
+                          (.. ?filename ":" ?line ": ")
+                          ""))]
+          (_G.io.stderr:write (: "--WARNING: %s%s\n" :format loc msg))))))
 
 (local warned {})
 

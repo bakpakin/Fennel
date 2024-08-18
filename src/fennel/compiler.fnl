@@ -5,6 +5,7 @@
 (local utils (require :fennel.utils))
 (local parser (require :fennel.parser))
 (local friend (require :fennel.friend))
+(local view (require :fennel.view))
 
 (local unpack (or table.unpack _G.unpack))
 
@@ -531,36 +532,21 @@ if opts contains the nval option."
                 (symbol-to-expression ast scope true))]
       (handle-compile-opts [e] parent opts ast))))
 
-;; We do gsub transformation because some locales use , for
-;; decimal separators, which will not be accepted by Lua.
-;; Makes best effort to keep the original notation of the number.
-(fn serialize-number [n]
-  (let [val (if (= (math.floor n) n)
-                (let [s1 (string.format "%.f" n)]
-                  (if (= s1 "inf") "(1/0)" ; portable inf
-                      (= s1 "-inf") "(-1/0)"
-                      (= s1 (tostring n)) s1 ; no precision loss
-                      (or (faccumulate [s nil
-                                        i 0 308 ; beyond 308 every number turns to inf
-                                        :until s]
-                            (let [s (string.format (.. "%." i "e") n)]
-                              (when (= n (tonumber s))
-                                (let [exp (s:match "e%+?(%d+)$")]
-                                  ;; Lua keeps numbers in standard notation up to e+14
-                                  (if (and exp (> (tonumber exp) 14))
-                                      s
-                                      s1)))))
-                          s1)))
-                (tostring n))]
-    (pick-values 1 (string.gsub val "," "."))))
+(local view-opts
+  (let [nan (tostring (/ 0 0))]
+    {:infinity "(1/0)"
+     :negative-infinity "(-1/0)"
+     ;; byte 45 is -
+     :nan (if (= 45 (nan:byte)) "(- (0/0))" "(0/0)")
+     :negative-nan (if (= 45 (nan:byte)) "(0/0)" "(- (0/0))")}))
 
 (fn compile-scalar [ast _scope parent opts]
-  (let [serialize (match (type ast)
-                    :nil tostring
-                    :boolean tostring
-                    :string serialize-string
-                    :number serialize-number)]
-    (handle-compile-opts [(utils.expr (serialize ast) :literal)] parent opts)))
+  (let [compiled (case (type ast)
+                   :nil :nil
+                   :boolean (tostring ast)
+                   :string (serialize-string ast)
+                   :number (view ast view-opts))]
+    (handle-compile-opts [(utils.expr compiled :literal)] parent opts)))
 
 (fn compile-table [ast scope parent opts compile1]
   (fn escape-key [k]

@@ -282,26 +282,35 @@
     (set options.level (- options.level 1))
     x))
 
-;; A modified copy of compiler.serialize-number that doesn't handle
-;; the infinity cases
-(fn number->string [n]
-  ;; Transform number to a string without depending on correct `os.locale`
-  ;; Makes best effort to keep the original notation of the number.
-  (let [val (if (= (math.floor n) n)
+;; sadly luajit tostring is imprecise https://todo.sr.ht/~technomancy/fennel/231
+(fn exponential-notation [n fallback]
+  (faccumulate [s nil
+                i 0 308 ; beyond 308 every number turns to inf
+                :until s]
+    (let [s (string.format (.. "%." i "e") n)]
+      (when (= n (tonumber s))
+        (let [exp (s:match "e%+?(%d+)$")]
+          ;; Lua keeps numbers in standard notation up to e+14
+          (if (and exp (< 14 (tonumber exp)))
+              s
+              fallback))))))
+
+(local inf-str (tostring (/ 1 0)))
+(local neg-inf-str (tostring (/ -1 0)))
+
+(fn number->string [n options]
+  (let [val (if (not= n n)
+                (if (= 45 (string.byte (tostring n))) ; -
+                    (or options.negative-nan "-.nan")
+                    (or options.nan ".nan"))
+                (= (math.floor n) n)
                 (let [s1 (string.format "%.f" n)]
-                  (if (= s1 (tostring n)) s1 ; no precision loss
-                      (or (faccumulate [s nil
-                                        i 0 308 ; beyond 308 every number turns to inf
-                                        :until s]
-                            (let [s (string.format (.. "%." i "e") n)]
-                              (when (= n (tonumber s))
-                                (let [exp (s:match "e%+?(%d+)$")]
-                                  ;; Lua keeps numbers in standard notation up to e+14
-                                  (if (and exp (> (tonumber exp) 14))
-                                      s
-                                      s1)))))
-                          s1)))
+                  (if (= s1 inf-str) (or options.infinity ".inf")
+                      (= s1 neg-inf-str) (or options.negative-infinity "-.inf")
+                      (= s1 (tostring n)) s1 ; no precision loss
+                      (or (exponential-notation n s1) s1)))
                 (tostring n))]
+    ;; Transform number to a string without depending on correct `os.locale`
     (pick-values 1 (string.gsub val "," "."))))
 
 (fn colon-string? [s]
@@ -414,7 +423,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                          (case (getmetatable x) {: __fennelview} __fennelview)))
                 (pp-table x options indent)
                 (= tv :number)
-                (number->string x)
+                (number->string x options)
                 (and (= tv :string) (colon-string? x)
                      (if (not= colon? nil) colon?
                          (= :function (type options.prefer-colon?)) (options.prefer-colon? x)
@@ -429,7 +438,8 @@ as numeric escapes rather than letter-based escapes, which is ugly."
 (fn _view [x ?options]
   "Return a string representation of x.
 
-Can take an options table with these keys:
+Can take an options table with the following keys:
+
 * :one-line? (default: false) keep the output string as a one-liner
 * :depth (number, default: 128) limit how many levels to go (default: 128)
 * :detect-cycles? (default: true) don't try to traverse a looping table
@@ -439,17 +449,19 @@ Can take an options table with these keys:
   multi-line output for tables is forced
 * :escape-newlines? (default: false) emit strings with \\n instead of newline
 * :prefer-colon? (default: false) emit strings in colon notation when possible
-* :utf8? (default: true) whether to use utf8 module to compute string lengths
+* :utf8? (default: true) whether to use the utf8 module to compute string lengths
 * :max-sparse-gap (integer, default 10) maximum gap to fill in with nils in
-  sparse sequential tables.
+  sparse sequential tables
 * :preprocess (function) if present, called on x (and recursively on each value
   in x), and the result is used for pretty printing; takes the same arguments as
   `fennel.view`
+* :infinity, :negative-infinity - how to serialize infinity and negative infinity
+* :nan, :negative-nan - how to serialize NaN and negative NaN values
 
 All options can be set to `{:once some-value}` to force their value to be
-`some-value` but only for the current level. After that, such option is reset
+`some-value` but only for the current level.  After that, the option is reset
 to its default value.  Alternatively, `{:once value :after other-value}` can
-be used, with the difference that after first use, the options will be set to
+be used, with the difference that after the first use, the options will be set to
 `other-value` instead of the default value.
 
 You can set a `__fennelview` metamethod on a table to override its serialization

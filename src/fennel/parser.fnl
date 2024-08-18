@@ -58,6 +58,12 @@ Also returns a second function to clear the buffer in the byte stream."
                  44 :unquote
                  96 :quote})
 
+;; NaN parsing is tricky, because in PUC Lua 0/0 is -nan not nan
+(local (nan negative-nan)
+  (if (= 45 (string.byte (tostring (/ 0 0)))) ; -
+      (values (- (/ 0 0)) (/ 0 0))
+      (values (/ 0 0) (- (/ 0 0)))))
+
 (fn char-starter? [b] (or (< 1 b 127) (< 192 b 247)))
 
 (fn parser-fn [getbyte filename {: source : unfriendly : comments &as options}]
@@ -327,7 +333,7 @@ Also returns a second function to clear the buffer in the byte stream."
         (utils.warn "expected whitespace before token" nil filename line))
       rawstr)
 
-    (fn parse-sym [b] ; not just syms actually...
+    (fn parse-sym [b]                   ; not just syms actually...
       (let [source {:bytestart byteindex : filename : line :col (- col 1)}
             rawstr (table.concat (parse-sym-loop [(string.char b)] (getb)))]
         (set-source-fields source)
@@ -337,6 +343,14 @@ Also returns a second function to clear the buffer in the byte stream."
             (dispatch false source)
             (= rawstr "...")
             (dispatch (utils.varg source))
+            (= rawstr ".inf")
+            (dispatch (/ 1 0) source rawstr)
+            (= rawstr "-.inf")
+            (dispatch (/ -1 0) source rawstr)
+            (= rawstr ".nan")
+            (dispatch nan source rawstr)
+            (= rawstr "-.nan")
+            (dispatch negative-nan source rawstr)
             (rawstr:match "^:.+$")
             (dispatch (rawstr:sub 2) source rawstr)
             (not (parse-number rawstr source))

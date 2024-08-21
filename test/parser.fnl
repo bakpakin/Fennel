@@ -53,7 +53,8 @@
   (t.= ".nan"
        (fennel.view (fennel.eval ".nan")))
   ;; ensure we consistently treat nan as symbol even on 5.1
-  (t.= :not-really (fennel.eval "(let [nan :not-really] nan)")))
+  (t.= :not-really (fennel.eval "(let [nan :not-really] nan)"))
+  (t.= :nah (fennel.eval "(let [-nan :nah] -nan)")))
 
 (fn test-comments []
   (let [(ok? ast) ((fennel.parser (fennel.string-stream ";; abc")

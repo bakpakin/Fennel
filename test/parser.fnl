@@ -12,12 +12,14 @@
   (t.= "abc\240" (fennel.eval "\"abc\\240\""))
   (t.= 150000 (fennel.eval "150_000"))
   (t.= "\n5.2" (fennel.eval "\"\n5.2\""))
-  ;; leading underscores aren't numbers
-  (t.= "zero" (fennel.eval "(let [_0 :zero] _0)"))
-  ;; backslash+newline becomes just a newline like Lua
-  (t.= "foo\nbar" (fennel.eval "\"foo\\\nbar\""))
+  (t.= "zero" (fennel.eval "(let [_0 :zero] _0)")
+       "leading underscore should be symbol, not number")
+  (t.= "foo\nbar" (fennel.eval "\"foo\\\nbar\"")
+       "backslash+newline should be just a newline like Lua")
   (t.= [true (fennel.sym "&abc")]
-       [((fennel.parser (fennel.string-stream "&abc ")))])
+       [((fennel.parser (fennel.string-stream "&abc ")))]))
+
+(fn test-spicy-numbers []
   (t.= "141791343654238"
        (fennel.view (fennel.eval "141791343654238")))
   (t.= "141791343654238"
@@ -27,7 +29,7 @@
   (t.= "14179134365.125"
        (fennel.view (fennel.eval "14179134365.125")))
   (t.= "2.3456789012e+76"
-       (fennel.view (fennel.eval "23456789012000000000000000000000000000000000000000000000000000000000000000000")))
+       (fennel.view (fennel.eval (.. "23456789012" (string.rep "0" 66)))))
   (t.= "1.23456789e-13"
        (fennel.view (fennel.eval "1.23456789e-13")))
   (t.= ".inf"
@@ -35,9 +37,9 @@
   (t.= "-.inf"
        (fennel.view (fennel.eval "-1e+999999")))
   (t.= "1e+308"
-       (fennel.view (fennel.eval (faccumulate [res "" _ 1 308] (.. res "9")))))
+       (fennel.view (fennel.eval (string.rep "9" 308))))
   (t.= ".inf"
-       (fennel.view (fennel.eval (faccumulate [res "" _ 1 309] (.. res "9")))))
+       (fennel.view (fennel.eval (string.rep "9" 309))))
   (t.= ".inf"
        (fennel.view (fennel.eval "(/ 1 0)")))
   (t.= "-.inf"
@@ -49,11 +51,14 @@
   (t.= ".nan"
        (fennel.view (fennel.eval "(math.acos 2)")))
   (t.= ".nan"
-       (fennel.view (fennel.eval ".nan"))))
+       (fennel.view (fennel.eval ".nan")))
+  ;; ensure we consistently treat nan as symbol even on 5.1
+  (t.= :not-really (fennel.eval "(let [nan :not-really] nan)")))
 
 (fn test-comments []
   (let [(ok? ast) ((fennel.parser (fennel.string-stream ";; abc")
                                   "" {:comments true}))]
+    (t.is ok?)
     (t.= :table (type (utils.comment? ast)))
     (t.= ";; abc" (tostring ast)))
   (let [code "{;; one\n1 ;; hey\n2 ;; what\n:is \"up\" ;; here\n}"
@@ -151,15 +156,14 @@
 (fn test-plugin-hooks []
   (var parse-error-called nil)
   (let [code "(there is a parse error here (((("
-        plugin {:versions [(: fennel.version :gsub "-dev" "")]
-                :parse-error
-                (fn parse-error [msg filename line col source root-reset]
-                  (set parse-error-called true))}
-        (ok? ok2? ast) (pcall (fennel.parser code "" {:plugins [plugin]}))]
-    (t.is (not ok?) "parse error is expected")
+        plugin {:versions [(fennel.version:gsub "-dev" "")]
+                :parse-error #(set parse-error-called true)}]
+    (t.is (not (pcall (fennel.parser code "" {:plugins [plugin]})))
+          "parse error is expected")
     (t.is parse-error-called "plugin wasn't called")))
 
 {: test-basics
+ : test-spicy-numbers
  : test-control-codes
  : test-comments
  : test-prefixes

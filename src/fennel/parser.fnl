@@ -299,15 +299,15 @@ Also returns a second function to clear the buffer in the byte stream."
 
     (fn parse-number [rawstr source]
       ;; numbers can have underscores in the middle or end, but not at the start
-      (let [number-with-stripped-underscores (and (not (rawstr:find "^_"))
-                                                  (rawstr:gsub "_" ""))]
-        (if (rawstr:match "^%d")
+      (let [trimmed (and (not (rawstr:find "^_")) (rawstr:gsub "_" ""))]
+        (if (or (= trimmed "nan") (= trimmed "-nan")) false ; 5.1 is weird
+            (rawstr:match "^%d")
             (do
-              (dispatch (or (tonumber number-with-stripped-underscores)
+              (dispatch (or (tonumber trimmed)
                             (parse-error (.. "could not read number \"" rawstr
                                              "\""))) source rawstr)
               true)
-            (match (tonumber number-with-stripped-underscores)
+            (match (tonumber trimmed)
               x (do
                   (dispatch x source rawstr)
                   true)

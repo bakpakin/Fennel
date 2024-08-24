@@ -107,7 +107,7 @@ fennel-bin-luajit: src/launcher.fnl $(NATIVE_LUAJIT_LIB) fennel
 		--no-compiler-sandbox --compile-binary \
 		$< $@ $(NATIVE_LUAJIT_LIB) $(LUAJIT_INCLUDE_DIR)
 
-$(BIN_LUA_DIR)/src/lua: ; make -C $(BIN_LUA_DIR)
+$(BIN_LUA_DIR)/src/lua: $(BIN_LUA_DIR) ; make -C $(BIN_LUA_DIR)
 $(NATIVE_LUA_LIB): $(BIN_LUA_DIR) ; $(MAKE) -C $(BIN_LUA_DIR)/src liblua.a
 $(NATIVE_LUAJIT_LIB): $(BIN_LUAJIT_DIR)
 	$(MAKE) -C $(BIN_LUAJIT_DIR) BUILDMODE=static

@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-api" "3" "2024-06-23" "fennel 1.5.0" "Fennel\[aq]s Lua API"
+.TH "fennel-api" "3" "2024-08-24" "fennel 1.5.1" "Fennel\[aq]s Lua API"
 .hy
 .SH NAME
 .PP
@@ -43,6 +43,8 @@ current environment.
 the line numbers match up with the Fennel input code; useful for
 situation where code that isn\[aq]t under your control will print the
 stack traces.
+This is meant as a debugging aid and cannot give exact numbers in all
+cases.
 .IP \[bu] 2
 \f[V]useMetadata\f[R]: enables or disables metadata, allowing use of the
 \f[V],doc\f[R] repl command.

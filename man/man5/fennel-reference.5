@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-reference" "5" "2024-06-23" "fennel 1.5.0" "Fennel Reference"
+.TH "fennel-reference" "5" "2024-08-24" "fennel 1.5.1" "Fennel Reference"
 .hy
 .SH NAME
 .PP
@@ -82,6 +82,9 @@ The syntax for numbers is the same as
 Lua\[aq]s (https://www.lua.org/manual/5.4/manual.html#3.1), except that
 underscores may be used to separate digits for readability.
 Non-ASCII digits are not yet supported.
+Infinity and negative infinity are represented as \f[V].inf\f[R] and
+\f[V]-.inf\f[R].
+NaN and negative Nan are \f[V].nan\f[R] and \f[V]-.nan\f[R].
 .PP
 The syntax for strings uses double-quotes \f[V]\[dq]\f[R] around the
 string\[aq]s contents.

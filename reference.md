@@ -50,7 +50,8 @@ such as argument lists or let bindings. For example: `[1 2 3]`
 
 The syntax for numbers is the [same as Lua's][6], except that underscores
 may be used to separate digits for readability. Non-ASCII digits are
-not yet supported.
+not yet supported. Infinity and negative infinity are represented as
+`.inf` and `-.inf`. NaN and negative Nan are `.nan` and `-.nan`.
 
 The syntax for strings uses double-quotes `"` around the
 string's contents. Double quotes inside a string must be escaped with

@@ -126,7 +126,7 @@ Hagelberg, and contributors, released under the [MIT license](LICENSE).
 The file `style.txt` is copyright © 2007-2011 Taylor R. Campbell,
 2021-2023 Phil Hagelberg and contributors, released under the
 Creative Commons Attribution-NonCommercial-ShareAlike 3.0
-Unported License: http://creativecommons.org/licenses/by-nc-sa/3.0/.
+Unported License: https://creativecommons.org/licenses/by-nc-sa/3.0/
 
 [1]: https://fennel-lang.org
 [2]: https://wiki.fennel-lang.org/Cookbook

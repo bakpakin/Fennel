@@ -48,6 +48,15 @@
                     expected-with-mt)
     (tset (getmetatable io.stdout) :__fennelview nil)))
 
+(fn test-numbers []
+  (t.= "1e+308" (view (fennel.eval (string.rep "9" 308))))
+  (t.= ".inf" (view (fennel.eval (string.rep "9" 309))))
+  (t.= ".inf" (view (fennel.eval "(/ 1 0)")))
+  (t.= "-.inf" (view (fennel.eval "(/ -1 0)")))
+  (t.= ".inf" (view (fennel.eval ".inf")))
+  (t.= "-.inf" (view (fennel.eval "-.inf")))
+  (t.= ".nan" (view (fennel.eval ".nan"))))
+
 (fn test-cycles []
   (let [t1 {:a 1 :b 2}
         t2 {:tbl [1 :b] :foo 19}

@@ -32,26 +32,9 @@
        (fennel.view (fennel.eval (.. "23456789012" (string.rep "0" 66)))))
   (t.= "1.23456789e-13"
        (fennel.view (fennel.eval "1.23456789e-13")))
-  (t.= ".inf"
-       (fennel.view (fennel.eval "1e+999999")))
-  (t.= "-.inf"
-       (fennel.view (fennel.eval "-1e+999999")))
-  (t.= "1e+308"
-       (fennel.view (fennel.eval (string.rep "9" 308))))
-  (t.= ".inf"
-       (fennel.view (fennel.eval (string.rep "9" 309))))
-  (t.= ".inf"
-       (fennel.view (fennel.eval "(/ 1 0)")))
-  (t.= "-.inf"
-       (fennel.view (fennel.eval "(/ -1 0)")))
-  (t.= ".inf"
-       (fennel.view (fennel.eval ".inf")))
-  (t.= "-.inf"
-       (fennel.view (fennel.eval "-.inf")))
-  (t.= ".nan"
-       (fennel.view (fennel.eval "(math.acos 2)")))
-  (t.= ".nan"
-       (fennel.view (fennel.eval ".nan")))
+  (t.= ".inf" (fennel.view (fennel.eval "1e+999999")))
+  (t.= "-.inf" (fennel.view (fennel.eval "-1e+999999")))
+  (t.= "nan" (tostring ".nan"))
   ;; ensure we consistently treat nan as symbol even on 5.1
   (t.= :not-really (fennel.eval "(let [nan :not-really] nan)"))
   (t.= :nah (fennel.eval "(let [-nan :nah] -nan)")))

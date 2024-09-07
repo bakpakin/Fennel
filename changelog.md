@@ -8,6 +8,10 @@ deprecated forms.
 
 ## 1.5.2 / ???
 
+### Bug Fixes
+
+* Use `options.warn` when provided in the parser.
+
 ## 1.5.1 / 2024-08-24
 
 ### Bug Fixes

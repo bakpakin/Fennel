@@ -92,6 +92,8 @@ Also returns a second function to clear the buffer in the byte stream."
       (set (line col prev-col) (values (+ line 1) 0 col)))
     r)
 
+  (fn warn [...] ((or options.warn utils.warn) ...))
+
   (fn whitespace? [b] (or (= b 32) (<= 9 b 13) (?. options.whitespace b)))
 
   ;; If you add new calls to this function, please update fennel.friend as well
@@ -261,7 +263,7 @@ Also returns a second function to clear the buffer in the byte stream."
 
     (fn parse-string [source]
       (when (not whitespace-since-dispatch)
-        (utils.warn "expected whitespace before string" nil filename line))
+        (warn "expected whitespace before string" nil filename line))
       (table.insert stack {:closer 34})
       (let [chars ["\""]]
         (when (not (parse-string-loop chars (getb) :base))
@@ -330,7 +332,7 @@ Also returns a second function to clear the buffer in the byte stream."
           (parse-error (.. "method must be last component of multisym: " rawstr)
                        (col-adjust ":.+[%.:]")))
       (when (not whitespace-since-dispatch)
-        (utils.warn "expected whitespace before token" nil filename line))
+        (warn "expected whitespace before token" nil filename line))
       rawstr)
 
     (fn parse-sym [b]                   ; not just syms actually...

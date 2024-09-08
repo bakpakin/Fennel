@@ -184,7 +184,7 @@
         (let [res (:answer {:answer 42})]
           (tset (getmetatable ::) :__call nil)
           res))
-       42)
+      42)
   (== (do
         (var a 11)
         (let [f (fn [] (set a (+ a 2)))]
@@ -429,7 +429,11 @@
   (== (let [x [#(tset $1 $2 $3)] y x]
         (: x 1 2 :b)
         (. y 2))
-      :b))
+      :b)
+  ;; regression test for kv-rest codegen
+  (== (let [{& a+b+c} {:key :value}]
+        a+b+c.key)
+      :value))
 
 (fn test-hashfn []
   (== (#$.foo {:foo :bar}) "bar")

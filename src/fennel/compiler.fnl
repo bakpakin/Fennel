@@ -767,9 +767,9 @@ which we have to do if we don't know."
                          (icollect [_ k (ipairs excluded-keys)]
                            (string.format "[%s] = true" (serialize-string k)))
                          ", ")
-            subexpr (-> (.. "(" unpack-fn ")(%s, %s, {%s})")
+            subexpr (-> (.. "(" unpack-fn ")(%s, nil, {%s})")
                         (string.gsub "\n%s*" " ")
-                        (string.format s (tostring v) exclude-str)
+                        (string.format s exclude-str)
                         (utils.expr :expression))]
         (destructure1 v [subexpr] left)))
 

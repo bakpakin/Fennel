@@ -67,10 +67,14 @@ The ast arg should be unmodified so that its first element is the form called."
 (set scopes.compiler (make-scope scopes.global))
 (set scopes.macro scopes.global)
 
+(local serialize-subst-digits {"\\7" "\\a" "\\8" "\\b" "\\9" "\\t"
+                               "\\10" "\\n" "\\11" "\\v" "\\12" "\\f"
+                               "\\13" "\\r"})
+
 (fn serialize-string [str]
   (-> (string.format "%q" str)
       (string.gsub "\\\n" "\\n") ; keep it as one line
-      (string.gsub "\\9" "\\t")
+      (string.gsub "\\..?" serialize-subst-digits)
       (string.gsub "[\128-\255]" #(.. "\\" ($:byte)))))
 
 (fn global-mangling [str]

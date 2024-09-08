@@ -1119,14 +1119,13 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (tset SPECIALS "~=" (. SPECIALS :not=))
 (tset SPECIALS "#" (. SPECIALS :length))
 
+(fn compile-time? [scope]
+  (or (= scope compiler.scopes.compiler)
+      (and scope.parent (compile-time? scope.parent))))
+
 (fn SPECIALS.quote [ast scope parent]
   (compiler.assert (= (length ast) 2) "expected one argument" ast)
-  (var (runtime this-scope) (values true scope))
-  (while this-scope
-    (set this-scope this-scope.parent)
-    (when (= this-scope compiler.scopes.compiler)
-      (set runtime false)))
-  (compiler.do-quote (. ast 2) scope parent runtime))
+  (compiler.do-quote (. ast 2) scope parent (not (compile-time? scope))))
 
 (doc-special :quote [:x]
              "Quasiquote the following form. Only works in macro/compiler scope.")

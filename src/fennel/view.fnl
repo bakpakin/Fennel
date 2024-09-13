@@ -304,7 +304,7 @@
                     (or options.negative-nan "-.nan")
                     (or options.nan ".nan"))
                 (= (math.floor n) n)
-                (let [s1 (string.format "%.f" n)]
+                (let [s1 (string.format "%.0f" n)]
                   (if (= s1 inf-str) (or options.infinity ".inf")
                       (= s1 neg-inf-str) (or options.negative-infinity "-.inf")
                       (= s1 (tostring n)) s1 ; no precision loss

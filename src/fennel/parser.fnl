@@ -48,8 +48,8 @@ Also returns a second function to clear the buffer in the byte stream."
          (not= b 59) ; semicolon
          (not= b 44) ; comma
          (not= b 64) ; at
-         (not= b 96) ; backtick
-         )))
+         (not= b 96)))) ; backtick
+
 
 ;; prefix chars substituted while reading
 (local prefixes {35 :hashfn
@@ -243,21 +243,40 @@ Also returns a second function to clear the buffer in the byte stream."
       (% (math.floor (/ codepoint (^ 2 low))) (math.floor (^ 2 (- high low)))))
 
     (fn encode-utf8 [codepoint-str]
-      (case (tonumber (codepoint-str:sub 4 -2) 16)
-        codepoint (if (<= 0       codepoint   0x7F)
+      ;; codepoint-str format is "u{hexidecimal digits}"
+      ;; so we need to substring just the interesting parts
+      (case (tonumber (codepoint-str:sub 3 -2) 16)
+        codepoint (if _G.utf8 (_G.utf8.char codepoint)
+                      (<= 0        codepoint 0x7F)
                       (string.char codepoint)
-                      (<= 0x80    codepoint   0x7FF)
-                      (string.char (+ 0xC0 (bitrange codepoint 6 12))
+                      (<= 0x80     codepoint 0x7FF)
+                      (string.char (+ 0xC0 (bitrange codepoint 6 11))
                                    (+ 0x80 (bitrange codepoint 0 6)))
-                      (<= 0x800   codepoint   0xFFFF)
-                      (string.char (+ 0xE0 (bitrange codepoint 12 18))
+                      (<= 0x800    codepoint 0xFFFF)
+                      (string.char (+ 0xE0 (bitrange codepoint 12 16))
                                    (+ 0x80 (bitrange codepoint 6 12))
                                    (+ 0x80 (bitrange codepoint 0 6)))
-                      (<= 0x10000 codepoint   0x10FFFF)
+                      (<= 0x10000  codepoint 0x1FFFFF)
                       (string.char (+ 0xF0 (bitrange codepoint 18 21))
                                    (+ 0x80 (bitrange codepoint 12 18))
                                    (+ 0x80 (bitrange codepoint 6 12))
-                                   (+ 0x80 (bitrange codepoint 0 6))))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      ;; These are past the range of valid unicode,
+                      ;; but we parse them anyway to match Lua
+                      (<= 0x20000  codepoint 0x3FFFFFF)
+                      (string.char (+ 0xF8 (bitrange codepoint 24 26))
+                                   (+ 0x80 (bitrange codepoint 18 24))
+                                   (+ 0x80 (bitrange codepoint 12 18))
+                                   (+ 0x80 (bitrange codepoint 6 12))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      (<= 0x400000 codepoint 0x7FFFFFFF)
+                      (string.char (+ 0xFC (bitrange codepoint 30 31))
+                                   (+ 0x80 (bitrange codepoint 24 30))
+                                   (+ 0x80 (bitrange codepoint 18 24))
+                                   (+ 0x80 (bitrange codepoint 12 18))
+                                   (+ 0x80 (bitrange codepoint 6 12))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      (parse-error (.. "utf8 value too large: " codepoint-str)))
         _ (parse-error (.. "Illegal string: " codepoint-str))))
 
     (fn parse-string-loop [chars b state]
@@ -266,21 +285,53 @@ Also returns a second function to clear the buffer in the byte stream."
       (let [state (match [state b]
                     [:base 92] :backslash
                     [:base 34] :done
-                    [:backslash 10] (do
-                                      (table.remove chars (- (length chars) 1))
-                                      :base)
                     _ :base)]
         (if (and b (not= state :done))
             (parse-string-loop chars (getb) state)
             b)))
 
-    (fn escape-sequence [c]
-      (let [c1 (c:sub 1 1)]
-        (if (= :u c1) c ; utf8 is handled in the next gsub
-            (= :x c1) (string.char (tonumber (c:sub 2 3) 16)) ; hex
-            (tonumber c) (string.char (tonumber c)) ; decimal
-            (. escapes c1) (.. (. escapes c1) (c:sub 2 3))
-            (parse-error (.. "Invalid string: " c)))))
+    (fn expand-str [str i result]
+      (case (str:find "\\" i)
+        nil (table.concat (doto result (table.insert (str:sub i))))
+        next-pos
+        (do
+          (table.insert result (str:sub i (- next-pos 1)))
+          (let [i (+ next-pos 1)]
+            (case (str:sub i i)
+              ;; normal character escape
+              (where b (. escapes b)) (let [chr (. escapes b)]
+                                        (expand-str str
+                                                    (+ i 1)
+                                                    (doto result (table.insert chr))))
+              "\r\n" (expand-str str (+ i 2) result)
+              ;; \xXX hexidecimal escape
+              :x (case (str:match "^%x%x" (+ i 1))
+                   hex-code (let [chr (string.char (tonumber hex-code 16))]
+                              (expand-str str
+                                          (+ i 3)
+                                          (doto result (table.insert chr))))
+                   _ (parse-error "invalid hexidecimal escape"))
+              ;; \u{XXXX} unicode codepoint escape
+              :u (case (str:match "^u{%x+}" i)
+                   unicode-escape (let [encoded (encode-utf8 unicode-escape)]
+                                    (expand-str str
+                                                (+ i (length unicode-escape))
+                                                (doto result (table.insert encoded))))
+                   _ (parse-error "invalid unicode escape"))
+              ;; \z whitespace escape
+              :z (case (str:find "^%s*" (+ i 1))
+                   (_ j) (expand-str str (+ j 1) result)
+                   _ (assert "unreachable. Please report this bug to the Fennel maintainers"))
+              ;; \0 \00 \000 3-digit escape
+              (where d (d:find "%d")) (case (str:match "^%d%d?%d?" i)
+                                        digits (let [byte (tonumber digits 10)]
+                                                 (when (< 255 byte)
+                                                   (parse-error "invalid decimal escape"))
+                                                 (expand-str str
+                                                             (+ i (length digits))
+                                                             (doto result (table.insert (string.char byte)))))
+                                        _ (assert "unreachable. Please report this bug to the Fennel maintainers"))
+              _ (parse-error "invalid escape sequence"))))))
 
     (fn parse-string [source]
       (when (not whitespace-since-dispatch)
@@ -291,10 +342,8 @@ Also returns a second function to clear the buffer in the byte stream."
           (badend))
         (table.remove stack)
         (let [raw (table.concat chars)
-              escaped (-> (raw:sub 2 -2)
-                          (: :gsub "\\(.%x?%x?)" escape-sequence)
-                          (: :gsub "\\u{[0-9a-f]+}" encode-utf8))]
-          (dispatch escaped source raw))))
+              expanded (expand-str (raw:sub 2 -2) 1 [])]
+          (dispatch expanded source raw))))
 
     (fn parse-prefix [b]
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"

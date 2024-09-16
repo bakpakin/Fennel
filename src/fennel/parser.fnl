@@ -245,7 +245,7 @@ Also returns a second function to clear the buffer in the byte stream."
     (fn encode-utf8 [codepoint-str]
       ;; codepoint-str format is "u{hexidecimal digits}"
       ;; so we need to substring just the interesting parts
-      (case (tonumber (codepoint-str:sub 3 -2) 16)
+      (case (tonumber (codepoint-str:sub 4 -2) 16)
         codepoint (if _G.utf8 (_G.utf8.char codepoint)
                       (<= 0        codepoint 0x7F)
                       (string.char codepoint)
@@ -290,33 +290,38 @@ Also returns a second function to clear the buffer in the byte stream."
             (parse-string-loop chars (getb) state)
             b)))
 
-    (fn expand-str [str pos ?result]
-      (case (str:find "\\" pos)
-        nil (if ?result (table.concat (doto ?result (table.insert (str:sub pos))))
-                str)
-        next-pos (let [i (+ next-pos 1)
-                       b (str:sub i i)
-                       (advance-by str-segment) (if (. escapes b)
-                                                    (values 1 (. escapes b))
-                                                    (str:find "^\r\n" i)
-                                                    (values 2 "\r\n")
-                                                    (case (str:match "^x(%x%x)" i)
-                                                      hex-code (values 3 (string.char (tonumber hex-code 16)))
-                                                      _ (case (str:match "^u{%x+}" i)
-                                                          unicode-escape (values (length unicode-escape) (encode-utf8 unicode-escape))
-                                                          _ (case (str:find "^z%s*" i)
-                                                              (_ j) (values (+ 1 (- j i)) "")
-                                                              _ (case (str:match "^%d%d?%d?" i)
-                                                                  digits (let [byte (tonumber digits 10)]
-                                                                           (when (< 255 byte)
-                                                                             (parse-error "invalid decimal escape"))
-                                                                           (values (length digits) (string.char byte)))
-                                                                  _ (parse-error "invalid escape sequence"))))))]
-                   (expand-str str
-                               (+ i advance-by)
-                               (doto (or ?result [])
-                                 (table.insert (str:sub pos (- next-pos 1)))
-                                 (table.insert str-segment))))))
+    (fn expand-str [str]
+      (let [result []]
+        (var i 1)
+        (while (<= i (length str))
+          (let [(add-to-i add-to-result) (case (str:match "^[^\\]+" i)
+                                           text (values (length text) text)
+                                           ;; literal escape code
+                                           _ (case (. escapes (str:match "^\\(.?)" i))
+                                               escape (values 2 escape)
+                                               ;; the windows version of \<newline>
+                                               _ (if (= "\\\r\n" (str:sub i (+ i 2)))
+                                                   (values 3 "\r\n")
+                                                   ;; hex escape code
+                                                   (case (str:match "^\\x(%x%x)" i)
+                                                     hex-code (values 4 (string.char (tonumber hex-code 16)))
+                                                     ;; unicode esape code
+                                                     _ (case (str:match "^\\u{%x+}" i)
+                                                         unicode-escape (values (length unicode-escape) (encode-utf8 unicode-escape))
+                                                         ;; whitespace escape code
+                                                         _ (case (str:find "^\\z%s*" i)
+                                                             (_ j) (values (+ (- j i) 1) "")
+                                                             ;; decimal escape code
+                                                             _ (case (str:match "^\\(%d%d?%d?)" i)
+                                                                 digits (let [byte (tonumber digits 10)]
+                                                                          (when (< 255 byte)
+                                                                            (parse-error "invalid decimal escape"))
+                                                                          (values (+ (length digits) 1) (string.char byte)))
+                                                                 ;; unknown escape code
+                                                                 _ (parse-error "invalid escape sequence"))))))))]
+            (table.insert result add-to-result)
+            (set i (+ i add-to-i))))
+        (table.concat result)))
 
     (fn parse-string [source]
       (when (not whitespace-since-dispatch)
@@ -327,7 +332,7 @@ Also returns a second function to clear the buffer in the byte stream."
           (badend))
         (table.remove stack)
         (let [raw (table.concat chars)
-              expanded (expand-str (raw:sub 2 -2) 1)]
+              expanded (expand-str (raw:sub 2 -2))]
           (dispatch expanded source raw))))
 
     (fn parse-prefix [b]

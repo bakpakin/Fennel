@@ -24,12 +24,12 @@
        (fennel.view (fennel.eval "141791343654238")))
   (t.= "141791343654238"
        (fennel.view (fennel.eval "1.41791343654238e+14")))
-  (t.= "1.41791343654238e+15"
-       (fennel.view (fennel.eval "1.41791343654238e+15")))
+  (t.match "1%.41791343654238e%+0?15"
+           (fennel.view (fennel.eval "1.41791343654238e+15")))
   (t.= "14179134365.125"
        (fennel.view (fennel.eval "14179134365.125")))
-  (t.= "2.3456789012e+76"
-       (fennel.view (fennel.eval (.. "23456789012" (string.rep "0" 66)))))
+  (t.match "2%.3456789012e%+0?76"
+           (fennel.view (fennel.eval (.. "23456789012" (string.rep "0" 66)))))
   (t.= "1.23456789e-13"
        (fennel.view (fennel.eval "1.23456789e-13")))
   (t.= ".inf" (fennel.view (fennel.eval "1e+999999")))

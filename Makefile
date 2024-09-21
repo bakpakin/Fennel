@@ -94,7 +94,7 @@ COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
 LUAJIT_COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
 
 $(LUA_INCLUDE_DIR): ; git submodule update --init
-$(LUA_INCLUDE_DIR): ; git submodule update --init
+$(LUAJIT_INCLUDE_DIR): ; git submodule update --init
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl $(BIN_LUA_DIR)/src/lua $(NATIVE_LUA_LIB) fennel
@@ -112,14 +112,16 @@ $(NATIVE_LUA_LIB): $(LUA_INCLUDE_DIR) ; $(MAKE) -C $(BIN_LUA_DIR)/src liblua.a
 $(NATIVE_LUAJIT_LIB): $(LUAJIT_INCLUDE_DIR)
 	$(MAKE) -C $(BIN_LUAJIT_DIR) BUILDMODE=static
 
+# TODO: update setup.md to point to new filenames on next release
+# it's unclear why this CC has "w32" in the name, but it builds 64-bit output
 fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
-	$(COMPILE_ARGS) CC=i686-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
+	$(COMPILE_ARGS) CC=x86_64-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
 		--compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 	mv fennel-bin.exe $@
 
 $(BIN_LUA_DIR)/src/liblua-mingw.a: $(LUA_INCLUDE_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=x86_64-w64-mingw32-gcc
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean
 
@@ -173,15 +175,15 @@ upload: fennel fennel.lua fennel-bin fennel.exe
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel.lua downloads/fennel-$(VERSION).lua
 	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
-	mv fennel.exe downloads/fennel-$(VERSION)-windows32.exe
+	mv fennel.exe downloads/fennel-$(VERSION)-windows.exe
 	gpg -ab downloads/fennel-$(VERSION)
 	gpg -ab downloads/fennel-$(VERSION).lua
 	gpg -ab downloads/fennel-$(VERSION)-x86_64
-	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
+	gpg -ab downloads/fennel-$(VERSION)-windows.exe
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).lua
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-x86_64
-	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows32.exe
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows.exe
 	rsync -rtAv downloads/fennel-$(VERSION)* \
 		fenneler@fennel-lang.org:fennel-lang.org/downloads/
 

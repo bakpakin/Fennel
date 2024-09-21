@@ -110,7 +110,8 @@ This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
 
 If you don't have Lua already installed on your system, you can run
 `make fennel-bin LUA=lua/src/lua` instead to build a standalone binary
-that has its own internal version of Lua.
+that has its own internal version of Lua. This requires having a C
+compiler installed; normally `gcc`.
 
 See the [contributing guide](CONTRIBUTING.md) for details about how to
 work on the source.

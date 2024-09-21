@@ -93,8 +93,8 @@ LUAJIT_INCLUDE_DIR ?= $(BIN_LUAJIT_DIR)/src
 COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
 LUAJIT_COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
 
-$(BIN_LUA_DIR): ; git submodule update --init
-$(BIN_LUAJIT_DIR): ; git submodule update --init
+$(LUA_INCLUDE_DIR): ; git submodule update --init
+$(LUA_INCLUDE_DIR): ; git submodule update --init
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl $(BIN_LUA_DIR)/src/lua $(NATIVE_LUA_LIB) fennel
@@ -107,9 +107,9 @@ fennel-bin-luajit: src/launcher.fnl $(NATIVE_LUAJIT_LIB) fennel
 		--no-compiler-sandbox --compile-binary \
 		$< $@ $(NATIVE_LUAJIT_LIB) $(LUAJIT_INCLUDE_DIR)
 
-$(BIN_LUA_DIR)/src/lua: $(BIN_LUA_DIR) ; make -C $(BIN_LUA_DIR)
-$(NATIVE_LUA_LIB): $(BIN_LUA_DIR) ; $(MAKE) -C $(BIN_LUA_DIR)/src liblua.a
-$(NATIVE_LUAJIT_LIB): $(BIN_LUAJIT_DIR)
+$(BIN_LUA_DIR)/src/lua: $(LUA_INCLUDE_DIR) ; make -C $(BIN_LUA_DIR)
+$(NATIVE_LUA_LIB): $(LUA_INCLUDE_DIR) ; $(MAKE) -C $(BIN_LUA_DIR)/src liblua.a
+$(NATIVE_LUAJIT_LIB): $(LUAJIT_INCLUDE_DIR)
 	$(MAKE) -C $(BIN_LUAJIT_DIR) BUILDMODE=static
 
 fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
@@ -118,7 +118,7 @@ fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 	mv fennel-bin.exe $@
 
-$(BIN_LUA_DIR)/src/liblua-mingw.a: $(BIN_LUA_DIR)
+$(BIN_LUA_DIR)/src/liblua-mingw.a: $(LUA_INCLUDE_DIR)
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean

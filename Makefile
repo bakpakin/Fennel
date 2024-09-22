@@ -6,6 +6,13 @@ BIN_DIR ?= $(PREFIX)/bin
 LUA_LIB_DIR ?= $(PREFIX)/share/lua/$(LUA_VERSION)
 MAN_DIR ?= $(PREFIX)/share
 
+# Windows -> Windows 32bit/64bit
+WINDOWS_CC ?= gcc
+# Linux -> Windows 32bit
+#WINDOWS_CC ?= i686-w64-mingw32-gcc
+# Linux -> Windows 64bit
+#WINDOWS_CC ?= x86_64-w64-mingw32-gcc
+
 MAKEFLAGS += --no-print-directory
 
 CORE_SRC=src/fennel.fnl src/fennel/parser.fnl src/fennel/specials.fnl \
@@ -90,7 +97,7 @@ NATIVE_LUAJIT_LIB ?= $(BIN_LUAJIT_DIR)/src/libluajit.a
 LUA_INCLUDE_DIR ?= $(BIN_LUA_DIR)/src
 LUAJIT_INCLUDE_DIR ?= $(BIN_LUAJIT_DIR)/src
 
-COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS="-static -I$(LUA_INCLUDE_DIR)"
+COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS="-static"
 LUAJIT_COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
 
 $(LUA_INCLUDE_DIR): ; git submodule update --init
@@ -115,13 +122,13 @@ $(NATIVE_LUAJIT_LIB): $(LUAJIT_INCLUDE_DIR)
 # TODO: update setup.md to point to new filenames on next release
 # it's unclear why this CC has "w32" in the name, but it builds 64-bit output
 fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
-	$(COMPILE_ARGS) CC=x86_64-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
+	$(COMPILE_ARGS) CC=$(WINDOWS_CC) ./fennel --no-compiler-sandbox \
 		--compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 	mv fennel-bin.exe $@
 
 $(BIN_LUA_DIR)/src/liblua-mingw.a: $(LUA_INCLUDE_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=x86_64-w64-mingw32-gcc
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=$(WINDOWS_CC)
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean
 

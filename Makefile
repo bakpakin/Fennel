@@ -113,9 +113,9 @@ $(NATIVE_LUAJIT_LIB): $(LUAJIT_INCLUDE_DIR)
 	$(MAKE) -C $(BIN_LUAJIT_DIR) BUILDMODE=static
 
 # TODO: update setup.md to point to new filenames on next release
-# it's unclear why this CC has "w32" in the name, but it builds 64-bit output
+# to cross-compile, run: make fennel.exe CC=x86_64-w64-mingw32-gcc
 fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
-	$(COMPILE_ARGS) CC=x86_64-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
+	$(COMPILE_ARGS) ./fennel --no-compiler-sandbox \
 		--compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 	mv fennel-bin.exe $@
@@ -170,7 +170,8 @@ test-builds: fennel test/faith.lua
 	./fennel --metadata --eval "(require :test.init)"
 	$(MAKE) install PREFIX=/tmp/opt
 
-upload: fennel fennel.lua fennel-bin fennel.exe
+upload: fennel fennel.lua fennel-bin
+	$(MAKE) fennel.exe CC=x86_64-w64-mingw32-gcc
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel.lua downloads/fennel-$(VERSION).lua

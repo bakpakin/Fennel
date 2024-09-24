@@ -83,8 +83,8 @@ coverage: fennel
 
 ## Binaries
 
-BIN_LUA_DIR ?= $(PWD)/lua
-BIN_LUAJIT_DIR ?= $(PWD)/luajit
+BIN_LUA_DIR ?= lua
+BIN_LUAJIT_DIR ?= luajit
 NATIVE_LUA_LIB ?= $(BIN_LUA_DIR)/src/liblua.a
 NATIVE_LUAJIT_LIB ?= $(BIN_LUAJIT_DIR)/src/libluajit.a
 LUA_INCLUDE_DIR ?= $(BIN_LUA_DIR)/src

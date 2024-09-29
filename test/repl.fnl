@@ -115,6 +115,21 @@
     (t.is (not ok?))
     (t.= "cannot resume dead coroutine" msg)))
 
+(fn test-chunks []
+  (let [input ["(+ 99 " "101" ")\n" "   " "\n\n"
+               "(.. :he \n" ":llo" ")"]
+        output []
+        opts {:readChunk #(table.remove input 1)
+              :onValues #(table.insert output (. $ 1))
+              :env (setmetatable {} {:__index _G})}]
+    (fennel.repl opts)
+    (t.= "200\n\"hello\"" (table.concat output "\n"))
+    (while (next output) (table.remove output))
+    (table.insert input "\"hello ")
+    (table.insert input "world!\"")
+    (fennel.repl opts)
+    (t.= "\"hello world!\"" (table.concat output "\n"))))
+
 (fn test-reload []
   (set package.loaded.dummy nil)
   (let [modules {:dummy {:dummy :first-load}}]
@@ -512,6 +527,7 @@
      : test-exit
      : test-reload
      : test-reload-macros
+     : test-chunks
      : test-reset
      : test-find
      : test-compile

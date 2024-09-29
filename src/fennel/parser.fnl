@@ -15,12 +15,11 @@ Also returns a second function to clear the buffer in the byte stream."
                   (let [b (c:byte index)]
                     (set index (+ index 1))
                     b)
-                  (match (getchunk parser-state)
-                    (char ? (not= char "")) (do
-                                              (set c char)
-                                              (set index 2)
-                                              (c:byte))
-                    _ (set done? true))))) #(set c "")))
+                  (case (getchunk parser-state)
+                    input (do (set (c index) (values input 2))
+                              (c:byte))
+                    _ (set done? true)))))
+          #(set c "")))
 
 (fn string-stream [str ?options]
   "Convert a string into a stream of bytes."

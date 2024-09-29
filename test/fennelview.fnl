@@ -55,7 +55,8 @@
   (t.= "-.inf" (view (fennel.eval "(/ -1 0)")))
   (t.= ".inf" (view (fennel.eval ".inf")))
   (t.= "-.inf" (view (fennel.eval "-.inf")))
-  (t.= ".nan" (view (fennel.eval ".nan"))))
+  (t.= ".nan" (view (fennel.eval ".nan")))
+  (t.match ":pi 3.1415926" (fennel.view math)))
 
 (fn test-cycles []
   (let [t1 {:a 1 :b 2}
@@ -90,16 +91,16 @@
 (fn test-utf8 []
   (when _G.utf8
     ;; make sure everything produced is valid utf-8
-    (for [i 1 100]
+    (for [_ 1 100]
       (var x [])
-      (for [j 1 100]
+      (for [_ 1 100]
         (table.insert x (string.char (math.random 0 255))))
       (set x (view (table.concat x)))
       (t.is (_G.utf8.len x) (.. "invalid utf-8: " x "\"")))
     ;; make sure valid utf-8 doesn't get escaped
-    (for [i 1 100]
+    (for [_ 1 100]
       (let [x []]
-        (for [j 1 100]
+        (for [_ 1 100]
           (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
                                             (math.random 0x80 0xd7ff)
                                             (math.random 0xe000 0x10ffff)))))
@@ -109,13 +110,13 @@
     ;; exposed is within the indentation code, we have to generate some
     ;; fixed-size string to put in an object, then verify the output's
     ;; length to be another fixed size.
-    (for [i 1 100]
-      (var x ["æ"])
-      (for [j 1 100]
-        (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
-                                       (math.random 0x80 0xd7ff)
-                                       (math.random 0xe000 0x10ffff)))))
-      (t.= (_G.utf8.len (view {(table.concat x) [1 2]})) 217))))
+    (for [_ 1 100]
+      (let [x ["æ"]]
+        (for [_ 1 100]
+          (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
+                                            (math.random 0x80 0xd7ff)
+                                            (math.random 0xe000 0x10ffff)))))
+        (t.= (_G.utf8.len (view {(table.concat x) [1 2]})) 217)))))
 
 (fn test-seq-comments []
   ;; a sequence containing a comment as its last item should have its closing
@@ -337,6 +338,7 @@
  : test-fennelview-userdata-handling
  : test-cycles
  : test-escapes
+ : test-numbers
  : test-gaps
  : test-utf8
  : test-colon

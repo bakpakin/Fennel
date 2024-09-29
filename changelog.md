@@ -10,6 +10,7 @@ deprecated forms.
 
 ### Bug Fixes
 
+* Work around string formatting bug in Fengari.
 * Use `options.warn` when provided in the parser.
 
 ## 1.5.1 / 2024-08-24

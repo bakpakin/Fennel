@@ -284,9 +284,7 @@
 
 ;; sadly luajit tostring is imprecise https://todo.sr.ht/~technomancy/fennel/231
 (fn exponential-notation [n fallback]
-  (faccumulate [s nil
-                i 0 308 ; beyond 308 every number turns to inf
-                :until s]
+  (faccumulate [s nil i 0 99 :until s]
     (let [s (string.format (.. "%." i "e") n)]
       (when (= n (tonumber s))
         (let [exp (s:match "e%+?(%d+)$")]

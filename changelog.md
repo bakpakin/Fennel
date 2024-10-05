@@ -8,6 +8,10 @@ deprecated forms.
 
 ## 1.5.2 / ???
 
+### New Features
+
+* Add support for discarding (Clojure's `#_`).
+
 ### Bug Fixes
 
 * Work around string formatting bug in Fengari.

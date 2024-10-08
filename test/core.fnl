@@ -583,7 +583,7 @@
                   (fennel.compile-string "(comment \"hello]]lol\")")))
 
 (fn test-nest []
-  (let [nested (fennel.dofile "src/fennel.fnl" {:compilerEnv _G})]
+  (let [nested (fennel.dofile "src/fennel.fnl")]
     (t.= fennel.version nested.version)))
 
 (fn test-sym []

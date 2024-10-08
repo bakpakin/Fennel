@@ -1,1 +1,1 @@
-return {bad=function() assert(_G["io"]) return "bad" end}
+return {bad=function() assert(_G["os"]) return "bad" end}

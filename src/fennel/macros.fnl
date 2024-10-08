@@ -103,8 +103,8 @@ encountering an error before propagating it."
                   ,...)
         closer `(fn close-handlers# [ok# ...]
                   (if ok# ... (error ... 0)))
-        traceback `(. (or (. package.loaded ,(fennel-module-name)) _G.debug {})
-                      :traceback)]
+        traceback `(. (or (?. _G :package :loaded ,(fennel-module-name))
+                          _G.debug {:traceback #""}) :traceback)]
     (for [i 1 (length closable-bindings) 2]
       (assert (sym? (. closable-bindings i))
               "with-open only allows symbols in bindings")

@@ -12,14 +12,24 @@ deprecated forms.
 
 * Precompile built-in macros, improving startup time significantly.
 * Accept `:global-mangle false` in compiler opts to disable global mangling.
+* Macro sandbox can now read (but not write) files.
 
-## 1.5.1 / ???
+### Bug Fixes
+
+* Work around string formatting bug in Fengari.
+* Use `options.warn` when provided in the parser.
+
+## 1.5.1 / 2024-08-24
 
 ### Bug Fixes
 
 * `,doc`/`fennel.doc`: Don't mutate `:fnl/arglist` directly when showing callable form
 * `(set (. tgt k1 ...) v)` now works on known globals and `$, $1 ... $9` in hashfns
 * Macro quote expansion no longer breaks when `sym`, `list` or `sequence` is shadowed
+* Bring `fennel.traceback` behavior closer to Lua's `traceback` by
+  not modifying non-string and non-`nil` values.
+* Avoid losing precision when compiling large numbers on LuaJIT.
+* Add syntax for representing infinity and NaN values.
 
 ## 1.5.0 / 2024-06-23
 

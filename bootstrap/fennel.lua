@@ -649,7 +649,7 @@ local parser = (function()
                                 parseError('could not read number "' .. rawstr .. '"')
                         else
                             x = tonumber(numberWithStrippedUnderscores)
-                            if not x then
+                            if (x == nil) or (rawstr == "nan") then
                                 if(rawstr:match("%.[0-9]")) then
                                     byteindex = (byteindex - #rawstr +
                                                      rawstr:find("%.[0-9]") + 1)

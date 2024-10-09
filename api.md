@@ -18,7 +18,8 @@ usually accept these fields:
   current environment.
 * `correlate`: when this is set, Fennel attempts to emit Lua where the line
   numbers match up with the Fennel input code; useful for situation where code
-  that isn't under your control will print the stack traces.
+  that isn't under your control will print the stack traces. This is meant
+  as a debugging aid and cannot give exact numbers in all cases.
 * `useMetadata`: enables or disables [metadata](#work-with-docstrings-and-metadata),
   allowing use of the `,doc` repl command. Intended for development purposes
   (see [performance note](#metadata-performance-note)); defaults to
@@ -65,16 +66,29 @@ fennel.repl([options])
 
 Takes these additional options:
 
-* `readChunk()`: a function that when called, returns a string of source code.
-  Should return nil when there is no more source, which will exit the repl.
-* `pp`: a pretty-printer function to apply on values (default: `fennel.view`).
-* `view-opts`: an options table passed to `pp` (default: `{:depth 4}`).
-* `onValues(values)`: a function that will be called on all returned
-  top level values. Takes a table of values.
+* `readChunk(state)`: a function that when called, returns a line of code to
+  run. This can be an incomplete expression, in which case it will be called
+  again until a complete expression can be constructed. The state argument is
+  a table with a `stack-size` field which will be zero unless it's reading a
+  continuation of previous input. Strings returned should end in newlines. It
+  should return nil when there is no more source, which will exit the repl.
+* `onValues(values)`: a function which is called for every evaluation with a
+  sequence table containing string representations of each of the values
+  resulting from the input.
 * `onError(errType, err, luaSource)`: a function that will be called on each
-  error. `errType` is a string with the type of error, can be either, 'parse',
-  'compile', 'runtime',  or 'lua'. `err` is the error message, and `luaSource`
-  is the source of the generated lua code.
+  error. `errType` is a string with the type of error: 'parse', 'compile',
+  'runtime', or 'lua'. `err` is the error message, and `luaSource` is the
+  source of the generated lua code.
+* `pp(x)`: a pretty-printer function to apply on values (default: `fennel.view`).
+* `view-opts`: an options table passed to `pp` (default: `{:depth 4}`).
+* `rawValues(...)`: a function which is passed the raw values from
+  evaluation; like `onValues` but receives the underlying data rather than
+  the string representation.
+
+Note that overriding `readChunk`/`onValues` will only affect input and output
+initiated by the repl directly. If the repl runs code that calls `print`,
+`io.write`, `io.read`, etc, those will still use stdio unless overridden in
+`env`.
 
 By default, metadata will be enabled and you can view function signatures and
 docstrings with the `,doc` command in the REPL.
@@ -89,6 +103,7 @@ includes `coroutine.create`. You can pass `fennel.repl.repl` instead.
 Any fields set on `fennel.repl`, which is actually a table with a `__call`
 metamethod rather than a function, will used as a fallback for any options
 passed to `(fennel.repl)` before defaults are applied, allowing one to
+
 customize the default behavior of `(fennel.repl)`:
 
 ```lua

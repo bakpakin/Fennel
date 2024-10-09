@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-tutorial" "7" "2024-06-23" "fennel 1.5.0" "Getting Started with Fennel"
+.TH "fennel-tutorial" "7" "2024-08-24" "fennel 1.5.1" "Getting Started with Fennel"
 .hy
 .SH NAME
 .PP
@@ -70,7 +70,7 @@ the function or macro being called goes \f[I]inside\f[R] the parens, not
 outside.)
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn print-and-add [a b c]
   (print a)
   (+ b c))
@@ -84,7 +84,7 @@ during development in the REPL the docstring and function usage can be
 viewed with the \f[V],doc\f[R] command:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn print-sep [sep ...]
   \[dq]Prints args as a string, delimited by sep\[dq]
   (print (table.concat [...] sep)))
@@ -106,7 +106,7 @@ at least as many arguments as you define, unless you signify that one
 may be omitted by beginning its name with a \f[V]?\f[R]:
 .IP
 .nf
-\f[C]
+\f[CR]
 (lambda print-calculation [x ?y z]
   (print (- x (* (or ?y 1) z))))
 
@@ -118,7 +118,7 @@ Note that the second argument \f[V]?y\f[R] is allowed to be
 \f[V]nil\f[R], but \f[V]z\f[R] is not:
 .IP
 .nf
-\f[C]
+\f[CR]
 (print-calculation 5 nil 3) ; -> 2
 \f[R]
 .fi
@@ -131,7 +131,7 @@ Locals are introduced using \f[V]let\f[R] with the names and values
 wrapped in a single set of square brackets:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x (+ 89 5.2)
       f (fn [abc] (print (* 2 abc)))]
   (f x))
@@ -148,7 +148,7 @@ is preferred inside functions because it\[aq]s clearer at a glance where
 the value can be used:
 .IP
 .nf
-\f[C]
+\f[CR]
 (local tau-approx 6.28318)
 \f[R]
 .fi
@@ -157,7 +157,7 @@ Locals set this way cannot be given new values, but you \f[I]can\f[R]
 introduce new locals that shadow the outer names:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x 19]
   ;; (set x 88) <- not allowed!
   (let [x 88]
@@ -172,7 +172,7 @@ on it.
 There is no nested \f[V]let\f[R]-like equivalent of \f[V]var\f[R].
 .IP
 .nf
-\f[C]
+\f[CR]
 (var x 19)
 (set x (+ x 8))
 (print x) ; -> 27
@@ -194,7 +194,7 @@ You may also use underscores to separate sections of long numbers.
 The underscores have no effect on the value.
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x (+ 1 99)
       y (- x 12)
       z 100_000]
@@ -210,7 +210,7 @@ versions.
 Strings are concatenated with \f[V]..\f[R]:
 .IP
 .nf
-\f[C]
+\f[CR]
 (.. \[dq]hello\[dq] \[dq] world\[dq])
 \f[R]
 .fi
@@ -221,7 +221,7 @@ The main syntax for tables uses curly braces with key/value pairs in
 them:
 .IP
 .nf
-\f[C]
+\f[CR]
 {\[dq]key\[dq] value
  \[dq]number\[dq] 531
  \[dq]f\[dq] (fn [x] (+ x 2))}
@@ -231,7 +231,7 @@ them:
 You can use \f[V].\f[R] to get values out of tables:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [tbl (function-which-returns-a-table)
       key \[dq]a certain key\[dq]]
   (. tbl key))
@@ -241,7 +241,7 @@ You can use \f[V].\f[R] to get values out of tables:
 And \f[V]tset\f[R] to put them in:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [tbl {}
       key1 \[dq]a long string\[dq]
       key2 12]
@@ -257,7 +257,7 @@ keys in this case are just numbers starting with 1 and going up.
 Fennel provides alternate syntax for these tables with square brackets:
 .IP
 .nf
-\f[C]
+\f[CR]
 [\[dq]abc\[dq] \[dq]def\[dq] \[dq]xyz\[dq]] ; equivalent to {1 \[dq]abc\[dq] 2 \[dq]def\[dq] 3 \[dq]xyz\[dq]}
 \f[R]
 .fi
@@ -272,7 +272,7 @@ and an index (which defaults to the end of the table) and removes the
 value at that index, returning it.
 .IP
 .nf
-\f[C]
+\f[CR]
 (local ltrs [\[dq]a\[dq] \[dq]b\[dq] \[dq]c\[dq] \[dq]d\[dq]])
 
 (table.remove ltrs)       ; Removes \[dq]d\[dq]
@@ -289,7 +289,7 @@ The \f[V]length\f[R] form returns the length of sequential tables and
 strings:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [tbl [\[dq]abc\[dq] \[dq]def\[dq] \[dq]xyz\[dq]]]
   (+ (length tbl)
      (length (. tbl 1)))) ; -> 6
@@ -312,7 +312,7 @@ like \f[V]pairs\f[R] (used for general tables) or \f[V]ipairs\f[R] (for
 sequential tables):
 .IP
 .nf
-\f[C]
+\f[CR]
 (each [key value (pairs {\[dq]key1\[dq] 52 \[dq]key2\[dq] 99})]
   (print key value))
 
@@ -332,7 +332,7 @@ Here\[aq]s an example that walks through matches in a
 string (https://www.lua.org/manual/5.4/manual.html#pdf-string.gmatch):
 .IP
 .nf
-\f[C]
+\f[CR]
 (var sum 0)
 (each [digits (string.gmatch \[dq]244 127 163\[dq] \[dq]%d+\[dq])]
   (set sum (+ sum (tonumber digits))))
@@ -345,7 +345,7 @@ A body which returns nil will cause that to be omitted from the
 resulting table.
 .IP
 .nf
-\f[C]
+\f[CR]
 (icollect [_ s (ipairs [:greetings :my :darling])]
   (if (not= :my s)
       (s:upper)))
@@ -361,7 +361,7 @@ A lower-level iteration construct is \f[V]for\f[R] which iterates
 numerically from the provided start value to the inclusive finish value:
 .IP
 .nf
-\f[C]
+\f[CR]
 (for [i 1 10]
   (print i))
 \f[R]
@@ -371,7 +371,7 @@ You can specify an optional step value; this loop will only print odd
 numbers under ten:
 .IP
 .nf
-\f[C]
+\f[CR]
 (for [i 1 10 2]
   (print i))
 \f[R]
@@ -382,7 +382,7 @@ If you need to loop but don\[aq]t know how many times, you can use
 \f[V]while\f[R]:
 .IP
 .nf
-\f[C]
+\f[CR]
 (while (keep-looping?)
   (do-something))
 \f[R]
@@ -395,7 +395,7 @@ lisp languages, but it can also be used as \f[V]cond\f[R] for multiple
 conditions compiling into \f[V]elseif\f[R] branches:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x (math.random 64)]
   (if (= 0 (% x 2))
       \[dq]even\[dq]
@@ -417,7 +417,7 @@ The other conditional is \f[V]when\f[R], which is used for an arbitrary
 number of side-effects and has no else clause:
 .IP
 .nf
-\f[C]
+\f[CR]
 (when (currently-raining?)
   (wear \[dq]boots\[dq])
   (deploy-umbrella))
@@ -430,7 +430,7 @@ use the \f[V]:shorthand\f[R] syntax instead, which is often used for
 table keys:
 .IP
 .nf
-\f[C]
+\f[CR]
 {:key value :number 531}
 \f[R]
 .fi
@@ -439,7 +439,7 @@ If a table has string keys like this, you can pull values out of it
 easily with a dot if the keys are known up front:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [tbl {:x 52 :y 91}]
   (+ tbl.x tbl.y)) ; -> 143
 \f[R]
@@ -448,7 +448,7 @@ easily with a dot if the keys are known up front:
 You can also use this syntax with \f[V]set\f[R]:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [tbl {}]
   (set tbl.one 1)
   (set tbl.two 2)
@@ -460,7 +460,7 @@ If a table key has the same name as the variable you\[aq]re setting it
 to, you can omit the key name and use \f[V]:\f[R] instead:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [one 1 two 2
       tbl {: one : two}]
   tbl) ; -> {:one 1 :two 2}
@@ -472,7 +472,7 @@ Finally, \f[V]let\f[R] can destructure a table into multiple locals.
 There is positional destructuring:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [data [1 2 3]
       [fst snd thrd] data]
   (print fst snd thrd)) ; -> 1       2       3
@@ -482,7 +482,7 @@ There is positional destructuring:
 And destructuring of tables via key:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [pos {:x 23 :y 42}
       {:x x-pos :y y-pos} pos]
   (print x-pos y-pos)) ; -> 23      42
@@ -494,7 +494,7 @@ destructuring it to, you can omit the key name and use \f[V]:\f[R]
 instead:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [pos {:x 23 :y 42}
       {: x : y} pos]
   (print x y)) ; -> 23      42
@@ -504,7 +504,7 @@ instead:
 This can nest and mix and match:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [f (fn [] [\[dq]abc\[dq] \[dq]def\[dq] {:x \[dq]xyz\[dq] :y \[dq]abc\[dq]}])
       [a d {:x x : y}] (f)]
   (print a d)
@@ -530,7 +530,7 @@ You can interact with this style of function in Fennel by destructuring
 with parens instead of square brackets:
 .IP
 .nf
-\f[C]
+\f[CR]
 (case (io.open \[dq]file\[dq])
   ;; when io.open succeeds, it will return a file, but if it fails
   ;; it will return nil and an err-msg string describing why
@@ -544,7 +544,7 @@ You can write your own function which returns multiple values with
 \f[V]values\f[R].
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn use-file [filename]
   (if (valid-file-name? filename)
       (open-file filename)
@@ -568,7 +568,7 @@ will stop the program unless it is within a try/catch.
 You can make a protected call with \f[V]pcall\f[R]:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [(ok? val-or-msg) (pcall potentially-disastrous-call filename)]
   (if ok?
       (print \[dq]Got value\[dq] val-or-msg)
@@ -593,7 +593,7 @@ the inverse of \f[V]pcall\f[R] which turns \f[V]error\f[R]s into
 multiple-value failures):
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [f (assert (io.open filename))
       contents (f.read f \[dq]*all\[dq])]
   (f.close f)
@@ -623,7 +623,7 @@ Often, the vararg can be passed directly to another function such as
 \f[V]print\f[R] without needing to bind it.
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn print-each [...]
   (each [i v (ipairs [...])]
     (print (.. \[dq]Argument \[dq] i \[dq] is \[dq] v))))
@@ -633,7 +633,7 @@ Often, the vararg can be passed directly to another function such as
 .fi
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn myprint [prefix ...]
   (io.write prefix)
   (io.write (.. (select \[dq]#\[dq] ...) \[dq] arguments given: \[dq]))
@@ -650,7 +650,7 @@ This means that the following code will NOT work, as the varargs in the
 inner function are out of scope.
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn badcode [...]
   (fn []
     (print ...)))
@@ -684,7 +684,7 @@ For example, to disable strict mode for globals x, y, and z:
 .RS 2
 .IP
 .nf
-\f[C]
+\f[CR]
 fennel --globals x,y,z yourfennelscript.fnl
 \f[R]
 .fi
@@ -742,7 +742,7 @@ You can use the \f[V]require\f[R] function to load code from other
 files.
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [lume (require :lume)
       tbl [52 99 412 654]
       plus (fn [x y] (+ x y))]
@@ -772,7 +772,7 @@ You need to install the searcher that knows how to find \f[V].fnl\f[R]
 files:
 .IP
 .nf
-\f[C]
+\f[CR]
 require(\[dq]fennel\[dq]).install()
 local mylib = require(\[dq]mylib\[dq]) -- will compile and load code in mylib.fnl
 \f[R]
@@ -799,7 +799,7 @@ For example, here\[aq]s a small \f[V]example\f[R] library, which
 contains an \f[V]init.fnl\f[R] file, and a module at the root directory:
 .IP
 .nf
-\f[C]
+\f[CR]
 ;; file example/init.fnl:
 (local a (require :example.module-a))
 
@@ -811,7 +811,7 @@ Here, the main module requires additional \f[V]example.module-a\f[R]
 module, which holds the implementation:
 .IP
 .nf
-\f[C]
+\f[CR]
 ;; file example/module-a.fnl
 (fn hello [] (print \[dq]hello from a\[dq]))
 {:hello hello}
@@ -830,7 +830,7 @@ This happens because library itself will try to require
 which is now the correct module path:
 .IP
 .nf
-\f[C]
+\f[CR]
 runtime error: module \[aq]example.module-a\[aq] not found:
         no field package.preload[\[aq]example.module-a\[aq]]
         ...
@@ -863,7 +863,7 @@ Here\[aq]s how a relative require path can be specified in the
 that we\[aq]ve moved our \f[V]example\f[R] library there:
 .IP
 .nf
-\f[C]
+\f[CR]
 ;; file libs/example/init.fnl:
 (local a (require (.. ... :.module-a)))
 
@@ -893,7 +893,7 @@ with \f[V]include\f[R] or \f[V]--require-as-include\f[R] because
 \f[V]current-module\f[R] is not known at compile time:
 .IP
 .nf
-\f[C]
+\f[CR]
 (local current-module ...)
 (require (.. current-module :.other-module))
 \f[R]
@@ -902,7 +902,7 @@ with \f[V]include\f[R] or \f[V]--require-as-include\f[R] because
 This, on the other hand, will work both at runtime and at compile time:
 .IP
 .nf
-\f[C]
+\f[CR]
 (require (.. ... :.other-module))
 \f[R]
 .fi
@@ -916,7 +916,7 @@ Compiling a project that uses this \f[V]example\f[R] library with
 resulting Lua code:
 .IP
 .nf
-\f[C]
+\f[CR]
 package.preload[\[dq]libs.example.module-a\[dq]] = package.preload[\[dq]libs.example.module-a\[dq]] or function(...)
   local function hello()
     return print(\[dq]hello from a\[dq])
@@ -938,7 +938,7 @@ For example, let\[aq]s add a \f[V]greet\f[R] module in
 \f[V]libs/example/module-a.fnl\f[R]:
 .IP
 .nf
-\f[C]
+\f[CR]
 ;; file libs/example/utils/greet.fnl:
 (fn greet [who] (print (.. \[dq]hello \[dq] who)))
 \f[R]
@@ -947,7 +947,7 @@ For example, let\[aq]s add a \f[V]greet\f[R] module in
 This module can be required as follows:
 .IP
 .nf
-\f[C]
+\f[CR]
 ;; file libs/example/module-a.fnl
 (local greet (require (.. (: ... :match \[dq](.+)%.[\[ha].]+\[dq]) :.utils.greet)))
 

@@ -15,12 +15,11 @@ Also returns a second function to clear the buffer in the byte stream."
                   (let [b (c:byte index)]
                     (set index (+ index 1))
                     b)
-                  (match (getchunk parser-state)
-                    (char ? (not= char "")) (do
-                                              (set c char)
-                                              (set index 2)
-                                              (c:byte))
-                    _ (set done? true))))) #(set c "")))
+                  (case (getchunk parser-state)
+                    input (do (set (c index) (values input 2))
+                              (c:byte))
+                    _ (set done? true)))))
+          #(set c "")))
 
 (fn string-stream [str ?options]
   "Convert a string into a stream of bytes."
@@ -58,6 +57,12 @@ Also returns a second function to clear the buffer in the byte stream."
                  44 :unquote
                  96 :quote})
 
+;; NaN parsing is tricky, because in PUC Lua 0/0 is -nan not nan
+(local (nan negative-nan)
+  (if (= 45 (string.byte (tostring (/ 0 0)))) ; -
+      (values (- (/ 0 0)) (/ 0 0))
+      (values (/ 0 0) (- (/ 0 0)))))
+
 (fn char-starter? [b] (or (< 1 b 127) (< 192 b 247)))
 
 (fn parser-fn [getbyte filename {: source : unfriendly : comments &as options}]
@@ -85,6 +90,8 @@ Also returns a second function to clear the buffer in the byte stream."
     (when (= r 10)
       (set (line col prev-col) (values (+ line 1) 0 col)))
     r)
+
+  (fn warn [...] ((or options.warn utils.warn) ...))
 
   (fn whitespace? [b] (or (= b 32) (<= 9 b 13) (?. options.whitespace b)))
 
@@ -126,7 +133,7 @@ Also returns a second function to clear the buffer in the byte stream."
       (let [closers (icollect [_ {: closer} (ipairs stack)] closer)]
         (parse-error (string.format "expected closing delimiter%s %s"
                                     (if (= (length stack) 1) "" :s)
-                                    (string.char (unpack closers))))))
+                                    (string.char (unpack closers))) 0)))
 
     (fn skip-whitespace [b close-table]
       (if (and b (whitespace? b))
@@ -255,7 +262,7 @@ Also returns a second function to clear the buffer in the byte stream."
 
     (fn parse-string [source]
       (when (not whitespace-since-dispatch)
-        (utils.warn "expected whitespace before string" nil filename line))
+        (warn "expected whitespace before string" nil filename line))
       (table.insert stack {:closer 34})
       (let [chars ["\""]]
         (when (not (parse-string-loop chars (getb) :base))
@@ -293,15 +300,15 @@ Also returns a second function to clear the buffer in the byte stream."
 
     (fn parse-number [rawstr source]
       ;; numbers can have underscores in the middle or end, but not at the start
-      (let [number-with-stripped-underscores (and (not (rawstr:find "^_"))
-                                                  (rawstr:gsub "_" ""))]
-        (if (rawstr:match "^%d")
+      (let [trimmed (and (not (rawstr:find "^_")) (rawstr:gsub "_" ""))]
+        (if (or (= trimmed "nan") (= trimmed "-nan")) false ; 5.1 is weird
+            (rawstr:match "^%d")
             (do
-              (dispatch (or (tonumber number-with-stripped-underscores)
+              (dispatch (or (tonumber trimmed)
                             (parse-error (.. "could not read number \"" rawstr
                                              "\""))) source rawstr)
               true)
-            (match (tonumber number-with-stripped-underscores)
+            (match (tonumber trimmed)
               x (do
                   (dispatch x source rawstr)
                   true)
@@ -324,10 +331,10 @@ Also returns a second function to clear the buffer in the byte stream."
           (parse-error (.. "method must be last component of multisym: " rawstr)
                        (col-adjust ":.+[%.:]")))
       (when (not whitespace-since-dispatch)
-        (utils.warn "expected whitespace before token" nil filename line))
+        (warn "expected whitespace before token" nil filename line))
       rawstr)
 
-    (fn parse-sym [b] ; not just syms actually...
+    (fn parse-sym [b]                   ; not just syms actually...
       (let [source {:bytestart byteindex : filename : line :col (- col 1)}
             rawstr (table.concat (parse-sym-loop [(string.char b)] (getb)))]
         (set-source-fields source)
@@ -337,6 +344,14 @@ Also returns a second function to clear the buffer in the byte stream."
             (dispatch false source)
             (= rawstr "...")
             (dispatch (utils.varg source))
+            (= rawstr ".inf")
+            (dispatch (/ 1 0) source rawstr)
+            (= rawstr "-.inf")
+            (dispatch (/ -1 0) source rawstr)
+            (= rawstr ".nan")
+            (dispatch nan source rawstr)
+            (= rawstr "-.nan")
+            (dispatch negative-nan source rawstr)
             (rawstr:match "^:.+$")
             (dispatch (rawstr:sub 2) source rawstr)
             (not (parse-number rawstr source))

@@ -83,8 +83,8 @@ coverage: fennel
 
 ## Binaries
 
-BIN_LUA_DIR ?= $(PWD)/lua
-BIN_LUAJIT_DIR ?= $(PWD)/luajit
+BIN_LUA_DIR ?= lua
+BIN_LUAJIT_DIR ?= luajit
 NATIVE_LUA_LIB ?= $(BIN_LUA_DIR)/src/liblua.a
 NATIVE_LUAJIT_LIB ?= $(BIN_LUAJIT_DIR)/src/libluajit.a
 LUA_INCLUDE_DIR ?= $(BIN_LUA_DIR)/src
@@ -93,8 +93,8 @@ LUAJIT_INCLUDE_DIR ?= $(BIN_LUAJIT_DIR)/src
 COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
 LUAJIT_COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
 
-$(BIN_LUA_DIR): ; git submodule update --init
-$(BIN_LUAJIT_DIR): ; git submodule update --init
+$(LUA_INCLUDE_DIR): ; git submodule update --init
+$(LUAJIT_INCLUDE_DIR): ; git submodule update --init
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl $(BIN_LUA_DIR)/src/lua $(NATIVE_LUA_LIB) fennel
@@ -107,19 +107,21 @@ fennel-bin-luajit: src/launcher.fnl $(NATIVE_LUAJIT_LIB) fennel
 		--no-compiler-sandbox --compile-binary \
 		$< $@ $(NATIVE_LUAJIT_LIB) $(LUAJIT_INCLUDE_DIR)
 
-$(BIN_LUA_DIR)/src/lua: ; make -C $(BIN_LUA_DIR)
-$(NATIVE_LUA_LIB): $(BIN_LUA_DIR) ; $(MAKE) -C $(BIN_LUA_DIR)/src liblua.a
-$(NATIVE_LUAJIT_LIB): $(BIN_LUAJIT_DIR)
+$(BIN_LUA_DIR)/src/lua: $(LUA_INCLUDE_DIR) ; make -C $(BIN_LUA_DIR)
+$(NATIVE_LUA_LIB): $(LUA_INCLUDE_DIR) ; $(MAKE) -C $(BIN_LUA_DIR)/src liblua.a
+$(NATIVE_LUAJIT_LIB): $(LUAJIT_INCLUDE_DIR)
 	$(MAKE) -C $(BIN_LUAJIT_DIR) BUILDMODE=static
 
+# TODO: update setup.md to point to new filenames on next release
+# to cross-compile, run: make fennel.exe CC=x86_64-w64-mingw32-gcc
 fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
-	$(COMPILE_ARGS) CC=i686-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
+	$(COMPILE_ARGS) ./fennel --no-compiler-sandbox \
 		--compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 	mv fennel-bin.exe $@
 
-$(BIN_LUA_DIR)/src/liblua-mingw.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
+$(BIN_LUA_DIR)/src/liblua-mingw.a: $(LUA_INCLUDE_DIR)
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=x86_64-w64-mingw32-gcc
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean
 
@@ -150,9 +152,15 @@ build/manfilter.lua: build/manfilter.fnl fennel.lua fennel
 
 man: $(dir $(MAN_DOCS)) $(MAN_DOCS)
 man/man%/: ; mkdir -p $@
-man/man3/fennel-%.3: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
-man/man5/fennel-%.5: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
-man/man7/fennel-%.7: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
+man/man3/fennel-%.3: %.md build/manfilter.lua
+	$(MAN_PANDOC) $< -o $@
+	sed -i 's/\\f\[C\]/\\f[CR]/g' $@ # work around pandoc 2.x bug
+man/man5/fennel-%.5: %.md build/manfilter.lua
+	$(MAN_PANDOC) $< -o $@
+	sed -i 's/\\f\[C\]/\\f[CR]/g' $@
+man/man7/fennel-%.7: %.md build/manfilter.lua
+	$(MAN_PANDOC) $< -o $@
+	sed -i 's/\\f\[C\]/\\f[CR]/g' $@
 
 ## Release-related tasks:
 
@@ -162,20 +170,21 @@ test-builds: fennel test/faith.lua
 	./fennel --metadata --eval "(require :test.init)"
 	$(MAKE) install PREFIX=/tmp/opt
 
-upload: fennel fennel.lua fennel-bin fennel.exe
+upload: fennel fennel.lua fennel-bin
+	$(MAKE) fennel.exe CC=x86_64-w64-mingw32-gcc
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel.lua downloads/fennel-$(VERSION).lua
 	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
-	mv fennel.exe downloads/fennel-$(VERSION)-windows32.exe
+	mv fennel.exe downloads/fennel-$(VERSION)-windows.exe
 	gpg -ab downloads/fennel-$(VERSION)
 	gpg -ab downloads/fennel-$(VERSION).lua
 	gpg -ab downloads/fennel-$(VERSION)-x86_64
-	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
+	gpg -ab downloads/fennel-$(VERSION)-windows.exe
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).lua
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-x86_64
-	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows32.exe
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows.exe
 	rsync -rtAv downloads/fennel-$(VERSION)* \
 		fenneler@fennel-lang.org:fennel-lang.org/downloads/
 

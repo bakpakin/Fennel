@@ -184,7 +184,7 @@
         (let [res (:answer {:answer 42})]
           (tset (getmetatable ::) :__call nil)
           res))
-       42)
+      42)
   (== (do
         (var a 11)
         (let [f (fn [] (set a (+ a 2)))]
@@ -429,7 +429,11 @@
   (== (let [x [#(tset $1 $2 $3)] y x]
         (: x 1 2 :b)
         (. y 2))
-      :b))
+      :b)
+  ;; regression test for kv-rest codegen
+  (== (let [{& a+b+c} {:key :value}]
+        a+b+c.key)
+      :value))
 
 (fn test-hashfn []
   (== (#$.foo {:foo :bar}) "bar")
@@ -561,7 +565,14 @@
       ["asdf" "closed file" "closed file"])
   (== [(with-open [proc1 (io.popen "echo hi") proc2 (io.popen "echo bye")]
          (values (proc1:read) (proc2:read)))]
-      ["hi" "bye"]))
+      ["hi" "bye"])
+  (== (do
+        (var fh nil)
+        (local (ok msg) (pcall #(with-open [f (io.tmpfile)]
+                                  (set fh f)
+                                  (error {:bork! :bark!}))))
+        [(io.type fh) ok (case msg {:bork! :bark!} msg _ "didn't match")])
+      ["closed file" false {:bork! :bark!}]))
 
 (fn test-comment []
   (t.= "--[[ hello world ]]\nreturn nil"

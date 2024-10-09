@@ -3,6 +3,10 @@ local channel = os.getenv("IRC_CHANNEL")
 local url = os.getenv("JOB_URL") or "???"
 
 local remote = io.popen("git remote get-url origin"):read('*l')
+if remote == nil then
+    -- no git / no git repo, this is not an upstream CI job
+    os.exit(0)
+end
 local is_origin = remote:find('~technomancy/fennel$') ~= nil
 
 local branch = io.popen("git rev-parse --abbrev-ref HEAD"):read('*l')

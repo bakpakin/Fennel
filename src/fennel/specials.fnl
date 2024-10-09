@@ -1123,14 +1123,13 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 (tset SPECIALS "~=" (. SPECIALS :not=))
 (tset SPECIALS "#" (. SPECIALS :length))
 
+(fn compile-time? [scope]
+  (or (= scope compiler.scopes.compiler)
+      (and scope.parent (compile-time? scope.parent))))
+
 (fn SPECIALS.quote [ast scope parent]
   (compiler.assert (= (length ast) 2) "expected one argument" ast)
-  (var (runtime this-scope) (values true scope))
-  (while this-scope
-    (set this-scope this-scope.parent)
-    (when (= this-scope compiler.scopes.compiler)
-      (set runtime false)))
-  (compiler.do-quote (. ast 2) scope parent runtime))
+  (compiler.do-quote (. ast 2) scope parent (not (compile-time? scope))))
 
 (doc-special :quote [:x]
              "Quasiquote the following form. Only works in macro/compiler scope.")
@@ -1146,6 +1145,13 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
     (assert (not= mt (getmetatable "")) "Illegal metatable access!")
     mt))
 
+(fn safe-open [filename ?mode]
+  (assert (or (= nil ?mode) (?mode:find "^r"))
+          (.. "unsafe file mode: " (tostring ?mode)))
+  (assert (not (or (filename:find "^/") (filename:find "%.%.")))
+          (.. "unsafe file name: " filename))
+  (io.open filename ?mode))
+
 ;; Circularity
 (var safe-require nil)
 
@@ -1154,6 +1160,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
    :math (utils.copy math)
    :string (utils.copy string)
    :pairs utils.stablepairs
+   :io {:open safe-open}
    : ipairs : select : tostring : tonumber :bit (rawget _G :bit)
    : pcall : xpcall : next : print : type : assert : error
    : setmetatable :getmetatable safe-getmetatable :require safe-require
@@ -1171,7 +1178,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
     (values next combined nil)))
 
 (fn make-compiler-env [ast scope parent ?opts]
-  (let [provided (match (or ?opts utils.root.options)
+  (let [provided (case (or ?opts utils.root.options)
                    {:compiler-env :strict} (safe-compiler-env)
                    {: compilerEnv} compilerEnv
                    {: compiler-env} compiler-env

@@ -5,6 +5,7 @@
 (local utils (require :fennel.utils))
 (local parser (require :fennel.parser))
 (local friend (require :fennel.friend))
+(local view (require :fennel.view))
 
 (local unpack (or table.unpack _G.unpack))
 
@@ -66,10 +67,14 @@ The ast arg should be unmodified so that its first element is the form called."
 (set scopes.compiler (make-scope scopes.global))
 (set scopes.macro scopes.global)
 
+(local serialize-subst-digits {"\\7" "\\a" "\\8" "\\b" "\\9" "\\t"
+                               "\\10" "\\n" "\\11" "\\v" "\\12" "\\f"
+                               "\\13" "\\r"})
+
 (fn serialize-string [str]
   (-> (string.format "%q" str)
       (string.gsub "\\\n" "\\n") ; keep it as one line
-      (string.gsub "\\9" "\\t")
+      (string.gsub "\\..?" serialize-subst-digits)
       (string.gsub "[\128-\255]" #(.. "\\" ($:byte)))))
 
 (fn global-mangling [str]
@@ -529,19 +534,21 @@ if opts contains the nval option."
                 (symbol-to-expression ast scope true))]
       (handle-compile-opts [e] parent opts ast))))
 
-;; We do gsub transformation because some locales use , for
-;; decimal separators, which will not be accepted by Lua.
-(fn serialize-number [n]
-  (pick-values 1 (-> (tostring n)
-                     (string.gsub "," "."))))
+(local view-opts
+  (let [nan (tostring (/ 0 0))]
+    {:infinity "(1/0)"
+     :negative-infinity "(-1/0)"
+     ;; byte 45 is -
+     :nan (if (= 45 (nan:byte)) "(- (0/0))" "(0/0)")
+     :negative-nan (if (= 45 (nan:byte)) "(0/0)" "(- (0/0))")}))
 
 (fn compile-scalar [ast _scope parent opts]
-  (let [serialize (match (type ast)
-                    :nil tostring
-                    :boolean tostring
-                    :string serialize-string
-                    :number serialize-number)]
-    (handle-compile-opts [(utils.expr (serialize ast) :literal)] parent opts)))
+  (let [compiled (case (type ast)
+                   :nil :nil
+                   :boolean (tostring ast)
+                   :string (serialize-string ast)
+                   :number (view ast view-opts))]
+    (handle-compile-opts [(utils.expr compiled :literal)] parent opts)))
 
 (fn compile-table [ast scope parent opts compile1]
   (fn escape-key [k]
@@ -758,9 +765,9 @@ which we have to do if we don't know."
                          (icollect [_ k (ipairs excluded-keys)]
                            (string.format "[%s] = true" (serialize-string k)))
                          ", ")
-            subexpr (-> (.. "(" unpack-fn ")(%s, %s, {%s})")
+            subexpr (-> (.. "(" unpack-fn ")(%s, nil, {%s})")
                         (string.gsub "\n%s*" " ")
-                        (string.format s (tostring v) exclude-str)
+                        (string.format s exclude-str)
                         (utils.expr :expression))]
         (destructure1 v [subexpr] left)))
 
@@ -919,27 +926,30 @@ which we have to do if we don't know."
   "A custom traceback function for Fennel that looks similar to debug.traceback.
 Use with xpcall to produce fennel specific stacktraces. Skips frames from the
 compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
-  (let [msg (tostring (or ?msg ""))]
-    (if (and (or (msg:find "^%g+:%d+:%d+ Compile error:.*")
-                 (msg:find "^%g+:%d+:%d+ Parse error:.*"))
-             (not (utils.debug-on? :trace)))
-        msg ; skip the trace because it's compiler internals.
-        (let [lines []]
-          (if (or (msg:find "^%g+:%d+:%d+ Compile error:")
-                  (msg:find "^%g+:%d+:%d+ Parse error:"))
-              (table.insert lines msg)
-              (let [newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
-                (table.insert lines newmsg)))
-          (table.insert lines "stack traceback:")
-          (var (done? level) (values false (or ?start 2)))
-          ;; This would be cleaner factored out into its own recursive
-          ;; function, but that would interfere with the traceback itself!
-          (while (not done?)
-            (match (lua-getinfo level :Sln)
-              nil (set done? true)
-              info (table.insert lines (traceback-frame info)))
-            (set level (+ level 1)))
-          (table.concat lines "\n")))))
+  (case (type ?msg)
+    (where (or :nil :string))
+    (let [msg (or ?msg "")]
+      (if (and (or (msg:find "^%g+:%d+:%d+ Compile error:.*")
+                   (msg:find "^%g+:%d+:%d+ Parse error:.*"))
+               (not (utils.debug-on? :trace)))
+          msg        ; skip the trace because it's compiler internals.
+          (let [lines []]
+            (if (or (msg:find "^%g+:%d+:%d+ Compile error:")
+                    (msg:find "^%g+:%d+:%d+ Parse error:"))
+                (table.insert lines msg)
+                (let [newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
+                  (table.insert lines newmsg)))
+            (table.insert lines "stack traceback:")
+            (var (done? level) (values false (or ?start 2)))
+            ;; This would be cleaner factored out into its own recursive
+            ;; function, but that would interfere with the traceback itself!
+            (while (not done?)
+              (match (lua-getinfo level :Sln)
+                nil (set done? true)
+                info (table.insert lines (traceback-frame info)))
+              (set level (+ level 1)))
+            (table.concat lines "\n"))))
+    _ ?msg))
 
 (fn getinfo [thread-or-level ...]
   ;; if we're given a level, we have to add 1 because fennel.getinfo

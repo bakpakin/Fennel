@@ -5,6 +5,8 @@ web site to [phil@hagelb.org][1] and [jaawerth@gmail.com][2].
 
 Sensitive reports may be encrypted with the PGP key listed below.
 
+## Signatures
+
 From version 0.10.0 onward, Fennel releases and tags have been signed
 with the PGP key [8F2C85FFC1EBC016A3B683DE8BD38C28CCFD2DA6][3].
 Before that the key [20242BACBBE95ADA22D0AFD7808A33D379C806C3][4] was used.

@@ -20,8 +20,8 @@
 (fn default-read-chunk [parser-state]
   (io.write (prompt-for (= 0 parser-state.stack-size)))
   (io.flush)
-  (let [input (io.read)]
-    (and input (.. input "\n"))))
+  (case (io.read)
+    input (.. input "\n")))
 
 (fn default-on-values [xs]
   (io.write (table.concat xs "\t"))
@@ -322,9 +322,8 @@ For more information about the language, see https://fennel-lang.org/reference")
     (readline.set_options {:keeplines 1000 :histfile ""})
 
     (fn opts.readChunk [parser-state]
-      (let [prompt (if (< 0 parser-state.stack-size) ".. " ">> ")
-            str (readline.readline prompt)]
-        (if str (.. str "\n"))))
+      (case (readline.readline (prompt-for (= 0 parser-state.stack-size)))
+        input (.. input "\n")))
 
     (var completer nil)
 

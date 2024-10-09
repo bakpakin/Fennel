@@ -25,7 +25,8 @@
       (fn opts.registerCompleter [x]
         (set repl-complete x))
       (fn opts.pp [x] x)
-      (set opts.env {: table : math : string : require : pcall : ipairs})
+      (set opts.env {: table : math : string : require
+                     : pcall : ipairs :bit _G.bit})
       (set opts.env._G opts.env)
       (set opts.error-pinpoint ["«" "»"])
       (fennel.repl opts)))
@@ -42,34 +43,35 @@
     (send (v (global foo :DUPE)))
     (send (v (local [foo foo-ba* moe-larry] [1 2 {:*curly* "Why soitenly"}])))
     (send (v (local [!x-y !x_y] [1 2])))
-    (assert-equal-unordered (comp "foo") ["foo" "foo-ba*"]
+    (assert-equal-unordered ["foo" "foo-ba*"] (comp "foo")
                             "local completion works & accounts for mangling")
-    (assert-equal-unordered (comp "moe-larry") ["moe-larry.*curly*"]
+    (assert-equal-unordered ["moe-larry.*curly*"] (comp "moe-larry")
                             "completion traverses tables without mangling"
                             "keys when input is \"tbl-var.\"")
     (t.= "1\t2" (send (v (values !x-y !x_y)))
          "mangled locals do not collide")
-    (assert-equal-unordered (comp "!x") ["!x_y" "!x-y"]
+    (assert-equal-unordered ["!x_y" "!x-y"] (comp "!x")
                             "completions on mangled locals do not collide")
     (send (v (local dynamic-index
                     (setmetatable {:a 1 :b 2} {:__index #($2:upper)}))))
-    (assert-equal-unordered (comp "dynamic-index.")
-                            [:dynamic-index.a :dynamic-index.b]
+    (assert-equal-unordered [:dynamic-index.a :dynamic-index.b]
+                            (comp "dynamic-index.")
                             "completion doesn't error on table with a fn"
                             "on mt.__index")
     (send (v (global global-is-nil nil)))
     (send (v (tset _G :global-is-not-nil-unscoped :NOT-NIL)))
-    (assert-equal-unordered (comp :global-is-n) [:global-is-nil
-                                                 :global-not-nil-unscoped]
+    (assert-equal-unordered [:global-is-nil
+                             :global-not-nil-unscoped]
+                            (comp :global-is-n)
                             "completion includes repl-scoped nil globals"
                             "and unscoped non-nil globals")
     (send (v (local val-is-nil nil)))
     (send (v (lua "local val-is-nil-unscoped = nil")))
-    (t.= (comp :val-is-ni) [:val-is-nil]
+    (t.= [:val-is-nil] (comp :val-is-ni)
          "completion includes repl-scoped locals with nil values")
     (send (v (global shadowed-is-nil nil)))
     (send (v (local shadowed-nil nil)))
-    (t.= (comp :shadowed-is-n) [:shadowed-is-nil]
+    (t.= [:shadowed-is-nil] (comp :shadowed-is-n)
          "completion includes repl-scoped shadowed variables only once")
     (t.is (pcall send ",complete ]")
           "shouldn't kill the repl on a parse error")))
@@ -80,17 +82,17 @@
     (send (v (import-macros mac :test.macros)))
     (let [[c1 c2 c3] (doto (comp "mac.i") table.sort)]
       ;; local should be shadowed!
-      (t.not= c1 "mac.incremented")
-      (t.not= c2 "mac.incremented")
+      (t.not= "mac.incremented" c1)
+      (t.not= "mac.incremented" c2)
       (t.= nil c3))))
 
 (fn test-method-completion []
   (let [(send comp) (wrap-repl)]
     (send (v (local ttt {:abc 12 :fff (fn [] :val) :inner {:foo #:f :fa #:f}})))
-    (t.= (comp "ttt:f") ["ttt:fff"] "method completion works on fns")
-    (assert-equal-unordered (comp "ttt.inner.f") ["ttt:foo" "ttt:fa"]
+    (t.= ["ttt:fff"] (comp "ttt:f") "method completion works on fns")
+    (assert-equal-unordered ["ttt:foo" "ttt:fa"] (comp "ttt.inner.f")
                             "method completion nests")
-    (t.= (comp "ttt:ab") [] "no method completion on numbers")))
+    (t.= [] (comp "ttt:ab") "no method completion on numbers")))
 
 (fn test-command-completion []
   (let [(send comp) (wrap-repl)]
@@ -111,7 +113,22 @@
         _ (send ",exit")
         (ok? msg) (pcall send ":more")]
     (t.is (not ok?))
-    (t.= msg "cannot resume dead coroutine")))
+    (t.= "cannot resume dead coroutine" msg)))
+
+(fn test-chunks []
+  (let [input ["(+ 99 " "101" ")\n" "   " "\n\n"
+               "(.. :he \n" ":llo" ")"]
+        output []
+        opts {:readChunk #(table.remove input 1)
+              :onValues #(table.insert output (. $ 1))
+              :env (setmetatable {} {:__index _G})}]
+    (fennel.repl opts)
+    (t.= "200\n\"hello\"" (table.concat output "\n"))
+    (while (next output) (table.remove output))
+    (table.insert input "\"hello ")
+    (table.insert input "world!\"")
+    (fennel.repl opts)
+    (t.= "\"hello world!\"" (table.concat output "\n"))))
 
 (fn test-reload []
   (set package.loaded.dummy nil)
@@ -145,8 +162,8 @@
         abc (send "abc")
         _ (send ",reset")
         abc2 (send "abc")]
-    (t.= abc "123")
-    (t.= abc2 "")))
+    (t.= "123" abc)
+    (t.= "" abc2)))
 
 (fn test-find []
   (let [send (wrap-repl)
@@ -189,10 +206,11 @@
 
 (fn test-options []
   ;; ensure options.useBitLib propagates to repl
-  (let [send (wrap-repl {:useBitLib true :onError (fn [e] (values :ERROR e))})
+  (let [send (wrap-repl {:useBitLib true
+                         :onError (fn [e] (values :ERROR e))})
         bxor-result (send (v (bxor 0 0)))]
     (if _G.jit
-      (t.= bxor-result :0)
+      (t.= "0" bxor-result)
       (t.match "error:.*attempt to index.*global 'bit'" bxor-result
                "--use-bit-lib should make bitops fail in non-luajit"))))
 
@@ -203,16 +221,15 @@
                           "table.sort"])]
         (t.match k res)))
     (let [res (send ",apropos not-found")]
-      (t.= res "" "apropos returns no results for unknown pattern")
-      (t.= (doto (icollect [item (res:gmatch "[^%s]+")] item)
-             (table.sort))
-           []
+      (t.= "" res "apropos returns no results for unknown pattern")
+      (t.= [] (doto (icollect [item (res:gmatch "[^%s]+")] item)
+                (table.sort))
            "apropos returns no results for unknown pattern"))
     (let [res (send ",apropos-doc function")]
       (t.match "partial" res "apropos returns matching doc patterns")
       (t.match "pick%-args" res "apropos returns matching doc patterns"))
     (let [res (send ",apropos-doc \"there's no way this could match\"")]
-      (t.= res "" "apropos returns no results for unknown doc pattern"))))
+      (t.= "" res "apropos returns no results for unknown doc pattern"))))
 
 (fn test-byteoffset []
   (let [send (wrap-repl)
@@ -230,8 +247,8 @@
   (let [(send comp) (wrap-repl)]
     (send (v (local {: foo} (require :test.mod.foo7))))
     ;; repro case for https://todo.sr.ht/~technomancy/fennel/85
-    (t.= (send (v (foo))) :foo)
-    (t.= (comp "fo") [:for :foo])))
+    (t.= :foo (send (v (foo))))
+    (t.= [:for :foo] (comp "fo"))))
 
 (fn test-error-handling []
   (let [send (wrap-repl)]
@@ -252,23 +269,25 @@
     (send (v (local x-y 5)))
     (send (v (let [x-y 55] nil)))
     (send (v (fn abc [] :def)))
-    (t.= (send (v x-y)) :5)
-    (t.= (send (v (abc))) "def"))
+    (t.= "5" (send (v x-y)))
+    (t.= "def" (send (v (abc)))))
   (let [send (wrap-repl {:correlate true})]
     (send (v (local x 1)))
-    (t.= (send "x") :1))
+    (t.= "1" (send "x")))
   ;; now let's try with an env
   (let [send (wrap-repl {:env {: debug}})]
     (send (v (local xyz 55)))
-    (t.= (send "xyz") :55)))
+    (t.= "55" (send "xyz"))))
 
 (fn test-docstrings []
   (let [send (wrap-repl)]
     (tset fennel.macro-loaded :test.macros nil)
     (t.= (.. "(if cond1 body1 ... condN bodyN)\n"
              "  Conditional form.\n"
-             "  Takes any number of condition/body pairs and evaluates the first body where\n"
-             "  the condition evaluates to truthy. Similar to cond in other lisps.")
+             "  Takes any number of condition/body pairs and evaluates the "
+             "first body where\n"
+             "  the condition evaluates to truthy. Similar to "
+             "cond in other lisps.")
          (send ",doc if")
          "docstrings for specials")
     (t.= (.. "(doto val ...)\n  Evaluate val and splice it into the first "
@@ -508,6 +527,7 @@
      : test-exit
      : test-reload
      : test-reload-macros
+     : test-chunks
      : test-reset
      : test-find
      : test-compile

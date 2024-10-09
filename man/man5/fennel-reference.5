@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-reference" "5" "2024-06-23" "fennel 1.5.0" "Fennel Reference"
+.TH "fennel-reference" "5" "2024-08-24" "fennel 1.5.1" "Fennel Reference"
 .hy
 .SH NAME
 .PP
@@ -67,7 +67,7 @@ followed by a symbol of the same name as the string, you can use
 the name of the following symbol.
 .IP
 .nf
-\f[C]
+\f[CR]
 {: this} ; is shorthand for {:this this}
 \f[R]
 .fi
@@ -82,6 +82,9 @@ The syntax for numbers is the same as
 Lua\[aq]s (https://www.lua.org/manual/5.4/manual.html#3.1), except that
 underscores may be used to separate digits for readability.
 Non-ASCII digits are not yet supported.
+Infinity and negative infinity are represented as \f[V].inf\f[R] and
+\f[V]-.inf\f[R].
+NaN and negative Nan are \f[V].nan\f[R] and \f[V]-.nan\f[R].
 .PP
 The syntax for strings uses double-quotes \f[V]\[dq]\f[R] around the
 string\[aq]s contents.
@@ -160,7 +163,7 @@ declared ones, the remaining ones are given values of \f[V]nil\f[R].
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn pxy [x y]
   (print (+ x y)))
 \f[R]
@@ -172,7 +175,7 @@ The following mean exactly the same thing; the first is preferred mostly
 for indentation reasons, but also because it allows recursion:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn pxy [x y]
   (print (+ x y)))
 
@@ -185,7 +188,7 @@ Providing a name that\[aq]s a table field will cause it to be inserted
 in a table instead of bound as a local:
 .IP
 .nf
-\f[C]
+\f[CR]
 (local functions {})
 
 (fn functions.p [x y z]
@@ -212,7 +215,7 @@ begins with \f[V]?\f[R].
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (lambda [x ?y z]
   (print (- x (* (or ?y 1) z))))
 \f[R]
@@ -241,7 +244,7 @@ The \f[V]fn\f[R], \f[V]lambda\f[R], \f[V]\[*l]\f[R] and \f[V]macro\f[R]
 forms accept an optional docstring.
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn pxy [x y]
   \[dq]Print the sum of x and y\[dq]
   (print (+ x y)))
@@ -259,7 +262,7 @@ metadata table along with the arglist, enabling viewing function docs
 via the \f[V]doc\f[R] macro.
 .IP
 .nf
-\f[C]
+\f[CR]
 ;; this only works in the repl
 >> ,doc pxy
 (pxy x y)
@@ -278,7 +281,7 @@ All forms that accept a docstring will also accept a metadata table in
 the same place:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn add [...]
   {:fnl/docstring \[dq]Add arbitrary amount of numbers.\[dq]
    :fnl/arglist [a b & more]}
@@ -296,7 +299,7 @@ Calling \f[V],doc\f[R] command in the REPL prints specified argument
 list of the next form:
 .IP
 .nf
-\f[C]
+\f[CR]
 >> ,doc add
 (add a b & more)
   Add arbitrary amount of numbers.
@@ -308,7 +311,7 @@ list of the next form:
 Arbitrary metadata keys are allowed in the metadata table syntax:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn foo []
   {:deprecated \[dq]v1.9.0\[dq]
    :fnl/docstring \[dq]*DEPRECATED* use foo2\[dq]}
@@ -330,7 +333,7 @@ External tooling then can leverage this information by using
 Fennel\[aq]s metadata API:
 .IP
 .nf
-\f[C]
+\f[CR]
 >> (local {: metadata} (require :fennel))
 >> (metadata:get foo :deprecated)
 \[dq]v1.9.0\[dq]
@@ -349,7 +352,7 @@ For editing convenience, the metadata table literals are allowed after
 docstrings:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn some-function [x ...]
   \[dq]Docstring for some-function.\[dq]
   {:fnl/arglist [x & xs]
@@ -367,7 +370,7 @@ The whole metadata table can be obtained by calling
 \f[V]metadata:get\f[R] without the \f[V]key\f[R] argument:
 .IP
 .nf
-\f[C]
+\f[CR]
 >> (local {: metadata} (require :fennel))
 >> (metadata:get some-function)
 {:fnl/arglist [\[dq]x\[dq] \[dq]&\[dq] \[dq]xs\[dq]]
@@ -388,19 +391,19 @@ named arguments.
 All of the below functions are functionally equivalent:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn [a b] (+ a b))
 \f[R]
 .fi
 .IP
 .nf
-\f[C]
+\f[CR]
 (hashfn (+ $1 $2)) ; implementation detail; don\[aq]t use directly
 \f[R]
 .fi
 .IP
 .nf
-\f[C]
+\f[CR]
 #(+ $1 $2)
 \f[R]
 .fi
@@ -423,7 +426,7 @@ literal.
 For example,
 .IP
 .nf
-\f[C]
+\f[CR]
 #$3               ; same as (fn [x y z] z)
 #[$1 $2 $3]       ; same as (fn [a b c] [a b c])
 #{:a $1 :b $2}    ; same as (fn [a b] {:a a :b b})
@@ -453,7 +456,7 @@ the underlying function instead of waiting till it has the
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn add-print [x y] (print (+ x y)))
 (partial add-print 2)
 \f[R]
@@ -469,7 +472,7 @@ Introduces a new scope in which a given set of local bindings are used.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x 89
       y 198]
   (print (+ x y 12))) ; => 299
@@ -488,7 +491,7 @@ table or a function call which returns multiple values:
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [(x y z) (unpack [10 9 8])]
   (+ x y z)) ; => 27
 \f[R]
@@ -497,7 +500,7 @@ Example:
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [[a b c] [1 2 3]]
   (+ a b c)) ; => 6
 \f[R]
@@ -511,7 +514,7 @@ This works for both creating tables and destructuring them.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [{:msg message : val} {:msg \[dq]hello there\[dq] :val 19}]
   (print message)
   val) ; prints \[dq]hello there\[dq] and returns 19
@@ -524,7 +527,7 @@ of the table in a local by using \f[V]&\f[R]:
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [[a b & c] [1 2 3 4 5 6]]
   (table.concat c \[dq],\[dq])) ; => \[dq]3,4,5,6\[dq]
 \f[R]
@@ -540,7 +543,7 @@ table along with the destructuring by using \f[V]&as\f[R]:
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [{:a a :b b &as all} {:a 1 :b 2 :c 3 :d 4}]
   (+ a b all.c all.d)) ; => 10
 \f[R]
@@ -555,7 +558,7 @@ used throughout the file.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (local tau-approx 6.28318)
 \f[R]
 .fi
@@ -578,7 +581,7 @@ languages; these are two distinct concepts with similar names.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (case mytable
   59      :will-never-match-hopefully
   [9 q 5] (print :q q)
@@ -609,7 +612,7 @@ Symbols can be repeated in an expression to check for the same value.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (case mytable
   ;; the first and second values of mytable are not nil and are the same value
   [a a] (* a 2)
@@ -631,7 +634,7 @@ with \f[V]?\f[R].
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (case mytable
   ;; not-nil, maybe-nil
   [a ?b] :maybe-one-maybe-two-values
@@ -651,7 +654,7 @@ expression to define an \[dq]else\[dq] style fall-through value.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (case mytable
   ;; not-nil, anything
   [a _b] :maybe-one-maybe-two-values
@@ -679,7 +682,7 @@ You can use \f[V]&\f[R] to capture all the remaining elements of a
 sequential table, just like \f[V]let\f[R].
 .IP
 .nf
-\f[C]
+\f[CR]
 (case mytable
   {:subtable [a b ?c] :depth depth} (* b depth)
   _ :unknown)
@@ -691,7 +694,7 @@ You can also match against multiple return values using parentheses.
 This can be useful for error checking.
 .IP
 .nf
-\f[C]
+\f[CR]
 (case (io.open \[dq]/some/file\[dq])
   (nil msg) (report-error msg)
   f (read-file f))
@@ -704,7 +707,7 @@ or specific value.
 In these cases you can use guard clauses:
 .IP
 .nf
-\f[C]
+\f[CR]
 (case [91 12 53]
   (where [a b c] (= 5 a)) :will-not-match
   (where [a b c] (= 0 (math.fmod (+ a b c) 2)) (= 91 a)) c) ; -> 53
@@ -721,7 +724,7 @@ If several patterns share the same body and guards, such patterns can be
 combined with \f[V]or\f[R] special in the \f[V]where\f[R] clause:
 .IP
 .nf
-\f[C]
+\f[CR]
 (case [5 1 2]
   (where (or [a 3 9] [a 1 2]) (= 5 a)) \[dq]Either [5 3 9] or [5 1 2]\[dq]
   _ \[dq]anything else\[dq])
@@ -731,7 +734,7 @@ combined with \f[V]or\f[R] special in the \f[V]where\f[R] clause:
 This is essentially equivalent to:
 .IP
 .nf
-\f[C]
+\f[CR]
 (case [5 1 2]
   (where [a 3 9] (= 5 a)) \[dq]Either [5 3 9] or [5 1 2]\[dq]
   (where [a 1 2] (= 5 a)) \[dq]Either [5 3 9] or [5 1 2]\[dq]
@@ -744,7 +747,7 @@ However, patterns which bind variables should not be combined with
 some variables are missing:
 .IP
 .nf
-\f[C]
+\f[CR]
 ;; bad
 (case [1 2 3]
   ;; Will throw an error because \[ga]b\[aq] is nil for the first
@@ -767,7 +770,7 @@ without consequence.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x 1]
   (case [:hello]
     ;; \[ga]x\[ga] is simply bound to the first value of [:hello]
@@ -786,7 +789,7 @@ guard.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x 1]
   (case [:hello]
     ;; 1 != :hello
@@ -832,7 +835,7 @@ use the \f[V]case\f[R] expression.
 .RE
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x 95]
  (match [52 85 95]
    [b a a] :no ; because a=85 and a=95
@@ -848,7 +851,7 @@ instead create a new un-pinned binding!
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [name nil
       get-input (fn [] \[dq]Dave\[dq])]
   (match (get-input)
@@ -864,7 +867,7 @@ While this syntax is still supported, \f[V]where\f[R] should be
 preferred instead:
 .IP
 .nf
-\f[C]
+\f[CR]
 (match [1 2 3]
   (where [a 2 3] (< 0 a)) \[dq]new guard syntax\[dq]
   ([a 2 3] ? (< 0 a)) \[dq]obsolete guard syntax\[dq])
@@ -887,7 +890,7 @@ If there is no catch, the mismatched value will be returned as the value
 of the entire expression.
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn handle [conn token]
   (case-try (conn:receive :*l)
     input (parse input)
@@ -919,7 +922,7 @@ Unlike \f[V]case-try\f[R], \f[V]match-try\f[R] will pin values in a
 given \f[V]catch\f[R] block with those in the original steps.
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn handle [conn token]
   (match-try (conn:receive :*l)
     input (parse input)
@@ -941,7 +944,7 @@ on it.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (var x 83)
 \f[R]
 .fi
@@ -959,7 +962,7 @@ name is dynamic, use \f[V](. tbl field)\f[R].
 Examples:
 .IP
 .nf
-\f[C]
+\f[CR]
 (set x (+ x 91)) ; var
 
 (let [t {:a 4 :b 8}] ; static table field
@@ -982,7 +985,7 @@ Otherwise you will only capture the first value.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x (values 1 2 3)]
   x) ; => 1
 \f[R]
@@ -991,7 +994,7 @@ Example:
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [(file-handle message code) (io.open \[dq]foo.blah\[dq])]
   message) ; => \[dq]foo.blah: No such file or directory\[dq]
 \f[R]
@@ -1000,7 +1003,7 @@ Example:
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (do (local (_ _ z) (unpack [:a :b :c :d :e])) z)  => c
 \f[R]
 .fi
@@ -1011,7 +1014,7 @@ Sets the field of a given table to a new value.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [tbl {:d 32} field :d]
   (tset tbl field 19) tbl) ; => {:d 19}
 \f[R]
@@ -1021,7 +1024,7 @@ You can provide multiple successive field names to perform nested sets.
 For example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [tbl {:a {:b {}}} field :c]
   (tset tbl :a :b field \[dq]d\[dq]) tbl) ; => {:a {:b {:c \[dq]d\[dq]}}}
 \f[R]
@@ -1056,7 +1059,7 @@ re-raises the error.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 ;; Basic usage
 (with-open [fout (io.open :output.txt :w) fin (io.open :input.txt)]
   (fout:write \[dq]Here is some text!\[rs]n\[dq])
@@ -1082,7 +1085,7 @@ Expands to a \f[V]let\f[R] expression that binds and re-emits exactly n
 values, e.g.
 .IP
 .nf
-\f[C]
+\f[CR]
 (pick-values 2 (func))
 \f[R]
 .fi
@@ -1090,7 +1093,7 @@ values, e.g.
 expands to
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [(_0_ _1_) (func)] (values _0_ _1_))
 \f[R]
 .fi
@@ -1098,7 +1101,7 @@ expands to
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (pick-values 0 :a :b :c :d :e) ; => nil
 [(pick-values 2 (table.unpack [:a :b :c]))] ;-> [\[dq]a\[dq] \[dq]b\[dq]]
 
@@ -1116,7 +1119,7 @@ This is reflected when using \f[V](select \[dq]#\[dq] ...)\f[R] to count
 varargs, but tables \f[V][...]\f[R] ignore trailing nils:
 .IP
 .nf
-\f[C]
+\f[CR]
 (select :# (pick-values 5 \[dq]one\[dq] \[dq]two\[dq])) ; => 5
 [(pick-values 5 \[dq]one\[dq] \[dq]two\[dq])]           ; => [\[dq]one\[dq] \[dq]two\[dq]]
 \f[R]
@@ -1133,7 +1136,7 @@ Similar to \f[V]cond\f[R] in other lisps.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [x (math.random 64)]
   (if (= 0 (% x 10))
       \[dq]multiple of ten\[dq]
@@ -1154,7 +1157,7 @@ The last form in the body is used as the return value.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (when launch-missiles?
   (power-on)
   (open-doors)
@@ -1172,7 +1175,7 @@ Returns nil.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (each [key value (pairs mytbl)]
   (print \[dq]executing key\[dq])
   (print (f value)))
@@ -1183,7 +1186,7 @@ Any loop can be terminated early by placing an \f[V]&until\f[R] clause
 at the end of the bindings:
 .IP
 .nf
-\f[C]
+\f[CR]
 (local out [])
 (each [_ value (pairs tbl) &until (< max-len (length out))]
   (table.insert out value))
@@ -1208,7 +1211,7 @@ Returns nil.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (for [i 1 10 2]
   (log-number i)
   (print i))
@@ -1223,7 +1226,7 @@ The clause is checked before each iteration of the body; if it is true
 at the beginning then the body will not run at all.
 .IP
 .nf
-\f[C]
+\f[CR]
 (var x 0)
 (for [i 1 128 &until (maxed-out? x)]
   (set x (+ x i)))
@@ -1238,7 +1241,7 @@ Returns nil.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (var done? false)
 (while (not done?)
   (print :not-done)
@@ -1256,7 +1259,7 @@ make it so you can\[aq]t use \f[V]when\f[R].
 Some lisps call this \f[V]begin\f[R] or \f[V]progn\f[R].
 .IP
 .nf
-\f[C]
+\f[CR]
 (if launch-missiles?
     (do
       (power-on)
@@ -1307,7 +1310,7 @@ Will coerce numbers into strings, but not other types.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (.. \[dq]Hello\[dq] \[dq] \[dq] \[dq]world\[dq] 7 \[dq]!!!\[dq]) ; => \[dq]Hello world7!!!\[dq]
 \f[R]
 .fi
@@ -1330,7 +1333,7 @@ with nils, you can use \f[V]table.maxn\f[R] on some versions of Lua.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (+ (length [1 2 3 nil 8]) (length \[dq]abc\[dq])) ; => 6 or 8
 \f[R]
 .fi
@@ -1342,7 +1345,7 @@ Multiple arguments will perform nested lookup.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (. mytbl myfield)
 \f[R]
 .fi
@@ -1350,7 +1353,7 @@ Example:
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [t {:a [2 3 4]}] (. t :a 2)) ; => 3
 \f[R]
 .fi
@@ -1367,7 +1370,7 @@ If any of subsequent keys is not present, will short-circuit to
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (?. mytbl myfield)
 \f[R]
 .fi
@@ -1375,7 +1378,7 @@ Example:
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [t {:a [2 3 4]}] (?. t :a 4 :b)) ; => nil
 (let [t {:a [2 3 4 {:b 42}]}] (?. t :a 4 :b)) ; => 42
 \f[R]
@@ -1395,7 +1398,7 @@ If the value is nil, it is omitted from the return table.
 This is analogous to \f[V]filter\f[R] in other languages.
 .IP
 .nf
-\f[C]
+\f[CR]
 (icollect [_ v (ipairs [1 2 3 4 5 6])]
   (if (< 2 v) (* v v)))
 ;; -> [9 16 25 36]
@@ -1412,7 +1415,7 @@ The \f[V]collect\f[R] macro is almost identical, except that the body
 should return two things: a key and a value.
 .IP
 .nf
-\f[C]
+\f[CR]
 (collect [k v (pairs {:apple \[dq]red\[dq] :orange \[dq]orange\[dq] :lemon \[dq]yellow\[dq]})]
   (if (not= v \[dq]yellow\[dq])
       (values (.. \[dq]color-\[dq] v) k)))
@@ -1433,7 +1436,7 @@ and not nested in an outer form, then the \f[V]values\f[R] can be
 omitted for brevity:
 .IP
 .nf
-\f[C]
+\f[CR]
 (collect [k v (pairs {:a 85 :b 52 :c 621 :d 44})]
   k (* v 5))
 \f[R]
@@ -1447,7 +1450,7 @@ clause which allows you put your results into an existing table instead
 of starting with an empty one:
 .IP
 .nf
-\f[C]
+\f[CR]
 (icollect [_ x (ipairs [2 3]) &into [9]]
   (* x 11))
 ;; -> [9 22 33]
@@ -1477,7 +1480,7 @@ variable.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (accumulate [sum 0
              i n (ipairs [10 20 30 40])]
     (+ sum n)) ; -> 100
@@ -1499,7 +1502,7 @@ Accepts \f[V]&until\f[R] just like \f[V]for\f[R] and
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (faccumulate [n 0 i 1 5] (+ n i)) ; => 15
 \f[R]
 .fi
@@ -1517,7 +1520,7 @@ The \f[V]&into\f[R] and \f[V]&until\f[R] clauses work the same as in
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fcollect [i 0 10 2]
   (if (> i 2) (* i i)))
 ;; -> [16 36 64 100]
@@ -1538,7 +1541,7 @@ Usually used to signal failure by returning nil followed by a message.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn [filename]
   (if (valid-file-name? filename)
       (open-file filename)
@@ -1558,7 +1561,7 @@ where \f[V]:\f[R] separates the table variable and method name.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [f (assert (io.open \[dq]hello\[dq] \[dq]w\[dq]))]
   (f:write \[dq]world\[dq])
   (f:close))
@@ -1573,7 +1576,7 @@ name to allow it to be a dynamic string instead:
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [f (assert (io.open \[dq]hello\[dq] \[dq]w\[dq]))
       method1 :write
       method2 :close]
@@ -1585,7 +1588,7 @@ Example:
 Both of these examples are equivalent to the following:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [f (assert (io.open \[dq]hello\[dq] \[dq]w\[dq]))]
   (f.write f \[dq]world\[dq])
   (f.close f))
@@ -1597,7 +1600,7 @@ get called this way; typically it is given an extra argument called
 \f[V]self\f[R] but this is just a convention; you can name it anything.
 .IP
 .nf
-\f[C]
+\f[CR]
 (local t {})
 
 (fn t.enable [self]
@@ -1616,7 +1619,7 @@ argument of the third form, and so on.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (-> 52
     (+ 91 2) ; (+ 52 91 2)
     (- 8)    ; (- (+ 52 91 2) 8)
@@ -1640,7 +1643,7 @@ This example shows how to use them to avoid accidentally indexing a nil
 value:
 .IP
 .nf
-\f[C]
+\f[CR]
 (-?> {:a {:b {:c 42}}}
      (. :a)
      (. :missing)
@@ -1670,7 +1673,7 @@ However, it keeps the same value and continually splices the same thing
 in rather than using the value from the previous form for the next form.
 .IP
 .nf
-\f[C]
+\f[CR]
 (doto (io.open \[dq]/tmp/err.log\[dq])
   (: :write contents)
   (: :close))
@@ -1696,7 +1699,7 @@ the tail position, it will cause a compile error instead of overflowing
 the stack later on large data sets.
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn process-all [data i]
   (case (process (. data i))
     :done (print \[dq]Process completed.\[dq])
@@ -1709,7 +1712,7 @@ the stack later on large data sets.
 .SS \f[V]include\f[R]
 .IP
 .nf
-\f[C]
+\f[CR]
 (include :my.embedded.module)
 \f[R]
 .fi
@@ -1746,7 +1749,7 @@ into the middle of your code to see what\[aq]s really going on.
 You can use the \f[V]assert-repl\f[R] macro to do this:
 .IP
 .nf
-\f[C]
+\f[CR]
 (let [input (get-input)
       value []]
   (fn helper [x]
@@ -1811,7 +1814,7 @@ For instance, here is a macro module which implements \f[V]when2\f[R] in
 terms of \f[V]if\f[R] and \f[V]do\f[R]:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn when2 [condition body1 & rest-body]
   (assert body1 \[dq]expected body\[dq])
   \[ga](if ,condition
@@ -1832,7 +1835,7 @@ Assuming the code above is in the file \[dq]my-macros.fnl\[dq] then it
 turns this input:
 .IP
 .nf
-\f[C]
+\f[CR]
 (import-macros {: when2} :my-macros)
 
 (when2 (= 3 (+ 2 a))
@@ -1845,7 +1848,7 @@ and transforms it into this code at compile time by splicing the
 arguments into the backtick template:
 .IP
 .nf
-\f[C]
+\f[CR]
 (if (= 3 (+ 2 a))
   (do
     (print \[dq]yes\[dq])
@@ -1861,7 +1864,7 @@ In this case you can use a dot to call the individual macros inside the
 module:
 .IP
 .nf
-\f[C]
+\f[CR]
 (import-macros mine :my-macros)
 
 (mine.when2 (= 3 (+ 2 a))
@@ -1877,7 +1880,7 @@ compile-time.
 So this code will not work:
 .IP
 .nf
-\f[C]
+\f[CR]
 (local (module-name file-name) ...)
 (import-macros mymacros (.. module-name \[dq].macros\[dq]))
 \f[R]
@@ -1886,7 +1889,7 @@ So this code will not work:
 However, this code will work, provided the module in question exists:
 .IP
 .nf
-\f[C]
+\f[CR]
 (import-macros mymacros (.. ... \[dq].macros\[dq]))
 \f[R]
 .fi
@@ -1908,7 +1911,7 @@ For example, assuming \f[V]find-in-archive\f[R] is a function which can
 look up strings from the archive given a path:
 .IP
 .nf
-\f[C]
+\f[CR]
 (local fennel (require :fennel))
 
 (fn my-searcher [module-name]
@@ -1936,7 +1939,7 @@ Again, see the \[dq]Compiler API\[dq] section for more details about the
 functions available here.
 .IP
 .nf
-\f[C]
+\f[CR]
 (macros {:my-max (fn [x y]
                    \[ga](let [x# ,x y# ,y]
                       (if (< x# y#) y# x#)))})
@@ -1949,7 +1952,7 @@ functions available here.
 .SS \f[V]macro\f[R] define a single macro
 .IP
 .nf
-\f[C]
+\f[CR]
 (macro my-max [x y]
   \[ga](let [x# ,x y# ,y]
      (if (< x# y#) y# x#)))
@@ -1962,7 +1965,7 @@ The syntax mimics \f[V]fn\f[R].
 .SS \f[V]macrodebug\f[R] print the expansion of a macro
 .IP
 .nf
-\f[C]
+\f[CR]
 (macrodebug (-> abc
                 (+ 99)
                 (< 0)
@@ -1986,7 +1989,7 @@ This is fine if they are passed literal values, but if they are passed a
 form which has side-effects, the result will be unexpected:
 .IP
 .nf
-\f[C]
+\f[CR]
 (var v 1)
 (macros {:my-max (fn [x y]
                    \[ga](if (< ,x ,y) ,y ,x))})
@@ -2004,7 +2007,7 @@ Appending a \f[V]#\f[R] on the end of the identifier name as above
 invokes \[dq]auto gensym\[dq] which guarantees the local name is unique.
 .IP
 .nf
-\f[C]
+\f[CR]
 (macros {:my-max (fn [x y]
                    \[ga](let [x2 ,x y2 ,y]
                       (if (< x2 y2) y2 x2)))})
@@ -2025,7 +2028,7 @@ Even when it does allow the macro to be called, it will fail trying to
 call a global \f[V]my-fn\f[R] when the code is run:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn my-fn [] (print \[dq]hi!\[dq]))
 
 (macros {:my-max (fn [x y]
@@ -2045,7 +2048,7 @@ you should use macros if you can.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (eval-compiler
   (each [name (pairs _G)]
     (print name)))
@@ -2143,7 +2146,7 @@ then come back to it later to make it idiomatic.
 You can use the \f[V]lua\f[R] special form to accomplish this:
 .IP
 .nf
-\f[C]
+\f[CR]
 (fn find [tbl pred]
   (each [key val (pairs tbl)]
     (when (pred val)
@@ -2161,7 +2164,7 @@ When in doubt, inspect the compiler output to see what it looks like.
 For example the following Fennel code:
 .IP
 .nf
-\f[C]
+\f[CR]
 (local foo-bar 3)
 (let [foo-bar :hello]
   (lua \[dq]print(foo_bar0 .. \[rs]\[dq] world\[rs]\[dq])\[dq]))
@@ -2171,7 +2174,7 @@ For example the following Fennel code:
 will produce this Lua code:
 .IP
 .nf
-\f[C]
+\f[CR]
 local foo_bar = 3
 local foo_bar0 = \[dq]hello\[dq]
 print(foo_bar0 .. \[dq] world\[dq])
@@ -2218,7 +2221,7 @@ This supports destructuring and multiple-value binding.
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (global prettyprint (fn [x] (print (fennel.view x))))
 \f[R]
 .fi
@@ -2243,7 +2246,7 @@ table.unpack
 Example:
 .IP
 .nf
-\f[C]
+\f[CR]
 (local t [1 2 3 4 5 6])
 (setmetatable
  t

@@ -14,6 +14,10 @@ deprecated forms.
 * Accept `:global-mangle false` in compiler opts to disable global mangling.
 * Macro sandbox can now read (but not write) files.
 
+### New Features
+
+* Add support for discarding (Clojure's `#_`).
+
 ### Bug Fixes
 
 * Work around string formatting bug in Fengari.

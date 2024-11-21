@@ -7,7 +7,7 @@
 
 (local test-all? (os.getenv :FNL_TESTALL)) ; set by `make testall`
 
-(local host-lua (let [long (match _VERSION
+(local host-lua (let [long (case _VERSION
                              "Lua 5.1" (if _G.jit :luajit :lua5.1)
                              _ (.. :lua (_VERSION:sub 5)))
                       p (io.popen (.. long " -v"))]
@@ -44,7 +44,7 @@
                     [:lua5.1 :lua5.2 :lua5.3 :lua5.4 :luajit])
           run #(pick-values 2 (peval $ (: "--lua %q" :format lua-exec)))]
       (t.= [true lua-exec]
-           [(run (v (match (_VERSION:sub 5)
+           [(run (v (case (_VERSION:sub 5)
                       :5.1 (if _G.jit :luajit :lua5.1)
                       v-num (.. :lua v-num))))]
            (.. "should execute code in Lua runtime: " lua-exec))

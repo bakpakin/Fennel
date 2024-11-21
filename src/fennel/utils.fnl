@@ -154,9 +154,6 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
                      (view (. self i))))]
     (.. "(" (table.concat viewed " ") ")")))
 
-(fn comment-view [c]
-  (values c true))
-
 (fn sym= [a b]
   (and (= (deref a) (deref b)) (= (getmetatable a) (getmetatable b))))
 
@@ -172,7 +169,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 (local expr-mt {1 :EXPR :__tostring (fn [x] (tostring (deref x)))})
 (local list-mt {1 :LIST :__fennelview list->string :__tostring list->string})
 (local comment-mt {1 :COMMENT
-                   :__fennelview comment-view
+                   :__fennelview #$
                    :__tostring deref
                    :__eq sym=
                    :__lt sym<})

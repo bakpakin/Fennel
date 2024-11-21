@@ -144,10 +144,9 @@ Also returns a second function to clear the buffer in the byte stream."
           (do (badend)
               ;; if we are at the end of the file and missing closers,
               ;; just pretend the closers all exist
-              (do
-                (for [i (length stack) 2 -1]
-                  (close-table (. stack i :closer)))
-                (. stack 1 :closer)))
+              (for [i (length stack) 2 -1]
+                (close-table (. stack i :closer)))
+              (. stack 1 :closer))
           b))
 
     (fn parse-comment [b contents]

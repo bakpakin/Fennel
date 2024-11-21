@@ -64,8 +64,8 @@ bootstrap/view.lua: src/fennel/view.fnl
 test/faith.lua: test/faith.fnl
 	$(LUA) bootstrap/aot.lua $< > $@
 
-check:
-	fennel-ls --check $(SRC)
+lint:
+	fennel-ls --lint $(SRC)
 
 ci: testall fuzz fennel
 
@@ -213,7 +213,7 @@ guard-%:
 	fi
 
 .PHONY: build test testall fuzz count format ci clean coverage install \
-	man upload prerelease release guard-VERSION test-builds
+	man upload prerelease release guard-VERSION test-builds lint
 
 # Steps to release a new Fennel version
 

@@ -790,6 +790,10 @@ which we have to do if we don't know."
                  (and (utils.list? d) (utils.sym? (. d 1) "."))))))
 
     (fn destructure-table [left rightexprs top? destructure1 up1]
+      (assert-compile (and (= :table (type rightexprs))
+                           (not (utils.sym? rightexprs :nil)))
+                      "could not destructure literal" left)
+
       (if (optimize-table-destructure? left rightexprs)
           (destructure-values (utils.list (unpack left))
                               (utils.list (utils.sym :values)

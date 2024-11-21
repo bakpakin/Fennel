@@ -119,6 +119,8 @@
   (assert-fail (do (var t {}) (set (. t) true)) "needs at least one key")
   (assert-fail (set (. FAKEGLOBAL :x) true) "unknown identifier")
   (assert-fail (set [(. FAKEGLOBAL :x)] [true]) "unknown identifier")
+  (assert-fail (let [{: x &as foo} 8] 42) "could not destructure literal")
+  (assert-fail (let [{: x &as foo} nil] 42) "could not destructure literal")
   (assert-fail (let [[first &as list & rest] []]  true) "&as argument before last parameter")
   (test-failures {"(local a~b 3)" "invalid character: ~"
                   "(let [t []] (set t.:x :y))" "malformed multisym: t.:x"

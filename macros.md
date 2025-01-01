@@ -208,6 +208,26 @@ Quote and unquote are merely tools of notation. There is no difference
 in the meaning between this version and the first version which calls
 `list` and `sym` explicitly.
 
+Unquoting a multiple-value expression (like `...` or an `unpack` call)
+only keeps all the values when it is the last element of a list. If a
+multiple-value expression is unquoted into the middle, only the first
+value will be included in the resulting list, just like the way that
+multiple values in runtime tables work.
+
+```fennel
+(macro broken [some-table]
+  `(do
+    ;; Gets adjusted to only the first value; excess values are discarded.
+    ,(unpack some-table)
+    (print "hello"))
+
+(macro fixed [some-table]
+  `(do
+    ;; The unpacked table is at the end its list, so it is fully expanded.
+    (do ,(unpack some-table))
+    (print "hello"))
+```
+
 ### macrodebug
 
 Quoting is notoriously subtle and often trips macro authors up. If

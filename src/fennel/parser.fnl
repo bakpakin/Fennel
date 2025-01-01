@@ -180,7 +180,7 @@ Also returns a second function to clear the buffer in the byte stream."
         (dispatch (setmetatable tbl mt))))
 
     (fn add-comment-at [comments index node]
-      (match (. comments index)
+      (case (. comments index)
         existing (table.insert existing node)
         _ (tset comments index [node])))
 
@@ -245,7 +245,7 @@ Also returns a second function to clear the buffer in the byte stream."
     (fn parse-string-loop [chars b state]
       (when b
         (table.insert chars (string.char b)))
-      (let [state (match [state b]
+      (let [state (case [state b]
                     [:base 92] :backslash
                     [:base 34] :done
                     [:backslash 10] (do
@@ -269,7 +269,7 @@ Also returns a second function to clear the buffer in the byte stream."
         (table.remove stack)
         (let [raw (table.concat chars)
               formatted (raw:gsub "[\a-\r]" escape-char)]
-          (match ((or (rawget _G :loadstring) load) (.. "return " formatted))
+          (case ((or (rawget _G :loadstring) load) (.. "return " formatted))
             load-fn (dispatch (load-fn) source raw)
             nil (parse-error (.. "Invalid string: " raw))))))
 
@@ -307,7 +307,7 @@ Also returns a second function to clear the buffer in the byte stream."
                             (parse-error (.. "could not read number \"" rawstr
                                              "\""))) source rawstr)
               true)
-            (match (tonumber trimmed)
+            (case (tonumber trimmed)
               x (do
                   (dispatch x source rawstr)
                   true)

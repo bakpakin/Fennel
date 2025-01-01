@@ -25,22 +25,22 @@
 (local lua-ipairs ipairs)
 
 (fn pairs [t]
-  (match (getmetatable t)
+  (case (getmetatable t)
     {:__pairs p} (p t)
     _ (lua-pairs t)))
 
 (fn ipairs [t]
-  (match (getmetatable t)
+  (case (getmetatable t)
     {:__ipairs i} (i t)
     _ (lua-ipairs t)))
 
 (fn length* [t]
-  (match (getmetatable t)
+  (case (getmetatable t)
     {:__len l} (l t)
     _ (length t)))
 
 (fn get-default [key]
-  (match (. default-opts key)
+  (case (. default-opts key)
     nil (error (: "option '%s' doesn't have a default value, use the :after key to set it"
                   :format (tostring key)))
     v v))
@@ -263,7 +263,7 @@
               (metamethod t pp options indent))]
         (set options.visible-cycle? nil)
         ;; TODO: assuming that a string result is already a single line
-        (match (type lines)
+        (case (type lines)
           :string lines
           :table (concat-lines lines options indent force-multi-line?)
           _ (error "__fennelview metamethod must return a table of lines")))))
@@ -273,9 +273,9 @@
   ;; sequential tables, as well as tables, that contain __fennelview
   ;; metamethod.
   (set options.level (+ options.level 1))
-  (let [x (match (if (getopt options :metamethod?) (-?> x getmetatable (. :__fennelview)))
+  (let [x (case (if (getopt options :metamethod?) (-?> x getmetatable (. :__fennelview)))
             metamethod (pp-metamethod x metamethod options indent)
-            _ (match (table-kv-pairs x options)
+            _ (case (table-kv-pairs x options)
                 (_ :empty) (if (getopt options :empty-as-sequence?) "[]" "{}")
                 (kv :table) (pp-associative x kv options indent)
                 (kv :seq) (pp-sequence x kv options indent)))]

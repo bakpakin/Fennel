@@ -89,7 +89,7 @@
                    :binding-form? (utils.member? k binding?)
                    :define? (utils.member? k define?)}))
     (each [k v (pairs _G)]
-      (match (type v)
+      (case (type v)
         :function (tset out k {:global? true :function? true})
         :table (when (not (k:find "^_"))
                  (each [k2 v2 (pairs v)]

@@ -97,7 +97,7 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
 
 ;; check for --lua first to ensure its child process retains all flags
 (for [i (length arg) 1 -1]
-  (match (. arg i)
+  (case (. arg i)
     :--lua (handle-lua i)))
 
 (fn load-plugin [filename]
@@ -115,7 +115,7 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
                "-" true}]
   (var i 1)
   (while (and (. arg i) (not options.ignore-options))
-    (match (. arg i)
+    (case (. arg i)
       :--no-searcher (do
                       (set options.no-searcher true)
                       (table.remove arg i))
@@ -218,7 +218,7 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
                  "Use ,help to see available commands."]]
     (set searcher-opts.useMetadata (not= false options.useMetadata))
     (when (not= false options.fennelrc)
-      (tset options :fennelrc load-initfile))
+      (set options.fennelrc load-initfile))
     (when (and (not readline?) (not= "dumb" (os.getenv "TERM")))
       (table.insert welcome (.. "Try installing readline via luarocks for a "
                                 "better repl experience.")))
@@ -236,7 +236,7 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
     (let [f (if (= filename "-")
                 io.stdin
                 (assert (io.open filename :rb)))]
-      (match (xpcall #(fennel.compile-string (f:read :*a) options)
+      (case (xpcall #(fennel.compile-string (f:read :*a) options)
                      fennel.traceback)
         (true val) (print val)
         (_ msg) (do

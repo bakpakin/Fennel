@@ -353,7 +353,7 @@ Example:
           ;; require-macros can pass it down when resolving the module-name.
           expr `(import-macros ,modname)
           filename (if (list? modname) (. modname 1 :filename) :unknown)
-          _ (tset expr :filename filename)
+          _ (set expr.filename filename)
           macros* (_SPECIALS.require-macros expr scope {} binding)]
       (if (sym? binding)
           ;; bind whole table of macros to table bound to symbol

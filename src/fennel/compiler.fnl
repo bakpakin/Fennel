@@ -87,7 +87,7 @@ The ast arg should be unmodified so that its first element is the form called."
 (fn global-unmangling [identifier]
   "Reverse a global mangling.
 Takes a Lua identifier and returns the Fennel symbol string that created it."
-  (match (string.match identifier "^__fnl_global__(.*)$")
+  (case (string.match identifier "^__fnl_global__(.*)$")
     rest (pick-values 1 (rest:gsub "_[%da-f][%da-f]"
                                    #(string.char (tonumber ($:sub 2) 16))))
     _ identifier))
@@ -156,7 +156,7 @@ these new manglings instead of the current manglings."
   "Generates a unique symbol in the scope based on the base name. Calling
 repeatedly with the same base and same scope will return existing symbol
 rather than generating new one."
-  (match (utils.multi-sym? base)
+  (case (utils.multi-sym? base)
     parts (combine-auto-gensym parts (autogensym (. parts 1) scope))
     _ (or (. scope.autogensyms base)
           (let [mangling (gensym scope (base:sub 1 -2) :auto)]
@@ -424,8 +424,8 @@ if opts contains the nval option."
   "Replaces literal `nil` values with quoted version."
   (when (and parent (utils.list? parent))
     (for [i 1 (utils.maxn parent)]
-      (match (. parent i)
-        nil (tset parent i (utils.sym "nil")))))
+      (when (= nil (. parent i))
+        (tset parent i (utils.sym "nil")))))
   (values index node parent))
 
 (fn built-in? [m]
@@ -434,7 +434,7 @@ if opts contains the nval option."
 
 (fn macroexpand* [ast scope ?once]
   "Expand macros in the ast. Only do one level if once is true."
-  (match (if (utils.list? ast) (find-macro ast scope))
+  (case (if (utils.list? ast) (find-macro ast scope))
     false ast
     macro* (let [old-scope scopes.macro
                  _ (set scopes.macro scope)
@@ -799,7 +799,7 @@ which we have to do if we don't know."
                               (utils.list (utils.sym :values)
                                           (unpack rightexprs))
                               up1 destructure1)
-          (let [right (match (if top?
+          (let [right (case (if top?
                                  (exprs1 (compile1 from scope parent))
                                  (exprs1 rightexprs))
                         "" :nil
@@ -948,7 +948,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
             ;; This would be cleaner factored out into its own recursive
             ;; function, but that would interfere with the traceback itself!
             (while (not done?)
-              (match (lua-getinfo level :Sln)
+              (case (lua-getinfo level :Sln)
                 nil (set done? true)
                 info (table.insert lines (traceback-frame info)))
               (set level (+ level 1)))

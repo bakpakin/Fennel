@@ -12,7 +12,7 @@
     (and (f:close) stdout)))
 
 (fn execute [cmd]
-  (match (os.execute cmd)
+  (case (os.execute cmd)
     0 true
     true true))
 
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
   `(do
      (local bundle# ...)
      (fn loader# [name#]
-       (match (or (. bundle# name#) (. bundle# (.. name# :.init)))
+       (case (or (. bundle# name#) (. bundle# (.. name# :.init)))
          (mod# ? (= :function (type mod#))) mod#
          (mod# ? (= :string (type mod#))) (assert (if (= _VERSION "Lua 5.1")
                                                       (loadstring mod# name#)
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     lua-code))
 
 (fn module-name [open rename used-renames]
-  (let [require-name (match (. rename open)
+  (let [require-name (case (. rename open)
                        renamed (do
                                  (tset used-renames open true)
                                  renamed)
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
   (let [(extension version-extension) (path:match "%.(%a+)(%.?%d*)$")]
     (if (and version-extension (not= version-extension "")
              (not (version-extension:match "%.%d+"))) false
-        (match extension
+        (case extension
           :a path
           :o path
           :so path

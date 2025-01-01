@@ -245,12 +245,14 @@ local lua = fennel.compileString(fennelcode[, options])
 
 Also aliased to `fennel.compile-string` for convenience calling from Fennel.
 
-## Convert text into AST node(s)
+## Parse text into AST nodes
 
-The `fennel.parser` function returns a stateful iterator function.
-If a form was successfully read, it returns true followed by the AST node.
-Returns nil when it reaches the end. Raises an error if it can't parse
-the input.
+The `fennel.parser` function returns a function which you can call
+repeatedly to get successive AST nodes from a string. This happens to
+be an iterator function, so you can use it with Lua's `for` or
+Fennel's `each`. If a form was successfully read, it returns true
+followed by the AST node.  Returns nil when it reaches the end. Raises
+an error if it can't parse the input.
 
 ```lua
 local parse = fennel.parser(text)

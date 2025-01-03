@@ -1037,22 +1037,21 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
                        filename (or form.line :nil) (or form.bytestart :nil)
                        (mixed-concat mapped ", ")))
       (utils.sequence? form)
-      (let [mapped (quote-all form)
+      (let [mapped-str (mixed-concat (quote-all form) ", ")
             source (getmetatable form)
-            filename (if source.filename (string.format "%q" source.filename)
-                         :nil)]
-        ;; need to preserve the sequence marker in the metatable here
-        (string.format "setmetatable({%s}, {filename=%s, line=%s, sequence=%s})"
-                       (mixed-concat mapped ", ") filename
-                       (if source source.line :nil)
-                       "(getmetatable(_G.sequence()))['sequence']"))
+            filename (if source.filename (: "%q" :format source.filename) :nil)]
+        (if runtime?
+            (string.format "{%s}" mapped-str)
+            ;; need to preserve the sequence marker in the metatable here
+            (string.format "setmetatable({%s}, {filename=%s, line=%s, sequence=%s})"
+                           mapped-str filename (or source.line :nil)
+                           "(getmetatable(_G.sequence()))['sequence']")))
       (= (type form) :table) ; table
-      (let [mapped (quote-all form)
-            source (getmetatable form)
+      (let [source (getmetatable form)
             filename (if source.filename (string.format "%q" source.filename)
                          :nil)]
         (string.format "setmetatable({%s}, {filename=%s, line=%s})"
-                       (mixed-concat mapped ", ") filename
+                       (mixed-concat (quote-all form) ", ") filename
                        (if source source.line :nil)))
       (= (type form) :string)
       (serialize-string form)

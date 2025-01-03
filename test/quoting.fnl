@@ -60,7 +60,10 @@
   (t.= "return 4" (c "\n\n\n(eval-compiler (. `(abc) :line))")
        "lists have source data")
   (let [(_ msg) (pcall c "\n\n\n\n(macro abc [] `(fn [... a#] 1)) (abc)")]
-    (t.match "unknown:5" msg "quoted tables have source data")))
+    (t.match "unknown:5" msg "quoted tables have source data"))
+  ;; runtime quoting
+  (t.= "return {\"foo\", \"x\", table.unpack({1, 2, 3}), \"y\"}"
+       (c "`[:foo :x ,(table.unpack [1 2 3]) :y]")))
 
 (macro not-equal-gensym []
   (let [s (gensym :sym)]

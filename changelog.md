@@ -18,6 +18,7 @@ deprecated forms.
 
 * Work around string formatting bug in Fengari.
 * Use `options.warn` when provided in the parser.
+* Fix an issue where unquoting a regular table would fail outside compile scope.
 
 ## 1.5.1 / 2024-08-24
 

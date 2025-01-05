@@ -252,7 +252,7 @@ By default, start is 2."
 (fn compile-named-fn [ast f-scope f-chunk parent index fn-name local?
                       arg-name-list f-metadata]
   ;; anonymous functions use this path after a name has been generated
-  (utils.hook :pre-fn ast f-scope)
+  (utils.hook :pre-fn ast f-scope parent)
   (for [i (+ index 1) (length ast)]
     (compiler.compile1 (. ast i) f-scope f-chunk
                        {:nval (or (and (not= i (length ast)) 0) nil)
@@ -265,7 +265,7 @@ By default, start is 2."
   (compiler.emit parent f-chunk ast)
   (compiler.emit parent :end ast)
   (set-fn-metadata f-metadata parent fn-name)
-  (utils.hook :fn ast f-scope)
+  (utils.hook :fn ast f-scope parent)
   (utils.expr fn-name :sym))
 
 (fn compile-anonymous-fn [ast f-scope f-chunk parent index arg-name-list

@@ -148,8 +148,7 @@
     "(eval-compiler (assert-compile false \"oh no\" 123))" "oh no"
     "(partial)" "expected a function"
     "(#)" "expected one argument"
-    ;; PUC is ridiculous in what it accepts in a string
-    "\"\\!\"" (if (or (not= _VERSION "Lua 5.1") _G.jit) "Invalid string")
+    "\"\\!\"" "invalid escape sequence"
     "(doto)" "missing subject"
     ;; validity check on iterator clauses
     "(each [k (do-iter) :igloo 33] nil)" "unexpected iterator clause: igloo"

@@ -305,9 +305,9 @@ nil, unless that argument's name begins with a question mark."
     (fn check! [a]
       (if (table? a)
           (each [_ a (pairs a)] (check! a))
-          (let [as (tostring a)]
-            (and (not (as:find "^?")) (not= as "&") (not (as:find "^_"))
-                 (not= as "...") (not= as "&as")))
+          (let [as (tostring a)
+                as1 (as:sub 1 1)]
+            (not (or (= :_ as1) (= :? as1) (= :& as) (= :... as) (= :&as as))))
           (table.insert args check-position
                         `(_G.assert (not= nil ,a)
                                     ,(: "Missing argument %s on %s:%s" :format

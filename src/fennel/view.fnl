@@ -17,7 +17,7 @@
                      :utf8? true
                      :line-length 80
                      :depth 128
-                     :max-sparse-gap 10})
+                     :max-sparse-gap 1})
 
 ;; Pairs, ipairs and length functions that respect metamethods
 
@@ -448,8 +448,7 @@ Can take an options table with the following keys:
 * :escape-newlines? (default: false) emit strings with \\n instead of newline
 * :prefer-colon? (default: false) emit strings in colon notation when possible
 * :utf8? (default: true) whether to use the utf8 module to compute string lengths
-* :max-sparse-gap (integer, default 10) maximum gap to fill in with nils in
-  sparse sequential tables
+* :max-sparse-gap: maximum gap to fill in with nils in sparse sequential tables
 * :preprocess (function) if present, called on x (and recursively on each value
   in x), and the result is used for pretty printing; takes the same arguments as
   `fennel.view`

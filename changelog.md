@@ -17,6 +17,7 @@ deprecated forms.
 
 ### Bug Fixes
 
+* Ensure `fennel --plugin plug.lua` loads the compiler env like it does for `plug.fnl`
 * Work around string formatting bug in Fengari.
 * Use `options.warn` when provided in the parser.
 * Fix an issue where unquoting a regular table would fail outside compile scope.

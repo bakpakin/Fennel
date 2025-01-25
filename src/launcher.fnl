@@ -101,9 +101,12 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
     :--lua (handle-lua i)))
 
 (fn load-plugin [filename]
-  (if (filename:find "%.lua$")
-      (dofile filename)
-      (let [opts {:env :_COMPILER :useMetadata true :compiler-env _G}]
+  (let [opts {:env :_COMPILER :compiler-env _G :useMetadata true}]
+    (if (= ".lua" (filename:sub -4))
+        ((fennel.load-code (: (assert (io.open filename :rb)) :read :*a)
+                           ((. (require :fennel.specials) :make-compiler-env)
+                            nil (fennel.scope) nil opts)
+                           filename))
         (fennel.dofile filename opts))))
 
 (let [commands {:--repl true

@@ -20,11 +20,14 @@
   (let [f (io.open filename)]
     (when f (f:close) true)))
 
-(λ peval [code ...]
-  (let [cmd [(string.format "%s fennel --eval %q" host-lua code) ...]
+(λ sh/esc [str] (.. "'" (str:gsub "'" "'\\''") "'"))
+(λ fennel-cli [...]
+  (let [cmd [host-lua :fennel ...]
         proc (io.popen (table.concat cmd " "))
         output (: (proc:read :*a) :gsub "\n$" "")]
     (values (proc:close) output))) ; proc:close gives exit status on 5.2+
+
+(λ peval [code ...] (fennel-cli :--eval (sh/esc code) ...))
 
 (fn test-cli []
   ;; skip this if we haven't compiled the CLI or on Windows
@@ -56,10 +59,18 @@
              (.. "errors should cause failing exit status with --lua "
                  lua-exec))))))
 
+(fn test-lua-plugin []
+  (let [lua-plug :test/plugin/lua-plugin.lua]
+    (t.= [true :s]
+         [(fennel-cli :--plugin lua-plug
+                      :-e (sh/esc (v (let [s 1] (is-in-scope s)))))]
+         "lua plugins should be loaded with full compiler env")))
+
 (fn test-args []
   (when (and test-all? (file-exists? "fennel"))
     (t.= [true "-l"] [(peval  "(. arg 3)" "-l")])))
 
 {: test-cli
  : test-lua-flag
+ : test-lua-plugin
  : test-args}

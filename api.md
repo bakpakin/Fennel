@@ -422,7 +422,7 @@ characters in decimal format (e.g. `<ESC>` -> `\027`). Called with the signature
 * `escape-newlines?` (default: false) emit strings with \\n instead of newline
 * `prefer-colon?` (default: false) emit strings in colon notation when possible
 * `utf8?` (default: true) whether to use utf8 module to compute string lengths
-* `max-sparse-gap` (number, default: 10) maximum gap to fill in with nils in
+* `max-sparse-gap` (number, default: 1) maximum gap to fill in with nils in
   sparse sequential tables before switching to curly brackets.
 * `preprocess` (function) if present, called on x (and recursively on each value
   in x), and the result is used for pretty printing; takes the same arguments as

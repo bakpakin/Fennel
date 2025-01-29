@@ -930,34 +930,50 @@ Method name doesn't have to be known at compile-time; if it is, use
     (compiler.emit parent chunk))
   (compiler.emit parent :end))
 
+(fn all-literals? [[_ & args]]
+  (accumulate [all? true _ a (ipairs args) &until (not all?)]
+    (not= :table (type a))))
+
+(local operators {"+" #(+ $1 $2) "-" #(- $1 $2) "*" #(* $1 $2) "/" #(/ $1 $2)
+                  ".." #(.. $1 $2) "and" #(and $1 $2) "or" #(or $1 $2)})
+
+(fn oops-all-literals! [name [_ arg1 & args]]
+  (let [op (. operators name)
+        result (accumulate [acc arg1 _ arg (ipairs args)] (op acc arg))]
+    (if (= :string (type result))
+        (string.format "%q" result)
+        result)))
+
 (fn operator-special [name zero-arity unary-prefix ast scope parent]
   (compiler.assert (not (and (= (length ast) 2)
                              (utils.varg? (. ast 2))))
                    "tried to use vararg with operator" ast)
-  (let [padded-op (.. " " name " ")]
-    (var (operands accumulator) [])
-    (when (utils.call-of? (. ast (length ast)) :values)
-      (utils.warn "multiple values in operators are deprecated" ast))
-    (each [subast (iter-args ast)]
-      (if (and (not= nil (next operands))
-               (or (= name :or) (= name :and))
-               (not (short-circuit-safe? subast scope)))
-          ;; Emit an If statement to ensure we short-circuit all side-effects.
-          ;; without this (or true (tset t :a 1)) doesn't short circuit:
-          ;; See https://todo.sr.ht/~technomancy/fennel/111
-          (let [expr-string (table.concat operands padded-op)
-                setter (if accumulator "%s = %s" "local %s = %s")]
-            ;; store previous stuff into the local
-            ;; if there's not yet a local, we need to gensym it
-            (when (not accumulator)
-              (set accumulator (compiler.gensym scope name)))
-            (emit-short-circuit-if ast scope parent name subast accumulator
-                                   expr-string setter)
-            ;; Previous operands have been emitted, so we start fresh
-            (set operands [accumulator]))
-          (table.insert operands (str1 (compiler.compile1 subast scope parent
-                                                          {:nval 1})))))
-    (operator-special-result ast zero-arity unary-prefix padded-op operands)))
+  (if (and (not= nil (. ast 3)) (all-literals? ast) (. operators name))
+      (oops-all-literals! name ast)
+      (let [padded-op (.. " " name " ")]
+        (var (operands accumulator) [])
+        (when (utils.call-of? (. ast (length ast)) :values)
+          (utils.warn "multiple values in operators are deprecated" ast))
+        (each [subast (iter-args ast)]
+          (if (and (not= nil (next operands))
+                   (or (= name :or) (= name :and))
+                   (not (short-circuit-safe? subast scope)))
+              ;; Emit an If statement to ensure we short-circuit all side-effects.
+              ;; without this (or true (tset t :a 1)) doesn't short circuit:
+              ;; See https://todo.sr.ht/~technomancy/fennel/111
+              (let [expr-string (table.concat operands padded-op)
+                    setter (if accumulator "%s = %s" "local %s = %s")]
+                ;; store previous stuff into the local
+                ;; if there's not yet a local, we need to gensym it
+                (when (not accumulator)
+                  (set accumulator (compiler.gensym scope name)))
+                (emit-short-circuit-if ast scope parent name subast accumulator
+                                       expr-string setter)
+                ;; Previous operands have been emitted, so we start fresh
+                (set operands [accumulator]))
+              (table.insert operands (str1 (compiler.compile1 subast scope parent
+                                                              {:nval 1})))))
+        (operator-special-result ast zero-arity unary-prefix padded-op operands))))
 
 (fn define-arithmetic-special [name zero-arity unary-prefix ?lua-name]
   (tset SPECIALS name (partial operator-special (or ?lua-name name) zero-arity

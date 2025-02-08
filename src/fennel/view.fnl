@@ -103,6 +103,10 @@
   ;; either sequential or associative.
   ;; [:a :b :c] => [[1 :a] [2 :b] [3 :c]]
   ;; {:a 1 :b 2} => [[:a 1] [:b 2]]
+  (if (or (not= :number (type options.max-sparse-gap))
+          (not= options.max-sparse-gap (math.floor options.max-sparse-gap)))
+      (error (: "max-sparse-gap must be an integer: got '%s'" :format
+                (tostring options.max-sparse-gap))))
   (var assoc? false)
   (let [kv []
         insert table.insert]

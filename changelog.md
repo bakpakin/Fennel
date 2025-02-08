@@ -17,8 +17,9 @@ deprecated forms.
 
 ### Bug Fixes
 
-* Prevent incorrect serialization `(fennel.view {1 :x 1.2 :y 2 :z})` -> `[:x :y :z]`   
-  when `max-sparse-gap`  (an integer) is satisfied by decimal keys.
+* Fix a bug where `fennel.view` allowed non-integer `:max-sparse-gap` settings.
+* Prevent incorrect `fennel.view` output like `{1 :x 1.2 :y 2 :z}` -> `["x" "y" "z"]`  
+  when `max-sparse-gap`  is still satisfied by gaps between decimal keys.
 * Ensure `fennel --plugin plug.lua` loads the compiler env like it does for `plug.fnl`
 * Work around string formatting bug in Fengari.
 * Use `options.warn` when provided in the parser.

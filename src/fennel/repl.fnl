@@ -4,7 +4,7 @@
 ;; preserved in between "chunks"; by default Lua throws away all locals after
 ;; evaluating each piece of input.
 
-(local utils (require :fennel.utils))
+(local {: copy &as utils} (require :fennel.utils))
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))
 (local specials (require :fennel.specials))
@@ -346,7 +346,7 @@ For more information about the language, see https://fennel-lang.org/reference")
 
 (fn repl [?options]
   (let [old-root-options utils.root.options
-        {:fennelrc ?fennelrc &as opts} (utils.copy ?options)
+        {:fennelrc ?fennelrc &as opts} (copy ?options)
         _ (set opts.fennelrc nil)
         readline (and (should-use-readline? opts)
                       (try-readline! opts (pcall require :readline)))
@@ -446,6 +446,11 @@ For more information about the language, see https://fennel-lang.org/reference")
       (when opts.exit (opts.exit opts depth))
       value)))
 
-(setmetatable {} {:__call (fn [overrides ?opts]
-                            (repl (utils.copy ?opts (utils.copy overrides))))
-                  :__index {: repl}})
+(local repl-mt {:__index {: repl}})
+(fn repl-mt.__call [{: view-opts &as overrides} ?opts]
+  (let [opts (copy ?opts  (copy overrides))]
+    (set opts.view-opts (copy (?. ?opts :view-opts) (copy view-opts)))
+    (repl opts)))
+;; Setting empty view-opts allows easy `(set ___repl___.view-opts.foo)`
+;; without error or accidentally removing other options
+(setmetatable {:view-opts {}} repl-mt)

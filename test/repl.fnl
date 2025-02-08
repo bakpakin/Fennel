@@ -476,6 +476,22 @@
              (send (v (fn foo [] {:foo {[(fn [] nil)] :foo}} nil)))
              "nested lists as values are not allowed as metadata fields")))
 
+(fn test-default-overrides []
+  (set fennel.repl.view-opts {:max-sparse-gap 5})
+  (let [send (wrap-repl {:view-opts {}})]
+    ;; need to set pp back to the repl default for this test to work
+    (send (v (set ___repl___.pp (. (require :fennel) :view))))
+    (t.= "[\"a\" nil nil \"b\"]" (send (v [:a nil nil :b]))
+         "REPL merges explicit view-opts table without clobbering non-conflicting defaults"))
+  (let [send (wrap-repl {:view-opts {:max-sparse-gap 2}})]
+    ;; need to set pp back to the repl default for this test to work
+    (send (v (set ___repl___.pp (. (require :fennel) :view))))
+    (t.= "{1 \"a\" 4 \"b\"}" (send (v [:a nil nil :b]))
+         "Explicit options to :view-opts keys still override custom defaults")
+    (t.= "[\"a\" nil \"b\"]" (send (v [:a nil :b]))
+         "Explicit options to :view-opts keys still override built-in defaults")))
+
+
 (fn test-long-string []
   (let [send (wrap-repl)
         long (fcollect [_ 1 8000 :into [":"]] "-")
@@ -545,5 +561,9 @@
      : test-long-string
      : test-save-values
      : test-return
-     : test-decorating-repl}
+     : test-decorating-repl
+     : test-default-overrides
+     ;; remove any left over custom repl settings
+     :teardown #(each [repl-opt (pairs fennel.repl)]
+                  (tset fennel.repl repl-opt nil))}
     {})

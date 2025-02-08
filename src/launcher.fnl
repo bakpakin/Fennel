@@ -147,9 +147,6 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
       :--correlate (do
                     (set options.correlate true)
                     (table.remove arg i))
-      :--check-unused-locals (do
-                              (set options.checkUnusedLocals true)
-                              (table.remove arg i))
       :--globals (do
                   (allow-globals (table.remove arg (+ i 1)) _G)
                   (table.remove arg i))

@@ -1243,9 +1243,8 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
         fullpath (.. (or ?pathstring utils.fennel-module.path)
                      pkg-config.pathsep)]
     (fn try-path [path]
-      (let [filename (path:gsub (escapepat pkg-config.pathmark) no-dot-module)
-            filename2 (path:gsub (escapepat pkg-config.pathmark) modulename)]
-        (case (or (io.open filename) (io.open filename2))
+      (let [filename (path:gsub (escapepat pkg-config.pathmark) no-dot-module)]
+        (case (io.open filename)
           file (do
                  (file:close)
                  filename)

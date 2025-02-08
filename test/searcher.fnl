@@ -21,5 +21,11 @@
    #(do (fennel.install {})
         (t.is (pcall require :test.searcher)))))
 
+(fn test-searcher []
+  (t.= "./test/searcher.fnl" (fennel.search-module "test/searcher"))
+  (t.= "./src/fennel.fnl" (fennel.search-module "src.fennel"))
+  (t.= nil (fennel.search-module "test.bad.with.dots")))
+
 {: test-searcher-error-contains-fnl-files
- : test-install}
+ : test-install
+ : test-searcher}

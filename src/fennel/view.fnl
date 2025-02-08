@@ -107,8 +107,7 @@
   (let [kv []
         insert table.insert]
     (each [k v (pairs t)]
-      (when (or (not= (type k) :number)
-                (< k 1))
+      (when (or (not= :number (type k)) (< k 1) (not= k (math.floor k)))
         (set assoc? true))
       (insert kv [k v]))
     (table.sort kv sort-keys)

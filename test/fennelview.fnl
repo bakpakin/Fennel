@@ -337,7 +337,9 @@
        (view {:ǍǍǍ {}
               :ƁƁƁ {:ǍǍǍ {} :ƁƁƁ {}}}
              {:line-length 1}))
-  (t.= "{1 1 5 5 :n 5}" (view {1 1 5 5 :n 5})))
+  (t.= "{1 1 5 5 :n 5}" (view {1 1 5 5 :n 5}))
+  (t.= "{1 \"a\" 1.2345 \"combination on my luggage\"}"
+       (view {1 :a 1.2345 "combination on my luggage"})))
 
 (fn test-metamethod []
   (let [mt (setmetatable [] {:__fennelview (fn [] "META")})]

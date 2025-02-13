@@ -16,6 +16,8 @@ deprecated forms.
 
 ### Bug Fixes
 
+* Defaults on `fennel.repl.view-opts` are no longer clobbered by
+  `(fennel.repl {:view-opts {}})`
 * Fix a bug where `fennel.view` allowed non-integer `:max-sparse-gap` settings.
 * Prevent incorrect `fennel.view` output like `{1 :x 1.2 :y 2 :z}` -> `["x" "y" "z"]`  
   when `max-sparse-gap`  is still satisfied by gaps between decimal keys.

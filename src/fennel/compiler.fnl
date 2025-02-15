@@ -743,19 +743,17 @@ which we have to do if we don't know."
           (destructure1 (. pair 1) [(. pair 2)] left))))
 
     ;; TODO: remove in 2.0
-    (local unpack-fn "function (t, k, e)
-                        local mt = getmetatable(t)
-                        if 'table' == type(mt) and mt.__fennelrest then
-                          return mt.__fennelrest(t, k)
-                        elseif e then
-                          local rest = {}
-                          for k, v in pairs(t) do
-                            if not e[k] then rest[k] = v end
-                          end
-                          return rest
-                        else
-                          return {(table.unpack or unpack)(t, k)}
+    (local unpack-fn "function (t, k)
+                        return ((getmetatable(t) or {}).__fennelrest
+                                or function (t, k) return {(table.unpack or unpack)(t, k)} end)(t, k)
+                      end")
+
+    (local unpack-ks "function (t, e)
+                        local rest = {}
+                        for k, v in pairs(t) do
+                          if not e[k] then rest[k] = v end
                         end
+                        return rest
                       end")
 
     (fn destructure-kv-rest [s v left excluded-keys destructure1]
@@ -763,7 +761,7 @@ which we have to do if we don't know."
                          (icollect [_ k (ipairs excluded-keys)]
                            (string.format "[%s] = true" (serialize-string k)))
                          ", ")
-            subexpr (-> (.. "(" unpack-fn ")(%s, nil, {%s})")
+            subexpr (-> (.. "(" unpack-ks ")(%s, {%s})")
                         (string.gsub "\n%s*" " ")
                         (string.format s exclude-str)
                         (utils.expr :expression))]

@@ -1108,7 +1108,7 @@ corresponding to any of the table's "boundary" positions between nil
 and non-nil values. If a table has nils and you want to know the last
 consecutive numeric index starting at 1, you must calculate it
 yourself with `ipairs`; if you want to know the maximum numeric key in
-a table with nils, you can use `table.maxn` on some versions of Lua.
+a table with nils, you can use `table.maxn` on Lua <= 5.2.
 
 Example:
 
@@ -1772,11 +1772,22 @@ your code.
 * `assert-compile` - works like `assert` but takes a list/symbol as its third
   argument in order to provide pinpointed error messages.
 
+The following functions standardize Lua globals that change between 5.1-5.4. To
+limit common Lua-compatibility boilerplate such as
+`(local unpack (or _G.unpack table.unpack))` from macro
+code, the following helpers are present in the macro environment:
+* `unpack` - `_G.unpack` in Lua 5.1/LuaJit, `table.unpack` in Lua >= 5.2
+* `pack` -  Equivalent to `table.pack` available in Lua 5.2 and up.
+  `(pack :a nil :c nil nil)` -> `{1 :a 3 :c :n 5}`. Useful for reliably storing
+  and correctly reproducing multi-values that contain `nil`.
+
 These functions can be used from within macros only, not from any
 `eval-compiler` call:
 
 * `in-scope?` - does the symbol refer to an in-scope local? Returns the symbol or `nil`.
 * `macroexpand` - performs macroexpansion on its argument form; returns an AST.
+
+#### Note: Compile-time List implementation
 
 Note that lists are compile-time concepts that don't exist at runtime; they
 are implemented as tables which have a special metatable to distinguish them
@@ -1784,6 +1795,7 @@ from regular tables defined with square or curly brackets. Similarly symbols
 are tables with a string entry for their name and a marker metatable. You
 can use `tostring` to get the name of a symbol.
 
+#### Sandboxing
 As of 1.0.0 the compiler will not allow access to the outside world
 (`os`, `io`, etc) from macros. The one exception is `print` which is
 included for debugging purposes. You can disable this by providing the

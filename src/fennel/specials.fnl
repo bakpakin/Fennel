@@ -2,11 +2,10 @@
 ;; which cannot be implemented as macros. It also contains some core compiler
 ;; functionality which is kept in this module for circularity reasons.
 
-(local utils (require :fennel.utils))
+(local {: pack : unpack &as utils} (require :fennel.utils))
 (local view (require :fennel.view))
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))
-(local unpack (or table.unpack _G.unpack))
 
 (local SPECIALS compiler.scopes.global.specials)
 
@@ -1191,7 +1190,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              :_SPECIALS compiler.scopes.global.specials
              :_VARARG (utils.varg) ; don't use this!
              : macro-loaded
-             : unpack
+             : pack : unpack
              :assert-compile compiler.assert
              : view
              : fennel-module-name

@@ -7,6 +7,18 @@
 
 (local version :1.5.2-dev)
 
+;;; Cross-Lua compat helpers
+
+(local unpack (or table.unpack _G.unpack))
+;; pack mirrors unpack for preserving sparse multivals. A packed table can be
+;; turned back into multivals with (unpack t 1 t.n). Lua 5.1 lacks table.pack.
+(local pack (or table.pack #(doto [$...] (tset :n (select :# $...)))))
+;; table.maxn was deprecated in Lua5.2 and removed from Lua 5.3.
+;; It's primarily useful for defensively writing APIs for unspecified user input,
+;; as it enables cleanly finding the end of a sparse table NOT created by pack.
+(local maxn (or table.maxn #(accumulate [max 0 k (pairs $)]
+                              (if (and (= :number (type k)) (< max k)) k max))))
+
 ;;; Lua VM detection helper functions
 
 (fn luajit-vm? []
@@ -100,10 +112,6 @@
     x true
     nil nil
     _ (member? x tbl (+ (or ?n 1) 1))))
-
-(fn maxn [tbl]
-  (accumulate [max 0 k (pairs tbl)]
-    (if (= :number (type k)) (math.max max k) max)))
 
 (fn every? [t predicate]
   (accumulate [result true
@@ -437,6 +445,7 @@ handlers will be skipped."
  : version
  : runtime-version
  : len
+ : unpack : pack
  :fennel-module nil
  :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")
  :macro-path (table.concat [:./?.fnl :./?/init-macros.fnl :./?/init.fnl

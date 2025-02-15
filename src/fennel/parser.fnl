@@ -1,9 +1,8 @@
 ;; This module is responsible for turning bytes of source code into an AST
 ;; data structure.
 
-(local utils (require :fennel.utils))
+(local {: unpack &as utils} (require :fennel.utils))
 (local friend (require :fennel.friend))
-(local unpack (or table.unpack _G.unpack))
 
 (fn granulate [getchunk]
   "Convert a stream of chunks to a stream of bytes.

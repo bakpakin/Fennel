@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Added `pack` cross-Lua helper/polyfill to the compiler env alongside `unpack`
 * Precompile built-in macros, improving startup time significantly.
 * Accept `:global-mangle false` in compiler opts to disable global mangling.
 * Stop printing sparse tables as sequences by default.

@@ -2,7 +2,7 @@
 ;; compilation and attempt to enrich them by suggesting fixes.
 ;; It can be disabled to fall back to the regular terse errors.
 
-(local utils (require :fennel.utils))
+(local {: unpack &as utils} (require :fennel.utils))
 (local (utf8-ok? utf8) (pcall require :utf8))
 
 ;; fnlfmt: skip
@@ -84,8 +84,6 @@
         "tried to use vararg with operator" ["accumulating over the operands"]
         "tried to use unquote outside quote" ["moving the form to inside a quoted form"
                                               "removing the comma"]})
-
-(local unpack (or table.unpack _G.unpack))
 
 (fn suggest [msg]
   (accumulate [s nil pat sug (pairs suggestions) :until s]

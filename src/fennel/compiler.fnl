@@ -2,12 +2,10 @@
 ;; and turning it into Lua code. Main entry points are `compile` (which
 ;; takes an AST), `compile-stream` and `compile-string`.
 
-(local utils (require :fennel.utils))
+(local {: unpack &as utils} (require :fennel.utils))
 (local parser (require :fennel.parser))
 (local friend (require :fennel.friend))
 (local view (require :fennel.view))
-
-(local unpack (or table.unpack _G.unpack))
 
 (local scopes {:global nil :compiler nil :macro nil})
 

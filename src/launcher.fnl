@@ -1,7 +1,7 @@
 ;; This is the command-line entry point for Fennel.
 
 (local fennel (require :fennel))
-(local unpack (or table.unpack _G.unpack))
+(local {: pack : unpack} (require :fennel.utils))
 
 (local help "Usage: fennel [FLAG] [FILE]
 
@@ -54,12 +54,6 @@ Use the NO_COLOR environment variable to disable escape codes in error messages.
 If ~/.fennelrc exists, it will be loaded before launching a REPL.")
 
 (local options {:plugins [] :keywords {}})
-
-;; Lua 5.1 doesn't have table.pack
-;; necessary to preserve nils in luajit
-(fn pack [...]
-  (doto [...]
-    (tset :n (select :# ...))))
 
 (fn dosafely [f ...]
   (let [args [...]

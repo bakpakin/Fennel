@@ -16,6 +16,8 @@ LIB_SRC=$(CORE_SRC) src/fennel/friend.fnl src/fennel/view.fnl src/fennel/repl.fn
 
 SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
+PRECOMPILED=bootstrap/view.lua bootstrap/macros.lua bootstrap/match.lua
+
 MAN_PANDOC = pandoc -f gfm -t man -s --lua-filter=build/manfilter.lua \
 	     --metadata author="Fennel Maintainers" \
 	     --variable footer="fennel $(shell ./fennel -e '(. (require :fennel) :version)')"
@@ -45,7 +47,7 @@ count: ; cloc $(CORE_SRC); cloc $(LIB_SRC) ; cloc $(SRC)
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 
 # All-in-one pure-lua script:
-fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
+fennel: src/launcher.fnl $(SRC) $(PRECOMPILED)
 	@echo "#!/usr/bin/env $(LUA)" > $@
 	@echo "-- SPDX-License-Identifier: MIT" >> $@
 	@echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
@@ -53,11 +55,13 @@ fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
 	@chmod 755 $@
 
 # Library file
-fennel.lua: $(SRC) bootstrap/aot.lua bootstrap/view.lua
+fennel.lua: $(SRC) bootstrap/aot.lua $(PRECOMPILED)
 	@echo "-- SPDX-License-Identifier: MIT" > $@
 	@echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include >> $@
 
+build/macros.lua: src/fennel/macros.fnl; $(LUA) bootstrap/aot.lua $< --macro > $@
+build/match.lua: src/fennel/match.fnl; $(LUA) bootstrap/aot.lua $< --macro > $@
 bootstrap/view.lua: src/fennel/view.fnl
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@
 

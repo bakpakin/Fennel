@@ -174,15 +174,8 @@
 (set utils.fennel-module mod)
 
 (macro embed-src [filename]
-  `(eval-compiler
-     (let [FENNEL_SRC# (and (= :table (type _G.os)) _G.os.getenv
-                            (_G.os.getenv :FENNEL_SRC))
-           root# (if FENNEL_SRC# (.. FENNEL_SRC# :/) "")
-           opts# {:useMetadata "utils['fennel-module'].metadata"
-                  :allowedGlobals false :scope :_COMPILER
-                  :global-mangle false}]
-       (with-open [f# (assert (io.open (.. root# ,filename)))]
-         (.. "[===[" (fennel.compileString (f#:read :*all) opts#) "]===]")))))
+  `(eval-compiler (with-open [f# (assert (io.open ,filename))]
+                    (.. "[===[" (f#:read :*all) "]===]"))))
 
 (fn load-macros [src env]
   (let [chunk (assert (specials.load-code src env :src/fennel/macros.fnl))]
@@ -193,7 +186,7 @@
 (let [env (specials.make-compiler-env nil compiler.scopes.compiler {})]
   (set env.utils utils) ; for import-macros to propagate compile opts
   (set env.get-function-metadata specials.get-function-metadata)
-  (load-macros (embed-src :src/fennel/macros.fnl) env)
-  (load-macros (embed-src :src/fennel/match.fnl) env))
+  (load-macros (embed-src "build/macros.lua") env)
+  (load-macros (embed-src "build/match.lua") env))
 
 mod

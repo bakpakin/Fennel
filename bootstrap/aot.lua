@@ -9,11 +9,16 @@ local opts = {
    filename=assert(arg[1]),
 }
 
+for k in pairs(_G) do table.insert(opts.allowedGlobals, k) end
+
 for i=2,#arg do
    if arg[i] == "--require-as-include" then opts.requireAsInclude = true end
+   if arg[i] == "--macro" then
+      opts.useMetadata = "utils['fennel-module'].metadata"
+      opts.scope = "_COMPILER"
+      opts.allowedGlobals = false
+   end
 end
-
-for k in pairs(_G) do table.insert(opts.allowedGlobals, k) end
 
 local f = assert(io.open(opts.filename))
 local compile = function() return fennel.compileString(f:read("*a"), opts) end

@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-reference" "5" "2025-02-10" "fennel 1.5.2" "Fennel Reference"
+.TH "fennel-reference" "5" "2025-02-16" "fennel 1.5.3" "Fennel Reference"
 .hy
 .SH NAME
 .PP
@@ -1328,7 +1328,7 @@ can return a number corresponding to any of the table\[aq]s
 If a table has nils and you want to know the last consecutive numeric
 index starting at 1, you must calculate it yourself with
 \f[V]ipairs\f[R]; if you want to know the maximum numeric key in a table
-with nils, you can use \f[V]table.maxn\f[R] on some versions of Lua.
+with nils, you can use \f[V]table.maxn\f[R] on Lua <= 5.2.
 .PP
 Example:
 .IP
@@ -2103,6 +2103,21 @@ site.
 list/symbol as its third argument in order to provide pinpointed error
 messages.
 .PP
+The following functions standardize Lua globals that change between
+5.1-5.4.
+To limit common Lua-compatibility boilerplate such as
+\f[V](local unpack (or _G.unpack table.unpack))\f[R] from macro code,
+the following helpers are present in the macro environment:
+.IP \[bu] 2
+\f[V]unpack\f[R] - \f[V]_G.unpack\f[R] in Lua 5.1/LuaJit,
+\f[V]table.unpack\f[R] in Lua >= 5.2
+.IP \[bu] 2
+\f[V]pack\f[R] - Equivalent to \f[V]table.pack\f[R] available in Lua 5.2
+and up.
+\f[V](pack :a nil :c nil nil)\f[R] -> \f[V]{1 :a 3 :c :n 5}\f[R].
+Useful for reliably storing and correctly reproducing multi-values that
+contain \f[V]nil\f[R].
+.PP
 These functions can be used from within macros only, not from any
 \f[V]eval-compiler\f[R] call:
 .IP \[bu] 2
@@ -2111,6 +2126,7 @@ Returns the symbol or \f[V]nil\f[R].
 .IP \[bu] 2
 \f[V]macroexpand\f[R] - performs macroexpansion on its argument form;
 returns an AST.
+.SS Note: Compile-time List implementation
 .PP
 Note that lists are compile-time concepts that don\[aq]t exist at
 runtime; they are implemented as tables which have a special metatable
@@ -2119,6 +2135,7 @@ brackets.
 Similarly symbols are tables with a string entry for their name and a
 marker metatable.
 You can use \f[V]tostring\f[R] to get the name of a symbol.
+.SS Sandboxing
 .PP
 As of 1.0.0 the compiler will not allow access to the outside world
 (\f[V]os\f[R], \f[V]io\f[R], etc) from macros.

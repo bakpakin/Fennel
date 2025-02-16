@@ -186,7 +186,7 @@
 (let [env (specials.make-compiler-env nil compiler.scopes.compiler {})]
   (set env.utils utils) ; for import-macros to propagate compile opts
   (set env.get-function-metadata specials.get-function-metadata)
-  (load-macros (embed-src "build/macros.lua") env)
-  (load-macros (embed-src "build/match.lua") env))
+  (load-macros (embed-src "bootstrap/macros.lua") env)
+  (load-macros (embed-src "bootstrap/match.lua") env))
 
 mod

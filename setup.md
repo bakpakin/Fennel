@@ -35,12 +35,12 @@ installed on your system.
 This method requires you to manually update the `fennel` script when
 you want to use a newer version that has come out.
 
-1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-1.5.2)
-2. Run `chmod +x fennel-1.5.2` to make it executable
+1. Download [the fennel script](https://fennel-lang.org/downloads/fennel-1.5.3)
+2. Run `chmod +x fennel-1.5.3` to make it executable
 3. Download [and verify](https://fennel-lang.org/security#signatures)
-   the [signature](https://fennel-lang.org/downloads/fennel-1.5.2.asc)
+   the [signature](https://fennel-lang.org/downloads/fennel-1.5.3.asc)
    (optional).
-4. Move `fennel-1.5.2` to a directory on your `$PATH`, such as `/usr/local/bin`
+4. Move `fennel-1.5.3` to a directory on your `$PATH`, such as `/usr/local/bin`
 
 **Note**: You can rename the script to `fennel` for convenience. Or
 you can leave the version in the name, which makes it easy to keep
@@ -57,11 +57,11 @@ This method requires you to manually update the `fennel` binary when
 you want to use a newer version that has come out.
 
  1. Choose one the options below, depending on your system:
-      - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-1.5.2-x86_64)
-        ([signature](https://fennel-lang.org/downloads/fennel-1.5.2-x86_64.asc))
-      - [Windows](https://fennel-lang.org/downloads/fennel-1.5.2.exe)
-        ([signature](https://fennel-lang.org/downloads/fennel-1.5.2.exe.asc))
- 2. Run `chmod +x fennel-1.5.2*` to make it executable
+      - [GNU/Linux x86_64](https://fennel-lang.org/downloads/fennel-1.5.3-x86_64)
+        ([signature](https://fennel-lang.org/downloads/fennel-1.5.3-x86_64.asc))
+      - [Windows](https://fennel-lang.org/downloads/fennel-1.5.3.exe)
+        ([signature](https://fennel-lang.org/downloads/fennel-1.5.3.exe.asc))
+ 2. Run `chmod +x fennel-1.5.3*` to make it executable
  3. Download [and verify](https://fennel-lang.org/security#signatures) the signature
     (optional).
  4. Move the downloaded binary to a directory on your `$PATH`, such as `/usr/local/bin`
@@ -93,7 +93,7 @@ them all here; please [see the wiki page on distribution for details](https://wi
 
 The Fennel compiler can be added to your application and then loaded from Lua.
 
- 1. Add [fennel.lua](https://fennel-lang.org/downloads/fennel-1.5.2.lua) to your code repository.
+ 1. Add [fennel.lua](https://fennel-lang.org/downloads/fennel-1.5.3.lua) to your code repository.
  2. Add the following line to your Lua code:
 
 ```lua

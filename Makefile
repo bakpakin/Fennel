@@ -60,8 +60,8 @@ fennel.lua: $(SRC) bootstrap/aot.lua $(PRECOMPILED)
 	@echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include >> $@
 
-build/macros.lua: src/fennel/macros.fnl; $(LUA) bootstrap/aot.lua $< --macro > $@
-build/match.lua: src/fennel/match.fnl; $(LUA) bootstrap/aot.lua $< --macro > $@
+bootstrap/macros.lua: src/fennel/macros.fnl; $(LUA) bootstrap/aot.lua $< --macro > $@
+bootstrap/match.lua: src/fennel/match.fnl; $(LUA) bootstrap/aot.lua $< --macro > $@
 bootstrap/view.lua: src/fennel/view.fnl
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@
 
@@ -116,8 +116,6 @@ $(NATIVE_LUA_LIB): $(LUA_INCLUDE_DIR) ; $(MAKE) -C $(BIN_LUA_DIR)/src liblua.a
 $(NATIVE_LUAJIT_LIB): $(LUAJIT_INCLUDE_DIR)
 	$(MAKE) -C $(BIN_LUAJIT_DIR) BUILDMODE=static
 
-# TODO: update setup.md to point to new filenames on next release
-# to cross-compile, run: make fennel.exe CC=x86_64-w64-mingw32-gcc
 fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
 	$(COMPILE_ARGS) ./fennel --no-compiler-sandbox \
 		--compile-binary $< fennel-bin \
@@ -180,15 +178,15 @@ upload: fennel fennel.lua fennel-bin
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel.lua downloads/fennel-$(VERSION).lua
 	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
-	mv fennel.exe downloads/fennel-$(VERSION)-windows.exe
+	mv fennel.exe downloads/fennel-$(VERSION).exe
 	gpg -ab downloads/fennel-$(VERSION)
 	gpg -ab downloads/fennel-$(VERSION).lua
 	gpg -ab downloads/fennel-$(VERSION)-x86_64
-	gpg -ab downloads/fennel-$(VERSION)-windows.exe
+	gpg -ab downloads/fennel-$(VERSION).exe
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).lua
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-x86_64
-	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows.exe
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).exe
 	rsync -rtAv downloads/fennel-$(VERSION)* \
 		fenneler@fennel-lang.org:fennel-lang.org/downloads/
 

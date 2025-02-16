@@ -14,7 +14,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "fennel-api" "3" "2024-08-24" "fennel 1.5.1" "Fennel\[aq]s Lua API"
+.TH "fennel-api" "3" "2025-02-10" "fennel 1.5.2" "Fennel\[aq]s Lua API"
 .hy
 .SH NAME
 .PP
@@ -82,6 +82,10 @@ compile errors in
 \f[V]keywords\f[R]: a table of the form
 \f[V]{:keyword1 true :keyword2 true}\f[R] containing symbols that should
 be treated as reserved Lua keywords.
+.IP \[bu] 2
+\f[V]global-mangle\f[R]: whether to mangle globals in compiler output;
+set to \f[V]false\f[R] to turn global references that aren\[aq]t valid
+Lua into \f[V]_G[\[aq]hello-world\[aq]]\f[R].
 .PP
 You can pass the string \f[V]\[dq]_COMPILER\[dq]\f[R] as the value for
 \f[V]env\f[R]; it will cause the code to be run/compiled in a context
@@ -105,27 +109,42 @@ fennel.repl([options])
 .PP
 Takes these additional options:
 .IP \[bu] 2
-\f[V]readChunk()\f[R]: a function that when called, returns a string of
-source code.
-Should return nil when there is no more source, which will exit the
+\f[V]readChunk(state)\f[R]: a function that when called, returns a line
+of code to run.
+This can be an incomplete expression, in which case it will be called
+again until a complete expression can be constructed.
+The state argument is a table with a \f[V]stack-size\f[R] field which
+will be zero unless it\[aq]s reading a continuation of previous input.
+Strings returned should end in newlines.
+It should return nil when there is no more source, which will exit the
 repl.
 .IP \[bu] 2
-\f[V]pp\f[R]: a pretty-printer function to apply on values (default:
+\f[V]onValues(values)\f[R]: a function which is called for every
+evaluation with a sequence table containing string representations of
+each of the values resulting from the input.
+.IP \[bu] 2
+\f[V]onError(errType, err, luaSource)\f[R]: a function that will be
+called on each error.
+\f[V]errType\f[R] is a string with the type of error: \[aq]parse\[aq],
+\[aq]compile\[aq], \[aq]runtime\[aq], or \[aq]lua\[aq].
+\f[V]err\f[R] is the error message, and \f[V]luaSource\f[R] is the
+source of the generated lua code.
+.IP \[bu] 2
+\f[V]pp(x)\f[R]: a pretty-printer function to apply on values (default:
 \f[V]fennel.view\f[R]).
 .IP \[bu] 2
 \f[V]view-opts\f[R]: an options table passed to \f[V]pp\f[R] (default:
 \f[V]{:depth 4}\f[R]).
 .IP \[bu] 2
-\f[V]onValues(values)\f[R]: a function that will be called on all
-returned top level values.
-Takes a table of values.
-.IP \[bu] 2
-\f[V]onError(errType, err, luaSource)\f[R]: a function that will be
-called on each error.
-\f[V]errType\f[R] is a string with the type of error, can be either,
-\[aq]parse\[aq], \[aq]compile\[aq], \[aq]runtime\[aq], or \[aq]lua\[aq].
-\f[V]err\f[R] is the error message, and \f[V]luaSource\f[R] is the
-source of the generated lua code.
+\f[V]rawValues(...)\f[R]: a function which is passed the raw values from
+evaluation; like \f[V]onValues\f[R] but receives the underlying data
+rather than the string representation.
+.PP
+Note that overriding \f[V]readChunk\f[R]/\f[V]onValues\f[R] will only
+affect input and output initiated by the repl directly.
+If the repl runs code that calls \f[V]print\f[R], \f[V]io.write\f[R],
+\f[V]io.read\f[R], etc, those will still use stdio unless overridden in
+\f[V]env\f[R].
 .PP
 By default, metadata will be enabled and you can view function
 signatures and docstrings with the \f[V],doc\f[R] command in the REPL.
@@ -141,8 +160,9 @@ You can pass \f[V]fennel.repl.repl\f[R] instead.
 Any fields set on \f[V]fennel.repl\f[R], which is actually a table with
 a \f[V]__call\f[R] metamethod rather than a function, will used as a
 fallback for any options passed to \f[V](fennel.repl)\f[R] before
-defaults are applied, allowing one to customize the default behavior of
-\f[V](fennel.repl)\f[R]:
+defaults are applied, allowing one to
+.PP
+customize the default behavior of \f[V](fennel.repl)\f[R]:
 .IP
 .nf
 \f[CR]
@@ -308,10 +328,12 @@ local lua = fennel.compileString(fennelcode[, options])
 .PP
 Also aliased to \f[V]fennel.compile-string\f[R] for convenience calling
 from Fennel.
-.SH CONVERT TEXT INTO AST NODE(S)
+.SH PARSE TEXT INTO AST NODES
 .PP
-The \f[V]fennel.parser\f[R] function returns a stateful iterator
-function.
+The \f[V]fennel.parser\f[R] function returns a function which you can
+call repeatedly to get successive AST nodes from a string.
+This happens to be an iterator function, so you can use it with
+Lua\[aq]s \f[V]for\f[R] or Fennel\[aq]s \f[V]each\f[R].
 If a form was successfully read, it returns true followed by the AST
 node.
 Returns nil when it reaches the end.
@@ -523,7 +545,7 @@ when possible
 \f[V]utf8?\f[R] (default: true) whether to use utf8 module to compute
 string lengths
 .IP \[bu] 2
-\f[V]max-sparse-gap\f[R] (number, default: 10) maximum gap to fill in
+\f[V]max-sparse-gap\f[R] (number, default: 1) maximum gap to fill in
 with nils in sparse sequential tables before switching to curly
 brackets.
 .IP \[bu] 2

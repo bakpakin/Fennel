@@ -4,7 +4,7 @@ Fennel is a programming language that runs on the Lua runtime.
 
 ## Why Lua?
 
-The Lua programming language is an excellent and very underrated tool. Is it
+The Lua programming language is an excellent and very underrated tool. It is
 remarkably powerful yet keeps a very small footprint both conceptually as a
 language and in terms of the size of its implementation. (The reference
 implementation consists of about nineteen thousand lines of C and compiles to
@@ -22,7 +22,7 @@ boxes out of the control of the user.
 
 ## And yet...
 
-So if Lua is so great, why not just use Lua? In many cases you should!  But
+So if Lua is so great, why not just use Lua? In many cases you should! But
 there are a handful of shortcomings in Lua which over time have shown to be
 error-prone or unclear. Fennel runs on Lua, and the runtime semantics of
 Fennel are a subset of Lua's, but you can think of Fennel as an alternate

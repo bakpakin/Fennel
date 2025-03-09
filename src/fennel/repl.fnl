@@ -130,13 +130,15 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn reload [module-name env on-values on-error]
   ;; Sandbox the reload inside the limited environment, if present.
   (case (pcall (specials.load-code "return require(...)" env) module-name)
-    (true old) (let [_ (tset package.loaded module-name nil)
+    (true old) (let [old-macro-module (. specials.macro-loaded module-name)
+                     _ (tset specials.macro-loaded module-name nil)
+                     _ (tset package.loaded module-name nil)
                      new (case (pcall require module-name)
                            (true new) new
                            (_ msg) (do ; keep the old module if reload failed
                                      (on-error :Repl msg)
+                                     (tset specials.macro-loaded module-name old-macro-module)
                                      old))]
-                 (tset specials.macro-loaded module-name nil)
                  ;; if the module isn't a table then we can't make changes
                  ;; which affect already-loaded code, but if it is then we
                  ;; should splice new values into the existing table and

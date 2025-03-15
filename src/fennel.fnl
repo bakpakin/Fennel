@@ -174,18 +174,16 @@
 (set utils.fennel-module mod)
 
 (macro embed-src [filename]
-  `(eval-compiler (with-open [f# (assert (io.open ,filename))]
-                    (.. "[===[" (f#:read :*all) "]===]"))))
+  `(eval-compiler (when _G.io (with-open [f# (assert (_G.io.open ,filename))]
+                                (.. "[===[" (f#:read :*all) "]===]")))))
 
 (fn load-macros [src env]
-  (let [chunk (assert (specials.load-code src env :src/fennel/macros.fnl))]
-    (each [k v (pairs (chunk))]
+  (let [chunk (assert (specials.load-code src env))]
+    (each [k v (pairs (chunk utils specials.get-function-metadata))]
       (tset compiler.scopes.global.macros k v))))
 
 ;; Load the built-in macros from macros.fnl and match.fnl
 (let [env (specials.make-compiler-env nil compiler.scopes.compiler {})]
-  (set env.utils utils) ; for import-macros to propagate compile opts
-  (set env.get-function-metadata specials.get-function-metadata)
   (load-macros (embed-src "bootstrap/macros.lua") env)
   (load-macros (embed-src "bootstrap/match.lua") env))
 

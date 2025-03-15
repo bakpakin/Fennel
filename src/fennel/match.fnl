@@ -4,17 +4,17 @@
 ;; This is separated out so we can use the "core" macros during the
 ;; implementation of pattern matching.
 
-(fn copy [t] (collect [k v (pairs t)] k v))
+(local utils ...)
 
 (fn double-eval-safe? [x type]
   (or (= :number type) (= :string type) (= :boolean type)
       (and (sym? x) (not (multi-sym? x)))))
 
 (fn with [opts k]
-  (doto (copy opts) (tset k true)))
+  (doto (utils.copy opts) (tset k true)))
 
 (fn without [opts k]
-  (doto (copy opts) (tset k nil)))
+  (doto (utils.copy opts) (tset k nil)))
 
 (fn case-values [vals pattern unifications case-pattern opts]
   (let [condition `(and)

@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
   `(do
      (local bundle# ...)
      (fn loader# [name#]
-       (match (or (. bundle# name#) (. bundle# (.. name# :.init)))
+       (case (or (. bundle# name#) (. bundle# (.. name# :.init)))
          (mod# ? (= :function (type mod#))) mod#
          (mod# ? (= :string (type mod#))) (assert (if (= _VERSION "Lua 5.1")
                                                       (loadstring mod# name#)

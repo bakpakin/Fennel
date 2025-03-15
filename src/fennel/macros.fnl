@@ -3,6 +3,9 @@
 ;; These macros are awkward because their definition cannot rely on the any
 ;; built-in macros, only special forms. (no when, no icollect, etc)
 
+;; we get a few non-standard helpers from the compiler
+(local (utils get-function-metadata) ...)
+
 (fn copy [t]
   (let [out []]
     (each [_ v (ipairs t)] (table.insert out v))
@@ -113,8 +116,8 @@ encountering an error before propagating it."
        ,closer
        (close-handlers# (_G.xpcall ,bodyfn ,traceback)))))
 
-(fn extract-into [iter-tbl]
-  (var (into iter-out found?) (values [] (copy iter-tbl)))
+(fn extract-into [iter-tbl iter-out]
+  (var (into found?) [])
   (for [i (length iter-tbl) 2 -1]
     (let [item (. iter-tbl i)]
       (if (or (sym? item "&into") (= :into item))
@@ -126,7 +129,7 @@ encountering an error before propagating it."
             (table.remove iter-out i)))))
   (assert (or (not found?) (sym? into) (table? into) (list? into))
           "expected table, function call, or symbol in &into clause")
-  (values into iter-out found?))
+  (values (and found? into) iter-out))
 
 (fn collect* [iter-tbl key-expr value-expr ...]
   "Return a table made by running an iterator and evaluating an expression that
@@ -149,9 +152,9 @@ Supports early termination with an &until clause."
           "expected 1 or 2 body expressions; wrap multiple expressions with do")
   (assert (or value-expr (list? key-expr)) "need key and value")
   (let [kv-expr (if (= nil value-expr) key-expr `(values ,key-expr ,value-expr))
-        (into iter) (extract-into iter-tbl)]
-    `(let [tbl# ,into]
-       (each ,iter
+        (into intoless-iter) (extract-into iter-tbl (copy iter-tbl))]
+    `(let [tbl# ,(or into [])]
+       (each ,intoless-iter
          (let [(k# v#) ,kv-expr]
            (if (and (not= k# nil) (not= v# nil))
              (tset tbl# k# v#))))
@@ -165,18 +168,18 @@ of the generated code is identical."
   (assert (not= nil value-expr) "expected table value expression")
   (assert (= nil ...)
           "expected exactly one body expression. Wrap multiple expressions in do")
-  (let [(into iter has-into?) (extract-into iter-tbl)]
-    (if has-into?
+  (let [(into intoless-iter) (extract-into iter-tbl (copy iter-tbl))]
+    (if into
         `(let [tbl# ,into]
-           (,how ,iter (let [val# ,value-expr]
-                         (table.insert tbl# val#)))
+           (,how ,intoless-iter (let [val# ,value-expr]
+                                  (table.insert tbl# val#)))
            tbl#)
         ;; believe it or not, using a var here has a pretty good performance
         ;; boost: https://p.hagelb.org/icollect-performance.html
         ;; but it doesn't always work with &into clauses, so skip if that's used
         `(let [tbl# []]
            (var i# 0)
-           (,how ,iter
+           (,how ,iter-tbl
                  (let [val# ,value-expr]
                    (when (not= nil val#)
                      (set i# (+ i# 1))

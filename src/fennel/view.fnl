@@ -17,7 +17,7 @@
                      :utf8? true
                      :line-length 80
                      :depth 128
-                     :max-sparse-gap 10})
+                     :max-sparse-gap 1})
 
 ;; Pairs, ipairs and length functions that respect metamethods
 
@@ -25,22 +25,22 @@
 (local lua-ipairs ipairs)
 
 (fn pairs [t]
-  (match (getmetatable t)
+  (case (getmetatable t)
     {:__pairs p} (p t)
     _ (lua-pairs t)))
 
 (fn ipairs [t]
-  (match (getmetatable t)
+  (case (getmetatable t)
     {:__ipairs i} (i t)
     _ (lua-ipairs t)))
 
 (fn length* [t]
-  (match (getmetatable t)
+  (case (getmetatable t)
     {:__len l} (l t)
     _ (length t)))
 
 (fn get-default [key]
-  (match (. default-opts key)
+  (case (. default-opts key)
     nil (error (: "option '%s' doesn't have a default value, use the :after key to set it"
                   :format (tostring key)))
     v v))
@@ -103,12 +103,15 @@
   ;; either sequential or associative.
   ;; [:a :b :c] => [[1 :a] [2 :b] [3 :c]]
   ;; {:a 1 :b 2} => [[:a 1] [:b 2]]
+  (if (or (not= :number (type options.max-sparse-gap))
+          (not= options.max-sparse-gap (math.floor options.max-sparse-gap)))
+      (error (: "max-sparse-gap must be an integer: got '%s'" :format
+                (tostring options.max-sparse-gap))))
   (var assoc? false)
   (let [kv []
         insert table.insert]
     (each [k v (pairs t)]
-      (when (or (not= (type k) :number)
-                (< k 1))
+      (when (or (not= :number (type k)) (< k 1) (not= k (math.floor k)))
         (set assoc? true))
       (insert kv [k v]))
     (table.sort kv sort-keys)
@@ -263,7 +266,7 @@
               (metamethod t pp options indent))]
         (set options.visible-cycle? nil)
         ;; TODO: assuming that a string result is already a single line
-        (match (type lines)
+        (case (type lines)
           :string lines
           :table (concat-lines lines options indent force-multi-line?)
           _ (error "__fennelview metamethod must return a table of lines")))))
@@ -273,20 +276,43 @@
   ;; sequential tables, as well as tables, that contain __fennelview
   ;; metamethod.
   (set options.level (+ options.level 1))
-  (let [x (match (if (getopt options :metamethod?) (-?> x getmetatable (. :__fennelview)))
+  (let [x (case (if (getopt options :metamethod?) (-?> x getmetatable (. :__fennelview)))
             metamethod (pp-metamethod x metamethod options indent)
-            _ (match (table-kv-pairs x options)
+            _ (case (table-kv-pairs x options)
                 (_ :empty) (if (getopt options :empty-as-sequence?) "[]" "{}")
                 (kv :table) (pp-associative x kv options indent)
                 (kv :seq) (pp-sequence x kv options indent)))]
     (set options.level (- options.level 1))
     x))
 
-(fn number->string [n]
-  ;; Transform number to a string without depending on correct `os.locale`
-  (pick-values 1 (-> n
-                     tostring
-                     (string.gsub "," "."))))
+;; sadly luajit tostring is imprecise https://todo.sr.ht/~technomancy/fennel/231
+(fn exponential-notation [n fallback]
+  (faccumulate [s nil i 0 99 :until s]
+    (let [s (string.format (.. "%." i "e") n)]
+      (when (= n (tonumber s))
+        (let [exp (s:match "e%+?(%d+)$")]
+          ;; Lua keeps numbers in standard notation up to e+14
+          (if (and exp (< 14 (tonumber exp)))
+              s
+              fallback))))))
+
+(local inf-str (tostring (/ 1 0)))
+(local neg-inf-str (tostring (/ -1 0)))
+
+(fn number->string [n options]
+  (let [val (if (not= n n)
+                (if (= 45 (string.byte (tostring n))) ; -
+                    (or options.negative-nan "-.nan")
+                    (or options.nan ".nan"))
+                (= (math.floor n) n)
+                (let [s1 (string.format "%.0f" n)]
+                  (if (= s1 inf-str) (or options.infinity ".inf")
+                      (= s1 neg-inf-str) (or options.negative-infinity "-.inf")
+                      (= s1 (tostring n)) s1 ; no precision loss
+                      (or (exponential-notation n s1) s1)))
+                (tostring n))]
+    ;; Transform number to a string without depending on correct `os.locale`
+    (pick-values 1 (string.gsub val "," "."))))
 
 (fn colon-string? [s]
   ;; Test if given string is valid colon string.
@@ -398,7 +424,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                          (case (getmetatable x) {: __fennelview} __fennelview)))
                 (pp-table x options indent)
                 (= tv :number)
-                (number->string x)
+                (number->string x options)
                 (and (= tv :string) (colon-string? x)
                      (if (not= colon? nil) colon?
                          (= :function (type options.prefer-colon?)) (options.prefer-colon? x)
@@ -413,7 +439,8 @@ as numeric escapes rather than letter-based escapes, which is ugly."
 (fn _view [x ?options]
   "Return a string representation of x.
 
-Can take an options table with these keys:
+Can take an options table with the following keys:
+
 * :one-line? (default: false) keep the output string as a one-liner
 * :depth (number, default: 128) limit how many levels to go (default: 128)
 * :detect-cycles? (default: true) don't try to traverse a looping table
@@ -423,17 +450,18 @@ Can take an options table with these keys:
   multi-line output for tables is forced
 * :escape-newlines? (default: false) emit strings with \\n instead of newline
 * :prefer-colon? (default: false) emit strings in colon notation when possible
-* :utf8? (default: true) whether to use utf8 module to compute string lengths
-* :max-sparse-gap (integer, default 10) maximum gap to fill in with nils in
-  sparse sequential tables.
+* :utf8? (default: true) whether to use the utf8 module to compute string lengths
+* :max-sparse-gap: maximum gap to fill in with nils in sparse sequential tables
 * :preprocess (function) if present, called on x (and recursively on each value
   in x), and the result is used for pretty printing; takes the same arguments as
   `fennel.view`
+* :infinity, :negative-infinity - how to serialize infinity and negative infinity
+* :nan, :negative-nan - how to serialize NaN and negative NaN values
 
 All options can be set to `{:once some-value}` to force their value to be
-`some-value` but only for the current level. After that, such option is reset
+`some-value` but only for the current level.  After that, the option is reset
 to its default value.  Alternatively, `{:once value :after other-value}` can
-be used, with the difference that after first use, the options will be set to
+be used, with the difference that after the first use, the options will be set to
 `other-value` instead of the default value.
 
 You can set a `__fennelview` metamethod on a table to override its serialization

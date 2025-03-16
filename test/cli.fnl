@@ -7,7 +7,7 @@
 
 (local test-all? (os.getenv :FNL_TESTALL)) ; set by `make testall`
 
-(local host-lua (let [long (match _VERSION
+(local host-lua (let [long (case _VERSION
                              "Lua 5.1" (if _G.jit :luajit :lua5.1)
                              _ (.. :lua (_VERSION:sub 5)))
                       p (io.popen (.. long " -v"))]
@@ -20,11 +20,14 @@
   (let [f (io.open filename)]
     (when f (f:close) true)))
 
-(λ peval [code ...]
-  (let [cmd [(string.format "%s fennel --eval %q" host-lua code) ...]
+(λ sh/esc [str] (.. "'" (str:gsub "'" "'\\''") "'"))
+(λ fennel-cli [...]
+  (let [cmd [host-lua :fennel ...]
         proc (io.popen (table.concat cmd " "))
         output (: (proc:read :*a) :gsub "\n$" "")]
     (values (proc:close) output))) ; proc:close gives exit status on 5.2+
+
+(λ peval [code ...] (fennel-cli :--eval (sh/esc code) ...))
 
 (fn test-cli []
   ;; skip this if we haven't compiled the CLI or on Windows
@@ -44,7 +47,7 @@
                     [:lua5.1 :lua5.2 :lua5.3 :lua5.4 :luajit])
           run #(pick-values 2 (peval $ (: "--lua %q" :format lua-exec)))]
       (t.= [true lua-exec]
-           [(run (v (match (_VERSION:sub 5)
+           [(run (v (case (_VERSION:sub 5)
                       :5.1 (if _G.jit :luajit :lua5.1)
                       v-num (.. :lua v-num))))]
            (.. "should execute code in Lua runtime: " lua-exec))
@@ -56,10 +59,18 @@
              (.. "errors should cause failing exit status with --lua "
                  lua-exec))))))
 
+(fn test-lua-plugin []
+  (let [lua-plug :test/plugin/lua-plugin.lua]
+    (t.= [true :s]
+         [(fennel-cli :--plugin lua-plug
+                      :-e (sh/esc (v (let [s 1] (is-in-scope s)))))]
+         "lua plugins should be loaded with full compiler env")))
+
 (fn test-args []
   (when (and test-all? (file-exists? "fennel"))
     (t.= [true "-l"] [(peval  "(. arg 3)" "-l")])))
 
 {: test-cli
  : test-lua-flag
+ : test-lua-plugin
  : test-args}

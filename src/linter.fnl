@@ -1,3 +1,4 @@
+;; fennel-ls: macro-file
 ;; This file is provided as an example of Fennel's plugin API; it is
 ;; not part of Fennel's public API. If you want a real linter, use
 ;; fennel-ls.

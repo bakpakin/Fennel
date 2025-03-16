@@ -4,7 +4,7 @@
 ;; preserved in between "chunks"; by default Lua throws away all locals after
 ;; evaluating each piece of input.
 
-(local utils (require :fennel.utils))
+(local {: copy &as utils} (require :fennel.utils))
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))
 (local specials (require :fennel.specials))
@@ -20,8 +20,8 @@
 (fn default-read-chunk [parser-state]
   (io.write (prompt-for (= 0 parser-state.stack-size)))
   (io.flush)
-  (let [input (io.read)]
-    (and input (.. input "\n"))))
+  (case (io.read)
+    input (.. input "\n")))
 
 (fn default-on-values [xs]
   (io.write (table.concat xs "\t"))
@@ -130,13 +130,15 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn reload [module-name env on-values on-error]
   ;; Sandbox the reload inside the limited environment, if present.
   (case (pcall (specials.load-code "return require(...)" env) module-name)
-    (true old) (let [_ (tset package.loaded module-name nil)
+    (true old) (let [old-macro-module (. specials.macro-loaded module-name)
+                     _ (tset specials.macro-loaded module-name nil)
+                     _ (tset package.loaded module-name nil)
                      new (case (pcall require module-name)
                            (true new) new
                            (_ msg) (do ; keep the old module if reload failed
                                      (on-error :Repl msg)
+                                     (tset specials.macro-loaded module-name old-macro-module)
                                      old))]
-                 (tset specials.macro-loaded module-name nil)
                  ;; if the module isn't a table then we can't make changes
                  ;; which affect already-loaded code, but if it is then we
                  ;; should splice new values into the existing table and
@@ -322,9 +324,8 @@ For more information about the language, see https://fennel-lang.org/reference")
     (readline.set_options {:keeplines 1000 :histfile ""})
 
     (fn opts.readChunk [parser-state]
-      (let [prompt (if (< 0 parser-state.stack-size) ".. " ">> ")
-            str (readline.readline prompt)]
-        (if str (.. str "\n"))))
+      (case (readline.readline (prompt-for (= 0 parser-state.stack-size)))
+        input (.. input "\n")))
 
     (var completer nil)
 
@@ -347,7 +348,7 @@ For more information about the language, see https://fennel-lang.org/reference")
 
 (fn repl [?options]
   (let [old-root-options utils.root.options
-        {:fennelrc ?fennelrc &as opts} (utils.copy ?options)
+        {:fennelrc ?fennelrc &as opts} (copy ?options)
         _ (set opts.fennelrc nil)
         readline (and (should-use-readline? opts)
                       (try-readline! opts (pcall require :readline)))
@@ -447,6 +448,11 @@ For more information about the language, see https://fennel-lang.org/reference")
       (when opts.exit (opts.exit opts depth))
       value)))
 
-(setmetatable {} {:__call (fn [overrides ?opts]
-                            (repl (utils.copy ?opts (utils.copy overrides))))
-                  :__index {: repl}})
+(local repl-mt {:__index {: repl}})
+(fn repl-mt.__call [{: view-opts &as overrides} ?opts]
+  (let [opts (copy ?opts  (copy overrides))]
+    (set opts.view-opts (copy (?. ?opts :view-opts) (copy view-opts)))
+    (repl opts)))
+;; Setting empty view-opts allows easy `(set ___repl___.view-opts.foo)`
+;; without error or accidentally removing other options
+(setmetatable {:view-opts {}} repl-mt)

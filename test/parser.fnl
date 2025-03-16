@@ -11,21 +11,38 @@
     (t.= expected parsed msg)))
 
 (fn test-basics []
-  (let [cases {"\"\\\\\"" "\\"
-               "\"abc\n\\240\"" "abc\n\240"
-               "\"abc\\\"def\"" "abc\"def"
-               "\"abc\\240\"" "abc\240"
-               :150_000 150000
-               "\"\n5.2\"" "\n5.2"
-               ;; leading underscores aren't numbers
-               "(let [_0 :zero] _0)" "zero"
-               ;; backslash+newline becomes just a newline like Lua
-               "\"foo\\\nbar\"" "foo\nbar"}
-        (amp-ok? amp) ((fennel.parser (fennel.string-stream "&abc ")))]
-    (each [code expected (pairs cases)]
-      (t.= (fennel.eval code) expected code))
-    (t.is amp-ok?)
-    (t.= "&abc" (tostring amp))))
+  (t.= "\\" (fennel.eval "\"\\\\\""))
+  (t.= "abc\n\240" (fennel.eval "\"abc\n\\240\""))
+  (t.= "abc\"def" (fennel.eval "\"abc\\\"def\""))
+  (t.= "abc\240" (fennel.eval "\"abc\\240\""))
+  (t.= 150000 (fennel.eval "150_000"))
+  (t.= "\n5.2" (fennel.eval "\"\n5.2\""))
+  (t.= "zero" (fennel.eval "(let [_0 :zero] _0)")
+       "leading underscore should be symbol, not number")
+  (t.= "foo\nbar" (fennel.eval "\"foo\\\nbar\"")
+       "backslash+newline should be just a newline like Lua")
+  (t.= [true (fennel.sym "&abc")]
+       [((fennel.parser (fennel.string-stream "&abc ")))]))
+
+(fn test-spicy-numbers []
+  (t.= "141791343654238"
+       (fennel.view (fennel.eval "141791343654238")))
+  (t.= "141791343654238"
+       (fennel.view (fennel.eval "1.41791343654238e+14")))
+  (t.= "14179134365.125"
+       (fennel.view (fennel.eval "14179134365.125")))
+  (t.match "1%.41791343654238e%+0?15"
+           (fennel.view (fennel.eval "1.41791343654238e+15")))
+  (t.match "2%.3456789012e%+0?76"
+           (fennel.view (fennel.eval (.. "23456789012" (string.rep "0" 66)))))
+  (t.match "1%.23456789e%-0?13"
+           (fennel.view (fennel.eval "1.23456789e-13")))
+  (t.= ".inf" (fennel.view (fennel.eval "1e+999999")))
+  (t.= "-.inf" (fennel.view (fennel.eval "-1e+999999")))
+  (t.= "nan" (tostring (fennel.eval ".nan")))
+  ;; ensure we consistently treat nan as symbol even on 5.1
+  (t.= :not-really (fennel.eval "(let [nan :not-really] nan)"))
+  (t.= :nah (fennel.eval "(let [-nan :nah] -nan)")))
 
 (fn test-escapes []
   (parse= " " "\"\\032\"")
@@ -147,12 +164,13 @@
   (var parse-error-called nil)
   (let [code "(there is a parse error here (((("
         plugin {:versions [(fennel.version:gsub "-dev" "")]
-                :parse-error (fn [] (set parse-error-called true))}
-        ok? (pcall (fennel.parser code "" {:plugins [plugin]}))]
-    (t.is (not ok?) "parse error is expected")
+                :parse-error #(set parse-error-called true)}]
+    (t.is (not (pcall (fennel.parser code "" {:plugins [plugin]})))
+          "parse error is expected")
     (t.is parse-error-called "plugin wasn't called")))
 
 {: test-basics
+ : test-spicy-numbers
  : test-control-codes
  : test-comments
  : test-prefixes

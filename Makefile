@@ -16,6 +16,8 @@ LIB_SRC=$(CORE_SRC) src/fennel/friend.fnl src/fennel/view.fnl src/fennel/repl.fn
 
 SRC=$(LIB_SRC) src/launcher.fnl src/fennel/binary.fnl
 
+PRECOMPILED=bootstrap/view.lua bootstrap/macros.lua bootstrap/match.lua
+
 MAN_PANDOC = pandoc -f gfm -t man -s --lua-filter=build/manfilter.lua \
 	     --metadata author="Fennel Maintainers" \
 	     --variable footer="fennel $(shell ./fennel -e '(. (require :fennel) :version)')"
@@ -45,7 +47,7 @@ count: ; cloc $(CORE_SRC); cloc $(LIB_SRC) ; cloc $(SRC)
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 
 # All-in-one pure-lua script:
-fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
+fennel: src/launcher.fnl $(SRC) $(PRECOMPILED)
 	@echo "#!/usr/bin/env $(LUA)" > $@
 	@echo "-- SPDX-License-Identifier: MIT" >> $@
 	@echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
@@ -53,25 +55,27 @@ fennel: src/launcher.fnl $(SRC) bootstrap/view.lua
 	@chmod 755 $@
 
 # Library file
-fennel.lua: $(SRC) bootstrap/aot.lua bootstrap/view.lua
+fennel.lua: $(SRC) bootstrap/aot.lua $(PRECOMPILED)
 	@echo "-- SPDX-License-Identifier: MIT" > $@
 	@echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< --require-as-include >> $@
 
+bootstrap/macros.lua: src/fennel/macros.fnl; $(LUA) bootstrap/aot.lua $< --macro > $@
+bootstrap/match.lua: src/fennel/match.fnl; $(LUA) bootstrap/aot.lua $< --macro > $@
 bootstrap/view.lua: src/fennel/view.fnl
 	FENNEL_PATH=src/?.fnl $(LUA) bootstrap/aot.lua $< > $@
 
 test/faith.lua: test/faith.fnl
 	$(LUA) bootstrap/aot.lua $< > $@
 
-check:
-	fennel-ls --check $(SRC)
+lint:
+	fennel-ls --lint $(SRC)
 
 ci: testall fuzz fennel
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel.exe \
-		*_binary.c luacov.* bootstrap/view.lua \
+		*_binary.c luacov.* $(PRECOMPILED) \
 		test/faith.lua build/manfilter.lua fennel-bin-luajit
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
 	$(MAKE) -C $(BIN_LUAJIT_DIR) clean || true # this dir might not exist
@@ -83,8 +87,8 @@ coverage: fennel
 
 ## Binaries
 
-BIN_LUA_DIR ?= $(PWD)/lua
-BIN_LUAJIT_DIR ?= $(PWD)/luajit
+BIN_LUA_DIR ?= lua
+BIN_LUAJIT_DIR ?= luajit
 NATIVE_LUA_LIB ?= $(BIN_LUA_DIR)/src/liblua.a
 NATIVE_LUAJIT_LIB ?= $(BIN_LUAJIT_DIR)/src/libluajit.a
 LUA_INCLUDE_DIR ?= $(BIN_LUA_DIR)/src
@@ -93,8 +97,8 @@ LUAJIT_INCLUDE_DIR ?= $(BIN_LUAJIT_DIR)/src
 COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl CC_OPTS=-static
 LUAJIT_COMPILE_ARGS=FENNEL_PATH=src/?.fnl FENNEL_MACRO_PATH=src/?.fnl
 
-$(BIN_LUA_DIR): ; git submodule update --init
-$(BIN_LUAJIT_DIR): ; git submodule update --init
+$(LUA_INCLUDE_DIR): ; git submodule update --init
+$(LUAJIT_INCLUDE_DIR): ; git submodule update --init
 
 # Native binary for whatever platform you're currently on
 fennel-bin: src/launcher.fnl $(BIN_LUA_DIR)/src/lua $(NATIVE_LUA_LIB) fennel
@@ -107,19 +111,19 @@ fennel-bin-luajit: src/launcher.fnl $(NATIVE_LUAJIT_LIB) fennel
 		--no-compiler-sandbox --compile-binary \
 		$< $@ $(NATIVE_LUAJIT_LIB) $(LUAJIT_INCLUDE_DIR)
 
-$(BIN_LUA_DIR)/src/lua: ; make -C $(BIN_LUA_DIR)
-$(NATIVE_LUA_LIB): $(BIN_LUA_DIR) ; $(MAKE) -C $(BIN_LUA_DIR)/src liblua.a
-$(NATIVE_LUAJIT_LIB): $(BIN_LUAJIT_DIR)
+$(BIN_LUA_DIR)/src/lua: $(LUA_INCLUDE_DIR) ; make -C $(BIN_LUA_DIR)
+$(NATIVE_LUA_LIB): $(LUA_INCLUDE_DIR) ; $(MAKE) -C $(BIN_LUA_DIR)/src liblua.a
+$(NATIVE_LUAJIT_LIB): $(LUAJIT_INCLUDE_DIR)
 	$(MAKE) -C $(BIN_LUAJIT_DIR) BUILDMODE=static
 
 fennel.exe: src/launcher.fnl fennel $(LUA_INCLUDE_DIR)/liblua-mingw.a
-	$(COMPILE_ARGS) CC=i686-w64-mingw32-gcc ./fennel --no-compiler-sandbox \
+	$(COMPILE_ARGS) ./fennel --no-compiler-sandbox \
 		--compile-binary $< fennel-bin \
 		$(LUA_INCLUDE_DIR)/liblua-mingw.a $(LUA_INCLUDE_DIR)
 	mv fennel-bin.exe $@
 
-$(BIN_LUA_DIR)/src/liblua-mingw.a: $(BIN_LUA_DIR)
-	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=i686-w64-mingw32-gcc
+$(BIN_LUA_DIR)/src/liblua-mingw.a: $(LUA_INCLUDE_DIR)
+	$(MAKE) -C $(BIN_LUA_DIR)/src clean mingw CC=x86_64-w64-mingw32-gcc
 	mv $(BIN_LUA_DIR)/src/liblua.a $@
 	$(MAKE) -C $(BIN_LUA_DIR)/src clean
 
@@ -150,9 +154,15 @@ build/manfilter.lua: build/manfilter.fnl fennel.lua fennel
 
 man: $(dir $(MAN_DOCS)) $(MAN_DOCS)
 man/man%/: ; mkdir -p $@
-man/man3/fennel-%.3: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
-man/man5/fennel-%.5: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
-man/man7/fennel-%.7: %.md build/manfilter.lua ; $(MAN_PANDOC) $< -o $@
+man/man3/fennel-%.3: %.md build/manfilter.lua
+	$(MAN_PANDOC) $< -o $@
+	sed -i 's/\\f\[C\]/\\f[CR]/g' $@ # work around pandoc 2.x bug
+man/man5/fennel-%.5: %.md build/manfilter.lua
+	$(MAN_PANDOC) $< -o $@
+	sed -i 's/\\f\[C\]/\\f[CR]/g' $@
+man/man7/fennel-%.7: %.md build/manfilter.lua
+	$(MAN_PANDOC) $< -o $@
+	sed -i 's/\\f\[C\]/\\f[CR]/g' $@
 
 ## Release-related tasks:
 
@@ -162,20 +172,21 @@ test-builds: fennel test/faith.lua
 	./fennel --metadata --eval "(require :test.init)"
 	$(MAKE) install PREFIX=/tmp/opt
 
-upload: fennel fennel.lua fennel-bin fennel.exe
+upload: fennel fennel.lua fennel-bin
+	$(MAKE) fennel.exe CC=x86_64-w64-mingw32-gcc
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)
 	mv fennel.lua downloads/fennel-$(VERSION).lua
 	mv fennel-bin downloads/fennel-$(VERSION)-x86_64
-	mv fennel.exe downloads/fennel-$(VERSION)-windows32.exe
+	mv fennel.exe downloads/fennel-$(VERSION).exe
 	gpg -ab downloads/fennel-$(VERSION)
 	gpg -ab downloads/fennel-$(VERSION).lua
 	gpg -ab downloads/fennel-$(VERSION)-x86_64
-	gpg -ab downloads/fennel-$(VERSION)-windows32.exe
+	gpg -ab downloads/fennel-$(VERSION).exe
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).lua
 	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-x86_64
-	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION)-windows32.exe
+	ssh-keygen -Y sign -f $(SSH_KEY) -n file downloads/fennel-$(VERSION).exe
 	rsync -rtAv downloads/fennel-$(VERSION)* \
 		fenneler@fennel-lang.org:fennel-lang.org/downloads/
 
@@ -204,7 +215,7 @@ guard-%:
 	fi
 
 .PHONY: build test testall fuzz count format ci clean coverage install \
-	man upload prerelease release guard-VERSION test-builds
+	man upload prerelease release guard-VERSION test-builds lint
 
 # Steps to release a new Fennel version
 
@@ -214,6 +225,7 @@ guard-%:
 # 1. Check for changes which need to be mentioned in help text or man page
 # 2. Date `changelog.md` and update download links in `setup.md`
 # 3. Run `make prerelease VERSION=$VERSION`
-# 4. Run `make release VERSION=$VERSION`
-# 5. Update fennel submodule in fennel-lang.org and make upload there
-# 6. Announce on the mailing list
+# 4. Update fennel-lang.org's fennel submodule and `make html` there
+# 5. Run `make release VERSION=$VERSION`
+# 6. Run `make upload` in fennel-lang.org.
+# 7. Announce on the mailing list

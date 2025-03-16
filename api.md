@@ -18,7 +18,8 @@ usually accept these fields:
   current environment.
 * `correlate`: when this is set, Fennel attempts to emit Lua where the line
   numbers match up with the Fennel input code; useful for situation where code
-  that isn't under your control will print the stack traces.
+  that isn't under your control will print the stack traces. This is meant
+  as a debugging aid and cannot give exact numbers in all cases.
 * `useMetadata`: enables or disables [metadata](#work-with-docstrings-and-metadata),
   allowing use of the `,doc` repl command. Intended for development purposes
   (see [performance note](#metadata-performance-note)); defaults to
@@ -41,6 +42,8 @@ usually accept these fields:
 * `error-pinpoint`: a list of two strings indicating what to wrap compile errors in
 * `keywords`: a table of the form `{:keyword1 true :keyword2 true}` containing
   symbols that should be treated as reserved Lua keywords.
+* `global-mangle`: whether to mangle globals in compiler output; set to `false`
+  to turn global references that aren't valid Lua into `_G['hello-world']`.
 
 You can pass the string `"_COMPILER"` as the value for `env`; it will
 cause the code to be run/compiled in a context which has all
@@ -63,16 +66,29 @@ fennel.repl([options])
 
 Takes these additional options:
 
-* `readChunk()`: a function that when called, returns a string of source code.
-  Should return nil when there is no more source, which will exit the repl.
-* `pp`: a pretty-printer function to apply on values (default: `fennel.view`).
-* `view-opts`: an options table passed to `pp` (default: `{:depth 4}`).
-* `onValues(values)`: a function that will be called on all returned
-  top level values. Takes a table of values.
+* `readChunk(state)`: a function that when called, returns a line of code to
+  run. This can be an incomplete expression, in which case it will be called
+  again until a complete expression can be constructed. The state argument is
+  a table with a `stack-size` field which will be zero unless it's reading a
+  continuation of previous input. Strings returned should end in newlines. It
+  should return nil when there is no more source, which will exit the repl.
+* `onValues(values)`: a function which is called for every evaluation with a
+  sequence table containing string representations of each of the values
+  resulting from the input.
 * `onError(errType, err, luaSource)`: a function that will be called on each
-  error. `errType` is a string with the type of error, can be either, 'parse',
-  'compile', 'runtime',  or 'lua'. `err` is the error message, and `luaSource`
-  is the source of the generated lua code.
+  error. `errType` is a string with the type of error: 'parse', 'compile',
+  'runtime', or 'lua'. `err` is the error message, and `luaSource` is the
+  source of the generated lua code.
+* `pp(x)`: a pretty-printer function to apply on values (default: `fennel.view`).
+* `view-opts`: an options table passed to `pp` (default: `{:depth 4}`).
+* `rawValues(...)`: a function which is passed the raw values from
+  evaluation; like `onValues` but receives the underlying data rather than
+  the string representation.
+
+Note that overriding `readChunk`/`onValues` will only affect input and output
+initiated by the repl directly. If the repl runs code that calls `print`,
+`io.write`, `io.read`, etc, those will still use stdio unless overridden in
+`env`.
 
 By default, metadata will be enabled and you can view function signatures and
 docstrings with the `,doc` command in the REPL.
@@ -87,6 +103,7 @@ includes `coroutine.create`. You can pass `fennel.repl.repl` instead.
 Any fields set on `fennel.repl`, which is actually a table with a `__call`
 metamethod rather than a function, will used as a fallback for any options
 passed to `(fennel.repl)` before defaults are applied, allowing one to
+
 customize the default behavior of `(fennel.repl)`:
 
 ```lua
@@ -228,12 +245,14 @@ local lua = fennel.compileString(fennelcode[, options])
 
 Also aliased to `fennel.compile-string` for convenience calling from Fennel.
 
-## Convert text into AST node(s)
+## Parse text into AST nodes
 
-The `fennel.parser` function returns a stateful iterator function.
-If a form was successfully read, it returns true followed by the AST node.
-Returns nil when it reaches the end. Raises an error if it can't parse
-the input.
+The `fennel.parser` function returns a function which you can call
+repeatedly to get successive AST nodes from a string. This happens to
+be an iterator function, so you can use it with Lua's `for` or
+Fennel's `each`. If a form was successfully read, it returns true
+followed by the AST node.  Returns nil when it reaches the end. Raises
+an error if it can't parse the input.
 
 ```lua
 local parse = fennel.parser(text)
@@ -403,7 +422,7 @@ characters in decimal format (e.g. `<ESC>` -> `\027`). Called with the signature
 * `escape-newlines?` (default: false) emit strings with \\n instead of newline
 * `prefer-colon?` (default: false) emit strings in colon notation when possible
 * `utf8?` (default: true) whether to use utf8 module to compute string lengths
-* `max-sparse-gap` (number, default: 10) maximum gap to fill in with nils in
+* `max-sparse-gap` (number, default: 1) maximum gap to fill in with nils in
   sparse sequential tables before switching to curly brackets.
 * `preprocess` (function) if present, called on x (and recursively on each value
   in x), and the result is used for pretty printing; takes the same arguments as

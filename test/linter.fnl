@@ -22,7 +22,6 @@ https://todo.sr.ht/~technomancy/fennel/12"
     (t.is (not ok?))))
 
 (fn test-var-never-set []
-  (set _G.dbg true)
   (t.is (not (pcall fennel.compile-string "(var x 1) (+ x 9)" options)))
   (t.is (pcall fennel.compile-string "(var x 1) (set x 9)" options)))
 

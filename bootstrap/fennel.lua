@@ -23,8 +23,14 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 -- Changelog: (since 0.4.3)
 
+-- * set _G in compiler env
+-- * backport magic :_COMPILER scope option
+-- * replace global mangling with _G["whatever?"] <- backwards incompatibility!
 -- * backport idempotency checks in 3+ arity operator calls
-
+-- * backport some IIFE avoidance
+-- * add workaround for luajit bug
+-- * add support for &until in addition to :until in loops
+-- * fix setReset to not accidentally set a global
 
 -- Make global variables local.
 local setmetatable = setmetatable
@@ -329,16 +335,16 @@ local utils = (function()
         -- have dynamic scope, so we fake it by ensuring we call this at every
         -- exit point, including errors.
         reset=function() end,
-
-        setReset=function(root)
-            local chunk, scope, options = root.chunk, root.scope, root.options
-            local oldResetRoot = root.reset -- this needs to nest!
-            root.reset = function()
-                root.chunk, root.scope, root.options = chunk, scope, options
-                root.reset = oldResetRoot
-            end
-        end,
     }
+
+    root.setReset=function(root)
+       local chunk, scope, options = root.chunk, root.scope, root.options
+       local oldResetRoot = root.reset -- this needs to nest!
+       root.reset = function()
+          root.chunk, root.scope, root.options = chunk, scope, options
+          root.reset = oldResetRoot
+       end
+    end
 
     return {
         -- basic general table functions:
@@ -643,7 +649,7 @@ local parser = (function()
                                 parseError('could not read number "' .. rawstr .. '"')
                         else
                             x = tonumber(numberWithStrippedUnderscores)
-                            if not x then
+                            if (x == nil) or (rawstr == "nan") then
                                 if(rawstr:match("%.[0-9]")) then
                                     byteindex = (byteindex - #rawstr +
                                                      rawstr:find("%.[0-9]") + 1)
@@ -782,10 +788,7 @@ local compiler = (function()
         if utils.isValidLuaIdentifier(str) then
             return str
         end
-        -- Use underscore as escape character
-        return '__fnl_global__' .. str:gsub('[^%w]', function (c)
-            return ('_%02x'):format(c:byte())
-        end)
+        return ("_G[%q]"):format(str)
     end
 
     -- Reverse a global mangling. Takes a Lua identifier and
@@ -1510,6 +1513,7 @@ local compiler = (function()
         utils.root:setReset()
         allowedGlobals = opts.allowedGlobals
         if opts.indent == nil then opts.indent = '  ' end
+        if opts.scope == "_COMPILER" then opts.scope = scopes.compiler end
         local scope = opts.scope or makeScope(scopes.global)
         if opts.requireAsInclude then scope.specials.require = requireInclude end
         local vals = {}
@@ -1977,10 +1981,16 @@ local specials = (function()
                                  :gsub('\\', '\\\\'):gsub('\n', '\\n')
                                  :gsub('"', '\\"') .. '"')
             end
-            local metaStr = ('require("%s").metadata'):
-                format(utils.root.options.moduleName or "fennel")
-            compiler.emit(parent, string.format('pcall(function() %s:setall(%s, %s) end)',
-                                       metaStr, fnName, table.concat(metaFields, ', ')))
+            if(type(utils.root.options.useMetadata) == "string") then
+               compiler.emit(parent, string.format('%s:setall(%s, %s)',
+                                                   utils.root.options.useMetadata, fnName,
+                                                   table.concat(metaFields, ', ')))
+            else
+               local metaStr = ('require("%s").metadata'):
+                  format(utils.root.options.moduleName or "fennel")
+               compiler.emit(parent, string.format('pcall(function() %s:setall(%s, %s) end)',
+                                                   metaStr, fnName, table.concat(metaFields, ', ')))
+            end
         end
 
         return utils.expr(fnName, 'sym')
@@ -2628,7 +2638,7 @@ local specials = (function()
 
     local function makeCompilerEnv(ast, scope, parent)
         local viewok, view = pcall(require, "bootstrap.view")
-        return setmetatable({
+        local env = {
             -- State of compiler if needed
             _SCOPE = scope,
             _CHUNK = parent,
@@ -2665,7 +2675,9 @@ local specials = (function()
                 compiler.assert(compiler.scopes.macro, "must call from macro", ast)
                 return compiler.macroexpand(form, compiler.scopes.macro)
             end,
-        }, { __index = _ENV or _G })
+        }
+        env._G = env
+        return setmetatable(env, { __index = _ENV or _G })
     end
 
     -- have searchModule use package.config to process package.path (windows compat)

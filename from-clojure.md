@@ -15,16 +15,16 @@ learn since the conceptual surface area is much smaller.
 
 ## Runtime
 
-Clojure and Fennel are both languages which have very close
-integration with their host runtime. In the case of Clojure it's Java,
-and in the case of Fennel it's Lua. However, Fennel's symbiosis goes
-beyond that of Clojure. In Clojure, every function implements the
-interfaces needed to be callable from Java, but Clojure functions are
-distinct from Java methods. Clojure namespaces are related to Java
-packages, but namespaces still exist as a distinct concept from
-packages. In Fennel you don't have such distinctions. Every Fennel
-function is indistinguishable from a Lua function, and every Fennel
-module is indistinguishable from a Lua module.
+Clojure and Fennel are both languages that have very close integration
+with their host runtime. In the case of Clojure, it's Java, and in the
+case of Fennel, it's Lua. However, Fennel's symbiosis goes beyond that
+of Clojure. In Clojure, every function implements the interfaces
+needed to be callable from Java, but Clojure functions are distinct
+from Java methods. Clojure namespaces are related to Java packages,
+but namespaces still exist as a distinct concept from packages. In
+Fennel, you don't have such distinctions. Every Fennel function is
+indistinguishable from a Lua function, and every Fennel module is
+indistinguishable from a Lua module.
 
 Clojure runs on the JVM, but it also has its own standard library: the
 `clojure.core` namespace as well as supplemental ones like
@@ -32,44 +32,48 @@ Clojure runs on the JVM, but it also has its own standard library: the
 there are no functions whatsoever provided by the language; it only
 provides macros and special forms. Since the Lua standard library is
 quite minimal, it's common to pull in 3rd-party things like [Lume][1],
-[LuaFun][2], or [Penlight][8] for things you might expect to be
-built-in to the language, like `merge` or `keys`. There's also an
-experimental [Cljlib][12] library, that implements a lot of functions
-from `clojure.core` namespace, and has a set of macros to make writing
-code more familiar to Clojure programmers, like adding syntax for
-defining multi-arity functions, or multimethods, also providing deep
-comparison semantics, sequence abstraction, and some addition data
-structures, like sets.
+[LuaFun][2], or [Penlight][3] for things you might expect to be
+built-in to the language, like `merge` or `keys`. There's also a
+[Cljlib][4] library, that implements a lot of functions from
+`clojure.core` namespace and has a set of macros to make writing code
+more familiar to Clojure programmers, like adding syntax for defining
+multi-arity functions, multimethods, or protocols, also providing deep
+comparison semantics, immutability, transients, sequence abstraction,
+transducers, and additional data structures, like sets and lazy lists.
 
-In Clojure it's typical to bring in libraries using a tool like
-[Leiningen][3]. In Fennel you can use [LuaRocks][4] for dependencies,
-but it's often overkill. Usually it's better to just check your
-dependencies into your source repository. Deep dependency trees are
-very rare in Fennel and Lua. Even tho Lua's standard library is very
-small, adding a single file for a 3rd-party library into your repo is
-very cheap. Checking a jar into a git repository in Clojure is
-strongly discouraged (for good reasons) but those reasons usually
-don't apply with Lua libraries.
+In Clojure, it's typical to bring in libraries using a tool like
+[Leiningen][5] or [deps and Clojure CLI][6]. In Fennel, you can use
+[LuaRocks][7] for dependencies, but it's often
+overkill. Alternatively, you can use a fennel-tailored dependency
+manager [deps.fnl][8]. The `deps.fnl` format should be familiar if
+you've used `deps.edn` in Clojure.
+
+Usually, it's safe to just check your dependencies in your source
+repository. Deep dependency trees are very rare in Fennel and
+Lua. Even tho Lua's standard library is very small, adding a single
+file for a 3rd-party library into your repo is very cheap. Checking a
+jar into a git repository in Clojure is strongly discouraged (for good
+reasons) but those reasons usually don't apply to Lua libraries.
 
 Deploying Clojure usually means creating an uberjar that you launch
-using an existing JVM installation, because the JVM is a pretty large
+using an existing JVM installation because the JVM is a pretty large
 piece of software. Fennel deployments are much more varied; you can
 easily create self-contained standalone executables that are under a
-megabyte, or you can create scripts which rely on an existing Lua
-install, or code which gets embedded inside a larger application where
+megabyte, or you can create scripts that rely on an existing Lua
+install, or code that gets embedded inside a larger application where
 the VM is already present.
 
 ## Functions and locals
 
-Clojure has two types of scoping: locals and vars.
-Fennel uses lexical scope for everything. (Globals exist, but they're
-mostly used for debugging and repl purposes; you don't use them in
-normal code.) This means that the "unit of reloading" is not the
-`clojure.lang.Var`, but the module. Fennel's repl includes a `,reload
-module-name` command for this. Inside functions, `let` is used to
-introduce new locals just like in Clojure. But at the top-level,
-`local` is used, which declares a local which is valid for the entire
-remaining chunk instead of just for the body of the `let`.
+Clojure has two types of scoping: locals and vars. Fennel uses lexical
+scope for everything. (Globals exist, but they're mostly used for
+debugging and repl purposes; you don't use them in normal code.) This
+means that the "unit of reloading" is not the `clojure.lang.Var`, but
+the module. Fennel's repl includes a `,reload module-name` command for
+this. Inside functions, `let` is used to introduce new locals just
+like in Clojure. But at the top-level, `local` is used, which declares
+a local which is valid for the entire remaining chunk instead of just
+for the body of the `let`.
 
 Like Clojure, Fennel uses the `fn` form to create functions. However,
 giving it a name will also declare it as a local rather than having
@@ -108,10 +112,10 @@ Fennel has a special `var` form that will allow you to declare a
 special kind of local which can be given a new value with `set`.
 
 Fennel also uses `#(foo)` notation as shorthand for anonymous
-functions. There are two main differences; the first is that it uses `$1`,
-`$2`, etc instead of `%1`, `%2` for arguments. Secondly while Clojure
-requires parens in this shorthand, Fennel does not. `#5` in Fennel
-is the equivalent of Clojure's `(constantly 5)`.
+functions. There are two main differences; the first is that it uses
+`$1`, `$2`, etc instead of `%1`, `%2` for arguments. Secondly, while
+Clojure requires parens in this shorthand, Fennel does not. `#5` in
+Fennel is the equivalent of Clojure's `(constantly 5)`.
 
 ```clojure
 ;; clojure
@@ -138,48 +142,48 @@ function call forms:
 (add (table.unpack [1 2 3])) ; unpack instead of table.unpack in older Lua
 ```
 
-In Clojure, you have access to scoping information at compile
-time using the undocumented `&env` map. In Fennel and Lua,
-[environments are first-class at runtime][10].
+In Clojure, you have access to scoping information at compile time
+using the undocumented `&env` map. In Fennel and Lua, [environments
+are first-class at runtime][9].
 
 ## Tables
 
 Clojure ships with a rich selection of data structures for all kinds
 of situations. Lua (and thus Fennel) has exactly one data structure:
 the table. Under the hood, tables with sequential integer keys are of
-course implemented using arrays for performance reasons, but the
-table itself does not "know" whether it's a sequence table or a
-map-like table. It's up to you when you iterate thru the table to
-decide; you iterate on sequence tables using `ipairs` and map-like
-tables using `pairs`. Note that you can use `pairs` on sequences just
-fine; you just won't get the results in order.
+course implemented using arrays for performance reasons, but the table
+itself does not "know" whether it's a sequence table or a map-like
+table. It's up to you when you iterate thru the table to decide; you
+iterate on sequence tables using `ipairs` and map-like tables using
+`pairs`. Note that you can use `pairs` on sequences just fine; you
+just won't get the results in order.
 
 The other big difference is that tables are mutable. It's possible to
 use metatables to implement immutable data structures on the Lua
 runtime, but there's a significant performance overhead beyond just
-the inherent immutability penalty. Using the [LuaFun][2] library can get
-you immutable operations on mutable tables without as much overhead.
-However, note that generational garbage collection is still a very
-recent development on the Lua runtime, so purely-functional approaches
-that generate a lot of garbage may not be a good choice for libraries
-which need to run on a wide range of versions.
+the inherent immutability penalty. Using the [LuaFun][2] library can
+get you immutable operations on mutable tables without as much
+overhead. However, note that generational garbage collection is still
+a very recent development on the Lua runtime, so purely-functional
+approaches that generate a lot of garbage may not be a good choice for
+libraries that need to run on a wide range of versions.
 
 Like Clojure, any value can serve as a key. However, since tables are
 mutable data, two tables with identical values will not be `=` to each
-other as [per Baker][5] and thus will act as distinct keys. Clojure's
-`:keyword` notation is used in Fennel as a syntax for
-strings; there is no distinct type for keywords.
+other as [per Baker][10] and thus will act as distinct keys. Clojure's
+`:keyword` notation is used in Fennel as a syntax for strings; there
+is no distinct type for keywords.
 
-Note that `nil` in Fennel is rather different from Clojure; in Clojure
-it has many different meanings, ("nil punning") but in Fennel it
-always represents the absence of a value. As such, tables **cannot**
-contain `nil`. Attempting to put `nil` in a table is equivalent to
-removing the value from the table, and you never have to worry about
-the difference between "the table does not contain this key" vs "the
-table contains a nil value at this key". And setting key to a `nil` in
-a sequential table will not shift all other elements, and will leave a
-"hole" in the table. Use `table.remove` instead on sequences to avoid
-these holes.
+Note that `nil` in Fennel is rather different from Clojure; in
+Clojure, it has many different meanings, ("nil punning") but in
+Fennel, it always represents the absence of a value. As such, tables
+**cannot** contain `nil`. Attempting to put `nil` in a table is
+equivalent to removing the value from the table, and you never have to
+worry about the difference between "the table does not contain this
+key" vs "the table contains a nil value at this key". And setting a
+key to a `nil` in a sequential table will not shift all other
+elements, and will leave a "hole" in the table. Use `table.remove`
+instead on sequences to avoid these holes.
 
 Tables cannot be called like functions, (unless you set up a special
 metatable) nor can `:keyword` style strings. If a string key is
@@ -203,9 +207,9 @@ the `.` form in cases where you can't destructure: `(. tbl key)`.
 ## Dynamic scope
 
 As was mentioned previously, Clojure has two types of scoping: lexical
-and dynamic. Clojure vars can be declared in the dynamic scope with the
-special metadata attribute, supported by `def` and its derivatives, to
-be later altered with the `binding` macro:
+and dynamic. Clojure vars can be declared in the dynamic scope with
+the special metadata attribute, supported by `def` and its
+derivatives, to be later altered with the `binding` macro:
 
 ```clojure
 ;; clojure
@@ -218,8 +222,8 @@ be later altered with the `binding` macro:
 (println (bar 10)) ;; => 42
 ```
 
-Fennel doesn't have dynamic scope. Instead we can use table mutability
-to alter values held, to be later dynamically looked up:
+Fennel doesn't have a dynamic scope. Instead, we can use table
+mutability to alter values held, to be later dynamically looked up:
 
 ```fennel
 ;; fennel
@@ -249,10 +253,10 @@ In Clojure, similarly to variables, dynamic functions can be defined:
   (greet)) ;; prints: I'm no longer Fred!
 ```
 
-In Fennel we can simply define a function as part of the table, either
-by assigning anonymous function to a table key, as done in the
-variable example above, or by separating function name and table name
-with a dot in the `fn` special:
+In Fennel, we can simply define a function as part of the table,
+either by assigning an anonymous function to a table key, as done in
+the variable example above or by separating the function name and
+table name with a dot in the `fn` special:
 
 ```fennel
 ;; fennel
@@ -281,13 +285,14 @@ some other value:
 (bar) ;; prints: baz!
 ```
 
-This can also be used for forward declarations like Clojure's `declare`.
+This can also be used for forward declarations like Clojure's
+`declare`.
 
 ## Iterators
 
 In Clojure, we have this idea that "everything is a seq". Lua and
 Fennel, not being explicitly functional, have instead "everything is
-an iterator". The book [Programming in Lua][7] has a detailed
+an iterator". The book [Programming in Lua][11] has a detailed
 explanation of iterators. The `each` special form consumes iterators
 and steps thru them similarly to how `doseq` does.
 
@@ -304,7 +309,7 @@ and steps thru them similarly to how `doseq` does.
 ```
 
 When iterating thru maps, Clojure has you pull apart the key/value
-pair thru destructuring, but in Fennel the iterators provide you with
+pair thru destructuring, but in Fennel, the iterators provide you with
 them as separate values.
 
 Since Fennel has no functions, it relies on macros to do things like
@@ -348,20 +353,20 @@ All these forms accept iterators. Though the table-based `pairs` and
 Tables cannot be lazy (again other than thru metatable cleverness) so
 to some degree iterators take on the role of laziness.
 
-If you want the sequence abstraction from Clojure, the [Cljlib][12]
-library provides Clojure's `mapv`, `filter`, and other functions that
-work using a similar `seq` abstraction implemented for ordinary tables
-with linear runtime cost of converting tables to a sequential ones. In
-practice, using Cljlib allows porting most Clojure data
+If you want the sequence abstraction from Clojure, the [Cljlib][4]
+library provides Clojure's `map`, `filter`, and other functions that
+work using a similar `seq` abstraction implemented in terms of lazy
+sequences. In practice, using Cljlib allows porting most Clojure data
 transformations almost directly to Fennel, though their performance
 characteristics will vary a lot.
 
 ## Pattern Matching
 
 Tragically Clojure does not have pattern matching as part of the
-language. Fennel fixes this problem by implementing the `case` macro.
-Refer to [the reference][6] for details. Since `if-let` just an anemic
-form of pattern matching, Fennel omits it in favor of `case`.
+language. Fennel fixes this problem by implementing the `case`
+macro. Refer to [the reference][12] for details. Since `if-let` is
+just an anemic form of pattern matching, Fennel omits it in favor of
+`case`.
 
 ```clojure
 ;; clojure
@@ -434,7 +439,7 @@ but they are also frequently destructured at the point of binding.
 
 ## Macros
 
-In any lisp, a macro is a function which takes an input form and
+In any lisp, a macro is a function that takes an input form and
 returns another form to be compiled in its place. Fennel makes this
 even more explicit; macros are loaded as functions from special macro
 modules which are loaded in compile scope. They are brought in using
@@ -454,8 +459,8 @@ modules which are loaded in compile scope. They are brought in using
 ```
 
 Instead of using `~` for unquote, Fennel uses the more traditional `,`.
-At the end of a quoted form you can use `table.unpack` or `unpack` in place
-of `~@`.
+At the end of a quoted form, you can use `table.unpack` or `unpack` in
+place of `~@`.
 
 You can also define macros inline without creating a separate macro
 module using `macro`, but these macros cannot be exported from the
@@ -467,38 +472,41 @@ Lists and symbols are strictly compile-time concepts in Fennel.
 ## Errors
 
 There are two kinds of ways to represent failure in Lua and
-Fennel. The `error` function works a bit like throwing an `ex-info`
-in Clojure, except instead of `try` and `catch` we have `pcall` and
+Fennel. The `error` function works a bit like throwing an `ex-info` in
+Clojure, except instead of `try` and `catch` we have `pcall` and
 `xpcall` to call a function in "protected" state which will prevent
 errors from bringing down the process. These can't be chained or
 seamlessly re-thrown in the same way as Exceptions on the JVM are.
 
-See [the tutorial][11] for details.
+See [the tutorial][13] for details.
 
 ## Other
 
 There is no `cond` in Fennel because `if` behaves exactly the same as
 `cond` if given more than three arguments.
 
-Functions can return [multiple values][9]. This can result in
+Functions can return [multiple values][14]. This can result in
 surprising behavior, but it's outside the scope of this document to
 describe. You can use the `values` form in a tail position to return
 multiple values.
 
-Operators like `+` and `or`, etc are special forms which must have the
+Operators like `+` and `or`, etc are special forms that must have the
 number of arguments fixed at compile time. This means you cannot do
-things like `(apply + [1 2 3])` or call `(* ((fn [] (values 4 5 6))))`,
-though the latter would work for functions rather than special forms.
+things like `(apply + [1 2 3])` or call `(* ((fn [] (values 4 5
+6))))`, though the latter would work for functions rather than special
+forms.
 
 [1]: https://github.com/rxi/lume
 [2]: https://luafun.github.io/
-[3]: https://leiningen.org
-[4]: https://luarocks.org
-[5]: https://p.hagelb.org/equal-rights-for-functional-objects.html
-[6]: https://fennel-lang.org/reference#case-pattern-matching
-[7]: https://www.lua.org/pil/7.1.html
-[8]: https://github.com/lunarmodules/Penlight
-[9]: https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/
-[10]: https://www.lua.org/manual/5.4/manual.html#2.2
-[11]: https://fennel-lang.org/tutorial#error-handling
-[12]: https://gitlab.com/andreyorst/fennel-cljlib
+[3]: https://github.com/lunarmodules/Penlight
+[4]: https://gitlab.com/andreyorst/fennel-cljlib
+[5]: https://leiningen.org
+[6]: https://clojure.org/reference/deps_and_cli
+[7]: https://luarocks.org
+[8]: https://gitlab.com/andreyorst/deps.fnl
+[9]: https://www.lua.org/manual/5.4/manual.html#2.2
+[10]: https://p.hagelb.org/equal-rights-for-functional-objects.html
+[11]: https://www.lua.org/pil/7.1.html
+[12]: https://fennel-lang.org/reference#case-pattern-matching
+[13]: https://fennel-lang.org/tutorial#error-handling
+[14]: https://benaiah.me/posts/everything-you-didnt-want-to-know-about-lua-multivals/

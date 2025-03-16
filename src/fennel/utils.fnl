@@ -5,7 +5,19 @@
 
 (local view (require :fennel.view))
 
-(local version :1.5.1-dev)
+(local version :1.5.4-dev)
+
+;;; Cross-Lua compat helpers
+
+(local unpack (or table.unpack _G.unpack))
+;; pack mirrors unpack for preserving sparse multivals. A packed table can be
+;; turned back into multivals with (unpack t 1 t.n). Lua 5.1 lacks table.pack.
+(local pack (or table.pack #(doto [$...] (tset :n (select :# $...)))))
+;; table.maxn was deprecated in Lua5.2 and removed from Lua 5.3.
+;; It's primarily useful for defensively writing APIs for unspecified user input,
+;; as it enables cleanly finding the end of a sparse table NOT created by pack.
+(local maxn (or table.maxn #(accumulate [max 0 k (pairs $)]
+                              (if (and (= :number (type k)) (< max k)) k max))))
 
 ;;; Lua VM detection helper functions
 
@@ -101,10 +113,6 @@
     nil nil
     _ (member? x tbl (+ (or ?n 1) 1))))
 
-(fn maxn [tbl]
-  (accumulate [max 0 k (pairs tbl)]
-    (if (= :number (type k)) (math.max max k) max)))
-
 (fn every? [t predicate]
   (accumulate [result true
                _ item (ipairs t)
@@ -154,9 +162,6 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
                      (view (. self i))))]
     (.. "(" (table.concat viewed " ") ")")))
 
-(fn comment-view [c]
-  (values c true))
-
 (fn sym= [a b]
   (and (= (deref a) (deref b)) (= (getmetatable a) (getmetatable b))))
 
@@ -172,7 +177,7 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 (local expr-mt {1 :EXPR :__tostring (fn [x] (tostring (deref x)))})
 (local list-mt {1 :LIST :__fennelview list->string :__tostring list->string})
 (local comment-mt {1 :COMMENT
-                   :__fennelview comment-view
+                   :__fennelview #$
                    :__tostring deref
                    :__eq sym=
                    :__lt sym<})
@@ -361,13 +366,15 @@ has options calls down into compile."
       {}))
 
 (fn warn [msg ?ast ?filename ?line]
-  (when (and _G.io _G.io.stderr)
-    (let [loc (case (ast-source ?ast)
-                {: filename : line} (.. filename ":" line ": ")
-                _ (if (and ?filename ?line)
-                      (.. ?filename ":" ?line ": ")
-                      ""))]
-      (_G.io.stderr:write (: "--WARNING: %s%s\n" :format loc (tostring msg))))))
+  (case (?. root.options :warn)
+    opt-warn (opt-warn msg ?ast ?filename ?line)
+    _ (when (and _G.io _G.io.stderr)
+        (let [loc (case (ast-source ?ast)
+                    {: filename : line} (.. filename ":" line ": ")
+                    _ (if (and ?filename ?line)
+                          (.. ?filename ":" ?line ": ")
+                          ""))]
+          (_G.io.stderr:write (: "--WARNING: %s%s\n" :format loc msg))))))
 
 (local warned {})
 
@@ -438,6 +445,7 @@ handlers will be skipped."
  : version
  : runtime-version
  : len
+ : unpack : pack
  :fennel-module nil
  :path (table.concat [:./?.fnl :./?/init.fnl (getenv :FENNEL_PATH)] ";")
  :macro-path (table.concat [:./?.fnl :./?/init-macros.fnl :./?/init.fnl

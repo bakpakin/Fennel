@@ -2,11 +2,10 @@
 ;; and turning it into Lua code. Main entry points are `compile` (which
 ;; takes an AST), `compile-stream` and `compile-string`.
 
-(local utils (require :fennel.utils))
+(local {: unpack &as utils} (require :fennel.utils))
 (local parser (require :fennel.parser))
 (local friend (require :fennel.friend))
-
-(local unpack (or table.unpack _G.unpack))
+(local view (require :fennel.view))
 
 (local scopes {:global nil :compiler nil :macro nil})
 
@@ -66,26 +65,28 @@ The ast arg should be unmodified so that its first element is the form called."
 (set scopes.compiler (make-scope scopes.global))
 (set scopes.macro scopes.global)
 
+(local serialize-subst-digits {"\\7" "\\a" "\\8" "\\b" "\\9" "\\t"
+                               "\\10" "\\n" "\\11" "\\v" "\\12" "\\f"
+                               "\\13" "\\r"})
+
 (fn serialize-string [str]
   (-> (string.format "%q" str)
       (string.gsub "\\\n" "\\n") ; keep it as one line
-      (string.gsub "\\9" "\\t")
+      (string.gsub "\\..?" serialize-subst-digits)
       (string.gsub "[\128-\255]" #(.. "\\" ($:byte)))))
 
 (fn global-mangling [str]
-  "Mangler for global symbols. Does not protect against collisions,
-but makes them unlikely. This is the mangling that is exposed to the world."
-  (if (utils.valid-lua-identifier? str)
-      str
-      ;; TODO: emit _G[str] in 2.0
+  "Turn a global symbol into a Lua-friendly expression."
+  (if (utils.valid-lua-identifier? str) str
+      ;; TODO: default to true in 2.0
+      (= (?. utils.root.options :global-mangle) false) (: "_G[%q]" :format str)
       (.. :__fnl_global__ (str:gsub "[^%w]" #(string.format "_%02x" ($:byte))))))
 
 (fn global-unmangling [identifier]
   "Reverse a global mangling.
 Takes a Lua identifier and returns the Fennel symbol string that created it."
-  (match (string.match identifier "^__fnl_global__(.*)$")
-    rest (pick-values 1
-                      (string.gsub rest "_[%da-f][%da-f]"
+  (case (string.match identifier "^__fnl_global__(.*)$")
+    rest (pick-values 1 (rest:gsub "_[%da-f][%da-f]"
                                    #(string.char (tonumber ($:sub 2) 16))))
     _ identifier))
 
@@ -153,7 +154,7 @@ these new manglings instead of the current manglings."
   "Generates a unique symbol in the scope based on the base name. Calling
 repeatedly with the same base and same scope will return existing symbol
 rather than generating new one."
-  (match (utils.multi-sym? base)
+  (case (utils.multi-sym? base)
     parts (combine-auto-gensym parts (autogensym (. parts 1) scope))
     _ (or (. scope.autogensyms base)
           (let [mangling (gensym scope (base:sub 1 -2) :auto)]
@@ -421,8 +422,8 @@ if opts contains the nval option."
   "Replaces literal `nil` values with quoted version."
   (when (and parent (utils.list? parent))
     (for [i 1 (utils.maxn parent)]
-      (match (. parent i)
-        nil (tset parent i (utils.sym "nil")))))
+      (when (= nil (. parent i))
+        (tset parent i (utils.sym "nil")))))
   (values index node parent))
 
 (fn built-in? [m]
@@ -431,7 +432,7 @@ if opts contains the nval option."
 
 (fn macroexpand* [ast scope ?once]
   "Expand macros in the ast. Only do one level if once is true."
-  (match (if (utils.list? ast) (find-macro ast scope))
+  (case (if (utils.list? ast) (find-macro ast scope))
     false ast
     macro* (let [old-scope scopes.macro
                  _ (set scopes.macro scope)
@@ -531,19 +532,21 @@ if opts contains the nval option."
                 (symbol-to-expression ast scope true))]
       (handle-compile-opts [e] parent opts ast))))
 
-;; We do gsub transformation because some locales use , for
-;; decimal separators, which will not be accepted by Lua.
-(fn serialize-number [n]
-  (pick-values 1 (-> (tostring n)
-                     (string.gsub "," "."))))
+(local view-opts
+  (let [nan (tostring (/ 0 0))]
+    {:infinity "(1/0)"
+     :negative-infinity "(-1/0)"
+     ;; byte 45 is -
+     :nan (if (= 45 (nan:byte)) "(- (0/0))" "(0/0)")
+     :negative-nan (if (= 45 (nan:byte)) "(0/0)" "(- (0/0))")}))
 
 (fn compile-scalar [ast _scope parent opts]
-  (let [serialize (match (type ast)
-                    :nil tostring
-                    :boolean tostring
-                    :string serialize-string
-                    :number serialize-number)]
-    (handle-compile-opts [(utils.expr (serialize ast) :literal)] parent opts)))
+  (let [compiled (case (type ast)
+                   :nil :nil
+                   :boolean (tostring ast)
+                   :string (serialize-string ast)
+                   :number (view ast view-opts))]
+    (handle-compile-opts [(utils.expr compiled :literal)] parent opts)))
 
 (fn compile-table [ast scope parent opts compile1]
   (fn escape-key [k]
@@ -706,8 +709,9 @@ which we have to do if we don't know."
 
     (fn dynamic-set-target [[_ target & keys]]
       (assert-compile (utils.sym? target) "dynamic set needs symbol target" ast)
-      (assert-compile (. scope.manglings (tostring target))
-                      (.. "unknown identifier: " (tostring target)) target)
+      ;; symbol-to-expression validates target against scope.manglings, allowed
+      ;; globals, and exceptions like $, $1...$9 in hashfn, so we omit here
+      (assert-compile (next keys) "dynamic set needs at least one key" ast)
       (let [keys (icollect [_ k (ipairs keys)]
                    (tostring (. (compile1 k scope parent {:nval 1}) 1)))]
         (string.format "%s[%s]" (tostring (symbol-to-expression target scope true))
@@ -739,19 +743,17 @@ which we have to do if we don't know."
           (destructure1 (. pair 1) [(. pair 2)] left))))
 
     ;; TODO: remove in 2.0
-    (local unpack-fn "function (t, k, e)
-                        local mt = getmetatable(t)
-                        if 'table' == type(mt) and mt.__fennelrest then
-                          return mt.__fennelrest(t, k)
-                        elseif e then
-                          local rest = {}
-                          for k, v in pairs(t) do
-                            if not e[k] then rest[k] = v end
-                          end
-                          return rest
-                        else
-                          return {(table.unpack or unpack)(t, k)}
+    (local unpack-fn "function (t, k)
+                        return ((getmetatable(t) or {}).__fennelrest
+                                or function (t, k) return {(table.unpack or unpack)(t, k)} end)(t, k)
+                      end")
+
+    (local unpack-ks "function (t, e)
+                        local rest = {}
+                        for k, v in pairs(t) do
+                          if not e[k] then rest[k] = v end
                         end
+                        return rest
                       end")
 
     (fn destructure-kv-rest [s v left excluded-keys destructure1]
@@ -759,9 +761,9 @@ which we have to do if we don't know."
                          (icollect [_ k (ipairs excluded-keys)]
                            (string.format "[%s] = true" (serialize-string k)))
                          ", ")
-            subexpr (-> (.. "(" unpack-fn ")(%s, %s, {%s})")
+            subexpr (-> (.. "(" unpack-ks ")(%s, {%s})")
                         (string.gsub "\n%s*" " ")
-                        (string.format s (tostring v) exclude-str)
+                        (string.format s exclude-str)
                         (utils.expr :expression))]
         (destructure1 v [subexpr] left)))
 
@@ -784,12 +786,16 @@ which we have to do if we don't know."
                  (and (utils.list? d) (utils.sym? (. d 1) "."))))))
 
     (fn destructure-table [left rightexprs top? destructure1 up1]
+      (assert-compile (and (= :table (type rightexprs))
+                           (not (utils.sym? rightexprs :nil)))
+                      "could not destructure literal" left)
+
       (if (optimize-table-destructure? left rightexprs)
           (destructure-values (utils.list (unpack left))
                               (utils.list (utils.sym :values)
                                           (unpack rightexprs))
                               up1 destructure1)
-          (let [right (match (if top?
+          (let [right (case (if top?
                                  (exprs1 (compile1 from scope parent))
                                  (exprs1 rightexprs))
                         "" :nil
@@ -855,7 +861,9 @@ which we have to do if we don't know."
 
 (fn compile-asts [asts options]
   (let [opts (utils.copy options)
-        scope (or opts.scope (make-scope scopes.global))
+        scope (if (= :_COMPILER opts.scope) scopes.compiler
+                  opts.scope opts.scope
+                  (make-scope scopes.global))
         chunk []]
     (when opts.requireAsInclude
       (set scope.specials.require require-include))
@@ -918,27 +926,30 @@ which we have to do if we don't know."
   "A custom traceback function for Fennel that looks similar to debug.traceback.
 Use with xpcall to produce fennel specific stacktraces. Skips frames from the
 compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
-  (let [msg (tostring (or ?msg ""))]
-    (if (and (or (msg:find "^%g+:%d+:%d+ Compile error:.*")
-                 (msg:find "^%g+:%d+:%d+ Parse error:.*"))
-             (not (utils.debug-on? :trace)))
-        msg ; skip the trace because it's compiler internals.
-        (let [lines []]
-          (if (or (msg:find "^%g+:%d+:%d+ Compile error:")
-                  (msg:find "^%g+:%d+:%d+ Parse error:"))
-              (table.insert lines msg)
-              (let [newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
-                (table.insert lines newmsg)))
-          (table.insert lines "stack traceback:")
-          (var (done? level) (values false (or ?start 2)))
-          ;; This would be cleaner factored out into its own recursive
-          ;; function, but that would interfere with the traceback itself!
-          (while (not done?)
-            (match (lua-getinfo level :Sln)
-              nil (set done? true)
-              info (table.insert lines (traceback-frame info)))
-            (set level (+ level 1)))
-          (table.concat lines "\n")))))
+  (case (type ?msg)
+    (where (or :nil :string))
+    (let [msg (or ?msg "")]
+      (if (and (or (msg:find "^%g+:%d+:%d+ Compile error:.*")
+                   (msg:find "^%g+:%d+:%d+ Parse error:.*"))
+               (not (utils.debug-on? :trace)))
+          msg        ; skip the trace because it's compiler internals.
+          (let [lines []]
+            (if (or (msg:find "^%g+:%d+:%d+ Compile error:")
+                    (msg:find "^%g+:%d+:%d+ Parse error:"))
+                (table.insert lines msg)
+                (let [newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
+                  (table.insert lines newmsg)))
+            (table.insert lines "stack traceback:")
+            (var (done? level) (values false (or ?start 2)))
+            ;; This would be cleaner factored out into its own recursive
+            ;; function, but that would interfere with the traceback itself!
+            (while (not done?)
+              (case (lua-getinfo level :Sln)
+                nil (set done? true)
+                info (table.insert lines (traceback-frame info)))
+              (set level (+ level 1)))
+            (table.concat lines "\n"))))
+    _ ?msg))
 
 (fn getinfo [thread-or-level ...]
   ;; if we're given a level, we have to add 1 because fennel.getinfo
@@ -998,11 +1009,11 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         ;; We should be able to use "%q" for this but Lua 5.1 throws an error
         ;; when you try to format nil, because it's extremely bad.
         (if (or (symstr:find "#$") (symstr:find "#[:.]")) ; autogensym
-            (string.format "sym('%s', {filename=%s, line=%s})"
+            (string.format "_G.sym('%s', {filename=%s, line=%s})"
                            (autogensym symstr scope) filename
                            (or form.line :nil))
             ;; prevent non-gensymed symbols from being bound as an identifier
-            (string.format "sym('%s', {quoted=true, filename=%s, line=%s})"
+            (string.format "_G.sym('%s', {quoted=true, filename=%s, line=%s})"
                            symstr filename (or form.line :nil))))
       (utils.call-of? form :unquote)
       (let [res (unpack (compile1 (. form 2) scope parent))]
@@ -1018,26 +1029,25 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
         ;; contents is how we construct lists in the parser and works around
         ;; this problem; allowing # to work in a way that lets us see the nils.
         (string.format (.. "setmetatable({filename=%s, line=%s, bytestart=%s, %s}"
-                           ", getmetatable(list()))")
+                           ", getmetatable(_G.list()))")
                        filename (or form.line :nil) (or form.bytestart :nil)
                        (mixed-concat mapped ", ")))
       (utils.sequence? form)
-      (let [mapped (quote-all form)
+      (let [mapped-str (mixed-concat (quote-all form) ", ")
             source (getmetatable form)
-            filename (if source.filename (string.format "%q" source.filename)
-                         :nil)]
-        ;; need to preserve the sequence marker in the metatable here
-        (string.format "setmetatable({%s}, {filename=%s, line=%s, sequence=%s})"
-                       (mixed-concat mapped ", ") filename
-                       (if source source.line :nil)
-                       "(getmetatable(sequence()))['sequence']"))
+            filename (if source.filename (: "%q" :format source.filename) :nil)]
+        (if runtime?
+            (string.format "{%s}" mapped-str)
+            ;; need to preserve the sequence marker in the metatable here
+            (string.format "setmetatable({%s}, {filename=%s, line=%s, sequence=%s})"
+                           mapped-str filename (or source.line :nil)
+                           "(getmetatable(_G.sequence()))['sequence']")))
       (= (type form) :table) ; table
-      (let [mapped (quote-all form)
-            source (getmetatable form)
+      (let [source (getmetatable form)
             filename (if source.filename (string.format "%q" source.filename)
                          :nil)]
         (string.format "setmetatable({%s}, {filename=%s, line=%s})"
-                       (mixed-concat mapped ", ") filename
+                       (mixed-concat (quote-all form) ", ") filename
                        (if source source.line :nil)))
       (= (type form) :string)
       (serialize-string form)

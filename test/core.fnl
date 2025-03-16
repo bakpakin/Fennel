@@ -184,7 +184,7 @@
         (let [res (:answer {:answer 42})]
           (tset (getmetatable ::) :__call nil)
           res))
-       42)
+      42)
   (== (do
         (var a 11)
         (let [f (fn [] (set a (+ a 2)))]
@@ -248,7 +248,8 @@
         (+ x y))
       9)
   (== (+ (. {:a 93 :b 4} :a) (. [1 2 3] 2)) 95)
-  (== (do (global a_b :global) (local a-b :local) a_b) "global")
+  (== (do (global a_b :global) (local a-b :local) a_b) "global"
+      {:env {}})
   (== (do (tset {} :a 1) 1) 1)
   (== (: {:foo (fn [self] (.. self.bar 2)) :bar :baz} :foo) "baz2")
   (== (do (local x#x# 90) x#x#) 90)
@@ -267,6 +268,13 @@
         (set x 87)
         (.. x (table.concat t " ") (table.concat (. tt 1))))
       "87lol hehe lmaohey")
+  (== (do (set (. _G :dynamic-set-global?) true) _G.dynamic-set-global?)
+      true
+      {:env {:_G {}}})
+  (== (let [set-x #(do (set (. $1 :x) $2) $1)] (set-x {} :aw-yiss))
+      {:x :aw-yiss})
+  (== (let [t [8 9]] (set [(. t 1) (. t 2)] [(. t 2) (. t 1)]) t)
+      [9 8])
   (== (let [x 17] (. 17)) 17)
   (== (let [my-tbl {} k :key] (tset my-tbl k :val) my-tbl.key) "val")
   (== (let [t {} _ (tset t :a 84)] (. t :a)) 84)
@@ -294,7 +302,7 @@
           (set-forcibly! a 7)
           (set-forcibly! b 6)
           (+ a b))) 13)
-  (== (do (global x 1) (global x 284) x) 284)
+  (== (do (global x 1) (global x 284) x) 284 {:env {}})
   (== (do
         (var a nil)
         (var b nil)
@@ -325,8 +333,8 @@
 (fn test-destructuring []
   (== ((fn dest [a [b c] [d]] (+ a b c d)) 5 [9 7] [2]) 23)
   (== ((lambda [[a & b]] (+ a (. b 2))) [90 99 4]) 94)
-  (== (do (global (a b) ((fn [] (values 4 29)))) (+ a b)) 33)
-  (== (do (global [a b c d] [4 2 43 7]) (+ (* a b) (- c d))) 44)
+  (== (do (global (a b) ((fn [] (values 4 29)))) (+ a b)) 33 {:env {}})
+  (== (do (global [a b c d] [4 2 43 7]) (+ (* a b) (- c d))) 44 {:env {}})
   (== (let [(a [b [c] d]) ((fn [] (values 4 [2 [1] 9])))] (+ a b c d)) 16)
   (== (let [(a [b [c] d]) (values 4 [2 [1] 9])] (+ a b c d)) 16)
   (== (let [(a b) ((fn [] (values 4 2)))] (+ a b)) 6)
@@ -369,7 +377,9 @@
   (== (let [[a b & c &as t] [1 2 3 4]] t) [1 2 3 4]))
 
 (fn test-edge []
-  (== (do (local x (lua "y = 4" "6")) (* _G.y x)) 24)
+  (let [env {}]
+    (set env._G env)
+    (== (do (local x (lua "y = 4" "6")) (* _G.y x)) 24 {: env}))
   (== (length [(if (= (+ 1 1) 2) (values 1 2 3 4 5) (values 1 2 3))]) 5)
   (== (let [(a b c d e f g) (if (= (+ 1 1) 3)
                                 nil
@@ -419,7 +429,11 @@
   (== (let [x [#(tset $1 $2 $3)] y x]
         (: x 1 2 :b)
         (. y 2))
-      :b))
+      :b)
+  ;; regression test for kv-rest codegen
+  (== (let [{& a+b+c} {:key :value}]
+        a+b+c.key)
+      :value))
 
 (fn test-hashfn []
   (== (#$.foo {:foo :bar}) "bar")
@@ -551,7 +565,14 @@
       ["asdf" "closed file" "closed file"])
   (== [(with-open [proc1 (io.popen "echo hi") proc2 (io.popen "echo bye")]
          (values (proc1:read) (proc2:read)))]
-      ["hi" "bye"]))
+      ["hi" "bye"])
+  (== (do
+        (var fh nil)
+        (local (ok msg) (pcall #(with-open [f (io.tmpfile)]
+                                  (set fh f)
+                                  (error {:bork! :bark!}))))
+        [(io.type fh) ok (case msg {:bork! :bark!} msg _ "didn't match")])
+      ["closed file" false {:bork! :bark!}]))
 
 (fn test-comment []
   (t.= "--[[ hello world ]]\nreturn nil"
@@ -562,7 +583,9 @@
                   (fennel.compile-string "(comment \"hello]]lol\")")))
 
 (fn test-nest []
-  (let [nested (fennel.dofile "src/fennel.fnl" {:compilerEnv _G})]
+  (let [env (collect [k v (pairs _G) &into {: fennel}] k v)
+        nested (fennel.dofile "src/fennel.fnl" {: env :compilerEnv env})]
+    (t.= 51 (fennel.eval "((fn [] (+ 49 2)))"))
     (t.= fennel.version nested.version)))
 
 (fn test-sym []

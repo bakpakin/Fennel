@@ -146,6 +146,10 @@
   (t.is (pcall fennel.eval "(let [x {:0 #$1 :& #$1}] (x:0) (x:&) (x.0) (x.&))" {:allowedGlobals false})
         "Expected to be able to use multisyms with digits and & in their second part"))
 
+(fn test-strings []
+  (t.match "\\r\\n" (fennel.compile-string "(print \"\r\n\")")
+           "expected compiling newlines to preserve backslash"))
+
 {: test-empty-values
  : test-env-iteration
  : test-global-mangling
@@ -155,4 +159,5 @@
  : test-runtime-quote
  : test-short-circuit
  : test-precedence
- : test-multisyms}
+ : test-multisyms
+ : test-strings}

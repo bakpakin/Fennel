@@ -6,11 +6,48 @@ Note that since 0.3.0, no deprecations have actually resulted in
 removals. They are advisory only and we have no plans to break the
 deprecated forms.
 
-## 1.5.1 / ???
+## 1.5.4 / ???
+
+* ???
+
+## 1.5.3 / 2025-02-16
+
+### Bug Fixes
+
+* Correct a typo causing builds to fail on a fresh checkout.
+
+## 1.5.2 / 2025-02-16
+
+### New Features
+
+* Added `pack` cross-Lua helper/polyfill to the compiler env alongside `unpack`
+* Precompile built-in macros, improving startup time significantly.
+* Accept `:global-mangle false` in compiler opts to disable global mangling.
+* Stop printing sparse tables as sequences by default.
+
+### Bug Fixes
+
+* Defaults on `fennel.repl.view-opts` are no longer clobbered by
+  `(fennel.repl {:view-opts {}})`
+* Fix a bug where `fennel.view` allowed non-integer `:max-sparse-gap` settings.
+* Prevent incorrect `fennel.view` output like `{1 :x 1.2 :y 2 :z}` -> `["x" "y" "z"]`  
+  when `max-sparse-gap`  is still satisfied by gaps between decimal keys.
+* Ensure `fennel --plugin plug.lua` loads the compiler env like it does for `plug.fnl`
+* Work around string formatting bug in Fengari.
+* Use `options.warn` when provided in the parser.
+* Fix an issue where unquoting a regular table would fail outside compile scope.
+
+## 1.5.1 / 2024-08-24
 
 ### Bug Fixes
 
 * `,doc`/`fennel.doc`: Don't mutate `:fnl/arglist` directly when showing callable form
+* `(set (. tgt k1 ...) v)` now works on known globals and `$, $1 ... $9` in hashfns
+* Macro quote expansion no longer breaks when `sym`, `list` or `sequence` is shadowed
+* Bring `fennel.traceback` behavior closer to Lua's `traceback` by
+  not modifying non-string and non-`nil` values.
+* Avoid losing precision when compiling large numbers on LuaJIT.
+* Add syntax for representing infinity and NaN values.
 
 ## 1.5.0 / 2024-06-23
 

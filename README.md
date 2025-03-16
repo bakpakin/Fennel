@@ -110,7 +110,8 @@ This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
 
 If you don't have Lua already installed on your system, you can run
 `make fennel-bin LUA=lua/src/lua` instead to build a standalone binary
-that has its own internal version of Lua.
+that has its own internal version of Lua. This requires having a C
+compiler installed; normally `gcc`.
 
 See the [contributing guide](CONTRIBUTING.md) for details about how to
 work on the source.
@@ -126,7 +127,7 @@ Hagelberg, and contributors, released under the [MIT license](LICENSE).
 The file `style.txt` is copyright © 2007-2011 Taylor R. Campbell,
 2021-2023 Phil Hagelberg and contributors, released under the
 Creative Commons Attribution-NonCommercial-ShareAlike 3.0
-Unported License: http://creativecommons.org/licenses/by-nc-sa/3.0/.
+Unported License: https://creativecommons.org/licenses/by-nc-sa/3.0/
 
 [1]: https://fennel-lang.org
 [2]: https://wiki.fennel-lang.org/Cookbook

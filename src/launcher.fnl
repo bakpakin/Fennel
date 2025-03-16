@@ -1,7 +1,7 @@
 ;; This is the command-line entry point for Fennel.
 
 (local fennel (require :fennel))
-(local unpack (or table.unpack _G.unpack))
+(local {: pack : unpack} (require :fennel.utils))
 
 (local help "Usage: fennel [FLAG] [FILE]
 
@@ -11,7 +11,7 @@ Run Fennel, a Lisp programming language for the Lua runtime.
   --compile FILES (-c)     : Command to AOT compile files, writing Lua to stdout
   --eval SOURCE (-e)       : Command to evaluate source code and print result
 
-  --correlate              : Make Lua output line numbers match Fennel input
+  --correlate              : Make Lua output line numbers try to match Fennel's
   --load FILE (-l)         : Load the specified FILE before executing command
   --no-compiler-sandbox    : Don't limit compiler environment to minimal sandbox
   --compile-binary FILE
@@ -55,17 +55,11 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
 
 (local options {:plugins [] :keywords {}})
 
-;; Lua 5.1 doesn't have table.pack
-;; necessary to preserve nils in luajit
-(fn pack [...]
-  (doto [...]
-    (tset :n (select :# ...))))
-
 (fn dosafely [f ...]
   (let [args [...]
         result (pack (xpcall #(f (unpack args)) fennel.traceback))]
     (when (not (. result 1))
-      (io.stderr:write (.. (. result 2) "\n"))
+      (io.stderr:write (.. (tostring (. result 2)) "\n"))
       (os.exit 1))
     (unpack result 2 result.n)))
 
@@ -95,17 +89,18 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
       (where (or (true :exit) 0)) (os.exit 0 true)
       _ (os.exit 1 true))))
 
-(assert arg "Using the launcher from non-CLI context; use fennel.lua instead.")
-
 ;; check for --lua first to ensure its child process retains all flags
 (for [i (length arg) 1 -1]
-  (match (. arg i)
+  (case (. arg i)
     :--lua (handle-lua i)))
 
 (fn load-plugin [filename]
-  (if (filename:find "%.lua$")
-      (dofile filename)
-      (let [opts {:env :_COMPILER :useMetadata true :compiler-env _G}]
+  (let [opts {:env :_COMPILER :compiler-env _G :useMetadata true}]
+    (if (= ".lua" (filename:sub -4))
+        ((fennel.load-code (: (assert (io.open filename :rb)) :read :*a)
+                           ((. (require :fennel.specials) :make-compiler-env)
+                            nil (fennel.scope) nil opts)
+                           filename))
         (fennel.dofile filename opts))))
 
 (let [commands {:--repl true
@@ -117,7 +112,7 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
                "-" true}]
   (var i 1)
   (while (and (. arg i) (not options.ignore-options))
-    (match (. arg i)
+    (case (. arg i)
       :--no-searcher (do
                       (set options.no-searcher true)
                       (table.remove arg i))
@@ -146,9 +141,6 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
       :--correlate (do
                     (set options.correlate true)
                     (table.remove arg i))
-      :--check-unused-locals (do
-                              (set options.checkUnusedLocals true)
-                              (table.remove arg i))
       :--globals (do
                   (allow-globals (table.remove arg (+ i 1)) _G)
                   (table.remove arg i))
@@ -220,7 +212,7 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
                  "Use ,help to see available commands."]]
     (set searcher-opts.useMetadata (not= false options.useMetadata))
     (when (not= false options.fennelrc)
-      (tset options :fennelrc load-initfile))
+      (set options.fennelrc load-initfile))
     (when (and (not readline?) (not= "dumb" (os.getenv "TERM")))
       (table.insert welcome (.. "Try installing readline via luarocks for a "
                                 "better repl experience.")))
@@ -238,7 +230,7 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
     (let [f (if (= filename "-")
                 io.stdin
                 (assert (io.open filename :rb)))]
-      (match (xpcall #(fennel.compile-string (f:read :*a) options)
+      (case (xpcall #(fennel.compile-string (f:read :*a) options)
                      fennel.traceback)
         (true val) (print val)
         (_ msg) (do

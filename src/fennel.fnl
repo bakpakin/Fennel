@@ -89,7 +89,7 @@
                    :binding-form? (utils.member? k binding?)
                    :define? (utils.member? k define?)}))
     (each [k v (pairs _G)]
-      (match (type v)
+      (case (type v)
         :function (tset out k {:global? true :function? true})
         :table (when (not (k:find "^_"))
                  (each [k2 v2 (pairs v)]
@@ -174,35 +174,17 @@
 (set utils.fennel-module mod)
 
 (macro embed-src [filename]
-  `(eval-compiler
-     (let [FENNEL_SRC# (and (= :table (type os)) os.getenv
-                            (os.getenv :FENNEL_SRC))
-           root# (if FENNEL_SRC# (.. FENNEL_SRC# :/) "")]
-       (with-open [f# (assert (io.open (.. root# ,filename)))]
-         (.. "[===[" (f#:read :*all) "]===]")))))
+  `(eval-compiler (when _G.io (with-open [f# (assert (_G.io.open ,filename))]
+                                (.. "[===[" (f#:read :*all) "]===]")))))
+
+(fn load-macros [src env]
+  (let [chunk (assert (specials.load-code src env))]
+    (each [k v (pairs (chunk utils specials.get-function-metadata))]
+      (tset compiler.scopes.global.macros k v))))
 
 ;; Load the built-in macros from macros.fnl and match.fnl
-(let [module-name :fennel.macros
-      _ (tset package.preload module-name #mod)
-      env (doto (specials.make-compiler-env nil compiler.scopes.compiler {})
-            (tset :utils utils) ; for import-macros to propagate compile opts
-            (tset :fennel mod)
-            (tset :get-function-metadata specials.get-function-metadata))
-      built-ins (eval (embed-src :src/fennel/macros.fnl)
-                      {: env
-                       :scope compiler.scopes.compiler
-                       :useMetadata true
-                       :filename :src/fennel/macros.fnl
-                       :moduleName module-name})
-      _ (each [k v (pairs built-ins)] (tset compiler.scopes.global.macros k v))
-      match-macros (eval (embed-src :src/fennel/match.fnl)
-                         {: env
-                          :scope compiler.scopes.compiler
-                          :allowedGlobals false
-                          :useMetadata true
-                          :filename :src/fennel/match.fnl
-                          :moduleName module-name})]
-  (each [k v (pairs match-macros)] (tset compiler.scopes.global.macros k v))
-  (tset package.preload module-name nil))
+(let [env (specials.make-compiler-env nil compiler.scopes.compiler {})]
+  (load-macros (embed-src "bootstrap/macros.lua") env)
+  (load-macros (embed-src "bootstrap/match.lua") env))
 
 mod

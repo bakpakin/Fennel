@@ -6,6 +6,8 @@
 /scratch.fnl
 /chroot
 /bootstrap/view.lua
+/bootstrap/macros.lua
+/bootstrap/match.lua
 /test/faith.lua
 
 # items related to manpage generation

@@ -239,7 +239,7 @@ These are used for loading Lua code. The `load*` functions return a
 [11]: https://www.lua.org/pil/11.html
 [12]: https://www.lua.org/pil/9.1.html
 [13]: https://www.lua.org/pil/28.html
-[14]: https://keplerproject.github.io/luafilesystem/
+[14]: https://lunarmodules.github.io/luafilesystem/
 [15]: https://www.lua.org/manual/5.4/manual.html#pdf-io.popen
 [16]: http://lua-users.org/lists/lua-l/2007-10/msg00189.html
-[17]: https://aiq0.github.io/luasocket/index.html
+[17]: https://lunarmodules.github.io/luasocket/

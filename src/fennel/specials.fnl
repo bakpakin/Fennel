@@ -2,11 +2,10 @@
 ;; which cannot be implemented as macros. It also contains some core compiler
 ;; functionality which is kept in this module for circularity reasons.
 
-(local utils (require :fennel.utils))
+(local {: pack : unpack &as utils} (require :fennel.utils))
 (local view (require :fennel.view))
 (local parser (require :fennel.parser))
 (local compiler (require :fennel.compiler))
-(local unpack (or table.unpack _G.unpack))
 
 (local SPECIALS compiler.scopes.global.specials)
 
@@ -45,13 +44,13 @@ will see its values updated as expected, regardless of mangling rules."
              ;; newer lua versions know about __pairs natively but not 5.1
              {:__pairs mtpairs} (collect [k v (mtpairs ?env)] (values k v))
              nil (or ?env _G))]
-    (and mt (icollect [k v (utils.stablepairs mt)]
+    (and mt (icollect [k (utils.stablepairs mt)]
               (compiler.global-unmangling k)))))
 
 (fn load-code [code ?env ?filename]
   "Load Lua code with an environment in all recent Lua versions"
   (let [env (or ?env (rawget _G :_ENV) _G)]
-    (match (values (rawget _G :setfenv) (rawget _G :loadstring))
+    (case (values (rawget _G :setfenv) (rawget _G :loadstring))
       (setfenv loadstring) (let [f (assert (loadstring code ?filename))]
                              (doto f (setfenv env)))
       _ (assert (load code ?filename :t env)))))
@@ -232,10 +231,14 @@ By default, start is 2."
         (if (= k :fnl/arglist)
             (insert-arglist meta-fields v)
             (insert-meta meta-fields k v)))
-      (let [meta-str (: "require(\"%s\").metadata" :format (fennel-module-name))]
-        (compiler.emit parent
-                       (: "pcall(function() %s:setall(%s, %s) end)" :format
-                          meta-str fn-name (table.concat meta-fields ", ")))))))
+      (if (= (type utils.root.options.useMetadata) :string)
+          (compiler.emit parent
+                         (: "%s:setall(%s, %s)" :format utils.root.options.useMetadata
+                            fn-name (table.concat meta-fields ", ")))
+          (let [meta-str (: "require(\"%s\").metadata" :format (fennel-module-name))]
+            (compiler.emit parent
+                           (: "pcall(function() %s:setall(%s, %s) end)" :format
+                              meta-str fn-name (table.concat meta-fields ", "))))))))
 
 (fn get-fn-name [ast scope fn-name multi]
   (if (and fn-name (not= (. fn-name 1) :nil))
@@ -248,7 +251,7 @@ By default, start is 2."
 (fn compile-named-fn [ast f-scope f-chunk parent index fn-name local?
                       arg-name-list f-metadata]
   ;; anonymous functions use this path after a name has been generated
-  (utils.hook :pre-fn ast f-scope)
+  (utils.hook :pre-fn ast f-scope parent)
   (for [i (+ index 1) (length ast)]
     (compiler.compile1 (. ast i) f-scope f-chunk
                        {:nval (or (and (not= i (length ast)) 0) nil)
@@ -261,7 +264,7 @@ By default, start is 2."
   (compiler.emit parent f-chunk ast)
   (compiler.emit parent :end ast)
   (set-fn-metadata f-metadata parent fn-name)
-  (utils.hook :fn ast f-scope)
+  (utils.hook :fn ast f-scope parent)
   (utils.expr fn-name :sym))
 
 (fn compile-anonymous-fn [ast f-scope f-chunk parent index arg-name-list
@@ -429,7 +432,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
                         {:forceset true :symtype :set})
   nil)
 
-(tset SPECIALS :set-forcibly! set-forcibly!*)
+(set SPECIALS.set-forcibly! set-forcibly!*)
 
 (fn local* [ast scope parent opts]
   (compiler.assert (or (= 0 opts.nval) opts.tail) "can't introduce local here" ast)
@@ -438,7 +441,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
                         {:declaration true :nomulti true :symtype :local})
   nil)
 
-(tset SPECIALS :local local*)
+(set SPECIALS.local local*)
 
 (doc-special :local [:name :val] "Introduce new top-level immutable local.")
 
@@ -603,7 +606,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
                 (compiler.emit parent (. buffer i) ast))
               target-exprs))))))
 
-(tset SPECIALS :if if*)
+(set SPECIALS.if if*)
 
 (doc-special :if [:cond1 :body1 "..." :condN :bodyN]
              "Conditional form.
@@ -703,7 +706,7 @@ order, but can be used with any iterator." true)
     (compiler.emit parent sub-chunk ast)
     (compiler.emit parent :end ast)))
 
-(tset SPECIALS :while while*)
+(set SPECIALS.while while*)
 
 (doc-special :while [:condition "..."]
              "The classic while loop. Evaluates body until a condition is non-truthy."
@@ -737,7 +740,7 @@ order, but can be used with any iterator." true)
     (compiler.emit parent chunk ast)
     (compiler.emit parent :end ast)))
 
-(tset SPECIALS :for for*)
+(set SPECIALS.for for*)
 
 (doc-special :for ["[index start stop step?]" "..."]
              "Numeric loop construct.
@@ -1085,7 +1088,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
   (let [op (or ?lua-op name)]
     (fn opfn [ast scope parent]
       (compiler.assert (< 2 (length ast)) "expected at least two arguments" ast)
-      (match (comparator-special-type ast)
+      (case (comparator-special-type ast)
           :native (native-comparator op ast scope parent)
           :idempotent (idempotent-comparator op ?chain-op ast scope parent)
           :binding (binding-comparator op ?chain-op ast scope parent)
@@ -1117,16 +1120,15 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
 
 ;; backwards-compatibility aliases
 (tset SPECIALS "~=" (. SPECIALS :not=))
-(tset SPECIALS "#" (. SPECIALS :length))
+(set SPECIALS.# (. SPECIALS :length))
+
+(fn compile-time? [scope]
+  (or (= scope compiler.scopes.compiler)
+      (and scope.parent (compile-time? scope.parent))))
 
 (fn SPECIALS.quote [ast scope parent]
   (compiler.assert (= (length ast) 2) "expected one argument" ast)
-  (var (runtime this-scope) (values true scope))
-  (while this-scope
-    (set this-scope this-scope.parent)
-    (when (= this-scope compiler.scopes.compiler)
-      (set runtime false)))
-  (compiler.do-quote (. ast 2) scope parent runtime))
+  (compiler.do-quote (. ast 2) scope parent (not (compile-time? scope))))
 
 (doc-special :quote [:x]
              "Quasiquote the following form. Only works in macro/compiler scope.")
@@ -1142,6 +1144,14 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
     (assert (not= mt (getmetatable "")) "Illegal metatable access!")
     mt))
 
+;; not 100% convinced on this yet...
+;; (fn safe-open [filename ?mode]
+;;   (assert (or (= nil ?mode) (?mode:find "^r"))
+;;           (.. "unsafe file mode: " (tostring ?mode)))
+;;   (assert (not (or (filename:find "^/") (filename:find "%.%.")))
+;;           (.. "unsafe file name: " filename))
+;;   (io.open filename ?mode))
+
 ;; Circularity
 (var safe-require nil)
 
@@ -1150,6 +1160,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
    :math (utils.copy math)
    :string (utils.copy string)
    :pairs utils.stablepairs
+   ;; :io {:open safe-open}
    : ipairs : select : tostring : tonumber :bit (rawget _G :bit)
    : pcall : xpcall : next : print : type : assert : error
    : setmetatable :getmetatable safe-getmetatable :require safe-require
@@ -1167,7 +1178,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
     (values next combined nil)))
 
 (fn make-compiler-env [ast scope parent ?opts]
-  (let [provided (match (or ?opts utils.root.options)
+  (let [provided (case (or ?opts utils.root.options)
                    {:compiler-env :strict} (safe-compiler-env)
                    {: compilerEnv} compilerEnv
                    {: compiler-env} compiler-env
@@ -1179,7 +1190,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              :_SPECIALS compiler.scopes.global.specials
              :_VARARG (utils.varg) ; don't use this!
              : macro-loaded
-             : unpack
+             : pack : unpack
              :assert-compile compiler.assert
              : view
              : fennel-module-name
@@ -1231,17 +1242,16 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
         fullpath (.. (or ?pathstring utils.fennel-module.path)
                      pkg-config.pathsep)]
     (fn try-path [path]
-      (let [filename (path:gsub (escapepat pkg-config.pathmark) no-dot-module)
-            filename2 (path:gsub (escapepat pkg-config.pathmark) modulename)]
-        (match (or (io.open filename) (io.open filename2))
+      (let [filename (path:gsub (escapepat pkg-config.pathmark) no-dot-module)]
+        (case (io.open filename)
           file (do
                  (file:close)
                  filename)
           _ (values nil (.. "no file '" filename "'")))))
 
     (fn find-in-path [start ?tried-paths]
-      (match (fullpath:match pattern start)
-        path (match (try-path path)
+      (case (fullpath:match pattern start)
+        path (case (try-path path)
                filename filename
                (nil error) (find-in-path (+ start (length path) 1)
                                          (doto (or ?tried-paths []) (table.insert error))))
@@ -1264,7 +1274,7 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
       (each [k v (pairs (or ?options {}))]
         (tset opts k v))
       (set opts.module-name module-name)
-      (match (search-module module-name)
+      (case (search-module module-name)
         filename (values (partial utils.fennel-module.dofile filename opts)
                          filename)
         (nil error) error))))
@@ -1284,7 +1294,7 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
                (tset :env :_COMPILER)
                (tset :requireAsInclude false)
                (tset :allowedGlobals nil))]
-    (match (search-module module-name utils.fennel-module.macro-path)
+    (case (search-module module-name utils.fennel-module.macro-path)
       filename (values (if (= opts.compiler-env _G)
                            (partial dofile-with-searcher fennel-macro-searcher
                                     filename opts)
@@ -1292,7 +1302,7 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
                        filename))))
 
 (fn lua-macro-searcher [module-name]
-  (match (search-module module-name package.path)
+  (case (search-module module-name package.path)
     filename (let [code (with-open [f (io.open filename)] (assert (f:read :*a)))
                    chunk (load-code code (make-compiler-env) filename)]
                (values chunk filename))))
@@ -1300,8 +1310,8 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
 (local macro-searchers [fennel-macro-searcher lua-macro-searcher])
 
 (fn search-macro-module [modname n]
-  (match (. macro-searchers n)
-    f (match (f modname)
+  (case (. macro-searchers n)
+    f (case (f modname)
         (loader ?filename) (values loader ?filename)
         _ (search-macro-module modname (+ n 1)))))
 
@@ -1419,7 +1429,7 @@ Deprecated.")
 
 (fn SPECIALS.include [ast scope parent opts]
   (compiler.assert (= (length ast) 2) "expected one argument" ast)
-  (let [modexpr (match (pcall resolve-module-name ast scope parent opts)
+  (let [modexpr (case (pcall resolve-module-name ast scope parent opts)
                   ;; if we're in a dofile and not a require, then module-name
                   ;; will be nil and we will not be able to successfully
                   ;; compile relative requires into includes, but we can still
@@ -1438,7 +1448,7 @@ Deprecated.")
                       (include-circular-fallback mod modexpr opts.fallback ast)
                       (. utils.root.scope.includes mod) ; check cache
                       ;; Find path to Fennel or Lua source; preferring Fennel
-                      (match (search-module mod)
+                      (case (search-module mod)
                         fennel-path (include-path ast opts fennel-path mod true)
                         _ (let [lua-path (search-module mod package.path)]
                             (if lua-path (include-path ast opts lua-path mod false)

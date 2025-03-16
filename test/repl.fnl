@@ -2,30 +2,6 @@
 (local fennel (require :fennel))
 (local specials (require :fennel.specials))
 
-(local saved-globals {})
-
-;; Prevent leaking _G.___replLocals___ (and _G.___repl__) into global env.
-;; TODO: We should probably just not let it leak these globals in the first
-;; place, since we aren't relying on them being exposed. If we did, setup and
-;; teardown could manage a custom env for REPL use, without it touching faith's
-;; environment.
-;;
-;; Better yet, we should consider preventing fennel.repl from leaking globals
-;; after the REPL exits.
-(fn setup-all []
-  "Saves off faith's _G.___replLocals___ / _G.___repl___ to prevent leakage"
-  (set saved-globals.___repl___       _G.___repl___)
-  (set saved-globals.___replLocals___ _G.___replLocals___))
-
-(fn teardown-all []
-  (set _G.___repl___       saved-globals.___repl___)
-  (set _G.___replLocals___ saved-globals.___replLocals___))
-
-(fn setup []
-  "Reset _G.___repl___ and _G.___replLocals___ to nil before each test"
-  (set _G.___repl___ nil)
-  (set _G.___replLocals___ nil))
-
 ;; allow inputs to be structured as a form but converted to a string
 (macro v [form] (view form))
 
@@ -49,6 +25,9 @@
       (fn opts.registerCompleter [x]
         (set repl-complete x))
       (fn opts.pp [x] x)
+      (set opts.env {: table : math : string : require
+                     : pcall : ipairs :bit _G.bit})
+      (set opts.env._G opts.env)
       (set opts.error-pinpoint ["«" "»"])
       (fennel.repl opts)))
   (let [repl-send (coroutine.wrap send)]
@@ -64,34 +43,35 @@
     (send (v (global foo :DUPE)))
     (send (v (local [foo foo-ba* moe-larry] [1 2 {:*curly* "Why soitenly"}])))
     (send (v (local [!x-y !x_y] [1 2])))
-    (assert-equal-unordered (comp "foo") ["foo" "foo-ba*"]
+    (assert-equal-unordered ["foo" "foo-ba*"] (comp "foo")
                             "local completion works & accounts for mangling")
-    (assert-equal-unordered (comp "moe-larry") ["moe-larry.*curly*"]
+    (assert-equal-unordered ["moe-larry.*curly*"] (comp "moe-larry")
                             "completion traverses tables without mangling"
                             "keys when input is \"tbl-var.\"")
     (t.= "1\t2" (send (v (values !x-y !x_y)))
          "mangled locals do not collide")
-    (assert-equal-unordered (comp "!x") ["!x_y" "!x-y"]
+    (assert-equal-unordered ["!x_y" "!x-y"] (comp "!x")
                             "completions on mangled locals do not collide")
     (send (v (local dynamic-index
                     (setmetatable {:a 1 :b 2} {:__index #($2:upper)}))))
-    (assert-equal-unordered (comp "dynamic-index.")
-                            [:dynamic-index.a :dynamic-index.b]
+    (assert-equal-unordered [:dynamic-index.a :dynamic-index.b]
+                            (comp "dynamic-index.")
                             "completion doesn't error on table with a fn"
                             "on mt.__index")
     (send (v (global global-is-nil nil)))
     (send (v (tset _G :global-is-not-nil-unscoped :NOT-NIL)))
-    (assert-equal-unordered (comp :global-is-n) [:global-is-nil
-                                                 :global-not-nil-unscoped]
+    (assert-equal-unordered [:global-is-nil
+                             :global-not-nil-unscoped]
+                            (comp :global-is-n)
                             "completion includes repl-scoped nil globals"
                             "and unscoped non-nil globals")
     (send (v (local val-is-nil nil)))
     (send (v (lua "local val-is-nil-unscoped = nil")))
-    (t.= (comp :val-is-ni) [:val-is-nil]
+    (t.= [:val-is-nil] (comp :val-is-ni)
          "completion includes repl-scoped locals with nil values")
     (send (v (global shadowed-is-nil nil)))
     (send (v (local shadowed-nil nil)))
-    (t.= (comp :shadowed-is-n) [:shadowed-is-nil]
+    (t.= [:shadowed-is-nil] (comp :shadowed-is-n)
          "completion includes repl-scoped shadowed variables only once")
     (t.is (pcall send ",complete ]")
           "shouldn't kill the repl on a parse error")))
@@ -102,17 +82,17 @@
     (send (v (import-macros mac :test.macros)))
     (let [[c1 c2 c3] (doto (comp "mac.i") table.sort)]
       ;; local should be shadowed!
-      (t.not= c1 "mac.incremented")
-      (t.not= c2 "mac.incremented")
+      (t.not= "mac.incremented" c1)
+      (t.not= "mac.incremented" c2)
       (t.= nil c3))))
 
 (fn test-method-completion []
   (let [(send comp) (wrap-repl)]
     (send (v (local ttt {:abc 12 :fff (fn [] :val) :inner {:foo #:f :fa #:f}})))
-    (t.= (comp "ttt:f") ["ttt:fff"] "method completion works on fns")
-    (assert-equal-unordered (comp "ttt.inner.f") ["ttt:foo" "ttt:fa"]
+    (t.= ["ttt:fff"] (comp "ttt:f") "method completion works on fns")
+    (assert-equal-unordered ["ttt:foo" "ttt:fa"] (comp "ttt.inner.f")
                             "method completion nests")
-    (t.= (comp "ttt:ab") [] "no method completion on numbers")))
+    (t.= [] (comp "ttt:ab") "no method completion on numbers")))
 
 (fn test-command-completion []
   (let [(send comp) (wrap-repl)]
@@ -133,7 +113,22 @@
         _ (send ",exit")
         (ok? msg) (pcall send ":more")]
     (t.is (not ok?))
-    (t.= msg "cannot resume dead coroutine")))
+    (t.= "cannot resume dead coroutine" msg)))
+
+(fn test-chunks []
+  (let [input ["(+ 99 " "101" ")\n" "   " "\n\n"
+               "(.. :he \n" ":llo" ")"]
+        output []
+        opts {:readChunk #(table.remove input 1)
+              :onValues #(table.insert output (. $ 1))
+              :env (setmetatable {} {:__index _G})}]
+    (fennel.repl opts)
+    (t.= "200\n\"hello\"" (table.concat output "\n"))
+    (while (next output) (table.remove output))
+    (table.insert input "\"hello ")
+    (table.insert input "world!\"")
+    (fennel.repl opts)
+    (t.= "\"hello world!\"" (table.concat output "\n"))))
 
 (fn test-reload []
   (set package.loaded.dummy nil)
@@ -167,8 +162,8 @@
         abc (send "abc")
         _ (send ",reset")
         abc2 (send "abc")]
-    (t.= abc "123")
-    (t.= abc2 "")))
+    (t.= "123" abc)
+    (t.= "" abc2)))
 
 (fn test-find []
   (let [send (wrap-repl)
@@ -211,10 +206,11 @@
 
 (fn test-options []
   ;; ensure options.useBitLib propagates to repl
-  (let [send (wrap-repl {:useBitLib true :onError (fn [e] (values :ERROR e))})
+  (let [send (wrap-repl {:useBitLib true
+                         :onError (fn [e] (values :ERROR e))})
         bxor-result (send (v (bxor 0 0)))]
     (if _G.jit
-      (t.= bxor-result :0)
+      (t.= "0" bxor-result)
       (t.match "error:.*attempt to index.*global 'bit'" bxor-result
                "--use-bit-lib should make bitops fail in non-luajit"))))
 
@@ -225,16 +221,15 @@
                           "table.sort"])]
         (t.match k res)))
     (let [res (send ",apropos not-found")]
-      (t.= res "" "apropos returns no results for unknown pattern")
-      (t.= (doto (icollect [item (res:gmatch "[^%s]+")] item)
-             (table.sort))
-           []
+      (t.= "" res "apropos returns no results for unknown pattern")
+      (t.= [] (doto (icollect [item (res:gmatch "[^%s]+")] item)
+                (table.sort))
            "apropos returns no results for unknown pattern"))
     (let [res (send ",apropos-doc function")]
       (t.match "partial" res "apropos returns matching doc patterns")
       (t.match "pick%-args" res "apropos returns matching doc patterns"))
     (let [res (send ",apropos-doc \"there's no way this could match\"")]
-      (t.= res "" "apropos returns no results for unknown doc pattern"))))
+      (t.= "" res "apropos returns no results for unknown doc pattern"))))
 
 (fn test-byteoffset []
   (let [send (wrap-repl)
@@ -252,8 +247,8 @@
   (let [(send comp) (wrap-repl)]
     (send (v (local {: foo} (require :test.mod.foo7))))
     ;; repro case for https://todo.sr.ht/~technomancy/fennel/85
-    (t.= (send (v (foo))) :foo)
-    (t.= (comp "fo") [:for :foo])))
+    (t.= :foo (send (v (foo))))
+    (t.= [:for :foo] (comp "fo"))))
 
 (fn test-error-handling []
   (let [send (wrap-repl)]
@@ -274,23 +269,25 @@
     (send (v (local x-y 5)))
     (send (v (let [x-y 55] nil)))
     (send (v (fn abc [] :def)))
-    (t.= (send (v x-y)) :5)
-    (t.= (send (v (abc))) "def"))
+    (t.= "5" (send (v x-y)))
+    (t.= "def" (send (v (abc)))))
   (let [send (wrap-repl {:correlate true})]
     (send (v (local x 1)))
-    (t.= (send "x") :1))
+    (t.= "1" (send "x")))
   ;; now let's try with an env
   (let [send (wrap-repl {:env {: debug}})]
     (send (v (local xyz 55)))
-    (t.= (send "xyz") :55)))
+    (t.= "55" (send "xyz"))))
 
 (fn test-docstrings []
   (let [send (wrap-repl)]
     (tset fennel.macro-loaded :test.macros nil)
     (t.= (.. "(if cond1 body1 ... condN bodyN)\n"
              "  Conditional form.\n"
-             "  Takes any number of condition/body pairs and evaluates the first body where\n"
-             "  the condition evaluates to truthy. Similar to cond in other lisps.")
+             "  Takes any number of condition/body pairs and evaluates the "
+             "first body where\n"
+             "  the condition evaluates to truthy. Similar to "
+             "cond in other lisps.")
          (send ",doc if")
          "docstrings for specials")
     (t.= (.. "(doto val ...)\n  Evaluate val and splice it into the first "
@@ -479,6 +476,22 @@
              (send (v (fn foo [] {:foo {[(fn [] nil)] :foo}} nil)))
              "nested lists as values are not allowed as metadata fields")))
 
+(fn test-default-overrides []
+  (set fennel.repl.view-opts {:max-sparse-gap 5})
+  (let [send (wrap-repl {:view-opts {}})]
+    ;; need to set pp back to the repl default for this test to work
+    (send (v (set ___repl___.pp (. (require :fennel) :view))))
+    (t.= "[\"a\" nil nil \"b\"]" (send (v [:a nil nil :b]))
+         "REPL merges explicit view-opts table without clobbering non-conflicting defaults"))
+  (let [send (wrap-repl {:view-opts {:max-sparse-gap 2}})]
+    ;; need to set pp back to the repl default for this test to work
+    (send (v (set ___repl___.pp (. (require :fennel) :view))))
+    (t.= "{1 \"a\" 4 \"b\"}" (send (v [:a nil nil :b]))
+         "Explicit options to :view-opts keys still override custom defaults")
+    (t.= "[\"a\" nil \"b\"]" (send (v [:a nil :b]))
+         "Explicit options to :view-opts keys still override built-in defaults")))
+
+
 (fn test-long-string []
   (let [send (wrap-repl)
         long (fcollect [_ 1 8000 :into [":"]] "-")
@@ -494,7 +507,8 @@
 
 (fn test-return []
   (let [opts {:readChunk #",return (.. :return :value)"
-              :onValues #nil}]
+              :onValues #nil
+              :env {}}]
     (t.= :returnvalue (fennel.repl opts))))
 
 (fn test-decorating-repl []
@@ -502,17 +516,18 @@
   (let [send (wrap-repl)]
     (send (v (let [readChunk ___repl___.readChunk]
                (fn ___repl___.readChunk [parser-state]
+                 (set ___repl___.readChunk readChunk)
                  (string.format "(- %s)" (readChunk parser-state))))))
-    (t.= (send (v (+ 1 2 3)))
-         "-6" "expected the result to be negated by the new readChunk")
+    (t.= "-6" (send (v (+ 1 2 3)))
+         "expected the result to be negated by the new readChunk")
     (send (v (let [onValues ___repl___.onValues]
                (fn ___repl___.onValues [vals]
                  (onValues (icollect [_ v (ipairs vals)]
-                             (.. "res: " v)))))))
-    (t.= (send (v (+ 1 2 3 4)))
-         "res: -10" "expected result to include \"res: \" preffix")
+                             (string.format "res: %s" v)))))))
+    (t.= "res: 10" (send (v (+ 1 2 3 4)))
+         "expected result to include \"res: \" preffix")
     (send (v (fn ___repl___.onError [errtype err lua-source] nil)))
-    (t.= (send (v (error :foo))) "" "expected error to be ignored")))
+    (t.= "" (send (v (error :foo))) "expected error to be ignored")))
 
 ;; Skip REPL tests in non-JIT Lua 5.1 only to avoid engine coroutine
 ;; limitation. Normally we want all tests to run on all versions, but in
@@ -520,10 +535,7 @@
 ;; testing it on PUC 5.1, so skip it.
 (if (and (or (not= _VERSION "Lua 5.1") (= (type _G.jit) "table"))
          (= "/" (package.config:sub 1 1)))
-    {: setup-all
-     : teardown-all
-     : setup
-     : test-sym-completion
+    {: test-sym-completion
      : test-macro-completion
      : test-method-completion
      : test-command-completion
@@ -531,6 +543,7 @@
      : test-exit
      : test-reload
      : test-reload-macros
+     : test-chunks
      : test-reset
      : test-find
      : test-compile
@@ -548,5 +561,9 @@
      : test-long-string
      : test-save-values
      : test-return
-     : test-decorating-repl}
+     : test-decorating-repl
+     : test-default-overrides
+     ;; remove any left over custom repl settings
+     :teardown #(each [repl-opt (pairs fennel.repl)]
+                  (tset fennel.repl repl-opt nil))}
     {})

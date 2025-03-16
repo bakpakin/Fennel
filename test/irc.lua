@@ -2,11 +2,14 @@ local server_port = (os.getenv("IRC_HOST_PORT") or "irc.libera.chat 6667")
 local channel = os.getenv("IRC_CHANNEL")
 local url = os.getenv("JOB_URL") or "???"
 
-local origin_job_prefix = 'https://builds.sr.ht/technomancy/job/'
-local is_origin = url:sub(1, #origin_job_prefix) == origin_job_prefix
+local remote = io.popen("git remote get-url origin 2> /dev/null"):read('*l')
+if remote == nil then
+    -- no git / no git repo, this is not an upstream CI job
+    return function() end
+end
+local is_origin = remote:find('~technomancy/fennel$') ~= nil
 
-local branch = io.popen("git rev-parse --abbrev-ref HEAD"):read('*a')
-                 :gsub('\n$', '')
+local branch = io.popen("git rev-parse --abbrev-ref HEAD"):read('*l')
 local is_main = branch == 'main'
 
 -- This may fail in future if libera chat once again blocks builds.sr.ht

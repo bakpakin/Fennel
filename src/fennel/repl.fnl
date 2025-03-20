@@ -266,9 +266,11 @@ For more information about the language, see https://fennel-lang.org/reference")
 (fn commands.find [env read on-values on-error scope]
   (run-command read on-error
                #(case (-?> (utils.sym? $) (resolve env scope) (debug.getinfo))
-                  {:what "Lua" : source :linedefined line :short_src src}
+                  (where {:what "Lua" : source :linedefined line}
+                         (= :string (type source))
+                         (= "@" (source:sub 1 1)))
                   (let [fnlsrc (?. compiler.sourcemap source line 2)]
-                    (on-values [(string.format "%s:%s" src (or fnlsrc line))]))
+                    (on-values [(string.format "%s:%s" (source:sub 2) (or fnlsrc line))]))
                   nil (on-error :Repl "Unknown value")
                   _ (on-error :Repl "No source info"))))
 

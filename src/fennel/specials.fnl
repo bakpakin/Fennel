@@ -364,7 +364,7 @@ By default, start is 2."
           (compile-anonymous-fn ast f-scope f-chunk parent index arg-name-list
                                 f-metadata scope)))))
 
-(doc-special :fn [:name? :args :docstring? "..."]
+(doc-special :fn [:?name :args :?docstring :...]
              "Function syntax. May optionally include a name and docstring or a metadata table.
 If a name is provided, the function will be bound in the current scope.
 When called with the wrong number of args, excess args will be discarded
@@ -476,7 +476,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
                             {:declaration true :nomulti true :symtype :let}))
     (SPECIALS.do ast scope parent opts 3 sub-chunk sub-scope pre-syms)))
 
-(doc-special :let ["[name1 val1 ... nameN valN]" "..."]
+(doc-special :let [[:name1 :val1 :... :nameN :valN] :...]
              "Introduces a new scope in which a given set of local bindings are used."
              true)
 
@@ -680,10 +680,10 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
       (compiler.emit parent chunk ast)
       (compiler.emit parent :end ast))))
 
-(doc-special :each ["[key value (iterator)]" "..."]
+(doc-special :each [[:vals... :iterator] :...]
              "Runs the body once for each set of values provided by the given iterator.
-Most commonly used with ipairs for sequential tables or pairs for  undefined
-order, but can be used with any iterator." true)
+Most commonly used with ipairs for sequential tables or pairs for undefined
+order, but can be used with any iterator with any number of values." true)
 
 (fn while* [ast scope parent]
   (let [len1 (length parent)
@@ -742,7 +742,7 @@ order, but can be used with any iterator." true)
 
 (set SPECIALS.for for*)
 
-(doc-special :for ["[index start stop step?]" "..."]
+(doc-special :for [[:index :start :stop :?step] :...]
              "Numeric loop construct.
 Evaluates body once for each value between start and stop (inclusive)." true)
 

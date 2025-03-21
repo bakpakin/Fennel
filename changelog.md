@@ -8,10 +8,13 @@ deprecated forms.
 
 ## 1.5.4 / ???
 
+### New Features
+
+* Support `extra-env` in compiler API when evaluating in compiler scope.
+
 ### Bug Fixes
 
-* The `,find` command now uses full path instead of `short_src` from
-  `debug.getinfo`.
+* Fix a bug where `,find` repl command didn't work on files with long names.
 
 ## 1.5.3 / 2025-02-16
 

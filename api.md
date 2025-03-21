@@ -48,7 +48,8 @@ usually accept these fields:
 You can pass the string `"_COMPILER"` as the value for `env`; it will
 cause the code to be run/compiled in a context which has all
 compiler-scoped values available. This can be useful for macro modules
-or compiler plugins.
+or compiler plugins. If you want to add additional values to the
+environment in this case, you can use the `extra-env` key.
 
 Note that only the `fennel` module is part of the public API. The
 other modules (`fennel.utils`, `fennel.compiler`, etc) should be

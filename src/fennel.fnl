@@ -28,6 +28,7 @@
 (fn eval-env [env opts]
   (if (= env :_COMPILER)
       (let [env (specials.make-compiler-env nil compiler.scopes.compiler {} opts)]
+        (collect [k v (pairs (or opts.extra-env {})) &into env] k v)
         ;; re-enable globals-checking; previous globals-checking below doesn't
         ;; work on the compiler env because of the sandbox.
         (when (= opts.allowedGlobals nil)

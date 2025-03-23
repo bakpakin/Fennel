@@ -929,16 +929,13 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
   (case (type ?msg)
     (where (or :nil :string))
     (let [msg (or ?msg "")]
-      (if (and (or (msg:find "^%g+:%d+:%d+ Compile error:.*")
-                   (msg:find "^%g+:%d+:%d+ Parse error:.*"))
+      (if (and (or (msg:find "^%g+:%d+:%d+: Compile error:.*")
+                   (msg:find "^%g+:%d+:%d+: Parse error:.*"))
                (not (utils.debug-on? :trace)))
           msg        ; skip the trace because it's compiler internals.
-          (let [lines []]
-            (if (or (msg:find "^%g+:%d+:%d+ Compile error:")
-                    (msg:find "^%g+:%d+:%d+ Parse error:"))
-                (table.insert lines msg)
-                (let [newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
-                  (table.insert lines newmsg)))
+          (let [lines []
+                newmsg (msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")]
+            (table.insert lines newmsg)
             (table.insert lines "stack traceback:")
             (var (done? level) (values false (or ?start 2)))
             ;; This would be cleaner factored out into its own recursive

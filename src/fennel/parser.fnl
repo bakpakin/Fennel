@@ -97,7 +97,8 @@ Also returns a second function to clear the buffer in the byte stream."
   ;; If you add new calls to this function, please update fennel.friend as well
   ;; to add suggestions for how to fix the new error!
   (fn parse-error [msg ?col-adjust]
-    (let [col (+ col (or ?col-adjust -1))]
+    (let [endcol (and ?col-adjust col)
+          col (+ col (or ?col-adjust -1))]
       ;; allow plugins to override parse-error
       (when (= nil (utils.hook-opts :parse-error options msg filename
                                (or line "?") col
@@ -106,7 +107,8 @@ Also returns a second function to clear the buffer in the byte stream."
         (if unfriendly
             (error (string.format "%s:%s:%s: Parse error: %s"
                                   filename (or line "?") col msg) 0)
-            (friend.parse-error msg filename (or line "?") col source options)))))
+            (friend.parse-error msg filename (or line "?") col endcol
+                                source options)))))
 
   (fn parse-stream []
     (var (whitespace-since-dispatch done? retval) true)
@@ -304,7 +306,8 @@ Also returns a second function to clear the buffer in the byte stream."
             (do
               (dispatch (or (tonumber trimmed)
                             (parse-error (.. "could not read number \"" rawstr
-                                             "\""))) source rawstr)
+                                             "\"") (- (length rawstr))))
+                        source rawstr)
               true)
             (case (tonumber trimmed)
               x (do

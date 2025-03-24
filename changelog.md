@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Look for macros in `.fnlm` files in addition to `.fnl` files.
 * Support `extra-env` in compiler API when evaluating in compiler scope.
 
 ### Bug Fixes

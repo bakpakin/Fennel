@@ -92,7 +92,9 @@
   (== 2 (do (import-macros {: gensym-shadow} :test.macros) (gensym-shadow))))
 
 (fn test-macro-path []
-  (== (do (import-macros m :test.other-macros) (m.m)) "testing macro path"))
+  (== (do (import-macros m :test.other-macros) (m.m)) "testing macro path")
+  (== (do (import-macros m :test.mod.macroed) (m.reverse3 [1 2 3]))
+      [3 2 1]))
 
 (fn test-relative-macros []
   (== (require :test.relative) 3))

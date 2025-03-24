@@ -22,9 +22,10 @@ Depending on what package manager you use on your system, you may be
 able to use it to install Fennel. See [the
 wiki](https://wiki.fennel-lang.org/Packaging) for a list of packaging
 systems which offer Fennel. Packaged versions of Fennel may lag behind
-the official releases and often only support one version at a time,
-but they tend to be the most convenient. For instance, if you use
-Fedora, it should be as easy as running `sudo dnf install fennel`.
+the official releases and may only support one version at a time,
+but they tend to be the most convenient and support automatic updates.
+For instance, if you use Fedora, it should be as easy as running
+`sudo dnf install fennel`.
 
 
 ### Downloading the fennel script

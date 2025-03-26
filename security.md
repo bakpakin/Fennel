@@ -18,7 +18,7 @@ To verify:
 
 From 1.0 onwards, releases are also signed with `.sig` files using SSH keys:
 
-    $ curl -O allowed https://fennel-lang.org/downloads/allowed_signers
+    $ curl -o allowed https://fennel-lang.org/downloads/allowed_signers
     $ ssh-keygen -Y verify -f allowed -I phil@hagelb.org -n file -s fennel-1.2.0.sig < fennel-1.2.0
 
 You can compare the key in the [allowed][5] file with the keys

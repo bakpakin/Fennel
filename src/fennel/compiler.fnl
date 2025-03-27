@@ -430,18 +430,25 @@ if opts contains the nval option."
   (accumulate [found? false _ f (pairs scopes.global.macros) :until found?]
     (= f m)))
 
+(fn macro-traceback [msg]
+  (if (utils.debug-on?)
+      (debug.traceback msg 2) ; TODO: use fennel's own traceback
+      (-> (icollect [l (: (debug.traceback msg 2) :gmatch "([^\n]+)")
+                     &until (l:find "function 'fennel.compiler.macroexpand'$")]
+            l)
+          (doto table.remove)
+          (table.concat "\n"))))
+
 (fn macroexpand* [ast scope ?once]
   "Expand macros in the ast. Only do one level if once is true."
   (case (if (utils.list? ast) (find-macro ast scope))
     false ast
     macro* (let [old-scope scopes.macro
                  _ (set scopes.macro scope)
-                 ;; TODO: we want to pass a traceback level, but it only
-                 ;; supports trimming the trace from the wrong direction.
                  (ok transformed) (xpcall #(macro* (unpack ast 2))
                                           (if (built-in? macro*)
                                               tostring
-                                              debug.traceback))]
+                                              macro-traceback))]
              (utils.walk-tree transformed
                               #(propagate-trace-info ast (quote-literal-nils $...)))
              (set scopes.macro old-scope)

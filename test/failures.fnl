@@ -209,7 +209,8 @@
     (t.match "test.macros.fnl:3: oh no" msg)
     ;; sometimes it's "in function f" and sometimes "in upvalue f"
     (t.match ".*test.macros.fnl:3: in %w+ 'def'.*" msg)
-    (t.match ".*test.macros.fnl:4: in %w+ 'abc'.*" msg))
+    (t.match ".*test.macros.fnl:4: in %w+ 'abc'.*" msg)
+    (t.not-match "fennel.compiler" msg))
   (let [(ok? msg) (pcall fennel.eval "(require-macros 100)")]
     (t.is (not ok?))
     (t.match ".*module name must compile to string.*" msg)))

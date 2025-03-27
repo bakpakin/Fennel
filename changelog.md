@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Stack traces from macro errors shouldn't contain compiler internals.
 * Look for macros in `.fnlm` files in addition to `.fnl` files.
 * Support `extra-env` in compiler API when evaluating in compiler scope.
 

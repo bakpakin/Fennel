@@ -188,8 +188,10 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 (local getenv (or (and os os.getenv) #nil))
 
 (fn debug-on? [flag]
-  (let [level (or (getenv :FENNEL_DEBUG) "")]
-    (or (= level :all) (level:find flag))))
+  (let [dbg (getenv :FENNEL_DEBUG)]
+    (if (= flag nil)
+        (not= nil dbg)
+        (and dbg (dbg:find flag)))))
 
 (fn list [...]
   "Create a new list. Lists are a compile-time construct in Fennel; they are

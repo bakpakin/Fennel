@@ -72,7 +72,7 @@ The ast arg should be unmodified so that its first element is the form called."
 (fn serialize-string [str]
   (-> (string.format "%q" str)
       (string.gsub "\\\n" "\\n") ; keep it as one line
-      (string.gsub "\\..?" serialize-subst-digits)
+      (string.gsub "\\%d%d?%d?" serialize-subst-digits)
       (string.gsub "[\128-\255]" #(.. "\\" ($:byte)))))
 
 (fn global-mangling [str]

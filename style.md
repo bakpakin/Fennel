@@ -457,9 +457,8 @@ Do not use `#(this-style)` syntax for functions longer than a single
 line. Never use long-form `(hashfn)` directly; only use the shorthand. Prefer
 `partial` to hashfn shorthand where possible.
 
-When checking to see if a table is empty, don't use `(= 0 (length t))`
-since `length` can be expensive for large tables. Instead use `(= nil
-(next t))` which is always cheap.
+When checking to see if a table is empty, it's faster to use `(= nil
+(next t))` instead of `(= 0 (length t))`.
 
 Do not use `require-macros` or `eval-compiler`.
 

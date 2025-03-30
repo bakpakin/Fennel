@@ -5,6 +5,11 @@
 (fn == [a b msg]
   (t.= (fennel.view a) (fennel.view b) msg))
 
+(fn parse= [expected str msg]
+  (let [(ok? parsed) ((fennel.parser str))]
+    (t.is ok?)
+    (t.= expected parsed msg)))
+
 (fn test-basics []
   (t.= "\\" (fennel.eval "\"\\\\\""))
   (t.= "abc\n\240" (fennel.eval "\"abc\n\\240\""))
@@ -38,6 +43,24 @@
   ;; ensure we consistently treat nan as symbol even on 5.1
   (t.= :not-really (fennel.eval "(let [nan :not-really] nan)"))
   (t.= :nah (fennel.eval "(let [-nan :nah] -nan)")))
+
+(fn test-escapes []
+  (parse= " " "\"\\032\"")
+  (parse= " " "\"\\x20\"")
+  (parse= " " "\"\\u{20}\"")
+  (parse= "\t\n\v" "\"\\t\\n\\v\"")
+  ;; extra unicode cases
+  (parse= "\x24" "\"\\u{24}\"")
+  (parse= "\xC2\xA2" "\"\\u{a2}\"")
+  (parse= "\xE2\x82\xAC" "\"\\u{20ac}\"")
+  (parse= "\xF0\xA4\xAD\xA2" "\"\\u{24b62}\"")
+  (parse= "\x7F" "\"\\u{7f}\"")
+  (parse= "\xC2\x80" "\"\\u{80}\"")
+  (parse= "\xDF\xBF" "\"\\u{7ff}\"")
+  (parse= "\xE0\xA0\x80" "\"\\u{800}\"")
+  (parse= "\xEF\xBF\xBF" "\"\\u{ffff}\"")
+  (parse= "\xF0\x90\x80\x80" "\"\\u{10000}\"")
+  (parse= "\xF4\x8F\xBF\xBF" "\"\\u{10ffff}\""))
 
 (fn test-comments []
   (let [(ok? ast) ((fennel.parser (fennel.string-stream ";; abc")
@@ -137,6 +160,7 @@
     ; (t.= (line-col ast [1 3]))
     (t.= (tostring ast) (code:sub ast.bytestart ast.byteend))))
 
+
 (fn test-plugin-hooks []
   (var parse-error-called nil)
   (let [code "(there is a parse error here (((("
@@ -152,4 +176,5 @@
  : test-comments
  : test-prefixes
  : test-source-meta
+ : test-escapes
  : test-plugin-hooks}

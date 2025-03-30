@@ -46,8 +46,8 @@ Also returns a second function to clear the buffer in the byte stream."
          (not= b 59) ; semicolon
          (not= b 44) ; comma
          (not= b 64) ; at
-         (not= b 96) ; backtick
-         )))
+         (not= b 96)))) ; backtick
+
 
 ;; prefix chars substituted while reading
 (local prefixes {35 :hashfn
@@ -63,6 +63,9 @@ Also returns a second function to clear the buffer in the byte stream."
       (values (/ 0 0) (- (/ 0 0)))))
 
 (fn char-starter? [b] (or (< 1 b 127) (< 192 b 247)))
+
+(local escapes {:a "\a" :b "\b" :f "\f" :n "\n" :r "\r" :t "\t" :v "\v"
+                "\\" "\\" "\"" "\"" "'" "'" "\n" "\n"})
 
 (fn parser-fn [getbyte filename {: source : unfriendly : comments &as options}]
   (var stack []) ; stack of unfinished values
@@ -243,22 +246,89 @@ Also returns a second function to clear the buffer in the byte stream."
             (= b 93) (close-sequence top)
             (close-curly-table top))))
 
+    (fn bitrange [codepoint low high]
+      (% (math.floor (/ codepoint (^ 2 low))) (math.floor (^ 2 (- high low)))))
+
+    (fn encode-utf8 [codepoint-str]
+      ;; codepoint-str format is "u{hexidecimal digits}"
+      ;; so we need to substring just the interesting parts
+      (case (tonumber (codepoint-str:sub 4 -2) 16)
+        codepoint (if _G.utf8 (_G.utf8.char codepoint)
+                      (<= 0        codepoint 0x7F)
+                      (string.char codepoint)
+                      (<= 0x80     codepoint 0x7FF)
+                      (string.char (+ 0xC0 (bitrange codepoint 6 11))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      (<= 0x800    codepoint 0xFFFF)
+                      (string.char (+ 0xE0 (bitrange codepoint 12 16))
+                                   (+ 0x80 (bitrange codepoint 6 12))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      (<= 0x10000  codepoint 0x1FFFFF)
+                      (string.char (+ 0xF0 (bitrange codepoint 18 21))
+                                   (+ 0x80 (bitrange codepoint 12 18))
+                                   (+ 0x80 (bitrange codepoint 6 12))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      ;; These are past the range of valid unicode,
+                      ;; but we parse them anyway to match Lua
+                      (<= 0x20000  codepoint 0x3FFFFFF)
+                      (string.char (+ 0xF8 (bitrange codepoint 24 26))
+                                   (+ 0x80 (bitrange codepoint 18 24))
+                                   (+ 0x80 (bitrange codepoint 12 18))
+                                   (+ 0x80 (bitrange codepoint 6 12))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      (<= 0x400000 codepoint 0x7FFFFFFF)
+                      (string.char (+ 0xFC (bitrange codepoint 30 31))
+                                   (+ 0x80 (bitrange codepoint 24 30))
+                                   (+ 0x80 (bitrange codepoint 18 24))
+                                   (+ 0x80 (bitrange codepoint 12 18))
+                                   (+ 0x80 (bitrange codepoint 6 12))
+                                   (+ 0x80 (bitrange codepoint 0 6)))
+                      (parse-error (.. "utf8 value too large: " codepoint-str)))
+        _ (parse-error (.. "Illegal string: " codepoint-str))))
+
     (fn parse-string-loop [chars b state]
       (when b
         (table.insert chars (string.char b)))
       (let [state (case [state b]
                     [:base 92] :backslash
                     [:base 34] :done
-                    [:backslash 10] (do
-                                      (table.remove chars (- (length chars) 1))
-                                      :base)
                     _ :base)]
         (if (and b (not= state :done))
             (parse-string-loop chars (getb) state)
             b)))
 
-    (fn escape-char [c]
-      (. {7 "\\a" 8 "\\b" 9 "\\t" 10 "\\n" 11 "\\v" 12 "\\f" 13 "\\r"} (c:byte)))
+    (fn expand-str [str]
+      (let [result []]
+        (var i 1)
+        (while (<= i (length str))
+          (let [(add-to-i add-to-result) (case (str:match "^[^\\]+" i)
+                                           text (values (length text) text)
+                                           ;; literal escape code
+                                           _ (case (. escapes (str:match "^\\(.?)" i))
+                                               escape (values 2 escape)
+                                               ;; the windows version of \<newline>
+                                               _ (if (= "\\\r\n" (str:sub i (+ i 2)))
+                                                   (values 3 "\r\n")
+                                                   ;; hex escape code
+                                                   (case (str:match "^\\x(%x%x)" i)
+                                                     hex-code (values 4 (string.char (tonumber hex-code 16)))
+                                                     ;; unicode esape code
+                                                     _ (case (str:match "^\\u{%x+}" i)
+                                                         unicode-escape (values (length unicode-escape) (encode-utf8 unicode-escape))
+                                                         ;; whitespace escape code
+                                                         _ (case (str:find "^\\z%s*" i)
+                                                             (_ j) (values (+ (- j i) 1) "")
+                                                             ;; decimal escape code
+                                                             _ (case (str:match "^\\(%d%d?%d?)" i)
+                                                                 digits (let [byte (tonumber digits 10)]
+                                                                          (when (< 255 byte)
+                                                                            (parse-error "invalid decimal escape"))
+                                                                          (values (+ (length digits) 1) (string.char byte)))
+                                                                 ;; unknown escape code
+                                                                 _ (parse-error "invalid escape sequence"))))))))]
+            (table.insert result add-to-result)
+            (set i (+ i add-to-i))))
+        (table.concat result)))
 
     (fn parse-string [source]
       (when (not whitespace-since-dispatch)
@@ -269,10 +339,8 @@ Also returns a second function to clear the buffer in the byte stream."
           (badend))
         (table.remove stack)
         (let [raw (table.concat chars)
-              formatted (raw:gsub "[\a-\r]" escape-char)]
-          (case ((or (rawget _G :loadstring) load) (.. "return " formatted))
-            load-fn (dispatch (load-fn) source raw)
-            nil (parse-error (.. "Invalid string: " raw))))))
+              expanded (expand-str (raw:sub 2 -2))]
+          (dispatch expanded source raw))))
 
     (fn parse-prefix [b]
       "expand prefix byte into wrapping form eg. '`a' into '(quote a)'"

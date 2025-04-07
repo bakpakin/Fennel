@@ -47,7 +47,7 @@ count: ; cloc $(CORE_SRC); cloc $(LIB_SRC) ; cloc $(SRC)
 format: ; for f in $(SRC); do fnlfmt --fix $$f ; done
 
 # All-in-one pure-lua script:
-fennel: src/launcher.fnl $(SRC) $(PRECOMPILED)
+fennel: src/launcher.fnl $(SRC) bootstrap/aot.lua $(PRECOMPILED)
 	@echo "#!/usr/bin/env $(LUA)" > $@
 	@echo "-- SPDX-License-Identifier: MIT" >> $@
 	@echo "-- SPDX-FileCopyrightText: Calvin Rose and contributors" >> $@

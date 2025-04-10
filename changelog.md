@@ -13,6 +13,7 @@ deprecated forms.
 * Stack traces from macro errors shouldn't contain compiler internals.
 * Look for macros in `.fnlm` files in addition to `.fnl` files.
 * Support `extra-env` in compiler API when evaluating in compiler scope.
+* Add support for discarding (Clojure's `#_`).
 
 ### Bug Fixes
 

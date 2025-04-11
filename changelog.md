@@ -17,6 +17,8 @@ deprecated forms.
 ### Bug Fixes
 
 * Fix a bug where `,find` repl command didn't work on files with long names.
+* Some 3-decimal string escapes ignored the 3rd digit; e.g. `\x7f` -> `\127` -> `\f7`
+* In PUC Lua 5.1, the escape `"\127"` compiled to a literal byte in the string
 
 ## 1.5.3 / 2025-02-16
 

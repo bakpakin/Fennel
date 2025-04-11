@@ -147,8 +147,19 @@
         "Expected to be able to use multisyms with digits and & in their second part"))
 
 (fn test-strings []
-  (t.match "\\r\\n" (fennel.compile-string "(print \"\r\n\")")
-           "expected compiling newlines to preserve backslash"))
+  ;; need bs var in order to test effectively while testing on escape issues
+  ;; that may be broken in the self-hosetd fennel verfsion
+  (let [bs (string.char 92)] ; backslash
+    (macro compile-string [...]
+      `(-> (fennel.compile-string ,...)
+           (: :gsub "^return " "")
+           (: :gsub "^\"([^\"]+)\"$" "%1")))
+    (t.= "\\r\\n" (compile-string "\"\r\n\"")
+         "expected compiling newlines to preserve backslash")
+    (t.= (.. bs "127") (compile-string (.. "\"" bs "127\""))
+         (.. "expected " bs "<digit> to output the byte for 3-digit escapes"))
+    (t.= (.. bs bs "12") (compile-string (.. "\"" bs bs "12\""))
+         (.. "expected even # of " bs "'s not to escape what follows"))))
 
 {: test-empty-values
  : test-env-iteration

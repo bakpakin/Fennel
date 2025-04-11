@@ -65,15 +65,15 @@ The ast arg should be unmodified so that its first element is the form called."
 (set scopes.compiler (make-scope scopes.global))
 (set scopes.macro scopes.global)
 
-(local serialize-subst-digits {"\\7" "\\a" "\\8" "\\b" "\\9" "\\t"
-                               "\\10" "\\n" "\\11" "\\v" "\\12" "\\f"
-                               "\\13" "\\r"})
-
-(fn serialize-string [str]
-  (-> (string.format "%q" str)
-      (string.gsub "\\\n" "\\n") ; keep it as one line
-      (string.gsub "\\%d%d?%d?" serialize-subst-digits)
-      (string.gsub "[\128-\255]" #(.. "\\" ($:byte)))))
+(local serialize-string
+  (let [subst-digits {"\\7" "\\a" "\\8" "\\b" "\\9" "\\t" "\\10" "\\n"
+                      "\\11" "\\v" "\\12" "\\f" "\\13" "\\r"}]
+    (fn [str]
+      (-> (string.format "%q" str)
+          (: :gsub "\\\n" "\\n") ; keep it as one line
+          (: :gsub "(\\*)(\\%d%d?%d?)" #(if (= 0 (% ($1:len) 2))
+                                            (-?>> (. subst-digits $2) (.. $1))))
+          (: :gsub "[\127-\255]" #(.. "\\" ($:byte)))))))
 
 (fn global-mangling [str]
   "Turn a global symbol into a Lua-friendly expression."

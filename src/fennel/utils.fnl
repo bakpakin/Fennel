@@ -367,14 +367,14 @@ has options calls down into compile."
       (= :table (type ast)) ast
       {}))
 
-(fn warn [msg ?ast ?filename ?line]
+(fn warn [msg ?ast ?filename ?line ?col]
   (case (?. root.options :warn)
-    opt-warn (opt-warn msg ?ast ?filename ?line)
+    opt-warn (opt-warn msg ?ast ?filename ?line ?col)
     _ (when (and _G.io _G.io.stderr)
         (let [loc (case (ast-source ?ast)
-                    {: filename : line} (.. filename ":" line ": ")
-                    _ (if (and ?filename ?line)
-                          (.. ?filename ":" ?line ": ")
+                    {: filename : line : col} (.. filename ":" line ":" col ": ")
+                    _ (if (and ?filename ?line ?col)
+                          (.. ?filename ":" ?line ":" ?col ": ")
                           ""))]
           (_G.io.stderr:write (: "--WARNING: %s%s\n" :format loc msg))))))
 

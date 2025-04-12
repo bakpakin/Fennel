@@ -289,6 +289,15 @@
   (assert-fail (print (local abc :def)) "can't introduce local here")
   (assert-fail (or (local x 10) x) "can't introduce local"))
 
+(fn test-parse-warnings []
+  (let [warnings []]
+    ((fennel.parser "\n\n(print\"\"token\"\")" "filename.fnl" {:warn #(table.insert warnings {:message $1 :line $4 :col $5})}))
+    ;; specifically interested in the line and column numbers
+    (t.= [{:message "expected whitespace before string" :line 3 :col 6}
+          {:message "expected whitespace before token" :line 3 :col 8}
+          {:message "expected whitespace before string" :line 3 :col 13}]
+         warnings)))
+
 {: test-global-fails
  : test-fn-fails
  : test-binding-fails
@@ -300,4 +309,5 @@
  : test-parse-fails
  : test-macro-traces
  : test-disallow-locals
- : test-names}
+ : test-names
+ : test-parse-warnings}

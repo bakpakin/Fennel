@@ -1,15 +1,19 @@
 (local fennel (require :fennel))
 (local faith (require :test.faith))
+(local load (or _G.loadstring load))
 
-(fn lua-parser [str]
-  "Baseline implementation we're comparing against.
-   Should give the same results as fennel-parser when called on single-line strings"
+(fn lua-string-compiler [str]
+  "Baseline implementation we're comparing against."
   ((assert (load (.. "return " str)))))
 
+(fn fennel-string-compiler [str]
+  "Our implementation. Round trip through the fennel compiler."
+  ((assert (load (pick-values 1 (fennel.compile-string str))))))
+
 (fn fennel-parser [str]
-  "Our implementation.
-   Should give the same results as lua-parser when called on single-line-strings"
-  ((fennel.parser str)))
+  "Our implementation. Going just through the parser"
+  (let [[_ok loaded] [((fennel.parser str))]]
+    loaded))
 
 (fn into-single-line-string [str]
   "Gives a string that meets the following conditions:
@@ -18,12 +22,12 @@
    * The string has no unescaped \" marks"
   (.. "\""
       (-> str
-        (: :gsub "\n" "")
-        (: :gsub "\r" "")
+        ;; no newlines (so that lua can parse it)
+        (: :gsub "[\r\n]" "")
+        ;; all quotes must be escaped (so that it doesn't break out early)
         (: :gsub "\\*\""
-           ;; If the length is odd, we need to delete a character
-           ;; to make sure the quote doesn't end the string early.
-           #(if (= (% (length $) 2) 1)
+           ;; make the number of slashes even
+           #(when (= (% (length $) 2) 1)
               ($:sub 2))))
       "\""))
 
@@ -43,7 +47,8 @@
                          ;; valid
                          (string.format "%x"
                                         ;; weighted toward 0
-                                        (math.random 0 (math.random 1 0xFFFFFFFF)))
+                                        ;; you have to do this with floats because lua5.1 can't handle math.random calls with 0xFFFFFFFF
+                                        (math.floor (* (math.random) (math.random) 0xFFFFFFFE)))
                          ;; invalid
                          (table.concat
                            (fcollect [_ 0 (math.random 10)]
@@ -71,9 +76,9 @@
         better (minimize better still-has-property?)
         _ str))
 
-(fn get-error [string-to-parse]
-  (let [(old-success? old-out-str) (pcall lua-parser string-to-parse)
-        (new-success? s2 new-out-str) (pcall fennel-parser string-to-parse)]
+(fn get-string-parse-error [string-to-parse]
+  (let [(old-success? old-out-str) (pcall lua-string-compiler string-to-parse)
+        (new-success? new-out-str) (pcall fennel-parser string-to-parse)]
     (when (or (not= old-success? new-success?) ;; one accepts string, other rejects
               (and old-success? (not= old-out-str new-out-str))) ;; they both accept, but with different answers
       (.. "discrepancy parsing string: " string-to-parse "\n"
@@ -82,21 +87,54 @@
                            old-out-str) "\n"
           "FENNEL: (print (fennel.view " string-to-parse ")) ;; "
           (if new-success? (fennel.view new-out-str)
-                           (s2:gsub "\n.*" ""))))))
+                           new-out-str) "\n"))))
 
 
-(fn test-fuzz-string []
+(fn test-fuzz-string-1 []
+  ;; Comparing Fennel's parser to Lua's.
   ;; We want the same string features as Lua 5.3+/LuaJIT
-  (if (not (or (= _VERSION "Lua 5.4")
-               (= _VERSION "Lua 5.3")
-               (pcall require :jit)))
+  ;; Lua 5.2 and 5.1 don't support all the string escape codes,
+  ;; so they're not useful as a baseline for this fuzz test.
+  (if (or (and (= _VERSION "Lua 5.1") (not (pcall require :jit)))
+          (= _VERSION "Lua 5.2"))
       (faith.skip)
-      (let [verbose? (os.getenv "VERBOSE")]
+      (let [verbose? (os.getenv "VERBOSE")
+            seed (os.time)]
+        (math.randomseed seed)
         (for [_ 1 (tonumber (or (os.getenv "FUZZ_COUNT") 256))]
           (let [s (generate-random-string)]
             (when verbose? (print s))
-            (when (get-error s)
-              (local minimized (minimize s get-error))
-              (error (get-error minimized))))))))
+            (when (get-string-parse-error s)
+              (local minimized (minimize s get-string-parse-error))
+              (error (get-string-parse-error minimized))))))))
 
-{: test-fuzz-string}
+(fn get-string-compile-error [string-to-parse]
+  (let [(old-success? old-out-str) (pcall fennel-string-compiler string-to-parse)
+        (new-success? new-out-str) (pcall fennel-parser string-to-parse)]
+    (when (or (not= old-success? new-success?) ;; one accepts string, other rejects
+              (and old-success? (not= old-out-str new-out-str))) ;; they both accept, but with different answers
+      (.. "discrepancy parsing string: " string-to-parse "\n"
+          "LUA:    print(fennel.view(" string-to-parse "))   -- "
+          (if old-success? (fennel.view old-out-str)
+                           old-out-str) "\n"
+          "FENNEL: (print (fennel.view " string-to-parse ")) ;; "
+          (if new-success? (fennel.view new-out-str)
+                           new-out-str) "\n"))))
+
+(fn test-fuzz-string-2 []
+  ;; Comparing Fennel's parser to Fennel.
+  ;; In Fennel, a string is supposed to evaluate to itself.
+  ;; This should work, regardless of Lua version
+  (let [verbose? (os.getenv "VERBOSE")
+        seed (os.time)]
+    (math.randomseed seed)
+    (for [_ 1 (tonumber (or (os.getenv "FUZZ_COUNT") 256))]
+      (let [s (generate-random-string)]
+        (when verbose? (print s))
+        (when (get-string-compile-error s)
+          (local minimized (minimize s get-string-compile-error))
+          (error (get-string-compile-error minimized)))))))
+
+
+{: test-fuzz-string-1
+ : test-fuzz-string-2}

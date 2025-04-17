@@ -52,6 +52,29 @@
          expected-with-mt)
     (tset (getmetatable io.stdout) :__fennelview nil)))
 
+(fn padded-string [s]
+  ;; Transforms a string:
+  ;;
+  ;; "[foo
+  ;; | bar
+  ;; | baz]"
+  ;;
+  ;; Into:
+  ;;
+  ;; "[foo
+  ;;  bar
+  ;;  baz]"
+  ;;
+  ;; Preserves any whitespace after `|`, but removes any whitespace
+  ;; before this symbol, so the printed representation looks correct:
+  ;;
+  ;; [foo
+  ;;  bar
+  ;;  baz]
+  (-> (icollect [line (s:gmatch "([^\n]+)")]
+        (line:gsub "^%s*|" ""))
+      (table.concat "\n")))
+
 (fn test-ast []
   (let [l1 (fennel.list 1 2 3)]
     (t.= "[[1 (1 2 3) 2]]" (view [[1 l1 2]]))
@@ -74,7 +97,7 @@
   (t.= ".inf" (view (fennel.eval ".inf")))
   (t.= "-.inf" (view (fennel.eval "-.inf")))
   (t.= ".nan" (view (fennel.eval ".nan")))
-  (t.match ":pi 3.1415926" (fennel.view math)))
+  (t.match ":pi%s+3.1415926" (fennel.view math)))
 
 (fn test-cycles []
   (let [t1 {:a 1 :b 2}
@@ -86,31 +109,37 @@
     (t.= (view t1) "@1{:a 1 :b 2 :t @1{...}}")
     (t.= (view t2) "@1{:foo 19 :tbl [1 \"b\" @1{...}]}")
     (t.= (view sparse {:max-sparse-gap 10}) "@1[\"abc\" nil nil @1[...]]")
-    (t.= "@1[@1[...]]" (let [v1 []]
-                         (table.insert v1 v1)
-                         (view v1)))
-    (t.= "@1{:t1 @1{...}}" (let [t1 {}]
-                             (set t1.t1 t1)
-                             (view t1)))
-    (t.= "@1{:t2 {:t1 @1{...}}}" (let [t1 {}
-                                       t2 {:t1 t1}]
-                                   (set t1.t2 t2)
-                                   (view t1)))
-    (t.= "@1{@1{...} @1{...}}" (let [t1 {}] (tset t1 t1 t1) (view t1)))
-    (t.= "[[[[[[[[[[...]]]]]]]]]]" (let [v1 []]
-                                     (table.insert v1 v1)
-                                     (view v1 {:detect-cycles? false
-                                               :one-line? true
-                                               :depth 10}))))
-  (t.= "@1[1
-   2
-   3
-   @2[1
-      2
-      @1[...]]
-   [1
-    2
-    @2[...]]]"
+    (t.= "@1[@1[...]]"
+         (let [v1 []]
+           (table.insert v1 v1)
+           (view v1)))
+    (t.= "@1{:t1 @1{...}}"
+         (let [t1 {}]
+           (set t1.t1 t1)
+           (view t1)))
+    (t.= "@1{:t2 {:t1 @1{...}}}"
+         (let [t1 {}
+               t2 {:t1 t1}]
+           (set t1.t2 t2)
+           (view t1)))
+    (t.= "@1{@1{...} @1{...}}"
+         (let [t1 {}] (tset t1 t1 t1) (view t1)))
+    (t.= "[[[[[[[[[[...]]]]]]]]]]"
+         (let [v1 []]
+           (table.insert v1 v1)
+           (view v1 {:detect-cycles? false
+                     :one-line? true
+                     :depth 10}))))
+  (t.= (padded-string
+        "@1[1
+        |   2
+        |   3
+        |   @2[1
+        |      2
+        |      @1[...]]
+        |   [1
+        |    2
+        |    @2[...]]]")
        (let [v1 [1 2 3]
              v2 [1 2 v1]
              v3 [1 2 v2]]
@@ -142,32 +171,34 @@
     (table.insert v1 v9)
     (table.insert v1 v10)
     (table.insert v1 v11)
-    (t.= "@1[@2[@1[...]]
-   @3[@1[...] @2[...]]
-   @4[@2[...] @3[...]]
-   @5[@3[...] @4[...]]
-   @6[@4[...] @5[...]]
-   @7[@5[...] @6[...]]
-   @8[@6[...] @7[...]]
-   @9[@7[...] @8[...]]
-   @10[@8[...] @9[...]]
-   [@9[...] @10[...]]]"
+    (t.= (padded-string
+          "@1[@2[@1[...]]
+          |   @3[@1[...] @2[...]]
+          |   @4[@2[...] @3[...]]
+          |   @5[@3[...] @4[...]]
+          |   @6[@4[...] @5[...]]
+          |   @7[@5[...] @6[...]]
+          |   @8[@6[...] @7[...]]
+          |   @9[@7[...] @8[...]]
+          |   @10[@8[...] @9[...]]
+          |   [@9[...] @10[...]]]")
          (view v1))
     (table.insert v2 v11)
-    (t.= "@1[@2[@1[...]
-      @3[@4[@5[@6[@7[@1[...] @2[...]] @8[@2[...] @7[...]]]
-               @9[@8[...] @6[...]]]
-            @10[@9[...] @5[...]]]
-         @11[@10[...] @4[...]]]]
-   @7[...]
-   @8[...]
-   @6[...]
-   @9[...]
-   @5[...]
-   @10[...]
-   @4[...]
-   @11[...]
-   @3[...]]"
+    (t.= (padded-string
+          "@1[@2[@1[...]
+          |      @3[@4[@5[@6[@7[@1[...] @2[...]] @8[@2[...] @7[...]]]
+          |               @9[@8[...] @6[...]]]
+          |            @10[@9[...] @5[...]]]
+          |         @11[@10[...] @4[...]]]]
+          |   @7[...]
+          |   @8[...]
+          |   @6[...]
+          |   @9[...]
+          |   @5[...]
+          |   @10[...]
+          |   @4[...]
+          |   @11[...]
+          |   @3[...]]")
          (view v1))))
 
 (fn test-newline []
@@ -218,7 +249,7 @@
           (table.insert x (_G.utf8.char (if (= 0 (math.random 0 1))
                                             (math.random 0x80 0xd7ff)
                                             (math.random 0xe000 0x10ffff)))))
-        (t.= (_G.utf8.len (view {(table.concat x) [1 2]})) 217)))))
+        (t.= 112 (_G.utf8.len (view {(table.concat x) [1 2]})))))))
 
 (fn test-seq-comments []
   ;; a sequence containing a comment as its last item should have its closing
@@ -269,21 +300,27 @@
   (t.= "[0\n 1\n 2\n 3\n 4\n 5\n 6\n 7\n 8\n 9\n 10]"
        (view [0 1 2 3 4 5 6 7 8 9 10] {:line-length 5}))
   (t.= "[1 2 3]" (view [1 2 3] {:preprocess (fn [x] x)}))
-  (t.= "{:a [1
-     2]
- :b [1
-     2]
- :c [1
-     2]
- :d [1
-     2]}" (view {:a [1 2] :b [1 2] :c [1 2] :d [1 2]} {:line-length 0}))
+  (t.= (padded-string
+        "{:a
+        | [1
+        |  2]
+        | :b
+        | [1
+        |  2]
+        | :c
+        | [1
+        |  2]
+        | :d
+        | [1
+        |  2]}")
+       (view {:a [1 2] :b [1 2] :c [1 2] :d [1 2]} {:line-length 0}))
   (t.= "[2 3 4]"
        (view [1 2 3]
              {:preprocess (fn [x] (if (= (type x) :number) (+ x 1) x))})))
 
 (fn test-kv-table []
   (t.= "{:a 1 \"a b\" 2}" (view {:a 1 "a b" 2}))
-  (t.= "{:a 1\n :b 52}" (view {:a 1 :b 52} {:line-length 1}))
+  (t.= "{:a\n 1\n :b\n 52}" (view {:a 1 :b 52} {:line-length 1}))
   (t.= "{:a 1 :b 5}" (view {:a 1 :b 5} {:one-line? true :line-length 1}))
   (t.= "{1 1 15 5}" (view {1 1 15 5}))
   (t.= "[{}]" (view [{}]))
@@ -293,9 +330,14 @@
   (t.= "[1\n 2\n [3 4]]" (view [1 2 [3 4]] {:line-length 7}))
   (t.= "{{:a 1} {:b 2 :c 3}}" (view {{:a 1} {:b 2 :c 3}}))
   (t.= "{-2 1}" (view {-2 1}))
-  (t.= "{\"ваыв\" {4 {\"ваыв\" 5}
-         6 \"aoeuaoeu\"}
- [1] [2 [3]]}"
+  (t.= (padded-string
+        "{\"ваыв\"
+        | {4
+        |  {\"ваыв\" 5}
+        |  6
+        |  \"aoeuaoeu\"}
+        | [1]
+        | [2 [3]]}")
        (view {[1] [2 [3]] :ваыв {4 {:ваыв 5} 6 :aoeuaoeu}}
              {:line-length 15}))
   (t.= "{:a [1 2 3 4 5 6 7] :b [1 2 3 4 5 6 7] :c [1 2 3 4 5 6 7] :d [1 2 3 4 5 6 7]}"
@@ -303,37 +345,81 @@
               :b [1 2 3 4 5 6 7]
               :c [1 2 3 4 5 6 7]
               :d [1 2 3 4 5 6 7]}))
-  (t.= "[{:aaa [1
-        2
-        3]}]"
+  (t.= (padded-string
+        "[{:aaa
+        |  [1
+        |   2
+        |   3]}]")
        (view [{:aaa [1 2 3]}] {:line-length 0}))
-  (t.= "@1{:a 1
-   :b [1
-       @1{...}
-       2
-       3]
-   :c 2}" (let [t1 {:a 1 :c 2}
-                v1 [1 2 3]]
-            (set t1.b v1)
-            (table.insert v1 2 t1)
-            (view t1 {:line-length 1})))
+  (t.= (padded-string
+        "@1{:a
+        |   1
+        |   :b
+        |   @1{...}
+        |   :c
+        |   2}")
+       (let [t1 {:a 1 :c 2}]
+         (set t1.b t1)
+         (view t1 {:line-length 1})))
+  (t.= (padded-string
+        "@1{:a 1
+        |   :b @1{...}
+        |   :c 2}")
+       (let [t1 {:a 1 :c 2}]
+         (set t1.b t1)
+         (view t1 {:line-length 10})))
+  (t.= (padded-string
+        "@1{:a
+        |   1
+        |   :b
+        |   [1
+        |    @1{...}
+        |    2
+        |    3]
+        |   :c
+        |   2}")
+       (let [t1 {:a 1 :c 2}
+             v1 [1 2 3]]
+         (set t1.b v1)
+         (table.insert v1 2 t1)
+         (view t1 {:line-length 1})))
   (t.= "{0 1}" (view {0 1}))
   (t.= "{-2 1 1 -2}" (view {-2 1 1 -2}))
   (t.= "[1 nil nil nil 5]" (view {1 1 5 5} {:max-sparse-gap 5}))
   (t.= "{:a \"b\"}"
        (view (setmetatable {} {:__pairs #(values next {:a :b} nil)})))
   (t.= "{11 1}" (view {11 1}))
-  (t.= "{:a [1 2 3 4 5 6 7 8]
- :b [1 2 3 4 5 6 7 8]
- :c [1 2 3 4 5 6 7 8]
- :d [1 2 3 4 5 6 7 8]}"
-       (view  {:a [1 2 3 4 5 6 7 8]
-               :b [1 2 3 4 5 6 7 8]
-               :c [1 2 3 4 5 6 7 8]
-               :d [1 2 3 4 5 6 7 8]}))
-  (t.= "{\"ƁƁƁ\" {\"ƁƁƁ\" {}
-        \"ǍǍǍ\" {}}
- \"ǍǍǍ\" {}}"
+  (t.= (padded-string
+        "{:a [1 2 3 4 5 6 7 8]
+        | :b [1 2 3 4 5 6 7 8]
+        | :c [1 2 3 4 5 6 7 8]
+        | :d [1 2 3 4 5 6 7 8]}")
+       (view {:a [1 2 3 4 5 6 7 8]
+              :b [1 2 3 4 5 6 7 8]
+              :c [1 2 3 4 5 6 7 8]
+              :d [1 2 3 4 5 6 7 8]}))
+  (t.= (padded-string
+        "{:a
+        | [1 2 3 4 5 6 7 8]
+        | :b
+        | [1 2 3 4 5 6 7 8]
+        | :c
+        | [1 2 3 4 5 6 7 8]
+        | :d
+        | [1 2 3 4 5 6 7 8]}")
+       (view {:a [1 2 3 4 5 6 7 8]
+              :b [1 2 3 4 5 6 7 8]
+              :c [1 2 3 4 5 6 7 8]
+              :d [1 2 3 4 5 6 7 8]}
+             {:line-length 19}))
+  (t.= (padded-string
+        "{\"ƁƁƁ\"
+        | {\"ƁƁƁ\"
+        |  {}
+        |  \"ǍǍǍ\"
+        |  {}}
+        | \"ǍǍǍ\"
+        | {}}")
        (view {:ǍǍǍ {}
               :ƁƁƁ {:ǍǍǍ {} :ƁƁƁ {}}}
              {:line-length 1}))
@@ -347,13 +433,16 @@
 (fn test-metamethod []
   (let [mt (setmetatable [] {:__fennelview (fn [] "META")})]
     (t.= (view mt) "META"))
-  (t.= "(:a
- \"a b\"
- [1 2 3]
- {:a (1
-      2
-      3)
-  :b {}})"
+  (t.= (padded-string
+        "(:a
+        | \"a b\"
+        | [1 2 3]
+        | {:a
+        |  (1
+        |   2
+        |   3)
+        |  :b
+        |  {}})")
        (let [l1 (setmetatable [1 2 3] {:__fennelview pp-list})
              l2 (setmetatable ["a" "a b" [1 2 3] {:a l1 :b []}]
                               {:__fennelview pp-list})]

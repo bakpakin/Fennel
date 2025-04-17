@@ -239,8 +239,8 @@
         out (send "(b [1])")
         out2 (send "(b [1])")]
     (t.= out out2 "lines and byte offsets should be stable")
-    (t.match ":bytestart 5" out)
-    (t.match ":byteend 7" out)
+    (t.match ":bytestart%s+5" out)
+    (t.match ":byteend%s+7" out)
     (t.match "   %(f «%[123%]»%)" (send "   (f [123])"))))
 
 (fn test-code []

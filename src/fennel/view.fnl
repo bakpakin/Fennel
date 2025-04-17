@@ -193,12 +193,6 @@
             (if last-comment? indent-str "") close)
         oneline)))
 
-;; this will only produce valid answers for valid utf-8 data, since it just
-;; counts the amount of initial utf-8 bytes in a given string. we can do this
-;; because we only run this on validated and escaped strings.
-(fn utf8-len [x]
-  (accumulate [n 0 _ (string.gmatch x "[%z\001-\127\192-\247]")] (+ n 1)))
-
 ;; an alternative to `utils.comment?` to avoid a dependency cycle.
 (fn comment? [x]
   (if (= :table (type x))
@@ -214,16 +208,27 @@
         (let [visible-cycle? (visible-cycle? t options)
               id (and visible-cycle? (. options.seen t))
               indent (table-indent indent id)
-              slength (if (getopt options :utf8?) utf8-len #(length $))
               prefix (if visible-cycle? (.. "@" id) "")
               items (let [options (normalize-opts options)]
                       (icollect [_ [k v] (ipairs kv)]
                         (let [k (pp k options (+ indent 1) true)
-                              v (pp v options (+ indent (slength k) 1))]
+                              v (pp v options indent)]
                           (set multiline?
-                               (or multiline? (k:find "\n") (v:find "\n")))
-                          (.. k " " v))))]
-          (concat-table-lines items options multiline? indent :table prefix
+                            (or multiline?
+                                (k:find "\n")
+                                (v:find "\n")
+                                (< options.line-length
+                                   (length* (.. k " " v)))))
+                          [k v])))
+              lines (accumulate [lines []
+                                 _ [k v] (ipairs items)]
+                      (if multiline?
+                          (doto lines
+                            (table.insert k)
+                            (table.insert v))
+                          (doto lines
+                            (table.insert (.. k " " v)))))]
+          (concat-table-lines lines options multiline? indent :table prefix
                               false)))))
 
 (fn pp-sequence [t kv options indent]

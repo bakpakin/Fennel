@@ -807,6 +807,20 @@
   (t.= {1 :a 3 :c 5 :e :n 5} (macro-wrap pack (pack :a nil :c nil :e))
        "pack is in compiler-env"))
 
+(fn test-sym []
+  (macro use-sym [arg]
+    `(do ,(sym arg)))
+
+  (t.= "(do something)"
+       (macrodebug (use-sym "something") true)
+       "constructing a symbol from string should not fail")
+
+  (let [(ok? err) (pcall fennel.eval "(do
+                                       (macro use-sym [arg] `(do ,(sym arg)))
+                                       (use-sym something))")]
+    (t.is (not ok?))
+    (t.match ".*sym expects a string as the first argument.*" err)))
+
 {:teardown #(each [k (pairs fennel.repl)]
               (tset fennel.repl k nil))
  : test-arrows
@@ -832,4 +846,5 @@
  : test-case-try
  : test-lambda
  : test-literal
- : test-env-lua-helpers}
+ : test-env-lua-helpers
+ : test-sym}

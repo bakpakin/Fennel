@@ -205,6 +205,7 @@ they are specifically not cons cells."
 not exposed outside the compiler. Second optional argument is a table describing
 where the symbol came from; should be a table with filename, line, bytestart,
 and byteend fields."
+  (assert (= (type str) :string) (.. "sym expects a string as the first argument, received " (type str)))
   (setmetatable (collect [k v (pairs (or ?source [])) :into [str]]
                   (if (= (type k) :string) (values k v)))
                 symbol-mt))

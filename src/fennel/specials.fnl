@@ -66,8 +66,9 @@ will see its values updated as expected, regardless of mangling rules."
       (.. name " not found")
       (or (= (type tgt) :function)
           (case (getmetatable tgt) {: __call} (= :function (type __call))))
-      (let [elts [name (unpack (or (compiler.metadata:get tgt :fnl/arglist)
-                                   ["#<unknown-arguments>"]))]]
+      (let [arglist (or (compiler.metadata:get tgt :fnl/arglist)
+                        ["#<unknown-arguments>"])
+            elts [name (unpack (icollect [_ a (ipairs arglist)] (tostring a)))]]
         (string.format "(%s)\n  %s" (table.concat elts " ") (v->docstring tgt)))
       (string.format "%s\n  %s" name (v->docstring tgt))))
 

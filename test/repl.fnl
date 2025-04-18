@@ -418,6 +418,7 @@
       (when (not (. undocumented-ok? name))
         (let [docstring (send (: ",doc %s" :format name))]
           (t.= :string (type docstring))
+          (t.not-match "^error" docstring)
           (t.not-match "undocumented" docstring
                        (.. "Missing docstring for " name)))))))
 

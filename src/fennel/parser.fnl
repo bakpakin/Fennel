@@ -40,7 +40,7 @@ Also returns a second function to clear the buffer in the byte stream."
     (and (< 32 b)
          (not (. delims b))
          (not= b 127) ; backspace
-         (not= b 34) ; backslash
+         (not= b 34) ; double quote
          (not= b 39) ; single quote
          (not= b 126) ; tilde
          (not= b 59) ; semicolon

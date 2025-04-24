@@ -75,6 +75,9 @@ will see its values updated as expected, regardless of mangling rules."
 ;; TODO: replace this with using the special fn's own docstring
 (fn doc-special [name arglist docstring body-form?]
   "Add a docstring to a special form."
+  (each [i a (ipairs arglist)]
+    (when (= :table (type a))
+      (tset arglist i (.. "[" (table.concat a " ") "]"))))
   (tset compiler.metadata (. SPECIALS name)
         {:fnl/arglist arglist :fnl/docstring docstring :fnl/body-form? body-form?}))
 

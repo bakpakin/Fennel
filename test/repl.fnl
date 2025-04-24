@@ -290,6 +290,8 @@
              "cond in other lisps.")
          (send ",doc if")
          "docstrings for specials")
+    (t.= "(each [vals... iterator] ...)"
+         (: (send ",doc each") :match "^([^\n]+)"))
     (t.= (.. "(doto val ...)\n  Evaluate val and splice it into the first "
              "argument of subsequent forms.")
          (send ",doc doto")

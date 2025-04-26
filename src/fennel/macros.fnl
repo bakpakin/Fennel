@@ -145,6 +145,8 @@ returns
 
 Supports an &into clause after the iterator to put results in an existing table.
 Supports early termination with an &until clause."
+  {:fnl/arglist [([key value (iterator)] values-tuple)
+                 ([key value (iterator)] key-expr value-expr)]}
   (assert (and (sequence? iter-tbl) (<= 2 (length iter-tbl)))
           "expected iterator binding table")
   (assert (not= nil key-expr) "expected key and value expression")
@@ -201,6 +203,7 @@ returns
 
 Supports an &into clause after the iterator to put results in an existing table.
 Supports early termination with an &until clause."
+  {:fnl/arglist [[index value (iterator)] value-expr]}
   (assert (and (sequence? iter-tbl) (<= 2 (length iter-tbl)))
           "expected iterator binding table")
   (seq-collect 'each iter-tbl value-expr ...))
@@ -220,6 +223,7 @@ returns
 
 Supports an &into clause after the range to put results in an existing table.
 Supports early termination with an &until clause."
+  {:fnl/arglist [[index start stop step?] value-expr]}
   (assert (and (sequence? iter-tbl) (< 2 (length iter-tbl)))
           "expected range binding table")
   (seq-collect 'for iter-tbl value-expr ...))
@@ -256,12 +260,14 @@ For example,
                _ n (pairs {:apple 2 :orange 3})]
     (+ total n))
 returns 5"
+  {:fnl/arglist [[accumulator initial-value key value (iterator)] value-expr]}
   (accumulate-impl false iter-tbl body ...))
 
 (fn faccumulate* [iter-tbl body ...]
   "Identical to accumulate, but after the accumulator the binding table is the
 same as `for` instead of `each`. Like collect to fcollect, will iterate over a
 numerical range like `for` rather than an iterator."
+  {:fnl/arglist [[accumulator initial-value index start stop step?] value-expr]}
   (accumulate-impl true iter-tbl body ...))
 
 (fn partial* [f ...]

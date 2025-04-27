@@ -741,7 +741,7 @@ entire expression.
 (fn handle [conn token]
   (case-try (conn:receive :*l)
     input (parse input)
-    (command-name params (= token)) (commands.get command-name)
+    (where (command-name params (= token))) (commands.get command-name)
     command (pcall command (table.unpack params))
     (catch
      (_ :timeout) nil

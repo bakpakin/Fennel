@@ -72,17 +72,17 @@
                        ,condition)) bindings))
     (case-pattern vals condition unifications opts)))
 
-(fn symbols-in-pattern [pattern]
-  "gives the set of symbols inside a pattern"
+(fn bound-symbols-in-pattern [pattern]
+  "gives the set of symbols pattern will bind"
   (if (list? pattern)
       (if (or (sym? (. pattern 1) :where)
               (sym? (. pattern 1) :=))
-          (symbols-in-pattern (. pattern 2))
+          (bound-symbols-in-pattern (. pattern 2))
           (sym? (. pattern 2) :?)
-          (symbols-in-pattern (. pattern 1))
+          (bound-symbols-in-pattern (. pattern 1))
           (let [result {}]
             (each [_ child-pattern (ipairs pattern)]
-              (collect [name symbol (pairs (symbols-in-pattern child-pattern)) &into result]
+              (collect [name symbol (pairs (bound-symbols-in-pattern child-pattern)) &into result]
                 name symbol))
             result))
       (sym? pattern)
@@ -95,18 +95,18 @@
       (= (type pattern) :table)
       (let [result {}]
         (each [key-pattern value-pattern (pairs pattern)]
-          (collect [name symbol (pairs (symbols-in-pattern key-pattern)) &into result]
+          (collect [name symbol (pairs (bound-symbols-in-pattern key-pattern)) &into result]
             name symbol)
-          (collect [name symbol (pairs (symbols-in-pattern value-pattern)) &into result]
+          (collect [name symbol (pairs (bound-symbols-in-pattern value-pattern)) &into result]
             name symbol))
         result)
       {}))
 
-(fn symbols-in-every-pattern [pattern-list infer-unification?]
-  "gives a list of symbols that are present in every pattern in the list"
+(fn bound-symbols-in-every-pattern [pattern-list infer-unification?]
+  "gives a list of symbols that are bound by every pattern in the list"
   (let [?symbols (accumulate [?symbols nil
                               _ pattern (ipairs pattern-list)]
-                   (let [in-pattern (symbols-in-pattern pattern)]
+                   (let [in-pattern (bound-symbols-in-pattern pattern)]
                      (if ?symbols
                        (do
                          (each [name (pairs ?symbols)]
@@ -121,7 +121,7 @@
 
 (fn case-or [vals pattern guards unifications case-pattern opts]
   (let [pattern [(unpack pattern 2)]
-        bindings (symbols-in-every-pattern pattern opts.infer-unification?)]
+        bindings (bound-symbols-in-every-pattern pattern opts.infer-unification?)]
     (if (= nil (. bindings 1))
         ;; no bindings special case generates simple code
         (let [condition (icollect [_ subpattern (ipairs pattern) &into `(or)]

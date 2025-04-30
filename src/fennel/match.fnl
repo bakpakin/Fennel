@@ -86,10 +86,12 @@
                 name symbol))
             result))
       (sym? pattern)
-      (if (and (not (sym? pattern :or))
-               (not (sym? pattern :nil)))
-          {(tostring pattern) pattern}
-          {})
+      (let [symname (tostring pattern)]
+        (if (and (not= symname :or)
+                 (not= symname :nil)
+                 (not (symname:find "^&")))
+            {symname pattern}
+            {}))
       (= (type pattern) :table)
       (let [result {}]
         (each [key-pattern value-pattern (pairs pattern)]

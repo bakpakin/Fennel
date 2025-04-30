@@ -167,6 +167,16 @@
         [a b c] (.. b :eee))
       "beee")
 
+  ;; regression test, ensure that we don't try to bind `&` even though both patterns technically have it.
+  (== (case [:a :b]
+        (where (or [:a & rest] [:b & rest])) rest)
+      [:b])
+
+  ;; regression test, ensure that we don't try to bind `&as`
+  (== (case [:a :b]
+        (where (or [:a &as rest] [:b &as rest])) rest)
+      [:a :b])
+
   ;; can't expand blind multi sym
   (let [(_ msg1) (pcall fennel.eval "(let [x {:y :z}] (case :z x.y 1 _ 0))")]
     (t.match ".*unexpected multi symbol x.y.*" msg1))

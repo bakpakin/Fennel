@@ -487,7 +487,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
 (fn get-prev-line [parent]
   (if (= :table (type parent))
       (get-prev-line (or parent.leaf (. parent (length parent))))
-      (or parent "")))
+      parent))
 
 (fn needs-separator? [root prev-line]
   (and (root:match "^%(") prev-line (not (prev-line:find " end$"))))
@@ -505,7 +505,7 @@ and lacking args will be nil, use lambda for arity-checked functions." true)
                (str1 (compiler.compile1 (. ast i) scope parent {:nval 1})))
         value (str1 (compiler.compile1 (. ast (length ast)) scope parent {:nval 1}))
         fmtstr (if (needs-separator? root (get-prev-line parent))
-                   "do end %s[%s] = %s"
+                   "; %s[%s] = %s"
                    "%s[%s] = %s")]
     (compiler.emit parent (fmtstr:format root (table.concat keys "][") value) ast)))
 

@@ -410,12 +410,15 @@ if opts contains the nval option."
           nested-macro)
         macro*)))
 
-(fn propagate-trace-info [{: filename : line : bytestart : byteend} _index node]
+(fn propagate-trace-info [{: filename : line : col : bytestart : byteend} _index node]
   "The stack trace info should be based on the macro caller, not the macro AST."
-  (let [src (utils.ast-source node)]
-    (when (and (= :table (type node)) (not= filename src.filename))
-      (set (src.filename src.line src.from-macro?) (values filename line true))
-      (set (src.bytestart src.byteend) (values bytestart byteend))))
+  (when (= :table (type node))
+    (let [src (if (getmetatable node)
+                  (utils.ast-source node)
+                  (doto {} (->> (setmetatable node))))]
+      (when (not= filename src.filename)
+        (set (src.filename src.line src.col src.from-macro?) (values filename line col true))
+        (set (src.bytestart src.byteend) (values bytestart byteend)))))
   (= :table (type node)))
 
 (fn quote-literal-nils [index node parent]

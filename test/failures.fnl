@@ -169,6 +169,8 @@
     "(for [i 1 3 2 other-stuff] nil)" "unexpected arguments"
     "(do\n\n\n(each \n[x 34 (pairs {})] 21))"
     "unknown:5:0: Compile error in 'x': unable to bind number 34"
+    "(faccumulate [a {} 1 2 3] (print a))"
+    "unknown:1:0: Compile error in '1': unable to bind number 1"
     "(with-open [(x y z) (values 1 2 3)])"
     "with-open only allows symbols in bindings"
     "([])" "cannot call literal value table"

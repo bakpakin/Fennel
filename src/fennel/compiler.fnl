@@ -846,10 +846,8 @@ which we have to do if we don't know."
           (utils.list? left)
           (do (assert-compile top? "can't nest multi-value destructuring" left)
               (destructure-values left rightexprs up1 destructure1 true))
-          (assert-compile false
-                          (string.format "unable to bind %s %s" (type left)
-                                         (tostring left))
-                          (or (and (= (type (. up1 2)) :table) (. up1 2)) up1)))
+          (assert-compile false (: "unable to bind %s %s" :format
+                                   (type left) (tostring left)) (. up1 2) up1))
       (and top? {:returned true}))
 
     (let [ret (destructure1 to from ast true)]

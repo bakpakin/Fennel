@@ -400,7 +400,7 @@ table or a function call which returns multiple values:
 Example:
 
 ```fennel
-(let [(x y z) (unpack [10 9 8])]
+(let [(x y z) (table.unpack [10 9 8])]
   (+ x y z)) ; => 27
 ```
 
@@ -839,7 +839,7 @@ Example:
 Example:
 
 ```fennel
-(do (local (_ _ z) (unpack [:a :b :c :d :e])) z)  => c
+(do (local (_ _ z) (table.unpack [:a :b :c :d :e])) z)  => c
 ```
 
 ### `tset` set table field
@@ -1077,7 +1077,7 @@ the `useBitLib` flag in the options table, which lets them be used in
 LuaJIT. The integer division operator (`//`) is only available in Lua 5.3+.
 
 They all take any number of arguments, as long as that number is fixed
-at compile-time. For instance, `(= 2 2 (unpack [2 5]))` will evaluate
+at compile-time. For instance, `(= 2 2 (table.unpack [2 5]))` will evaluate
 to `true` because the compile-time number of values being compared is 3.
 Multiple values at runtime will not be taken into account.
 

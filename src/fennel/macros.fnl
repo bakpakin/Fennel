@@ -247,7 +247,7 @@ Supports early termination with an &until clause."
         iter (sym (if for? "for" "each"))] ; accumulate or faccumulate?
     `(do
        (var ,accum-var ,accum-init)
-       (,iter ,(setmetatable [(unpack iter-tbl 3)] (getmetatable iter-tbl))
+       (,iter ,[(unpack iter-tbl 3)]
               (set ,accum-var ,body))
        ,(if (list? accum-var)
           (list (sym :values) (unpack accum-var))

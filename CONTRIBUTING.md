@@ -137,7 +137,8 @@ a single email rather than a series of messages, unless there really are two
 relatively unrelated changes. If you like to use [git send-email][1] you can,
 but since its usability is not very good, you can also just attach your patch
 to your message if you prefer. Running `git format-patch HEAD~` will write
-your most recent change to a `.patch` file you can attach.
+your most recent change to a `.patch` for attachment. Pasting the patch into
+your mail client is not recommended as most mail clients reformat it subtly.
 
 We also accept code contributions on the [GitHub mirror][5] if you prefer not
 to use email. For smaller changes that are unlikely to require back-and-forth

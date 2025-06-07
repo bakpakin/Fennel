@@ -712,6 +712,10 @@ which we have to do if we don't know."
             (compile-top-target [lname])
             (emit parent (setter:format lname (exprs1 rightexprs)) left))))
 
+    (fn destructure-close [left up1]
+      (let [target (string.format "local %s <close>" (getname left up1))]
+        (compile1 from scope parent {: target})))
+
     (fn dynamic-set-target [[_ target & keys]]
       (assert-compile (utils.sym? target) "dynamic set needs symbol target" ast)
       ;; symbol-to-expression validates target against scope.manglings, allowed
@@ -835,7 +839,9 @@ which we have to do if we don't know."
 
     (fn destructure1 [left rightexprs up1 top?]
       "Recursive auxiliary function"
-      (if (and (utils.sym? left) (not= (. left 1) :nil))
+      (if (and (utils.sym? left) left.to-be-closed)
+          (destructure-close left up1)
+          (and (utils.sym? left) (not= (. left 1) :nil))
           (destructure-sym left rightexprs up1 top?)
           (utils.table? left)
           (destructure-table left rightexprs top? destructure1 up1)
@@ -862,6 +868,14 @@ which we have to do if we don't know."
 
   (scopes.global.specials.include ast scope parent opts))
 
+(fn with-open* [[_ bindings &as ast] scope parent opts]
+  (assert-compile (utils.sequence? bindings) (or bindings (. ast 1)))
+  (for [i 1 (length bindings) 2]
+    (assert-compile (utils.sym? (. bindings i))
+                    "with-open only allows symbols in bindings")
+    (tset (. bindings i) :to-be-closed true))
+  (scope.specials.let ast scope parent opts))
+
 (fn compile-asts [asts options]
   (let [opts (utils.copy options)
         scope (if (= :_COMPILER opts.scope) scopes.compiler
@@ -870,6 +884,9 @@ which we have to do if we don't know."
         chunk []]
     (when opts.requireAsInclude
       (set scope.specials.require require-include))
+    (when opts.toBeClosed
+      (set scope.macros.with-open false)
+      (set scope.specials.with-open with-open*))
     (when opts.assertAsRepl
       (set scope.macros.assert scope.macros.assert-repl))
     (utils.root:set-reset)

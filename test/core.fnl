@@ -374,7 +374,16 @@
   (== (let [[a b & c &as t] [1 2 3 4]] a) 1)
   (== (let [[a b & c &as t] [1 2 3 4]] b) 2)
   (== (let [[a b & c &as t] [1 2 3 4]] c) [3 4])
-  (== (let [[a b & c &as t] [1 2 3 4]] t) [1 2 3 4]))
+  (== (let [[a b & c &as t] [1 2 3 4]] t) [1 2 3 4])
+  ;; to-be-closed
+  (when (= "Lua 5.4" _VERSION)
+    (== (let [t {}]
+          (with-open [t2 (setmetatable {} {:__close #(set t.closed? true)})]
+            (set t2.what :ever))
+          t.closed?)
+        true {:toBeClosed true})
+    (== (with-open [c (io.open "README.md")] (type c))
+        "userdata" {:toBeClosed true})))
 
 (fn test-edge []
   (let [env {}]

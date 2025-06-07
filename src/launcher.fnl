@@ -25,6 +25,7 @@ Run Fennel, a Lisp programming language for the Lua runtime.
   --globals-only G1[,G2]   : Same as above, but exclude standard ones
   --assert-as-repl         : Replace assert calls with assert-repl
   --require-as-include     : Inline required modules in the output
+  --to-be-closed           : Use to-be-closed vars in with-open (Lua 5.4+ only)
   --skip-include M1[,M2]   : Omit certain modules from output when included
   --use-bit-lib            : Use LuaJITs bit library instead of operators
   --metadata               : Enable function metadata, even in compiled output
@@ -150,6 +151,9 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
       :--require-as-include (do
                               (set options.requireAsInclude true)
                               (table.remove arg i))
+      :--to-be-closed (do
+                        (set options.toBeClosed true)
+                        (table.remove arg i))
       :--assert-as-repl (do
                           (set options.assertAsRepl true)
                           (table.remove arg i))

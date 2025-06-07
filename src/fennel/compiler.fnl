@@ -678,16 +678,13 @@ which we have to do if we don't know."
                   (table.insert (?. utils.root.options :allowedGlobals) raw)))
               (. (symbol-to-expression symbol scope) 1)))))
 
-    (fn compile-top-target [lvalues]
+    (fn compile-top-target [targets]
       "Compile the outer most form. We can generate better Lua in this case."
       ;; Calculate initial rvalue
-      (let [inits (icollect [_ l (ipairs lvalues)]
-                    (if (. scope.manglings l) l :nil))
-            init (table.concat inits ", ")
-            lvalue (table.concat lvalues ", ")
-            plast (. parent (length parent))]
-        (var plen (length parent))
-        (local ret (compile1 from scope parent {:target lvalue}))
+      (var plen (length parent))
+      (let [target (table.concat targets ", ")
+            plast (. parent (length parent))
+            ret (compile1 from scope parent {: target})]
         (when declaration
           ;; A single leaf emitted at the end of the parent chunk means a
           ;; simple assignment a = x was emitted, and we can just splice
@@ -701,13 +698,11 @@ which we have to do if we don't know."
             (when (= (. parent pi) plast)
               (set plen pi)))
           (if (and (= (length parent) (+ plen 1))
-                   (. (. parent (length parent)) :leaf))
+                   (. parent (length parent) :leaf))
               (tset (. parent (length parent)) :leaf
-                    (.. "local " (. (. parent (length parent)) :leaf)))
-              (= init :nil)
-              (table.insert parent (+ plen 1) {: ast :leaf (.. "local " lvalue)})
+                    (.. "local " (. parent (length parent) :leaf)))
               (table.insert parent (+ plen 1)
-                            {: ast :leaf (.. "local " lvalue " = " init)})))
+                            {: ast :leaf (.. "local " target)})))
         ret))
 
     (fn destructure-sym [left rightexprs up1 top?]

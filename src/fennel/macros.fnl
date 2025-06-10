@@ -102,8 +102,10 @@ a nil value in any of subsequent keys."
   "Like `let`, but invokes (v:close) on each binding after evaluating the body.
 The body is evaluated inside `xpcall` so that bound values will be closed upon
 encountering an error before propagating it."
-  (let [bodyfn `(fn []
-                  ,...)
+  (let [vararg? (. (get-scope) :vararg)
+        bodyfn (if vararg?
+                   `(fn [...] ,...)
+                   `(fn [] ,...))
         closer `(fn close-handlers# [ok# ...]
                   (if ok# ... (error ... 0)))
         traceback `(. (or (?. _G :package :loaded ,(fennel-module-name))
@@ -114,7 +116,14 @@ encountering an error before propagating it."
       (table.insert closer 4 `(: ,(. closable-bindings i) :close)))
     `(let ,closable-bindings
        ,closer
-       (close-handlers# (_G.xpcall ,bodyfn ,traceback)))))
+       (close-handlers#
+        ,(if vararg?
+             ;; Lua 5.1 workaround - xpcall doesn't accept vararg
+             `(let [args# [...]
+                    n# (select :# ...)
+                    unpack# (or _G.unpack _G.table.unpack)]
+                (_G.xpcall #(,bodyfn (unpack# args# 1 n#)) ,traceback))
+             `(_G.xpcall ,bodyfn ,traceback))))))
 
 (fn extract-into [iter-tbl iter-out]
   (var (into found?) [])

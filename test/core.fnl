@@ -581,7 +581,15 @@
                                   (set fh f)
                                   (error {:bork! :bark!}))))
         [(io.type fh) ok (case msg {:bork! :bark!} msg _ "didn't match")])
-      ["closed file" false {:bork! :bark!}]))
+      ["closed file" false {:bork! :bark!}])
+  (== (do
+        (var fh nil)
+        (local (ok msg) (pcall (fn [...]
+                                 (with-open [f (io.tmpfile)]
+                                   (set fh f)
+                                   (error [...]))) :bork! :bark!))
+        [(io.type fh) ok (case msg [:bork! :bark!] msg _ "didn't match")])
+      ["closed file" false [:bork! :bark!]]))
 
 (fn test-comment []
   (t.= "--[[ hello world ]]\nreturn nil"

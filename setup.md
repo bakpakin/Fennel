@@ -232,7 +232,7 @@ to see how it's made:
 LÖVE has no built-in support for Fennel, so you will need to setup
 support yourself, similar to [Embedding Fennel](#embedding-fennel) above.
 
-This [project skeleton for LÖVE](https://gitlab.com/alexjgriffith/min-love2d-fennel)
+This [project skeleton for LÖVE](https://codeberg.org/alexjgriffith/min-love2d-fennel)
 shows you how to setup support for Fennel and how to setup a
 console-based REPL for debugging your game while it runs.
 

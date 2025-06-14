@@ -277,7 +277,16 @@
   ;; now let's try with an env
   (let [send (wrap-repl {:env {: debug}})]
     (send (v (local xyz 55)))
-    (t.= "55" (send "xyz"))))
+    (t.= "55" (send "xyz")))
+  ;; global doesn't accidentally trigger locals-saving
+  (let [send (wrap-repl)
+        mt (getmetatable _G)
+        {: __newindex} mt]
+    (set mt.__newindex nil)
+    (send "(global bar :original)")
+    (send "(set _G.bar :new)")
+    (set mt.__newindex __newindex)
+    (t.= :new (send "bar"))))
 
 (fn test-docstrings []
   (let [send (wrap-repl)]

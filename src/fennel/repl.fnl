@@ -39,7 +39,7 @@
                 (: "local %s = ___replLocals___[%q]"
                    :format (or (. scope.manglings name) name) name))
         binds (icollect [raw name (pairs scope.manglings)]
-                (when (not (. scope.gensyms name))
+                (when (and (. scope.symmeta raw) (not (. scope.gensyms name)))
                   (: "___replLocals___[%q] = %s"
                      :format raw name)))
         gap (if (lua-source:find "\n") "\n" " ")]

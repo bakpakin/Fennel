@@ -303,10 +303,10 @@ the --require-as-include option.
   LUA_INCLUDE_DIR: the path to the directory of Lua C header files
 
 For example, on a Debian system, to compile a file called program.fnl using
-Lua 5.3, you would use this:
+Lua 5.4, you would use this:
 
     $ %s --compile-binary program.fnl program \\
-        /usr/lib/x86_64-linux-gnu/liblua5.3.a /usr/include/lua5.3
+        /usr/lib/x86_64-linux-gnu/liblua5.4.a /usr/include/lua5.4
 
 The program will be compiled to Lua, then compiled to C, then compiled to
 machine code. You can set the CC environment variable to change the compiler
@@ -341,7 +341,7 @@ specify the name used to refer to it in a require call by compiling it like
 so (this is assuming that program.fnl requires the Lua bindings):
 
     $ %s --compile-binary program.fnl program \\
-        /usr/lib/x86_64-linux-gnu/liblua5.3.a /usr/include/lua5.3 \\
+        /usr/lib/x86_64-linux-gnu/liblua5.4.a /usr/include/lua5.4 \\
         --native-module C-readline.so \\
         --rename-native-module readline C-readline
 ")

@@ -143,21 +143,23 @@ int main(int argc, char *argv[]) {
      (local bundle# ...)
      (fn loader# [name#]
        (case (or (. bundle# name#) (. bundle# (.. name# :.init)))
-         (mod# ? (= :function (type mod#))) mod#
-         (mod# ? (= :string (type mod#))) (assert (if (= _VERSION "Lua 5.1")
-                                                      (loadstring mod# name#)
-                                                      (load mod# name#)))
+         (where mod# (= :function (type mod#))) mod#
+         (where mod# (= :string (type mod#))) (assert (if (= _VERSION "Lua 5.1")
+                                                          (loadstring mod# name#)
+                                                          (load mod# name#)))
          nil (values nil (: "\n\tmodule '%%s' not found in fennel bundle"
                             :format name#))))
 
      (table.insert (or package.loaders package.searchers) 2 loader#)
      ((assert (loader# "%s")) ((or unpack table.unpack) arg))))
 
-(fn compile-fennel [filename options]
+(fn file->lua [filename options]
   (let [f (if (= filename "-")
               io.stdin
               (assert (io.open filename :rb)))
-        lua-code (fennel.compile-string (f:read :*a) options)]
+        lua-code (if (filename:find "%.luac?$")
+                     (f:read :*a)
+                     (fennel.compile-string (f:read :*a) options))]
     (f:close)
     lua-code))
 
@@ -198,7 +200,7 @@ int main(int argc, char *argv[]) {
                  :format key val))))
     (table.concat out "\n")))
 
-(fn fennel->c [filename native options]
+(fn file->c [filename native options]
   (let [basename (filename:gsub "(.*[\\/])(.*)" "%2")
         basename-noextension (or (basename:match "(.+)%.") basename)
         dotpath (-> filename
@@ -209,13 +211,13 @@ int main(int argc, char *argv[]) {
         lua-loader (fennel.compile-string fennel-loader)
         {: rename-modules} options]
     (c-shim:format (string->c-hex-literal lua-loader) basename-noextension
-                   (string->c-hex-literal (compile-fennel filename options))
+                   (string->c-hex-literal (file->lua filename options))
                    dotpath-noextension (native-loader native {: rename-modules}))))
 
 (fn write-c [filename native options]
   (let [out-filename (.. filename :_binary.c)
         f (assert (io.open out-filename :w+))]
-    (f:write (fennel->c filename native options))
+    (f:write (file->c filename native options))
     (f:close)
     out-filename))
 

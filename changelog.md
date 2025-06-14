@@ -13,12 +13,13 @@ deprecated forms.
 * Stack traces from macro errors shouldn't contain compiler internals.
 * Look for macros in `.fnlm` files in addition to `.fnl` files.
 * Support `extra-env` in compiler API when evaluating in compiler scope.
+* Allow `--compile-binary` to work on `.lua` and `.luac` files.
 
 ### Bug Fixes
 
 * Fix a bug where `,find` repl command didn't work on files with long names.
-* Some 3-decimal string escapes ignored the 3rd digit; e.g. `\x7f` -> `\127` -> `\f7`
-* In PUC Lua 5.1, the escape `"\127"` compiled to a literal byte in the string
+* Some 3-decimal string escapes ignored the 3rd digit; e.g. `\x7f` -> `\127` -> `\f7`.
+* In PUC Lua 5.1, the escape `"\127"` compiled to a literal byte in the string.
 
 ## 1.5.3 / 2025-02-16
 
@@ -30,7 +31,7 @@ deprecated forms.
 
 ### New Features
 
-* Added `pack` cross-Lua helper/polyfill to the compiler env alongside `unpack`
+* Added `pack` backwards-compatibility helper to the compiler env alongside `unpack`.
 * Precompile built-in macros, improving startup time significantly.
 * Accept `:global-mangle false` in compiler opts to disable global mangling.
 * Stop printing sparse tables as sequences by default.

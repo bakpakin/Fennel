@@ -297,7 +297,7 @@ Compile a binary from your Fennel program.
 Requires a C compiler, a copy of liblua, and Lua's dev headers. Implies
 the --require-as-include option.
 
-  FILE: the Fennel source being compiled.
+  FILE: the source being compiled; either Fennel or Lua.
   OUT: the name of the executable to generate
   STATIC_LUA_LIB: the path to the Lua library to use in the executable
   LUA_INCLUDE_DIR: the path to the directory of Lua C header files
@@ -308,10 +308,11 @@ Lua 5.4, you would use this:
     $ %s --compile-binary program.fnl program \\
         /usr/lib/x86_64-linux-gnu/liblua5.4.a /usr/include/lua5.4
 
-The program will be compiled to Lua, then compiled to C, then compiled to
-machine code. You can set the CC environment variable to change the compiler
-used (default: cc) or set CC_OPTS to pass in compiler options. For example
-set CC_OPTS=-static to generate a binary with static linking.
+The program will be compiled to Lua, (unless it's already Lua) then compiled to
+C, then compiled to machine code. You can set the CC environment variable to
+change the compiler used (default: cc) or set CC_OPTS to pass in compiler
+options. For example set CC_OPTS=-static to generate a binary with static
+linking.
 
 This method is currently limited to programs do not transitively require Lua
 modules. Requiring a Lua module directly will work, but requiring a Lua module

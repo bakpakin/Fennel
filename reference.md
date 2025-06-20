@@ -107,6 +107,12 @@ Certain prefixes are expanded by the parser into longhand equivalents:
 A semicolon and everything following it up to the end of the line is a
 comment.
 
+Expressions (literals and tables) can be ignored by the parser if preceded by `#_` (like in Clojure):
+
+* `[1 #_ {:a :b} 3 #_ #_ (+ 4 5) 6 7 #_]` expands to `[1 3 7]`
+
+`#_`s stack and also don't leak out after the end of the containing table
+
 ## Functions
 
 ### `fn` function

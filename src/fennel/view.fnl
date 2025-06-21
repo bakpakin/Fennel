@@ -393,7 +393,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
                             "\v" "\\v"
                             "\r" "\\r"
                             "\t" "\\t"
-                            :\ "\\\\"
+                            "\\" "\\\\"
                             "\"" "\\\""
                             "\n" (if esc-newline? "\\n" "\n")}
                            {:__index #(byte-escape ($2:byte) options)})

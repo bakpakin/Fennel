@@ -71,7 +71,8 @@ test/faith.lua: test/faith.fnl
 lint:
 	fennel-ls --lint $(SRC)
 
-ci: testall fuzz fennel
+ci: testall fuzz fennel fennel-bin
+	./fennel-bin --eval '(print "binary works!")'
 
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel.exe \

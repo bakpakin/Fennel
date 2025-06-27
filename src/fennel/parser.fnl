@@ -46,7 +46,6 @@ Also returns a second function to clear the buffer in the byte stream."
          (not= b 59) ; semicolon
          (not= b 44) ; comma
          (not= b 64) ; at
-         (not= b 92) ; backslash
          (not= b 96)))) ; backtick
 
 

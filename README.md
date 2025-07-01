@@ -91,8 +91,7 @@ Lua is much more readily-available than it is for Fennel.
 * Join the `#fennel` IRC chat [Libera.Chat][9] 
 * The chat is also bridged [on Matrix][10] if you prefer
 * The [mailing list][5] has slower-paced discussion and announcements
-* Report issues on the mailing list, [Sourcehut todo][11]
-* The mirror on [Github][12] is for people who haven't made a Sourcehut account
+* Report issues on the mailing list or [issue tracker][11]
 * You can browse and edit [the Wiki][7]
 * View builds in Fennel's [continuous integration][8]
 * Community interactions are subject to the [code of conduct](CODE-OF-CONDUCT.md).
@@ -118,25 +117,24 @@ work on the source.
 
 ## License
 
-Unless otherwise listed, all files are copyright © 2016-2024 Calvin
+Unless otherwise listed, all files are copyright © 2016-2025 Calvin
 Rose and contributors, released under the [MIT license](LICENSE).
 
-The file `test/faith.fnl` is copyright © 2009-2023 Scott Vokes, Phil
+The file `test/faith.fnl` is copyright © 2009-2025 Scott Vokes, Phil
 Hagelberg, and contributors, released under the [MIT license](LICENSE).
 
 The file `style.txt` is copyright © 2007-2011 Taylor R. Campbell,
-2021-2023 Phil Hagelberg and contributors, released under the
+2021-2025 Phil Hagelberg and contributors, released under the
 Creative Commons Attribution-NonCommercial-ShareAlike 3.0
 Unported License: https://creativecommons.org/licenses/by-nc-sa/3.0/
 
 [1]: https://fennel-lang.org
-[2]: https://wiki.fennel-lang.org/Cookbook
+[2]: https://dev.fennel-lang.org/wiki/Cookbook
 [3]: https://fennel-lang.org/see
 [4]: http://luajit.org/ext_ffi_tutorial.html
 [5]: https://lists.sr.ht/%7Etechnomancy/fennel
-[7]: https://wiki.fennel-lang.org/
+[7]: https://dev.fennel-lang.org/
 [8]: https://builds.sr.ht/~technomancy/fennel
 [9]: https://libera.chat
 [10]: https://matrix.to/#/!rnpLWzzTijEUDhhtjW:matrix.org?via=matrix.org
-[11]: https://todo.sr.ht/~technomancy/fennel
-[12]: https://github.com/bakpakin/Fennel/issues
+[11]: https://dev.fennel-lang.org/report/1

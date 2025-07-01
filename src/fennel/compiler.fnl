@@ -940,7 +940,7 @@ which we have to do if we don't know."
             (string.format "\t%s:%d: in main chunk" info.short_src
                            info.currentline)))))
 
-(local lua-getinfo debug.getinfo)
+(local lua-getinfo (and _G.debug _G.debug.getinfo))
 
 (fn traceback [?msg ?start]
   "A custom traceback function for Fennel that looks similar to debug.traceback.
@@ -959,7 +959,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
             ;; This would be cleaner factored out into its own recursive
             ;; function, but that would interfere with the traceback itself!
             (while (not done?)
-              (case (lua-getinfo level :Sln)
+              (case (and lua-getinfo (lua-getinfo level :Sln))
                 nil (set done? true)
                 info (table.insert lines (traceback-frame info)))
               (set level (+ level 1)))
@@ -973,7 +973,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
   (let [thread-or-level (if (= :number (type thread-or-level))
                             (+ 1 thread-or-level)
                             thread-or-level)
-        info (lua-getinfo thread-or-level ...)
+        info (and lua-getinfo (lua-getinfo thread-or-level ...))
         mapped (and info (. sourcemap info.source))]
     (when mapped
       (each [_ key (ipairs [:currentline :linedefined :lastlinedefined])]

@@ -157,13 +157,13 @@ man: $(dir $(MAN_DOCS)) $(MAN_DOCS)
 man/man%/: ; mkdir -p $@
 man/man3/fennel-%.3: %.md build/manfilter.lua
 	$(MAN_PANDOC) $< -o $@
-	sed -i 's/\\f\[C\]/\\f[CR]/g' $@ # work around pandoc 2.x bug
+	sed -i.tmp 's/\\f\[C\]/\\f[CR]/g' $@ # work around pandoc 2.x bug
 man/man5/fennel-%.5: %.md build/manfilter.lua
 	$(MAN_PANDOC) $< -o $@
-	sed -i 's/\\f\[C\]/\\f[CR]/g' $@
+	sed -i.tmp 's/\\f\[C\]/\\f[CR]/g' $@ # work around pandoc 2.x bug
 man/man7/fennel-%.7: %.md build/manfilter.lua
 	$(MAN_PANDOC) $< -o $@
-	sed -i 's/\\f\[C\]/\\f[CR]/g' $@
+	sed -i.tmp 's/\\f\[C\]/\\f[CR]/g' $@ # work around pandoc 2.x bug
 
 ## Release-related tasks:
 
@@ -202,7 +202,7 @@ release: guard-VERSION upload
 
 prerelease: guard-VERSION ci test-builds
 	@echo "Did you look for changes that need to be mentioned in help/man text?"
-	sed -i s/$(VERSION)-dev/$(VERSION)/ src/fennel/utils.fnl
+	sed -i.tmp s/$(VERSION)-dev/$(VERSION)/ src/fennel/utils.fnl
 	$(MAKE) man
 	grep "$(VERSION)" setup.md > /dev/null
 	! grep "???" changelog.md

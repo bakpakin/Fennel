@@ -336,11 +336,11 @@ nil, unless that argument's name begins with a question mark."
                 as1 (as:sub 1 1)]
             (not (or (= :_ as1) (= :? as1) (= :& as) (= :... as) (= :&as as))))
           (table.insert args check-position
-                        `(_G.assert (not= nil ,a)
-                                    ,(: "Missing argument %s on %s:%s" :format
-                                        (tostring a)
-                                        (or a.filename :unknown)
-                                        (or a.line "?"))))))
+                        `(when (= nil ,a)
+                           (_G.error ,(: "Missing argument %s on %s:%s" :format
+                                         (tostring a)
+                                         (or a.filename :unknown)
+                                         (or a.line "?")) 2)))))
 
     (assert (= :table (type arglist)) "expected arg list")
     (each [_ a (ipairs arglist)] (check! a))

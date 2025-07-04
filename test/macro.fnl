@@ -809,7 +809,9 @@
              "docstring"
              {:fnl/arglist [z]}
              (do :something))]
-    (t.= [:z] (. fennel.metadata l2 :fnl/arglist))))
+    (t.= [:z] (. fennel.metadata l2 :fnl/arglist)))
+  (fn call-lambda [] (arglist-lambda) nil)
+  (let [(ok msg) (pcall call-lambda)] (t.match "test/macro.fnl:813" msg)))
 
 (fn test-env-lua-helpers []
   (t.= :e (macro-wrap unpack (unpack [:a :b nil nil :e] 5))

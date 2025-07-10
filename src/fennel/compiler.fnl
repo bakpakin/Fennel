@@ -940,6 +940,12 @@ which we have to do if we don't know."
             (string.format "\t%s:%d: in main chunk" info.short_src
                            info.currentline)))))
 
+(fn trace-adjust-msg [msg]
+  (case-try (msg:match "^([^:]*):(%d+):(.*)")
+    (file line rest) (?. sourcemap (.. "@" file) (tonumber line))
+    [_ newline] (string.format "%s:%s:%s" file newline rest)
+    (catch _ msg)))
+
 (local lua-getinfo (and _G.debug _G.debug.getinfo))
 
 (fn traceback [?msg ?start]
@@ -953,16 +959,13 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
                    (msg:find "^%g+:%d+:%d+: Parse error:.*"))
                (not (utils.debug-on? :trace)))
           msg        ; skip the trace because it's compiler internals.
-          (let [lines [(msg:gsub "^[^:]*:%d+:%s+" "runtime error: ")
-                       "stack traceback:"]]
-            (var (done? level) (values false (or ?start 2)))
+          (let [lines [(trace-adjust-msg msg) "stack traceback:"]]
             ;; This would be cleaner factored out into its own recursive
             ;; function, but that would interfere with the traceback itself!
-            (while (not done?)
+            (for [level (or ?start 2) 999 &until lines.done?]
               (case (and lua-getinfo (lua-getinfo level :Sln))
-                nil (set done? true)
-                info (table.insert lines (traceback-frame info)))
-              (set level (+ level 1)))
+                nil (set lines.done? true)
+                info (table.insert lines (traceback-frame info))))
             (table.concat lines "\n"))))
     _ ?msg))
 

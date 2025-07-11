@@ -123,6 +123,7 @@
   (assert-fail (let [{: x &as foo} nil] 42) "could not destructure literal")
   (assert-fail (let [[first &as list & rest] []]  true) "&as argument before last parameter")
   (assert-fail (let [[first "&as" list] []]  true) "unable to bind string")
+  (assert-fail (let [{(+ 1 1) v} {}] true) "expected key to be a literal")
   (test-failures {"(local a~b 3)" "invalid character: ~"
                   "(let [t []] (set t.:x :y))" "malformed multisym: t.:x"
                   "(let [t []] (set t::x :y))" "malformed multisym: t::x"

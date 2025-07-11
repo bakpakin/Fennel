@@ -550,13 +550,15 @@ if opts contains the nval option."
      :nan (if (= 45 (nan:byte)) "(- (0/0))" "(0/0)")
      :negative-nan (if (= 45 (nan:byte)) "(0/0)" "(- (0/0))")}))
 
+(fn serialize-scalar [ast]
+  (case (type ast)
+    :nil :nil
+    :boolean (tostring ast)
+    :string (serialize-string ast)
+    :number (view ast view-opts)))
+
 (fn compile-scalar [ast _scope parent opts]
-  (let [compiled (case (type ast)
-                   :nil :nil
-                   :boolean (tostring ast)
-                   :string (serialize-string ast)
-                   :number (view ast view-opts))]
-    (handle-compile-opts [(utils.expr compiled :literal)] parent opts)))
+  (handle-compile-opts [(utils.expr (serialize-scalar ast) :literal)] parent opts))
 
 (fn compile-table [ast scope parent opts compile1]
   (fn escape-key [k]
@@ -832,10 +834,13 @@ which we have to do if we don't know."
                                       left)
                       (destructure-sym next-sym [(utils.expr (tostring s))] left))
 
-                    (let [key (if (= (type k) :string) (serialize-string k) k)
-                          subexpr (utils.expr (: "%s[%s]" :format s key) :expression)]
+                    (let [subexpr (if (and (= (type k) :string) (utils.valid-lua-identifier? k))
+                                      (: "%s.%s" :format s k)
+                                      (let [key (serialize-scalar k)]
+                                        (assert-compile key "expected key to be a literal" key)
+                                        (: "%s[%s]" :format s key)))]
                       (when (= (type k) :string) (table.insert excluded-keys k))
-                      (destructure1 v subexpr left))))))))
+                      (destructure1 v (utils.expr subexpr :expression) left))))))))
 
     (fn destructure1 [left rightexprs up1 top?]
       "Recursive auxiliary function"

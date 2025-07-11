@@ -62,6 +62,10 @@
      ["removing a key"
       "adding a value"])
 
+(pal "expected key to be a literal"
+     ["using . instead of destructuring"
+      "checking for typos"])
+
 (pal "expected local"
      ["looking for a typo"
       "looking for a local which is used out of its scope"])

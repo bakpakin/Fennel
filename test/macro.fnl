@@ -728,9 +728,11 @@
       "whateveryo"
       "multiple catch clauses works")
   (let [(_ msg1) (pcall fennel.eval "(match-try abc def)")
-        (_ msg2) (pcall fennel.eval "(match-try abc {} :def _ :wat (catch 55))")]
+        (_ msg2) (pcall fennel.eval "(match-try abc {} :def _ :wat (catch 55))")
+        (_ msg3) (pcall fennel.eval "(match-try abc {} :def _ :wat [catch 55 :body])")]
     (t.match ".*expected every pattern to have a body.*" msg1)
-    (t.match ".*expected every catch pattern to have a body.*" msg2)))
+    (t.match ".*expected every catch pattern to have a body.*" msg2)
+    (t.match ".*expected every pattern to have a body.*" msg3)))
 
 (fn test-lua-module []
   (== (do (macro abc [] (let [l (require :test.luamod)] (l.abc))) (abc)) :abc)
@@ -811,7 +813,7 @@
              (do :something))]
     (t.= [:z] (. fennel.metadata l2 :fnl/arglist)))
   (fn call-lambda [] (arglist-lambda) nil)
-  (let [(ok msg) (pcall call-lambda)] (t.match "test/macro.fnl:813" msg)))
+  (let [(ok msg) (pcall call-lambda)] (t.match "test/macro.fnl:815" msg)))
 
 (fn test-env-lua-helpers []
   (t.= :e (macro-wrap unpack (unpack [:a :b nil nil :e] 5))

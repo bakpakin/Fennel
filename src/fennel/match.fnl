@@ -354,7 +354,7 @@ Syntax:
 (fn case-try-impl [how expr pattern body ...]
   (let [clauses [pattern body ...]
         last (. clauses (length clauses))
-        catch (if (sym? (and (= :table (type last)) (. last 1)) :catch)
+        catch (if (and (list? last) (sym? (. last 1) :catch))
                  (let [[_ & e] (table.remove clauses)] e) ; remove `catch sym
                  [`_# `...])]
     (assert (= 0 (math.fmod (length clauses) 2))

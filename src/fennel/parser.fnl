@@ -224,8 +224,8 @@ Also returns a second function to clear the buffer in the byte stream."
           (parse-error "expected even number of values in table literal"))
         (setmetatable val tbl) ; see note above about source data
         (for [i 1 (length tbl) 2]
-          (when (and (= (tostring (. tbl i)) ":") (utils.sym? (. tbl (+ i 1)))
-                     (utils.sym? (. tbl i)))
+          (when (and (utils.sym? (. tbl (+ i 1)))
+                     (utils.sym? (. tbl i) ":"))
             (tset tbl i (tostring (. tbl (+ i 1)))))
           (tset val (. tbl i) (. tbl (+ i 1)))
           (table.insert keys (. tbl i)))

@@ -816,16 +816,16 @@ which we have to do if we don't know."
             (each [k v (utils.stablepairs left)]
               (when (not (and (= :number (type k))
                               (: (tostring (. left (- k 1))) :find "^&")))
-                (if (and (utils.sym? k) (= (tostring k) "&"))
+                (if (utils.sym? k "&")
                     (destructure-kv-rest s v left excluded-keys destructure1)
 
-                    (and (utils.sym? v) (= (tostring v) "&"))
+                    (utils.sym? v "&")
                     (destructure-rest s k left destructure1)
 
-                    (and (utils.sym? k) (= (tostring k) :&as))
+                    (utils.sym? k "&as")
                     (destructure-sym v [(utils.expr (tostring s))] left)
 
-                    (and (utils.sequence? left) (= (tostring v) :&as))
+                    (and (utils.sequence? left) (utils.sym? v "&as"))
                     (let [(_ next-sym trailing) (select k (unpack left))]
                       (assert-compile (= nil trailing)
                                       "expected &as argument before last parameter"

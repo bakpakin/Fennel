@@ -5,6 +5,8 @@ web site to [phil@hagelb.org][1] and [jaawerth@gmail.com][2].
 
 Sensitive reports may be encrypted with the PGP key listed below.
 
+Please do not submit LLM-generated security reports; this will get you banned.
+
 ## Signatures
 
 From version 0.10.0 onward, Fennel releases and tags have been signed

@@ -7,7 +7,8 @@
 (macro assert-fail [form expected]
   `(let [(ok# msg#) (pcall fennel.compile-string (macrodebug ,form true)
                            {:allowedGlobals ["pairs" "next" "ipairs" "_G" "print"]
-                            :correlate true})]
+                            :correlate true
+                            :warn #nil})]
      (t.is (not ok#) (.. "Expected failure: " ,(tostring form)))
      (t.match ,expected msg#)))
 
@@ -16,7 +17,8 @@
   (each [code expected-msg (pairs failures)]
     (let [(ok? msg) (pcall fennel.compile-string code
                            {:allowedGlobals ["pairs" "next" "ipairs" "_G"]
-                            :unfriendly true :correlate true})]
+                            :unfriendly true :correlate true
+                            :warn #nil})]
       (t.is (not ok?) (.. "Expected compiling " code " to fail."))
       (t.is (msg:find expected-msg 1 true)
             (.. "Expected to find\n" (fennel.view expected-msg)
@@ -295,11 +297,21 @@
 
 (fn test-parse-warnings []
   (let [warnings []]
-    ((fennel.parser "\n\n(print\"\"token\"\")" "filename.fnl" {:warn #(table.insert warnings {:message $1 :line $4 :col $5})}))
+    ((fennel.parser "\n\n(print\"\"token\"\")"
+                    "filename.fnl"
+                    {:warn #(table.insert warnings {:message $1 :line $4 :col $5})}))
     ;; specifically interested in the line and column numbers
     (t.= [{:message "expected whitespace before string" :line 3 :col 6}
           {:message "expected whitespace before token" :line 3 :col 8}
           {:message "expected whitespace before string" :line 3 :col 13}]
+         warnings))
+  (let [warnings []]
+    ((fennel.parser "(do\n  (\"string\":sub 1 1)\n  (\"string\"false)\n  (\"string\"0))"
+                    "filename.fnl"
+                    {:warn #(table.insert warnings {:message $1 :line $4 :col $5})}))
+    (t.= [{:message "expected whitespace before token" :line 2 :col 11}
+          {:message "expected whitespace before token" :line 3 :col 11}
+          {:message "expected whitespace before token" :line 4 :col 11}]
          warnings)))
 
 {: test-global-fails

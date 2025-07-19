@@ -125,8 +125,8 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
   (assert (= (type tbl) :table) "allpairs expects a table")
   (var t tbl)
   (let [seen []]
-    (fn allpairs-next [_ state]
-      (let [(next-state value) (next t state)]
+    (fn allpairs-next [_ ?state]
+      (let [(next-state value) (next t ?state)]
         (if (. seen next-state)
             (allpairs-next nil next-state)
             next-state
@@ -187,11 +187,11 @@ traverse upwards, skipping duplicates, to iterate all inherited properties"
 
 (local getenv (or (and os os.getenv) #nil))
 
-(fn debug-on? [flag]
+(fn debug-on? [?flag]
   (let [dbg (getenv :FENNEL_DEBUG)]
-    (if (= flag nil)
+    (if (= ?flag nil)
         (not= nil dbg)
-        (and dbg (dbg:find flag)))))
+        (and dbg (dbg:find ?flag)))))
 
 (fn list [...]
   "Create a new list. Lists are a compile-time construct in Fennel; they are

@@ -81,8 +81,8 @@
               (add-partials tail (. tbl raw-head) (.. prefix head ":"))
               (add-matches tail (. tbl raw-head) (.. prefix head))))))
 
-    (fn add-matches [input tbl prefix]
-      (let [prefix (if prefix (.. prefix ".") "")]
+    (fn add-matches [input tbl ?prefix]
+      (let [prefix (if ?prefix (.. ?prefix ".") "")]
         (if (and (not (input:find "%.")) (input:find ":")) ; found a method call
             (descend input tbl prefix add-matches true)
             (not (input:find "%.")) ; done descending; add matches
@@ -408,7 +408,7 @@ For more information about the language, see https://fennel-lang.org/reference")
     (set (opts.scope.manglings.*2 opts.scope.unmanglings._2) (values "_2" "*2"))
     (set (opts.scope.manglings.*3 opts.scope.unmanglings._3) (values "_3" "*3"))
 
-    (fn loop [exit-next?]
+    (fn loop [?exit-next?]
       (each [k (pairs chars)]
         (tset chars k nil))
       (reset)
@@ -439,7 +439,7 @@ For more information about the language, see https://fennel-lang.org/reference")
                  (false msg) (do (clear-stream)
                                  (callbacks.onError :Compile msg))))
               (set utils.root.options old-root-options)
-              (if exit-next?
+              (if ?exit-next?
                   env.___replLocals___.*1
                   (loop))))))
 

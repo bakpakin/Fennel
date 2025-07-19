@@ -73,13 +73,13 @@ will see its values updated as expected, regardless of mangling rules."
       (string.format "%s\n  %s" name (v->docstring tgt))))
 
 ;; TODO: replace this with using the special fn's own docstring
-(fn doc-special [name arglist docstring body-form?]
+(fn doc-special [name arglist docstring ?body-form?]
   "Add a docstring to a special form."
   (each [i a (ipairs arglist)]
     (when (= :table (type a))
       (tset arglist i (.. "[" (table.concat a " ") "]"))))
   (tset compiler.metadata (. SPECIALS name)
-        {:fnl/arglist arglist :fnl/docstring docstring :fnl/body-form? body-form?}))
+        {:fnl/arglist arglist :fnl/docstring docstring :fnl/body-form? ?body-form?}))
 
 (fn compile-do [ast scope parent ?start]
   "Compile a list of forms for side effects."
@@ -98,7 +98,7 @@ By default, start is 2."
         len (length ast)
         retexprs {:returned true}]
     (utils.hook :pre-do ast sub-scope)
-    (fn compile-body [outer-target outer-tail outer-retexprs]
+    (fn compile-body [outer-target outer-tail ?outer-retexprs]
       (for [i start len]
         (let [subopts {:nval (or (and (not= i len) 0) opts.nval)
                        :tail (or (and (= i len) outer-tail) nil)
@@ -110,7 +110,7 @@ By default, start is 2."
       (compiler.emit parent chunk ast)
       (compiler.emit parent :end ast)
       (utils.hook :do ast sub-scope)
-      (or outer-retexprs retexprs))
+      (or ?outer-retexprs retexprs))
 
     ;; See if we need special handling to get the return values of the do block
     (if (or opts.target (= opts.nval 0) opts.tail)
@@ -244,12 +244,12 @@ By default, start is 2."
                            (: "pcall(function() %s:setall(%s, %s) end)" :format
                               meta-str fn-name (table.concat meta-fields ", "))))))))
 
-(fn get-fn-name [ast scope fn-name multi]
+(fn get-fn-name [ast scope fn-name ?multi]
   (if (and fn-name (not= (. fn-name 1) :nil))
-      (values (if (not multi)
+      (values (if (not ?multi)
                   (compiler.declare-local fn-name scope ast)
                   (. (compiler.symbol-to-expression fn-name scope) 1))
-              (not multi) 3)
+              (not ?multi) 3)
       (values nil true 2)))
 
 (fn compile-named-fn [ast f-scope f-chunk parent index fn-name local?
@@ -307,13 +307,13 @@ By default, start is 2."
                        #(collect [k v (pairs $2) :into $1]
                           (values k v)))))
 
-(fn SPECIALS.fn [ast scope parent opts]
+(fn SPECIALS.fn [ast scope parent]
   (let [f-scope (doto (compiler.make-scope scope)
                   (tset :vararg false))
         f-chunk []
         fn-sym (utils.sym? (. ast 2))
         multi (and fn-sym (utils.multi-sym? (. fn-sym 1)))
-        (fn-name local? index) (get-fn-name ast scope fn-sym multi opts)
+        (fn-name local? index) (get-fn-name ast scope fn-sym multi)
         arg-list (compiler.assert (utils.table? (. ast index))
                                   "expected parameters table" ast)]
     (compiler.assert (or (not multi) (not multi.multi-sym-method-call))
@@ -962,9 +962,9 @@ Method name doesn't have to be known at compile-time; if it is, use
                                                           {:nval 1})))))
     (operator-special-result ast zero-arity unary-prefix padded-op operands)))
 
-(fn define-arithmetic-special [name zero-arity unary-prefix ?lua-name]
-  (tset SPECIALS name (partial operator-special (or ?lua-name name) zero-arity
-                               unary-prefix))
+(fn define-arithmetic-special [name ?zero-arity ?unary-prefix ?lua-name]
+  (tset SPECIALS name (partial operator-special (or ?lua-name name) ?zero-arity
+                               ?unary-prefix))
   (doc-special name [:a :b "..."]
                "Arithmetic operator; works the same as Lua but accepts more arguments."))
 
@@ -1181,16 +1181,16 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
       (tset combined k v))
     (values next combined nil)))
 
-(fn make-compiler-env [ast scope parent ?opts]
+(fn make-compiler-env [?ast ?scope ?parent ?opts]
   (let [provided (case (or ?opts utils.root.options)
                    {:compiler-env :strict} (safe-compiler-env)
                    {: compilerEnv} compilerEnv
                    {: compiler-env} compiler-env
                    _ (safe-compiler-env))
-        env {:_AST ast
-             :_CHUNK parent
+        env {:_AST ?ast
+             :_CHUNK ?parent
              :_IS_COMPILER true
-             :_SCOPE scope
+             :_SCOPE ?scope
              :_SPECIALS compiler.scopes.global.specials
              :_VARARG (utils.varg) ; don't use this!
              : macro-loaded
@@ -1208,18 +1208,18 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
              ;; scoping functions
              :gensym (fn [base]
                        (utils.sym (compiler.gensym (or compiler.scopes.macro
-                                                       scope)
+                                                       ?scope)
                                                    base)))
              :get-scope (fn []
                           compiler.scopes.macro)
              :in-scope? (fn [symbol]
                           (compiler.assert compiler.scopes.macro
-                                           "must call from macro" ast)
+                                           "must call from macro" ?ast)
                           (. compiler.scopes.macro.manglings
                              (tostring symbol)))
              :macroexpand (fn [form]
                             (compiler.assert compiler.scopes.macro
-                                             "must call from macro" ast)
+                                             "must call from macro" ?ast)
                             (compiler.macroexpand form
                                                   compiler.scopes.macro))}]
     (set env._G env)

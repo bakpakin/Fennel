@@ -43,13 +43,13 @@ implement nesting. "
 
 ;; If you add new calls to this function, please update fennel.friend
 ;; as well to add suggestions for how to fix the new error!
-(fn assert-compile [condition msg ast ?fallback-ast]
+(fn assert-compile [condition msg ?ast ?fallback-ast]
   "Assert a condition and raise a compile error with line numbers.
 The ast arg should be unmodified so that its first element is the form called."
   (when (not condition)
     (let [{: source : unfriendly : error-pinpoint} (or utils.root.options {})
           ;; allow a fallback AST when the form itself has no source data
-          ast (if (next (utils.ast-source ast)) ast (or ?fallback-ast {}))]
+          ast (if (next (utils.ast-source ?ast)) ?ast (or ?fallback-ast {}))]
       ;; allow plugins to override assert-compile
       (when (= nil (utils.hook :assert-compile condition msg ast
                                utils.root.reset))
@@ -222,10 +222,10 @@ if they have already been declared via declare-local"
         (tset scope.symmeta (. parts 1) :used true)
         (set symbol.referent (. scope.symmeta (. parts 1) :symbol)))
       (assert-compile (not (. scope.macros (. parts 1)))
-                      (.. "tried to reference a macro without calling it") symbol)
+                      "tried to reference a macro without calling it" symbol)
       (assert-compile (or (not (. scope.specials (. parts 1)))
                           (= :require (. parts 1)))
-                      (.. "tried to reference a special form without calling it") symbol)
+                      "tried to reference a special form without calling it" symbol)
       ;; if it's a reference and not a symbol which introduces a new binding
       ;; then we need to check for allowed globals
       (assert-compile (or (not ?reference?) local? (= :_ENV (. parts 1))
@@ -367,7 +367,7 @@ if they have already been declared via declare-local"
                 disambiguated (if (= (code:byte) 40) (.. "do end " code) code)]
             (emit chunk disambiguated ast))))))
 
-(fn handle-compile-opts [exprs parent opts ast]
+(fn handle-compile-opts [exprs parent opts ?ast]
   "Does some common handling of returns and register targets for special
 forms. Also ensures a list expression has an acceptable number of expressions
 if opts contains the nval option."
@@ -378,18 +378,18 @@ if opts contains the nval option."
         (if (< n len)
             (do
               ;; drop extra
-              (keep-side-effects exprs parent (+ n 1) ast)
+              (keep-side-effects exprs parent (+ n 1) ?ast)
               (for [i (+ n 1) len]
                 (tset exprs i nil)))
             (for [i (+ (length exprs) 1) n] ; pad with nils
               (tset exprs i (utils.expr :nil :literal)))))))
   (when opts.tail
-    (emit parent (string.format "return %s" (exprs1 exprs)) ast))
+    (emit parent (string.format "return %s" (exprs1 exprs)) ?ast))
   (when opts.target
     (let [result (exprs1 exprs)]
       (emit parent
             (string.format "%s = %s" opts.target (if (= result "") :nil result))
-            ast)))
+            ?ast)))
   (if (or opts.tail opts.target)
       ;; Prevent statements and expression from being used twice if they
       ;; have side-effects. Since if the target or tail options are set,
@@ -707,10 +707,10 @@ which we have to do if we don't know."
                             {: ast :leaf (.. "local " target)})))
         ret))
 
-    (fn destructure-sym [left rightexprs up1 top?]
+    (fn destructure-sym [left rightexprs up1 ?top?]
       (let [lname (getname left up1)]
         (check-binding-valid left scope left)
-        (if top?
+        (if ?top?
             (compile-top-target [lname])
             (emit parent (setter:format lname (exprs1 rightexprs)) left))))
 
@@ -728,7 +728,7 @@ which we have to do if we don't know."
         (string.format "%s[%s]" (tostring (symbol-to-expression target scope true))
                        (table.concat keys "]["))))
 
-    (fn destructure-values [left rightexprs up1 destructure1 top?]
+    (fn destructure-values [left rightexprs up1 destructure1 ?top?]
       (let [(left-names tables) (values [] [])]
         (each [i name (ipairs left)]
           (if (utils.sym? name) ; binding directly to a name
@@ -740,7 +740,7 @@ which we have to do if we don't know."
                 (table.insert left-names symname)
                 (tset tables i [name (utils.expr symname :sym)]))))
         (assert-compile (. left 1) "must provide at least one value" left)
-        (if top?
+        (if ?top?
             (compile-top-target left-names)
             ;; TODO: this is dumb, why does it need to be a special case here?
             (utils.expr? rightexprs)
@@ -1011,11 +1011,11 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
 ;; TODO: too long
 (fn do-quote [form scope parent runtime?]
   "Expand a quoted form into a data literal, evaluating unquote"
-  (fn quote-all [form discard-non-numbers]
+  (fn quote-all [form ?discard-non-numbers]
     (collect [k v (utils.stablepairs form)]
       (if (= (type k) :number)
           (values k (do-quote v scope parent runtime?))
-          (not discard-non-numbers)
+          (not ?discard-non-numbers)
           (values (do-quote k scope parent runtime?)
                   (do-quote v scope parent runtime?)))))
 

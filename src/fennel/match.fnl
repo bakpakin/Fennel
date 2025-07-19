@@ -6,9 +6,11 @@
 
 (local utils ...)
 
-(fn double-eval-safe? [x type]
-  (or (= :number type) (= :string type) (= :boolean type)
-      (and (sym? x) (not (multi-sym? x)))))
+;; Make this reusable?
+(fn double-eval-safe? [x]
+  (let [type-of (type x)]
+    (or (= :number type-of) (= :string type-of) (= :boolean type-of) (varg? x)
+        (and (sym? x) (not (multi-sym? x))))))
 
 (fn with [opts k]
   (doto (utils.copy opts) (tset k true)))

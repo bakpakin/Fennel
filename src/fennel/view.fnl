@@ -402,7 +402,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
         (utf8-escape str options)
         str)))
 
-(fn make-options [t options]
+(fn make-options [t ?options]
   (let [;; defaults are used when options are not provided
         defaults (collect [k v (pairs default-opts)]
                    (values k v))
@@ -410,7 +410,7 @@ as numeric escapes rather than letter-based escapes, which is ugly."
         overrides {:level 0
                    :appearances (count-table-appearances t {})
                    :seen {:len 0}}]
-    (each [k v (pairs (or options {}))]
+    (each [k v (pairs (or ?options {}))]
       (tset defaults k v))
     (each [k v (pairs overrides)]
       (tset defaults k v))

@@ -87,8 +87,8 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
       (io.stderr:write
        "WARNING: --lua argument only works from script, not binary.\n"))
     (case (os.execute (table.concat cmd " "))
-      (where (or (true :exit) 0)) (os.exit 0 true)
-      _ (os.exit 1 true))))
+      (where (or (true :exit) 0)) (os.exit 0)
+      _ (os.exit 1))))
 
 ;; check for --lua first to ensure its child process retains all flags
 (for [i (length arg) 1 -1]

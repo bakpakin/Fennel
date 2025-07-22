@@ -53,7 +53,7 @@ will see its values updated as expected, regardless of mangling rules."
     (case (values (rawget _G :setfenv) (rawget _G :loadstring))
       (setfenv loadstring) (let [f (assert (loadstring code ?filename))]
                              (doto f (setfenv env)))
-      _ (assert (load code ?filename :t env)))))
+      _ (assert (load code (values ?filename :t env)))))) ; cheese the linter
 
 (fn v->docstring [tgt]
   (-> (compiler.metadata:get tgt :fnl/docstring)

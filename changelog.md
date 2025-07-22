@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Add `--to-be-closed` option for better stack traces in `with-open` on Lua 5.4.
 * Stack traces from macro errors shouldn't contain compiler internals.
 * Look for macros in `.fnlm` files in addition to `.fnl` files.
 * Support `extra-env` in compiler API when evaluating in compiler scope.

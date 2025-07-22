@@ -73,6 +73,11 @@ Instead of loading required modules at runtime, compile them inline
 into the main file being compiled. Only useful during ahead-of-time
 compilation.
 .TP
+.B \-\-to-be-closed
+When compiling
+.B with-open
+use the to-be-closed feature of Lua 5.4+ to avoid interfering with traces.
+.TP
 .B \-\-assert-as-repl
 Calls to the built-in function
 .B assert

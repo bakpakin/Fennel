@@ -878,8 +878,10 @@ The usage is similar to `let`, except:
 After executing the body, or upon encountering an error, `with-open`
 will invoke `(value:close)` on every bound variable before returning the results.
 
-The body is implicitly wrapped in a function and run with `xpcall` so that all bound
-handles are closed before it re-raises the error.
+Normally the body is implicitly wrapped in a function and run with `xpcall` so
+that all bound handles are closed before it re-raises the error. However you
+can use `--to-be-closed` to make it use the native functionality in Lua 5.4+
+which will do the same thing without `xpcall` interfering with stack traces.
 
 Example:
 

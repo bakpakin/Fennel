@@ -29,6 +29,8 @@ usually accept these fields:
   output. If the module name isn't a string literal that is resolvable at
   compile time it falls back to `require` at runtime. Can be used to embed both
   Fennel and Lua modules.
+* `toBeClosed`: Use Lua 5.4+ to-be-closed variables when compiling
+  `with-open` in order to avoid interfering with traces.
 * `assertAsRepl`: Replace calls to `assert` with `assert-repl` to
   allow for interactive debugging.
 * `env`: an environment table in which to run the code; see the Lua manual.

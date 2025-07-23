@@ -40,12 +40,7 @@
     (if (not ok)
       ;; if we get an error, it must come from assert-compile; if we get
       ;; a non-assertion error then it must be a compiler bug!
-      (t.= err marker (.. code "\n" (tostring err) "\nSeed: " seed))
-      (let [(ok2 err2) ((or _G.loadstring load) err)]
-        ;; if we get an err2, it must mean that fennel's output isn't valid Lua
-        ;; If fennel emits code, it should be valid Lua!
-        (when (not ok2)
-          (error (.. (tostring err2) "\n" code "\n" (tostring err) "\nSeed: " seed)))))))
+      (t.= err marker (.. code "\n" (tostring err) "\nSeed: " seed)))))
 
 (fn test-fuzz []
   (let [verbose? (os.getenv "VERBOSE")

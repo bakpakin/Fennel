@@ -1442,7 +1442,7 @@ Deprecated.")
                   _ (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1))]
     (if (or (not= modexpr.type :literal) (not= (: (. modexpr 1) :byte) 34))
         (if opts.fallback
-            (opts.fallback modexpr)
+            (opts.fallback modexpr true)
             (compiler.assert false "module name must be string literal" ast))
         (let [mod ((load-code (.. "return " (. modexpr 1))))
               oldmod utils.root.options.module-name

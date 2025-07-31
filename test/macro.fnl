@@ -815,6 +815,46 @@
   (fn call-lambda [] (arglist-lambda) nil)
   (let [(ok msg) (pcall call-lambda)] (t.match "test/macro.fnl:815" msg)))
 
+(fn check-lambda [ok? msg-pattern l ...]
+  (fn escape-pattern [p]
+    (p:gsub "([][().%+-*?$^])" "%%%1"))
+  (let [(res msg) (pcall l ...)]
+    (t.is (= ok? res) msg-pattern)
+    (when (not res)
+      (t.match (.. ".*" (escape-pattern msg-pattern) ".*") msg))))
+
+(fn test-lambda-checks []
+  (lambda l [plain-arg {:table table-destr :optional ?key} [vec-dest ?optional-idx]]
+    [plain-arg {:table table-destr :optional ?key} [vec-dest ?optional-idx]])
+
+  (check-lambda true  "expected true" l 10 {:table {} :optional :foo} [42 123])
+  (check-lambda true  "expected true" l 10 {:table {}} [42])
+
+  (check-lambda false "Missing argument plain-arg on" l nil {:table {} :optional :foo} [42 123])
+  (check-lambda false "attempt to index" l nil nil nil)
+  (check-lambda false "attempt to index" l)
+
+  (check-lambda false "Missing argument table-destr on" l 10 {:optional :foo} [42 123])
+  (check-lambda false "Missing argument vec-dest on"    l 10 {:table {} :optional :foo} [nil 123])
+
+  (check-lambda false "attempt to index" l 10 nil [42 123])
+  (check-lambda false "attempt to index" l 10 {:table {} :optional :foo} nil))
+
+(fn test-lambda-nested-checks []
+  (lambda l [[[vec2]] [[[vec3] vec23 ?optvec2]] {:a {:b table2}} {:a {:b {:c table3} :d ?opt-table32}} [{:a [sudden [{:b nested}]]}]]
+    [[[vec2]] [[[vec3] vec23 ?optvec2]] {:a {:b table2}} {:a {:b {:c table3} :d ?opt-table32}} [{:a [sudden [{:b nested}]]}]])
+
+  (check-lambda false "Missing argument vec2 on"   l [[nil]] [[[2] 22]] {:a {:b 3}} {:a {:b {:c 4}}}   [{:a [5 [{:b 6}]]}])
+  (check-lambda false "Missing argument vec3 on"   l [[1]] [[[nil] 22]] {:a {:b 3}} {:a {:b {:c 4}}}   [{:a [5 [{:b 6}]]}])
+  (check-lambda false "Missing argument vec23 on"  l [[1]] [[[2] nil]]  {:a {:b 3}} {:a {:b {:c 4}}}   [{:a [5 [{:b 6}]]}])
+  (check-lambda false "Missing argument table2 on" l [[1]] [[[2] 22]]   {:a {:b nil}} {:a {:b {:c 4}}} [{:a [5 [{:b 6}]]}])
+  (check-lambda false "Missing argument table3 on" l [[1]] [[[2] 22]]   {:a {:b 3}} {:a {:b {:c nil}}} [{:a [5 [{:b 6}]]}])
+  (check-lambda false "Missing argument sudden on" l [[1]] [[[2] 22]]   {:a {:b 3}} {:a {:b {:c 4}}}   [{:a [nil [{:b 6}]]}])
+  (check-lambda false "Missing argument nested on" l [[1]] [[[2] 22]]   {:a {:b 3}} {:a {:b {:c 4}}}   [{:a [5 [{:b nil}]]}])
+
+  (check-lambda true  "expected true" l [[1]] [[[2] 22]]    {:a {:b 3}} {:a {:b {:c 4}}}       [{:a [5 [{:b 6}]]}])
+  (check-lambda true  "expected true" l [[1]] [[[2] 22 23]] {:a {:b 3}} {:a {:b {:c 4} :d 44}} [{:a [5 [{:b 6}]]}]))
+
 (fn test-env-lua-helpers []
   (t.= :e (macro-wrap unpack (unpack [:a :b nil nil :e] 5))
        "unpack is in compiler-env")
@@ -859,6 +899,8 @@
  : test-match-try
  : test-case-try
  : test-lambda
+ : test-lambda-checks
+ : test-lambda-nested-checks
  : test-literal
  : test-env-lua-helpers
  : test-sym}

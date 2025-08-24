@@ -2,7 +2,7 @@
 {
     "image": "debian/stable",
     "packages": ["git", "make", "netcat-openbsd", "build-essential",
-                 "luajit2", "lua5.1", "lua5.2", "lua5.3", "lua5.4"],
+                 "luajit", "lua5.1", "lua5.2", "lua5.3", "lua5.4"],
     "sources": ["https://git.sr.ht/~technomancy/fennel"],
     "tasks": [{"build":"IRC_CHANNEL=\"#fennel\" make -C fennel ci"}],
 }

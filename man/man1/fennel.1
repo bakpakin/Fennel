@@ -86,6 +86,13 @@ from Fennel will be replaced with calls to
 so that when the assertion fails, a REPL will be started in which you
 can interactively debug.
 .TP
+.B \-\-lambda-as-fn
+Replace
+.B lambda
+function definitions with
+.B fn\fR,
+removing the runtime overhead from arity checking.
+.TP
 .B \-\-use-bit-lib
 Compile bitwise operations to use LuaJIT's bitop library instead of Lua
 5.3+ bitwise operators.

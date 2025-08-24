@@ -161,6 +161,15 @@
     (t.= (.. bs bs "12") (compile-string (.. "\"" bs bs "12\""))
          (.. "expected even # of " bs "'s not to escape what follows"))))
 
+(fn test-lambda-as-fn []
+  (each [_ name (ipairs [:lambda :λ])]
+    (let [f (-> (string.format "(%s [x y] (or x y))" name)
+                (fennel.eval {:lambdaAsFn true}))]
+      (t.= :x (f :x :y))
+      (t.= :x (f :x))
+      (t.= :y (f nil :y))
+      (t.= nil (f)))))
+
 {: test-empty-values
  : test-env-iteration
  : test-global-mangling
@@ -171,4 +180,5 @@
  : test-short-circuit
  : test-precedence
  : test-multisyms
- : test-strings}
+ : test-strings
+ : test-lambda-as-fn}

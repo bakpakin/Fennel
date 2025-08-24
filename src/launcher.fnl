@@ -26,6 +26,7 @@ Run Fennel, a Lisp programming language for the Lua runtime.
   --assert-as-repl         : Replace assert calls with assert-repl
   --require-as-include     : Inline required modules in the output
   --to-be-closed           : Use to-be-closed vars in with-open (Lua 5.4+ only)
+  --lambda-as-fn           : Replace lambda function definitions with fn
   --skip-include M1[,M2]   : Omit certain modules from output when included
   --use-bit-lib            : Use LuaJITs bit library instead of operators
   --metadata               : Enable function metadata, even in compiled output
@@ -157,6 +158,9 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
       :--assert-as-repl (do
                           (set options.assertAsRepl true)
                           (table.remove arg i))
+      :--lambda-as-fn (do
+                        (set options.lambdaAsFn true)
+                        (table.remove arg i))
       :--skip-include (let [skip-names (table.remove arg (+ i 1))
                             skip (icollect [m (skip-names:gmatch "([^,]+)")] m)]
                         (set options.skipInclude skip)

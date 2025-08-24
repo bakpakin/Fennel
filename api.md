@@ -33,6 +33,7 @@ usually accept these fields:
   `with-open` in order to avoid interfering with traces.
 * `assertAsRepl`: Replace calls to `assert` with `assert-repl` to
   allow for interactive debugging.
+* `lambdaAsFn`: Replace `lambda` function definitions with `fn`.
 * `env`: an environment table in which to run the code; see the Lua manual.
 * `compilerEnv`: an environment table in which to run compiler-scoped code
   for macro definitions and `eval-compiler` calls. Internal Fennel functions

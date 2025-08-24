@@ -894,6 +894,11 @@ which we have to do if we don't know."
       (set scope.specials.with-open with-open*))
     (when opts.assertAsRepl
       (set scope.macros.assert scope.macros.assert-repl))
+    (when opts.lambdaAsFn
+      (set scope.macros.lambda false)
+      (set scope.macros.λ false)
+      (set scope.specials.lambda scope.specials.fn)
+      (set scope.specials.λ scope.specials.fn))
     (utils.root:set-reset)
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))

@@ -15,6 +15,7 @@ deprecated forms.
 * Look for macros in `.fnlm` files in addition to `.fnl` files.
 * Support `extra-env` in compiler API when evaluating in compiler scope.
 * Allow `--compile-binary` to work on `.lua` and `.luac` files.
+* Add `--lambda-as-fn` option to remove overhead from arity checking.
 
 ### Bug Fixes
 

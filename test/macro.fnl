@@ -1,6 +1,6 @@
+(local fennel (require :fennel))
 (local unpack (or _G.unpack table.unpack))
 (local t (require :test.faith))
-(local fennel (require :fennel))
 
 (local env (setmetatable {} {:__index _G}))
 (set env._G env)
@@ -15,6 +15,20 @@
   `(let [(ok# val#) (pcall fennel.eval ,(view form) ,?opts)]
      (t.is ok# val#)
      (t.= ,expected val# ,?msg)))
+
+(fn test-lambda []
+  (lambda arglist-lambda [x]
+    "docstring"
+    {:fnl/arglist [y]}
+    (do :something))
+  (t.= [:y] (. fennel.metadata arglist-lambda :fnl/arglist))
+  (let [l2 (lambda [x]
+             "docstring"
+             {:fnl/arglist [z]}
+             (do :something))]
+    (t.= [:z] (. fennel.metadata l2 :fnl/arglist)))
+  (fn call-lambda [] (arglist-lambda) nil)
+  (let [(ok msg) (pcall call-lambda)] (t.match "test/macro.fnl:20" msg)))
 
 (fn test-arrows []
   (== (-> (+ 85 21) (+ 1) (- 99)) 8)
@@ -751,6 +765,25 @@
     (t.is (pcall fennel.eval "(import-macros i :test.indirect-macro)"
                          {:compiler-env _G}))))
 
+(fn test-read-only []
+  (== (do (macro firstline [filename]
+            (with-open [f (assert (io.open filename))]
+              (f:read)))
+          (firstline "test/macro.fnl"))
+      "(local fennel (require :fennel))")
+  (== (do (macro writer [filename]
+            (case (pcall io.open filename :w)
+              (true f) (f:write "uh oh")
+              _ "yeah no"))
+          (writer "out.txt"))
+      "yeah no")
+  (== (do (macro firstline [filename]
+            (case (pcall io.open filename)
+              (true f) (f:read)
+              _ "nah"))
+          (firstline "/etc/passwd"))
+      "nah"))
+
 (fn test-expand []
   (== (do (macro expand-string [f]
             (list (sym :table.concat)
@@ -800,20 +833,6 @@
         (ok? val) (pcall fennel.eval form {:assertAsRepl true})]
     (t.is ok? "should be able to recover from nil assertion.")
     (t.= "nerevar" val)))
-
-(fn test-lambda []
-  (lambda arglist-lambda [x]
-    "docstring"
-    {:fnl/arglist [y]}
-    (do :something))
-  (t.= [:y] (. fennel.metadata arglist-lambda :fnl/arglist))
-  (let [l2 (lambda [x]
-             "docstring"
-             {:fnl/arglist [z]}
-             (do :something))]
-    (t.= [:z] (. fennel.metadata l2 :fnl/arglist)))
-  (fn call-lambda [] (arglist-lambda) nil)
-  (let [(ok msg) (pcall call-lambda)] (t.match "test/macro.fnl:815" msg)))
 
 (fn check-lambda [ok? msg-pattern l ...]
   (fn escape-pattern [p]
@@ -893,6 +912,7 @@
  : test-case
  : test-lua-module
  : test-disabled-sandbox-searcher
+ : test-read-only
  : test-assert-repl
  : test-assert-as-repl
  : test-expand

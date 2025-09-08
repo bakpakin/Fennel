@@ -1798,12 +1798,16 @@ are tables with a string entry for their name and a marker metatable. You
 can use `tostring` to get the name of a symbol.
 
 #### Sandboxing
-As of 1.0.0 the compiler will not allow access to the outside world
-(`os`, `io`, etc) from macros. The one exception is `print` which is
-included for debugging purposes. You can disable this by providing the
-command-line argument `--no-compiler-sandbox` or by passing
-`{:compiler-env _G}` in the options table when using the compiler
-API to get full access.
+
+Inside macros or `eval-compiler`, by default there are only two ways that
+code can interact with "the outside world"; you can call `print` in order to
+debug, and you can call `io.open` in *read* mode on files inside the current
+directory or its subdirectories. The rest of the `io` table and the entire
+`os` table is not accessible.
+
+You can loosen these restrictions by passing `{:compiler-env _G}` in the
+options table when using the compiler API or setting `--no-compiler-sandbox`
+on the command line to get full access.
 
 Please note that the sandbox is not suitable to be used as a robust
 security mechanism.  It has not been audited and should not be relied

@@ -1149,13 +1149,12 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
     (assert (not= mt (getmetatable "")) "Illegal metatable access!")
     mt))
 
-;; not 100% convinced on this yet...
-;; (fn safe-open [filename ?mode]
-;;   (assert (or (= nil ?mode) (?mode:find "^r"))
-;;           (.. "unsafe file mode: " (tostring ?mode)))
-;;   (assert (not (or (filename:find "^/") (filename:find "%.%.")))
-;;           (.. "unsafe file name: " filename))
-;;   (io.open filename ?mode))
+(fn safe-open [filename ?mode]
+  (assert (or (= nil ?mode) (?mode:find "^r"))
+          (.. "unsafe file mode: " (tostring ?mode)))
+  (assert (not (or (filename:find "^/") (filename:find "%.%.")))
+          (.. "unsafe file name: " filename))
+  (io.open filename ?mode))
 
 ;; Circularity
 (var safe-require nil)
@@ -1165,7 +1164,7 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
    :math (utils.copy math)
    :string (utils.copy string)
    :pairs utils.stablepairs
-   ;; :io {:open safe-open}
+   :io {:open safe-open}
    : ipairs : select : tostring : tonumber :bit (rawget _G :bit)
    : pcall : xpcall : next : print : type : assert : error
    : setmetatable :getmetatable safe-getmetatable :require safe-require

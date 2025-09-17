@@ -373,7 +373,7 @@ By default, start is 2."
              "Function syntax. May optionally include a name and docstring or a metadata table.
 If a name is provided, the function will be bound in the current scope.
 When called with the wrong number of args, excess args will be discarded
-and lacking args will be nil, use lambda for arity-checked functions." true)
+and lacking args will be nil, use lambda for functions with nil checks." true)
 
 ;; FORBIDDEN KNOWLEDGE:
 ;; (lua "print('hello!')") -> prints hello, evaluates to nil

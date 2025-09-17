@@ -146,9 +146,9 @@ install: fennel fennel.lua
 		$(call maninst,$(doc),$(DESTDIR)$(MAN_DIR)/$(doc)))
 
 uninstall:
-	rm $(DESTDIR)$(BIN_DIR)/fennel
-	rm $(DESTDIR)$(LUA_LIB_DIR)/fennel.lua
-	rm $(addprefix $(DESTDIR)$(MAN_DIR)/,$(MAN_DOCS))
+	rm -f $(DESTDIR)$(BIN_DIR)/fennel
+	rm -f $(DESTDIR)$(LUA_LIB_DIR)/fennel.lua
+	rm -f $(addprefix $(DESTDIR)$(MAN_DIR)/,$(MAN_DOCS))
 
 build/manfilter.lua: build/manfilter.fnl fennel.lua fennel
 	./fennel --correlate --compile $< > $@

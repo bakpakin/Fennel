@@ -40,6 +40,7 @@
   (let [opts (utils.copy options)]
     ;; eval and dofile are considered "live" entry points, so we can assume
     ;; that the globals available at compile time are a reasonable allowed list
+    ;; in 2.0 we should fix this so that allowedGlobals defaults to on for AOT.
     (when (= opts.allowedGlobals nil)
       (set opts.allowedGlobals (specials.current-global-names opts.env)))
     ;; if the code doesn't have a filename attached, save the source in order

@@ -443,7 +443,7 @@ if opts contains the nval option."
           (table.concat "\n"))))
 
 (fn macroexpand* [ast scope ?once]
-  "Expand macros in the ast. Only do one level if once is true."
+  "Expand macros in the ast. Only do one iteration if once is true."
   (case (if (utils.list? ast) (find-macro ast scope))
     false ast
     macro* (let [old-scope scopes.macro

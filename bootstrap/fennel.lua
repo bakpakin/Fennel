@@ -1458,6 +1458,7 @@ local compiler = (function()
                         destructure1(left[k+1], {utils.expr(tostring(s))}, left)
                         return
                     else
+                        local k = k
                         if utils.isSym(k) and tostring(k) == ":" and utils.isSym(v) then
                             k = tostring(v)
                         end

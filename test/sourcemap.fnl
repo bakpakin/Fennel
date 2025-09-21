@@ -16,6 +16,8 @@
       (set tbl.istailcall false))
   (when (= "Lua 5.4" _VERSION)
     (set (tbl.ntransfer tbl.ftransfer) (values 0 0)))
+  (when (= "Lua 5.5" _VERSION)
+    (set (tbl.ntransfer tbl.ftransfer tbl.extraargs) (values 0 0 0)))
   tbl)
 
 (fn test-getinfo []

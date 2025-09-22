@@ -296,7 +296,7 @@ numerical range like `for` rather than an iterator."
     (each [_ arg (ipairs [...])]
       (if (utils.idempotent-expr? arg)
         (table.insert args arg)
-        (let [name (gensym)]
+        (let [name (gensym :partial)]
           (table.insert bindings name)
           (table.insert bindings arg)
           (table.insert args name))))
@@ -314,7 +314,7 @@ numerical range like `for` rather than an iterator."
       (_G.io.stderr:write
        "-- WARNING: pick-args is deprecated and will be removed in the future.\n"))
   (let [bindings []]
-    (for [i 1 n] (tset bindings i (gensym)))
+    (for [i 1 n] (tset bindings i (gensym :pick)))
     `(fn ,bindings (,f ,(unpack bindings)))))
 
 (fn lambda* [...]
@@ -359,7 +359,7 @@ With a second argument, returns expanded form as a string instead of printing."
   (let [handle (if return? `do `print)]
     ;; TODO: Provide a helpful compiler error in the unlikely edge case of an
     ;; infinite AST instead of the current "silently expand until max depth"
-    `(,handle ,(view (macroexpand form _SCOPE) {:detect-cycles? false}))))
+    `(,handle ,(view (macroexpand form) {:detect-cycles? false}))))
 
 (fn import-macros* [binding1 module-name1 ...]
   "Bind a table of macros from each macro module according to a binding form.

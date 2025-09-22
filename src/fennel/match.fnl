@@ -196,7 +196,8 @@ introduce for the duration of the body if it does match."
           (assert-compile (= 2 (length pattern)) "(=) should take only one argument" pattern)
           (assert-compile (not opts.infer-unification?) "(=) cannot be used inside of match" pattern)
           (assert-compile opts.in-where? "(=) must be used in (where) patterns" pattern)
-          (assert-compile (and (sym? bind) (not (sym? bind :nil)) "= has to bind to a symbol" bind))
+          (assert-compile (and (sym? bind) (not (sym? bind :nil)))
+                          "= has to bind to a symbol" bind)
           (values `(= ,val ,bind) []))
         ;; where-or clause
         (and (list? pattern) (sym? (. pattern 1) :where) (list? (. pattern 2)) (sym? (. pattern 2 1) :or))
@@ -315,7 +316,7 @@ introduce for the duration of the body if it does match."
       (case-condition (list val) clauses match? (table? init-val))
       ;; protect against multiple evaluation of the value, bind against as
       ;; many values as we ever match against in the clauses.
-      (let [vals (fcollect [_ 1 vals-count &into (list)] (gensym))]
+      (let [vals (fcollect [_ 1 vals-count &into (list)] (gensym :case))]
         (list `let [vals val] (case-condition vals clauses match? (table? init-val)))))))
 
 (fn case* [val ...]

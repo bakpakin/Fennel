@@ -52,8 +52,6 @@ aren't covered here.
 * `pcall`: calls a function in protected mode so errors are not fatal
 * `error`: halts execution and break to the nearest `pcall`
 * `assert`: raises an error if a condition is nil/false, otherwise returns it
-* `ipairs`: iterates over sequential tables
-* `pairs`: iterates over any table, sequential or not, in undefined order
 * `unpack`: turns a sequential table into multiple values (table.unpack in 5.2+)
 * `require`: loads and returns a given module
 
@@ -61,6 +59,45 @@ Note that `tostring` on tables will give unsatisfactory results; simply
 evaluating the table in the REPL will invoke `fennel.view` for you, and
 show a human-readable view of the table (or you can invoke `fennel.view`
 explicitly in your code).
+
+## Iteration
+
+Most looping in Lua happens with iterators, which produce a series of
+values to step thru in a loop. The most common iterator is `ipairs`
+takes a table and starts at index 1 and continues until it hits a nil
+value. The other common iterator is `pairs` which steps thru every key
+and value in a table in undefined order. Both these iterators give
+the key first followed by the value:
+
+```
+(local names ["Mensah" "Ratthi" "Volescu"])
+
+(each [n name (ipairs names)]
+  (print name "is number" n))
+
+;; Mensah	is number	1
+;; Ratthi	is number	2
+;; Volescu	is number	3
+
+(each [key value (pairs table)]
+  (print "table's" key "is" value))
+
+;; table's	pack	is	function: 0x55fa1d2ba780
+;; table's	concat	is	function: 0x55fa1d2bb040
+;; table's	insert	is	function: 0x55fa1d2bb180
+;; [...]
+```
+
+In most languages, there is an inherent difference between array-like
+data structures and dictionary-like data structures, but in Lua the
+same data structure can be treated either way depending on which
+iterator you use.
+
+Other iterator functions can be defined in user code or in libraries,
+but the only other ones that come with Lua are `string.gmatch` which
+steps thru all matches of a pattern on a string or `io.lines` which
+gives all the lines in a file. While the main table iterators return
+two values, these return only one each.
 
 ## The io module
 

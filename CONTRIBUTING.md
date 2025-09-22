@@ -149,10 +149,10 @@ Please include tests if at all possible. Fennel's tests use the [faith][5]
 library; see the docs there and follow the conventions in existing tests. For
 smaller changes you can just test against a single version of Lua (with `make
 test`) and rely on the CI suite to run the rest, but for larger changes please
-make sure that your changes will work on Lua versions 5.1, 5.2, 5.3, 5.4, and
-LuaJIT. Making fennel require LuaJIT or 5.2+ specific features is not going to
-fly. Running `make testall` will test against all supported versions, assuming
-they're installed.
+make sure that your changes will work on Lua versions 5.1, 5.2, 5.3,
+5.4, 5.5, and LuaJIT. Making fennel require LuaJIT or 5.2+ specific features
+is not going to fly. Running `make testall` will test against all supported
+versions, assuming they're installed.
 
 For user-visible changes, add a description of the change in `changelog.md`.
 Changes that affect the compiler API should update `api.md` while changes to

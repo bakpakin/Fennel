@@ -7,7 +7,7 @@ edit configuration files in a UNIX-like environment.
 **Note**: Fennel can be used in non-UNIX environments, but those environments
 will mostly not be covered in this document.
 
-Fennel does not contain any telemetry/spyware and never will.
+Fennel does not contain any telemetry or spyware and never will.
 
 
 ## Downloading Fennel
@@ -24,13 +24,13 @@ wiki](https://wiki.fennel-lang.org/Packaging) for a list of packaging
 systems which offer Fennel. Packaged versions of Fennel may lag behind
 the official releases and may only support one version at a time,
 but they tend to be the most convenient and support automatic updates.
-For instance, if you use Fedora, it should be as easy as running
-`sudo dnf install fennel`.
+For instance, if you use Debian, it should be as easy as running
+`sudo apt install fennel`.
 
 
 ### Downloading the fennel script
 
-This method assumes you have Lua 5.1, 5.2, 5.3, 5.4, or LuaJIT
+This method assumes you have Lua 5.1, 5.2, 5.3, 5.4, 5.5, or LuaJIT
 installed on your system.
 
 This method requires you to manually update the `fennel` script when

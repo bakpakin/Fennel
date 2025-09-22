@@ -10,9 +10,9 @@ which makes it easier to [write code that operates on code][1] as well as
 If you know Lua and a lisp already, you'll feel right at home in Fennel. Even
 if not, Lua is one of the simplest programming languages in existence, so if
 you've programmed before you should be able to pick it up without too much
-trouble, especially if you've used another dynamic imperative language with
-closures. The [Lua reference manual][3] is a fine place to look for details,
-but Fennel's own [Lua Primer][14] is shorter and covers the highlights.
+trouble, especially if you've used another dynamically-typed imperative language
+with closures. The [Lua reference manual][3] is a fine place to look for
+details, but Fennel's own [Lua Primer][14] is shorter and covers the highlights.
 
 If you've already got some Lua example code and you just want to see how it
 would look in Fennel, you can learn a lot from putting it in [antifennel][19].
@@ -96,7 +96,8 @@ a single set of square brackets:
 
 Here `x` is bound to the result of adding 89 and 5.2, while `f` is
 bound to a function that prints twice its argument. These bindings are
-only valid inside the body of the `let` call.
+only valid inside the body of the `let` call. All values are dynamically
+typed.
 
 You can also introduce locals with `local`, which is nice when they'll
 be used across the whole file, but in general `let` is preferred
@@ -127,6 +128,9 @@ nested `let`-like equivalent of `var`.
 (set x (+ x 8))
 (print x) ; -> 27
 ```
+
+Note that introducing a table with `local` or `let` does not prevent its
+*fields* from being changed using `set`.
 
 ### Numbers and strings
 
@@ -356,7 +360,7 @@ You can also use this syntax with `set`:
   tbl) ; -> {:one 1 :two 2}
 ```
 
-If a table key has the same name as the variable you're setting it to,
+If a table key has the same name as the variable you're binding it to,
 you can omit the key name and use `:` instead:
 
 ```fennel
@@ -436,7 +440,7 @@ You can write your own function which returns multiple values with `values`.
 
 **Note**: while errors are the most common reason to return multiple values
 from a function, it can be used in other cases as well. This is
-the most complex thing about Lua, and a full discussion is out of
+the most complicated feature of Lua, and a full discussion is out of
 scope for this tutorial, but it's [covered well elsewhere][18].
 
 The problem with this type of error is that it does not compose well;
@@ -557,7 +561,8 @@ runtime overhead over Lua.
   them must be known at compile-time.
 
 * There is no `apply` function; instead use `table.unpack` or `unpack`
-  depending on your Lua version: `(f 1 3 (table.unpack [4 9]))`.
+  depending on your Lua version: `(f 1 3 (table.unpack [4 9]))` does what
+  `(apply f 1 3 [4 9])` would do in other lisps.
 
 * Tables are compared for equality by identity, not based on the value of
   their contents, as per [Baker][8].

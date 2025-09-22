@@ -106,12 +106,14 @@ includes `coroutine.create`. You can pass `fennel.repl.repl` instead.
 
 Any fields set on `fennel.repl`, which is actually a table with a `__call`
 metamethod rather than a function, will used as a fallback for any options
-passed to `(fennel.repl)` before defaults are applied, allowing one to
-
-customize the default behavior of `(fennel.repl)`:
+passed to `fennel.repl` or `assert-repl` before defaults are applied,
+allowing one to customize the default behavior of `(fennel.repl)`:
 
 ```lua
 fennel.repl.onError = custom_error_handler
+
+function_that_calls_assert_repl_somewhere()
+
 -- In rare cases this needs to be temporary, overrides
 -- can be cleared by simply clearing the entire table
 for k in pairs(fennel.repl) do
@@ -233,7 +235,7 @@ print(fennel.getinfo(mymodule.func1).linedefined)
 local lua = fennel.compile(fennelSource[, options])
 ```
 
-The first argument here can be a file name, an AST (usually produced by
+The first argument here can be a file, an AST (usually produced by
 `fennel.parser`), or a stateful iterator function of bytes.
 
 Unlike the other functions, the `compile` functions default to

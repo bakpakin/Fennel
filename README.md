@@ -98,7 +98,7 @@ Lua is much more readily-available than it is for Fennel.
 
 ## Building Fennel from source
 
-This requires GNU Make and Lua (5.1-5.4 or LuaJIT).
+This requires GNU Make and Lua (5.1-5.5 or LuaJIT).
 
 1. `cd` to a directory in which you want to download Fennel, such as `~/src`
 2. Run `git clone https://git.sr.ht/~technomancy/fennel`

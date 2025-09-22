@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Improve printing of large integers in Lua 5.3+.
 * Allow disk reads from compiler sandbox.
 * Add `--to-be-closed` option for better stack traces in `with-open` on Lua 5.4.
 * Stack traces from macro errors shouldn't contain compiler internals.

@@ -97,7 +97,11 @@
   (t.= ".inf" (view (fennel.eval ".inf")))
   (t.= "-.inf" (view (fennel.eval "-.inf")))
   (t.= ".nan" (view (fennel.eval ".nan")))
-  (t.match ":pi%s+3.1415926" (fennel.view math)))
+  (t.match ":pi%s+3.1415926" (fennel.view math))
+  (when math.type
+    (t.= "-9187201950435737472" (view (fennel.eval "-9187201950435737472")))
+    (t.= "141791343654238" (view (fennel.eval "141791343654238"))))
+  (t.= "1.4179134365423e+14" (view (fennel.eval "1.4179134365423e+14"))))
 
 (fn test-cycles []
   (let [t1 {:a 1 :b 2}

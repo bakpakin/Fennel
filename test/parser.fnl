@@ -2,13 +2,13 @@
 (local fennel (require :fennel))
 (local utils (require :fennel.utils))
 
-(fn == [a b msg]
-  (t.= (fennel.view a) (fennel.view b) msg))
+(fn == [a b ?msg]
+  (t.= (fennel.view a) (fennel.view b) ?msg))
 
-(fn parse= [expected str msg]
+(fn parse= [expected str ?msg]
   (let [(ok? parsed) ((fennel.parser str))]
     (t.is ok?)
-    (t.= expected parsed msg)))
+    (t.= expected parsed ?msg)))
 
 (fn test-basics []
   (t.= "\\" (fennel.eval "\"\\\\\""))
@@ -25,12 +25,11 @@
        [((fennel.parser (fennel.string-stream "&abc ")))]))
 
 (fn test-spicy-numbers []
-  (t.= "141791343654238"
-       (fennel.view (fennel.eval "141791343654238")))
-  (t.= "141791343654238"
-       (fennel.view (fennel.eval "1.41791343654238e+14")))
-  (t.= "14179134365.125"
-       (fennel.view (fennel.eval "14179134365.125")))
+  (when math.type
+    (t.= 34 (- (fennel.eval "141791343654234")
+               (fennel.eval "141791343654200"))))
+  (t.= 1.41791343654238e+14 (fennel.eval "1.41791343654238e+14"))
+  (t.= 14179134365.125 (fennel.eval "14179134365.125"))
   (t.match "1%.41791343654238e%+0?15"
            (fennel.view (fennel.eval "1.41791343654238e+15")))
   (t.match "2%.3456789012e%+0?76"

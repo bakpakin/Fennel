@@ -303,6 +303,15 @@
 
 (local inf-str (tostring (/ 1 0)))
 (local neg-inf-str (tostring (/ -1 0)))
+(local math-type (. math :type))
+
+(fn integer->string [n options]
+  (let [s1 (tostring n)]
+    (if (and math-type (= :integer (math-type n))) s1
+        (= s1 inf-str) (or options.infinity ".inf")
+        (= s1 neg-inf-str) (or options.negative-infinity "-.inf")
+        (= s1 (string.format "%.0f" n)) s1 ; no precision loss
+        (or (exponential-notation n s1) s1))))
 
 (fn number->string [n options]
   (let [val (if (not= n n)
@@ -310,11 +319,7 @@
                     (or options.negative-nan "-.nan")
                     (or options.nan ".nan"))
                 (= (math.floor n) n)
-                (let [s1 (string.format "%.0f" n)]
-                  (if (= s1 inf-str) (or options.infinity ".inf")
-                      (= s1 neg-inf-str) (or options.negative-infinity "-.inf")
-                      (= s1 (tostring n)) s1 ; no precision loss
-                      (or (exponential-notation n s1) s1)))
+                (integer->string n options)
                 (tostring n))]
     ;; Transform number to a string without depending on correct `os.locale`
     (pick-values 1 (string.gsub val "," "."))))

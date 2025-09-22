@@ -1278,7 +1278,7 @@ table.insert(package.loaders or package.searchers, fennel.searcher)"
       (each [k v (pairs (or ?options {}))]
         (tset opts k v))
       (set opts.module-name module-name)
-      (case (search-module module-name)
+      (case (search-module module-name (and ?options ?options.path))
         filename (values (partial utils.fennel-module.dofile filename opts)
                          filename)
         (nil error) error))))

@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Accept `path` in options table of `fennel.install`.
 * Improve printing of large integers in Lua 5.3+.
 * Allow disk reads from compiler sandbox.
 * Add `--to-be-closed` option for better stack traces in `with-open` on Lua 5.4.

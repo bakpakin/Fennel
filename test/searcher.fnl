@@ -10,16 +10,21 @@
   (let [searchers-tbl (or package.searchers package.loaders)
         old-searchers (icollect [_ s (ipairs searchers-tbl)] s)]
     (while (next searchers-tbl) (table.remove searchers-tbl))
-    (pcall f)
-    (while (next searchers-tbl) (table.remove searchers-tbl))
-    (each [_ s (ipairs old-searchers)]
-      (table.insert searchers-tbl s))))
+    (let [res [(pcall f)]]
+      (while (next searchers-tbl) (table.remove searchers-tbl))
+      (each [_ s (ipairs old-searchers)]
+        (table.insert searchers-tbl s))
+      ((or _G.unpack table.unpack) res))))
 
 (fn test-install []
   (tset package.loaded :test.searcher nil)
-  (with-preserve-searchers
-   #(do (fennel.install {})
-        (t.is (pcall require :test.searcher)))))
+  (t.is (with-preserve-searchers
+          #(do (fennel.install {})
+               (pcall require :test.searcher))))
+  (t.is (with-preserve-searchers
+          #(do (fennel.install {:path "test/?.fnl"})
+               (pcall require :searcher))))
+  nil)
 
 (fn test-searcher []
   (t.= "./test/searcher.fnl" (fennel.search-module "test/searcher"))

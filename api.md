@@ -52,7 +52,9 @@ You can pass the string `"_COMPILER"` as the value for `env`; it will
 cause the code to be run/compiled in a context which has all
 compiler-scoped values available. This can be useful for macro modules
 or compiler plugins. If you want to add additional values to the
-environment in this case, you can use the `extra-env` key.
+environment in this case, you can use the `extra-env` key. You can also
+use `extra-compiler-env` to add fields to the compiler environment used
+for macros.
 
 Note that only the `fennel` module is part of the public API. The
 other modules (`fennel.utils`, `fennel.compiler`, etc) should be

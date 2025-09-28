@@ -880,6 +880,14 @@
   (t.= {1 :a 3 :c 5 :e :n 5} (macro-wrap pack (pack :a nil :c nil :e))
        "pack is in compiler-env"))
 
+(fn test-extra-compiler-env []
+  (== (do (macro m []
+            (if _G.lol
+                :LOL
+                :not-funny))
+          (m)) :LOL
+      "did not propagate extra-compiler-env" {:extra-compiler-env {:lol true}}))
+
 (fn test-sym []
   (macro use-sym [arg]
     `(do ,(sym arg)))
@@ -923,4 +931,5 @@
  : test-lambda-nested-checks
  : test-literal
  : test-env-lua-helpers
+ : test-extra-compiler-env
  : test-sym}

@@ -1186,6 +1186,8 @@ Only works in Lua 5.3+ or LuaJIT with the --use-bit-lib flag.")
                    {:compiler-env :strict} (safe-compiler-env)
                    {: compilerEnv} compilerEnv
                    {: compiler-env} compiler-env
+                   {: extra-compiler-env} (collect [k v (pairs extra-compiler-env)
+                                                    &into (safe-compiler-env)] k v)
                    _ (safe-compiler-env))
         env {:_AST ?ast
              :_CHUNK ?parent

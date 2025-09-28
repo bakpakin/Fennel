@@ -10,6 +10,7 @@ deprecated forms.
 
 ### New Features
 
+* Support `extra-compiler-env` in options table when compiling.
 * Accept `path` in options table of `fennel.install`.
 * Improve printing of large integers in Lua 5.3+.
 * Allow disk reads from compiler sandbox.

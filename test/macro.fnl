@@ -902,6 +902,9 @@
     (t.is (not ok?))
     (t.match ".*sym expects a string as the first argument.*" err)))
 
+(fn test-macro-names []
+  (t.error "multisym" #(fennel.eval "(macro case.str [m] m)")))
+
 {:teardown #(each [k (pairs fennel.repl)]
               (tset fennel.repl k nil))
  : test-arrows
@@ -932,4 +935,5 @@
  : test-literal
  : test-env-lua-helpers
  : test-extra-compiler-env
+ : test-macro-names
  : test-sym}

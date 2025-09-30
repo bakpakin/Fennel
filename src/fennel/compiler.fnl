@@ -165,14 +165,17 @@ rather than generating new one."
   "Check to see if a symbol will be overshadowed by a special.
 ?opts table accepts :macro? property that skips shadowing checks"
   (let [name (tostring symbol)
+        part1 (case (utils.multi-sym? symbol) [p] p)
         macro? (?. ?opts :macro?)]
     ;; we can't block in the parser because & is still ok in symbols like &as
     (assert-compile (not= "&" (name:match "[&.:]")) "invalid character: &" symbol)
     (assert-compile (not (name:find "^%.")) "invalid character: ." symbol)
-    (assert-compile (not (or (. scope.specials name)
-                             (and (not macro?) (. scope.macros name))))
+    (assert-compile (not (or (. scope.specials (or part1 name))
+                             (and (not macro?) (. scope.macros (or part1 name)))))
                     (: "local %s was overshadowed by a special form or macro"
                        :format name) ast)
+    (assert-compile (or (not macro?) (not part1) (not (. scope.macros part1)))
+                    "tried to set multisym macro on existing macro" ast)
     (assert-compile (not (utils.quoted? symbol))
                     (string.format "macro tried to bind %s without gensym" name)
                     symbol)))

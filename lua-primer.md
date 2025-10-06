@@ -175,9 +175,9 @@ iterators, for example:
 
 ```fennel
 (fn find [t x ?k]
-  (match (next t ?k)
-    (k x) k
-    (k y) (find t x k)))
+  (match [(next t ?k)]
+    [k x] k
+    [k y_] (find t x k)))
 ```
 
 ## Other important modules

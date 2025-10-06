@@ -28,8 +28,7 @@ Fennel source code should be UTF-8-encoded text.
 ## Syntax
 
 `(parentheses)`: used to delimit lists, which are primarily used to
-denote calls to functions, macros, and specials, but also can be used
-in binding contexts to bind to multiple values. Lists are a
+denote calls to functions, macros, and specials. Lists are a
 compile-time construct; they are not used at runtime. For example:
 `(print "hello world")`
 
@@ -181,8 +180,8 @@ where `lambda` is most useful.
 
 The `lambda`, `case`, `case-try`, `match` and `match-try` forms are the only
 place where the `?foo` notation is used by the compiler to indicate that a nil
-value is allowed, but it is a useful notation to communicate intent anywhere a
-new local is introduced.
+value is allowed, but it is a useful notation elsewhere to communicate intent
+anywhere a new local is introduced.
 
 The `λ` form is an alias for `lambda` and behaves identically.
 
@@ -212,7 +211,6 @@ enabling viewing function docs via the `doc` macro.
   Print the sum of x and y
 ```
 
-All function metadata will be garbage collected along with the function itself.
 Docstrings and other metadata can also be accessed via functions on the fennel
 API with `fennel.doc` and `fennel.metadata`.
 
@@ -394,15 +392,7 @@ an inner `let` or `local`. Outside the body of the `let`, the bindings
 it introduces are no longer visible. The last form in the body is used
 as the return value.
 
-Any time you bind a local, you can destructure it if the value is a
-table or a function call which returns multiple values:
-
-Example:
-
-```fennel
-(let [(x y z) (table.unpack [10 9 8])]
-  (+ x y z)) ; => 27
-```
+Any time you bind a local, you can destructure it if the value is a table:
 
 Example:
 
@@ -410,6 +400,10 @@ Example:
 (let [[a b c] [1 2 3]]
   (+ a b c)) ; => 6
 ```
+
+*(Since 1.5.0)*: If the left-hand side and the right-hand side are
+both table literals, the actual table allocation will be optimized
+away, and `a` will be bound directly to 1 without any allocation.
 
 If a table key is a string with the same name as the local you want to
 bind to, you can use shorthand of just `:` for the key name followed
@@ -446,6 +440,19 @@ Example:
   (+ a b all.c all.d)) ; => 10
 ```
 
+For backwards-compatibility, you can also bind multiple values with
+parentheses in any context that supports destructuring. This is not necessary
+in current versions of Fennel, but older versions before 1.5.0 did not
+optimize away tables in destructuring, so this was required for efficient
+binding.
+
+Example:
+
+```fennel
+(let [(x y z) (table.unpack [10 9 8])]
+  (+ x y z)) ; => 27
+```
+
 ### `local` declare local
 
 Introduces a new local inside an existing scope. Similar to `let` but
@@ -458,7 +465,7 @@ Example:
 (local tau-approx 6.28318)
 ```
 
-Supports destructuring and multiple-value binding.
+Supports destructuring.
 
 ### `case` pattern matching
 
@@ -588,11 +595,10 @@ or specific value. In these cases you can use guard clauses:
   (where [a b c] (= 0 (math.fmod (+ a b c) 2)) (= 91 a)) c) ; -> 53
 ```
 
-In this case the pattern should be wrapped in parentheses (like when
-matching against multiple values) but the first thing in the
-parentheses is the `where` symbol. Each form after the pattern is a
-condition; all the conditions must evaluate to true for that pattern
-to match.
+In this case the pattern should be wrapped in parentheses but the
+first thing in the parentheses is the `where` symbol. Each form after
+the pattern is a condition; all the conditions must evaluate to true
+for that pattern to match.
 
 If several patterns share the same body and guards, such patterns can
 be combined with `or` special in the `where` clause:
@@ -789,7 +795,7 @@ Example:
 ```
 
 
-Supports destructuring and multiple-value binding.
+Supports destructuring.
 
 ### `set` set local variable or table field
 
@@ -813,34 +819,7 @@ Examples:
   (set (. t field1 field2) true) t) ; => {:supported-chars {:x true :y true}}
 ```
 
-Supports destructuring and multiple-value binding.
-
-
-### multiple value binding
-
-In any of the above contexts where you can make a new binding, you
-can use multiple value binding. Otherwise you will only capture the first
-value.
-
-Example:
-
-```fennel
-(let [x (values 1 2 3)]
-  x) ; => 1
-```
-
-Example:
-
-```fennel
-(let [(file-handle message code) (io.open "foo.blah")]
-  message) ; => "foo.blah: No such file or directory"
-```
-
-Example:
-
-```fennel
-(do (local (_ _ z) (table.unpack [:a :b :c :d :e])) z)  => c
-```
+This supports destructuring too.
 
 ### `tset` set table field
 
@@ -893,10 +872,10 @@ Example:
 
 ;; This demonstrates that the file will also be closed upon error.
 (var fh nil)
-(local (ok err)
-  (pcall #(with-open [file (io.open :test.txt :w)]
-            (set fh file) ; you would normally never do this
-            (error :whoops!))))
+(local [ok err]
+  [(pcall #(with-open [file (io.open :test.txt :w)]
+             (set fh file) ; you would normally never do this
+             (error :whoops!)))])
 (io.type fh) ; => "closed file"
 [ok err]     ; => [false "<error message and stacktrace>"]
 ```
@@ -914,7 +893,7 @@ exactly n values, e.g.
 ```
 expands to
 ```fennel
-(let [(_0_ _1_) (func)] (values _0_ _1_))
+(let [[_0_ _1_] [(func)]] (values _0_ _1_))
 ```
 
 Example:
@@ -1198,8 +1177,8 @@ body should return two things: a key and a value.
 (let [tbl {}]
   (each [k v (pairs {:apple "red" :orange "orange"})]
     (if (not= v "yellow")
-      (match (values (.. "color-" v) k)
-        (key value) (tset tbl key value))))
+      (match [(.. "color-" v) k]
+        [key value] (tset tbl key value))))
   tbl)
 ```
 
@@ -1518,7 +1497,7 @@ nil will trigger a regular `assert` failure.
 
 **Note:** Currently, only a single value can be returned from the REPL this
 way. While `,return` can be used to make a failed assertion recover, if the
-calling code expects multiple return values, it may cause unspecified
+calling code expects multiple return values, it may cause unexpected
 behavior.
 
 ## Macros
@@ -1731,6 +1710,8 @@ allow the macro to be called, it will fail trying to call a global
 ; Compile error in 'my-max': attempt to call global '__fnl_global__my_2dfn' (a nil value)
 ```
 
+See the [macro guide][9] for more details about writing macros.
+
 ### `eval-compiler`
 
 Evaluate a block of code during compile-time with access to compiler
@@ -1778,6 +1759,7 @@ The following functions standardize Lua globals that change between 5.1-5.4. To
 limit common Lua-compatibility boilerplate such as
 `(local unpack (or _G.unpack table.unpack))` from macro
 code, the following helpers are present in the macro environment:
+
 * `unpack` - `_G.unpack` in Lua 5.1/LuaJit, `table.unpack` in Lua >= 5.2
 * `pack` -  Equivalent to `table.pack` available in Lua 5.2 and up.
   `(pack :a nil :c nil nil)` -> `{1 :a 3 :c :n 5}`. Useful for reliably storing
@@ -1860,8 +1842,8 @@ case you would pass a string of Lua code as the first argument. But
 you can also use it to emit an expression if you pass in a string as
 the second argument.
 
-Note that this should only be used in exceptional circumstances, and
-if you are able to avoid it, you should.
+Note that this should only be used in exceptional or temporary circumstances,
+and if you are able to avoid it, you should.
 
 ## Deprecated Forms
 
@@ -1889,7 +1871,7 @@ Like `pick-values`, but takes an integer `n` and a function/operator
 
 Sets a global variable to a new value. Note that there is no
 distinction between introducing a new global and changing the value of
-an existing one. This supports destructuring and multiple-value binding.
+an existing one. This supports destructuring.
 
 Example:
 
@@ -1936,3 +1918,4 @@ Example:
 [6]: https://www.lua.org/manual/5.4/manual.html#3.1
 [7]: https://fennel-lang.org/tutorial
 [8]: https://fennel-lang.org/see
+[9]: https://fennel-lang.org/macros

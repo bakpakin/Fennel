@@ -414,22 +414,22 @@ whatever entry was at that key before.
 
 ## Error handling
 
-Errors in Lua have two forms they can take. Functions in Lua can
-return any number of values, and most functions which can fail will
-indicate failure by using two return values: `nil` followed by a
-failure message string. You can interact with this style of function
-in Fennel by destructuring with parens instead of square brackets:
+Errors in Lua have two forms they can take. Functions in Lua can return any
+number of values, and most functions which can fail will indicate failure by
+using two return values: `nil` followed by a failure message string. You can
+interact with this style of function in Fennel by placing the function call
+into a table and pattern matching against the table:
 
 ```fennel
-(case (io.open "file")
+(case [(io.open "file")]
   ;; when io.open succeeds, it will return a file, but if it fails
   ;; it will return nil and an err-msg string describing why
-  f (do (use-file-contents (f:read :*all))
-        (f:close))
-  (nil err-msg) (print "Could not open file:" err-msg))
+  [f] (do (use-file-contents (f:read :*all))
+          (f:close))
+  [nil err-msg] (report-error "Could not open file:" err-msg))
 ```
 
-You can write your own function which returns multiple values with `values`.
+You can write your own function which returns multiple values by calling `values`.
 
 ```fennel
 (fn use-file [filename]

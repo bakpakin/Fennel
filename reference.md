@@ -1086,8 +1086,6 @@ operators above; it is not aware of multiple values at runtime.
 
 ### `length` string or table length
 
-*(Changed in 0.3.0: it was called `#` before.)*
-
 Returns the length of a string or table. Note that the length of a
 table with gaps (nils) in it is undefined; it can return a number
 corresponding to any of the table's "boundary" positions between nil
@@ -1146,8 +1144,6 @@ Example:
 ```
 
 ### `icollect`, `collect` table comprehension macros
-
-*(Since 0.8.0)*
 
 The `icollect` macro takes a "iterator binding table" in the format that `each`
 takes, and returns a sequential table containing all the values produced by
@@ -1213,8 +1209,6 @@ the old syntax is still supported for backwards compatibility.
 
 
 ### `accumulate` iterator accumulation
-
-*(Since 0.10.0)*
 
 Runs through an iterator and performs accumulation, similar to `fold`
 and `reduce` commonly used in functional programming languages.
@@ -1452,9 +1446,9 @@ Lua. However, it works to load Fennel code. See the [Modules and
 multiple files](tutorial#modules-and-multiple-files) section in the
 tutorial and [Programming in Lua][5] for details about `require`.
 
-Starting from version 0.10.0 `include` and hence
-`--require-as-include` support semi-dynamic compile-time resolution of
-module paths similarly to `import-macros`.  See the [relative
+The `include` macro and hence `--require-as-include` support
+semi-dynamic compile-time resolution of module paths similarly to
+`import-macros`.  See the [relative
 require](tutorial#relative-require) section in the tutorial for more
 information.
 

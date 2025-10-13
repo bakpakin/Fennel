@@ -173,7 +173,7 @@ test-builds: fennel test/faith.lua
 	./fennel --metadata --eval "(require :test.init)"
 	$(MAKE) install PREFIX=/tmp/opt
 
-upload: fennel fennel.lua fennel-bin
+upload: guard-VERSION fennel fennel.lua fennel-bin
 	$(MAKE) fennel.exe CC=x86_64-w64-mingw32-gcc
 	mkdir -p downloads/
 	mv fennel downloads/fennel-$(VERSION)

@@ -170,7 +170,7 @@ main syntax for tables uses curly braces with key/value pairs in them:
  "f" (fn [x] (+ x 2))}
 ```
 
-You can use `.` to get values out of tables:
+You can use `.` to get data out of tables:
 
 ```fennel
 (let [tbl (function-which-returns-a-table)
@@ -200,7 +200,7 @@ provides alternate syntax for these tables with square brackets:
 ```
 
 Lua's built-in `table.insert` function is meant to be used with sequential
-tables; all values after the inserted value are shifted up by one index:
+tables; all elements after the inserted value are shifted up by one index:
 If you don't provide an index to `table.insert` it will append to the end
 of the table.
 
@@ -343,7 +343,7 @@ the `:shorthand` syntax instead, which is often used for table keys:
 {:key value :number 531}
 ```
 
-If a table has string keys like this, you can pull values out of it
+If a table has string keys like this, you can pull fields out of it
 easily with a dot if the keys are known up front:
 
 ```fennel

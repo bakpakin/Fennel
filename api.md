@@ -166,7 +166,7 @@ Lua 5.1 `package.loaders`) to teach it how to load Fennel code.
 If you would rather change some of the options you can use
 `fennel.makeSearcher(options)` to get a searcher function that's
 equivalent to `fennel.searcher` but overrides the default `options`
-table.
+table. You can provide a `path` field to set `fennel.path`.
 
 The `require` function is different from `fennel.dofile` in that it
 searches the directories in `fennel.path` for `.fnl` files matching
@@ -418,7 +418,7 @@ The list of common options at the top of this document do not apply here;
 instead these options are accepted:
 
 * `one-line?` (default: false) keep the output string as a one-liner
-* `depth` (number, default: 128) limit how many levels to go (default: 128)
+* `depth` (number, default: 128) limit how many levels to go
 * `detect-cycles?` (default: true) don't try to traverse a looping table
 * `metamethod?` (default: true) use the __fennelview metamethod if found
 * `empty-as-sequence?` (default: false) render empty tables as []

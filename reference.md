@@ -170,8 +170,8 @@ Example:
 ```
 
 Note that the Lua runtime will fill in missing arguments with nil when
-they are not provided by the caller, so an explicit nil argument is no
-different than omitting an argument.
+they are not provided by the caller, so an explicit nil argument is usually
+no different than omitting an argument.
 
 Programmers coming from other languages in which it is an error to
 call a function with a different number of arguments than it is
@@ -505,9 +505,9 @@ elements.
 
 If no clause matches, the form evaluates to nil.
 
-Patterns can be tables, literal values, or symbols. Any symbol is implicitly
-checked to be not `nil`. Symbols can be repeated in an expression to check for
-the same value.
+Patterns can be tables, literal values, or symbols. Any symbol that
+doesn't start with `_` or `?` is implicitly checked to be not `nil`.
+Symbols can be repeated in an expression to check for the same value.
 
 Example:
 
@@ -542,7 +542,8 @@ Example:
 Symbols prefixed by an `_` are ignored and may stand in as positional
 placeholders or markers for "any" value - including a `nil` value. A single `_`
 is also often used at the end of a `case` expression to define an "else" style
-fall-through value.
+fall-through value to indicate that local needs to be non-nil but its value is
+not used other than that.
 
 Example:
 
@@ -902,8 +903,11 @@ Example:
 (pick-values 0 :a :b :c :d :e) ; => nil
 [(pick-values 2 (table.unpack [:a :b :c]))] ;-> ["a" "b"]
 
-(fn add [x y ...] (let [sum (+ (or x 0) (or y 0))]
-                        (if (= (select :# ...) 0) sum (add sum ...))))
+(fn add [x y ...]
+  (let [sum (+ (or x 0) (or y 0))]
+    (if (= ... nil)
+      sum
+      (add sum ...))))
 
 (add (pick-values 2 10 10 10 10)) ; => 20
 (->> [1 2 3 4 5] (table.unpack) (pick-values 3) (add)) ; => 6
@@ -917,6 +921,7 @@ ignore trailing nils:
 (select :# (pick-values 5 "one" "two")) ; => 5
 [(pick-values 5 "one" "two")]           ; => ["one" "two"]
 ```
+
 ## Flow Control
 
 ### `if` conditional
@@ -1514,9 +1519,10 @@ Loads a module at compile-time and binds its functions as local macros.
 
 A macro module exports any number of functions which take code forms
 as arguments at compile time and emit lists which are fed back into
-the compiler as code. The module calling `import-macros` gets whatever
-functions have been exported to use as macros. For instance, here is a
-macro module which implements `when2` in terms of `if` and `do`:
+the compiler as code. Macro modules are searched for in filenames
+ending in `.fnl` *or* `.fnlm`. The module calling `import-macros` gets
+whatever functions have been exported to use as macros. For instance,
+here is a macro module which implements `when2` in terms of `if` and `do`:
 
 ```fennel
 (fn when2 [condition body1 & rest-body]

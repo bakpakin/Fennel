@@ -5,7 +5,7 @@
 
 (local view (require :fennel.view))
 
-(local version :1.6.0)
+(local version :1.6.1-dev)
 
 ;;; Cross-Lua compat helpers
 

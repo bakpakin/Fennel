@@ -1428,6 +1428,42 @@ local compiler = (function()
             return ret
         end
 
+        local function destructureList(left, rightexprs, up1, top, destructure1)
+           local leftNames, tables = {}, {}
+           for i, name in ipairs(left) do
+              local symname
+              if utils.isSym(name) then -- binding directly to a name
+                 symname = getname(name, up1)
+              else -- further destructuring of tables inside values
+                 symname = gensym(scope)
+                 tables[i] = {name, utils.expr(symname, 'sym')}
+              end
+              table.insert(leftNames, symname)
+           end
+           if top then
+              compileTopTarget(leftNames)
+           else
+              local lvalue = table.concat(leftNames, ', ')
+              emit(parent, setter:format(lvalue, exprs1(rightexprs)), left)
+           end
+           for _, pair in utils.stablepairs(tables) do
+              -- recurse if left-side tables found
+              destructure1(pair[1], {pair[2]}, left)
+           end
+        end
+
+        local function optimizeTableDestructure(left, right, top)
+           if utils.isSequence(left) and utils.isSequence(right) then
+              if not next(left) or not top then return false end
+              for _, d in ipairs(left) do
+                 if not utils.isSym(d) or tostring(d):find("^&") then
+                    return false
+                 end
+              end
+              return true
+           end
+        end
+
         -- Recursive auxiliary function
         local function destructure1(left, rightexprs, up1, top)
             if utils.isSym(left) and left[1] ~= "nil" then
@@ -1438,6 +1474,9 @@ local compiler = (function()
                 else
                     emit(parent, setter:format(lname, exprs1(rightexprs)), left)
                 end
+            elseif optimizeTableDestructure(left, from, top) then
+               from = utils.list(utils.sym("values"), unpack(from))
+               destructureList(left, right, up1, top, destructure1)
             elseif utils.isTable(left) then -- table destructuring
                 if top then rightexprs = compile1(from, scope, parent) end
                 local s = gensym(scope)
@@ -1468,26 +1507,7 @@ local compiler = (function()
                     end
                 end
             elseif utils.isList(left) then -- values destructuring
-                local leftNames, tables = {}, {}
-                for i, name in ipairs(left) do
-                    local symname
-                    if utils.isSym(name) then -- binding directly to a name
-                        symname = getname(name, up1)
-                    else -- further destructuring of tables inside values
-                        symname = gensym(scope)
-                        tables[i] = {name, utils.expr(symname, 'sym')}
-                    end
-                    table.insert(leftNames, symname)
-                end
-                if top then
-                    compileTopTarget(leftNames)
-                else
-                    local lvalue = table.concat(leftNames, ', ')
-                    emit(parent, setter:format(lvalue, exprs1(rightexprs)), left)
-                end
-                for _, pair in utils.stablepairs(tables) do -- recurse if left-side tables found
-                    destructure1(pair[1], {pair[2]}, left)
-                end
+                destructureList(left, rightexprs, up1, top, destructure1)
             else
                 assertCompile(false, ("unable to bind %s %s"):
                                   format(type(left), tostring(left)),

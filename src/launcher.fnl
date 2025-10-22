@@ -8,14 +8,14 @@
 Run Fennel, a Lisp programming language for the Lua runtime.
 
   --repl                   : Command to launch an interactive REPL session
-  --compile FILES (-c)     : Command to AOT compile files, writing Lua to stdout
-  --eval SOURCE (-e)       : Command to evaluate source code and print result
+  -c, --compile FILES      : Command to AOT compile files, writing Lua to stdout
+  -e, --eval SOURCE        : Command to evaluate source code and print result
 
   --correlate              : Make Lua output line numbers try to match Fennel's
-  --load FILE (-l)         : Load the specified FILE before executing command
+  -l, --load FILE          : Load the specified FILE before executing command
   --no-compiler-sandbox    : Don't limit compiler environment to minimal sandbox
-  --compile-binary FILE
-      OUT LUA_LIB LUA_DIR  : Compile FILE to standalone binary OUT
+  --compile-binary FILE    : Compile FILE to standalone binary OUT
+      OUT LUA_LIB LUA_DIR
   --compile-binary --help  : Display further help for compiling binaries
   --add-package-path PATH  : Add PATH to package.path for finding Lua modules
   --add-package-cpath PATH : Add PATH to package.cpath for finding Lua modules
@@ -38,8 +38,8 @@ Run Fennel, a Lisp programming language for the Lua runtime.
   --no-fennelrc            : Skip loading ~/.fennelrc when launching REPL
   --keywords K1[,K2...]    : Treat these symbols as reserved Lua keywords
 
-  --help (-h)              : Display this text
-  --version (-v)           : Show version
+  -h, --help               : Display this text
+  -v, --version            : Show version
 
 Globals are not checked when doing AOT (ahead-of-time) compilation unless
 the --globals-only or --globals flag is provided. Use --globals \"*\" to disable

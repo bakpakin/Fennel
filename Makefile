@@ -77,7 +77,8 @@ ci: testall fuzz fennel fennel-bin
 clean:
 	rm -f fennel.lua fennel fennel-bin fennel.exe \
 		*_binary.c luacov.* $(PRECOMPILED) \
-		test/faith.lua build/manfilter.lua fennel-bin-luajit
+		test/faith.lua build/manfilter.lua fennel-bin-luajit \
+		man/man1/*.tmp man/man3/*.tmp man/man5/*.tmp man/man7/*.tmp
 	$(MAKE) -C $(BIN_LUA_DIR) clean || true # this dir might not exist
 	$(MAKE) -C $(BIN_LUAJIT_DIR) clean || true # this dir might not exist
 	rm -f $(NATIVE_LUA_LIB) $(NATIVE_LUAJIT_LIB)

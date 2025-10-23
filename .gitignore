@@ -68,6 +68,7 @@ luac.out
 
 # Tooling + transient metadata
 *.swp
+*.tmp
 tags
 **/*asc
 

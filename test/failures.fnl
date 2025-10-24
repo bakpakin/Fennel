@@ -204,7 +204,8 @@
     "(match :subject [(or pattern)] :body)" "can't nest (or) pattern"
     "(match :subject ((or pattern)) :body)" "can't nest (or) pattern"
     "(match [1] (where (or [_ a] [a b]) b) :body)" "unknown identifier"
-    "(match [1] (where (or [_ a] [a b])) b)" "unknown identifier"}))
+    "(match [1] (where (or [_ a] [a b])) b)" "unknown identifier"
+    "(case.till 32 x)" "clause needs expr, pattern, and body"}))
 
 (fn test-macro []
   (tset fennel.macro-loaded :test.macros nil)

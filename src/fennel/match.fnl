@@ -319,16 +319,7 @@ introduce for the duration of the body if it does match."
       (let [vals (fcollect [_ 1 vals-count &into (list)] (gensym :case))]
         (list `let [vals val] (case-condition vals clauses match? (table? init-val)))))))
 
-(fn case* [val ...]
-  "Perform pattern matching on val. See reference for details.
-
-Syntax:
-
-(case data-expression
-  pattern body
-  (where pattern guards*) body
-  (where (or pattern patterns*) guards*) body)"
-  (case-impl false val ...))
+(fn case* [val ...] (case-impl false val ...))
 
 (fn match* [val ...]
   "Perform pattern matching on val, automatically unifying on variables in
@@ -392,7 +383,22 @@ just like a normal match. If there is no catch, the mismatched values will be
 returned as the value of the entire expression."
   (case-try-impl `match expr pattern body ...))
 
-{:case case*
+(fn till [expr pattern body ...]
+  "Check a series of expression/pattern/body clauses until one matches.
+
+Each expression is evaluated and checked against the pattern. If there is a
+match, that body is evaluated and used as the value of the form, if not, it
+goes on to the next clause, if any; otherwise returns nil."
+  (let [n (select :# ...)]
+    (assert-compile (and (= 0 (math.fmod n 3)) (not= nil expr)
+                         (not= nil pattern) (not= nil body))
+                    "each case.till clause needs expr, pattern, and body" expr)
+    `(case ,expr
+       ,pattern ,body
+       ,(if (< 0 n) (values (sym :_) (till ...))))))
+
+{:case (setmetatable {: till :try case-try*}
+                     {:__call (fn [_self ...] (case* ...))})
  :case-try case-try*
  :match match*
  :match-try match-try*}

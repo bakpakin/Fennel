@@ -187,6 +187,17 @@
 ;; Load the built-in macros from macros.fnl and match.fnl
 (let [env (specials.make-compiler-env nil compiler.scopes.compiler {})]
   (load-macros (embed-src "bootstrap/macros.lua") env)
-  (load-macros (embed-src "bootstrap/match.lua") env))
+  (load-macros (embed-src "bootstrap/match.lua") env)
+  ;; set metadata separately because it's a callable table, not a function
+  (compiler.metadata:setall compiler.scopes.global.macros.case
+                            :fnl/docstring "Perform pattern matching on val.
+
+Syntax:
+
+(case expression
+  pattern body
+  (where pattern guards*) body
+  (where (or pattern patterns*) guards*) body)"
+                            :fnl/arglist [(utils.sym :val) (utils.sym :...)]))
 
 mod

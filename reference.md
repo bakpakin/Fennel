@@ -783,6 +783,22 @@ those in the original steps.
       (_ msg) (print "Error handling input" msg))))
 ```
 
+### `case-till` for matching until a match is found
+
+Unlike `case-try`, the `case-till` macro will try an expression against a
+pattern, evaluating a body if it matches, but if there is not a match, it
+will continue on to the next expression/pattern/body clause, and on until it
+finds one that matches.
+
+```fennel
+(case.till
+  (date:match "^a +(%a+) +ago$") m (date-add now m -1)
+  (date:match "^in +a +(%a+)$") m (date-add now m 1)
+  (date:match "(%d+)%s*(%a+) +ago$") (n d) (date-add now n (- (tonumber d)))
+  (date:match "^in +(%d+)%s*(%a+)$") (n d) (date-add now d (tonumber n))
+  nil _ (print "unrecognized date expression:" date))
+```
+
 ### `var` declare local variable
 
 Introduces a new local inside an existing scope which may have its

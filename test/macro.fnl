@@ -572,6 +572,18 @@
           _ :nothing))
       :we-can-work-it-out))
 
+(fn test-case-till []
+  (== (let [a 20 b 24 c 28 d 33]
+        (case.till
+         a 21 :a-is-twenty-one
+         b 22 :b-is-twenty-two
+         c 28 :c-is-twenty-eight
+         d nil :d-is-nil))
+      :c-is-twenty-eight)
+  (== (case.till
+       [21 9 0] [a b c d] :yes)
+      nil))
+
 (fn test-match []
   (== (match false false false _ true) false)
   (== (match [:a {:b 8}] [a b :c] :no [:a {:b b}] b) 8)
@@ -929,6 +941,7 @@
  : test-expand
  : test-match-try
  : test-case-try
+ : test-case-till
  : test-lambda
  : test-lambda-checks
  : test-lambda-nested-checks

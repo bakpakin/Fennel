@@ -1,15 +1,16 @@
 (local t (require :test.faith))
 (local fennel (require :fennel))
 (local specials (require :fennel.specials))
+(local compiler (require :fennel.compiler))
 
 ;; allow inputs to be structured as a form but converted to a string
 (macro v [form] (view form))
 
-(fn wrap-repl [options]
+(fn wrap-repl [?options]
   (var repl-complete nil)
   (fn send []
     (let [output []
-          opts (collect [k x (pairs (or options {})) :into {:useMetadata true}]
+          opts (collect [k x (pairs (or ?options {})) :into {:useMetadata true}]
                  (values k x))]
       (fn opts.readChunk []
         (while (= "" (. output 1))
@@ -426,6 +427,13 @@
                           :reverse-it true}
         {: _SPECIALS} (specials.make-compiler-env)]
     (each [name (pairs _SPECIALS)]
+      (when (not (. undocumented-ok? name))
+        (let [docstring (send (: ",doc %s" :format name))]
+          (t.= :string (type docstring))
+          (t.not-match "^error" docstring)
+          (t.not-match "undocumented" docstring
+                       (.. "Missing docstring for " name)))))
+    (each [name (pairs compiler.scopes.global.macros)]
       (when (not (. undocumented-ok? name))
         (let [docstring (send (: ",doc %s" :format name))]
           (t.= :string (type docstring))

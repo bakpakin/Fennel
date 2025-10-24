@@ -223,7 +223,7 @@ the same place:
 (fn add [...]
   {:fnl/docstring "Add arbitrary amount of numbers."
    :fnl/arglist [a b & more]}
-  (match (values (select :# ...) ...)
+  (case (values (select :# ...) ...)
     (0) 0
     (1 a) a
     (2 a b) (+ a b)
@@ -513,7 +513,7 @@ Example:
 
 ```fennel
 (case mytable
-  ;; the first and second values of mytable are not nil and are the same value
+  ;; the first and second values of mytable are the same non-nil value
   [a a] (* a 2)
   ;; the first and second values are not nil and are not the same value
   [a b] (+ a b))
@@ -565,7 +565,7 @@ Tables can be nested, and they may be either sequential (`[]` style) or
 key/value (`{}` style) tables. Sequential tables will match if they have at
 least as many elements as the pattern. (To allow an element to be nil, see `?`
 and `_` as above.) Tables will *never* fail to match due to having too many
-elements - this means `[]` matches *any* table, not an *empty* table. You can
+elements - this means `[]` matches *any* table, not just an *empty* table. You can
 use `&` to  capture all the remaining elements of a sequential table, just like
 `let`.
 
@@ -626,7 +626,7 @@ variables are missing:
 ``` fennel
 ;; bad
 (case [1 2 3]
-  ;; Will throw an error because `b' is nil for the first
+  ;; Will fail to compile because `b' is not present in the first
   ;; pattern but the guard still uses it.
   (where (or [a 1 2] [a b 3]) (< a 0) (< b 1))
   :body)

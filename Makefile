@@ -210,11 +210,8 @@ prerelease: guard-VERSION ci test-builds
 	git commit -a -m "Release $(VERSION)"
 	git tag -s $(VERSION) -m $(VERSION)
 
-guard-%:
-	@ if [ "${${*}}" = "" ]; then \
-		echo "Environment variable $* not set"; \
-		exit 1; \
-	fi
+guard-VERSION:
+	@if [ -z '${VERSION}' ]; then echo 'VERSION not set' && exit 1; fi
 
 .PHONY: build test testall fuzz count format ci clean coverage install \
 	man upload prerelease release guard-VERSION test-builds lint

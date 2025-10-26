@@ -5,11 +5,11 @@
 ;; allow inputs to be structured as a form but converted to a string
 (macro v [form] (view form))
 
-(fn wrap-repl [options]
+(fn wrap-repl [?options]
   (var repl-complete nil)
   (fn send []
     (let [output []
-          opts (collect [k x (pairs (or options {})) :into {:useMetadata true}]
+          opts (collect [k x (pairs (or ?options {})) :into {:useMetadata true}]
                  (values k x))]
       (fn opts.readChunk []
         (while (= "" (. output 1))
@@ -149,12 +149,12 @@
 
 (fn test-reload-macros []
   (let [send (wrap-repl)]
-    (tset fennel.macro-loaded :test/macros {:inc #(error :lol)})
+    (set fennel.macro-loaded.test/macros {:inc #(error :lol)})
     (t.is (not (pcall fennel.eval "(import-macros m :test/macros) (m.inc 1)")))
     (send ",reload test/macros")
     (t.is (pcall fennel.eval
                          "(import-macros m :test/macros) (m.inc 1)"))
-    (tset fennel.macro-loaded :test/macros nil)))
+    (set fennel.macro-loaded.test/macros nil)))
 
 (fn test-reset []
   (let [send (wrap-repl)
@@ -188,7 +188,7 @@
 
 (fn set-boo [env]
   "Set boo to exclaimation points."
-  (tset env :boo "!!!"))
+  (set env.boo "!!!"))
 
 (fn test-plugins []
   (let [logged []

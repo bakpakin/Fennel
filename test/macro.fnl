@@ -17,18 +17,20 @@
      (t.= ,expected val# ,?msg)))
 
 (fn test-lambda []
-  (lambda arglist-lambda [x]
+  (lambda arglist-lambda [x_]
     "docstring"
     {:fnl/arglist [y]}
-    (do :something))
+    (do (print) :something))
   (t.= [:y] (. fennel.metadata arglist-lambda :fnl/arglist))
-  (let [l2 (lambda [x]
+  (let [l2 (lambda [x_]
              "docstring"
              {:fnl/arglist [z]}
-             (do :something))]
+             (do (print) :something))]
     (t.= [:z] (. fennel.metadata l2 :fnl/arglist)))
-  (fn call-lambda [] (arglist-lambda) nil)
-  (let [(ok msg) (pcall call-lambda)] (t.match "test/macro.fnl:20" msg)))
+  (fn call-lambda [] (arglist-lambda nil) nil)
+  (let [(_ok msg) (pcall call-lambda)]
+    (t.match "test/macro.fnl:20" msg)
+    nil))
 
 (fn test-arrows []
   (== (-> (+ 85 21) (+ 1) (- 99)) 8)
@@ -757,8 +759,7 @@
 (fn test-disabled-sandbox-searcher []
   (let [opts {:env :_COMPILER :compiler-env _G}
         code "{:path (fn [] (os.getenv \"PATH\"))}"
-        searcher #(match $
-                    :dummy (fn [] (fennel.eval code opts)))]
+        searcher #(case $ :dummy (fn [] (fennel.eval code opts)))]
     (table.insert fennel.macro-searchers 1 searcher)
     (t.is (pcall fennel.eval "(import-macros {: path} :dummy) (path)"))
     (table.remove fennel.macro-searchers 1)
@@ -821,7 +822,7 @@
     (set fennel.repl.onValues #nil)
     (let [form (view (assert-repl false "oh no"))
           multi-args-form (view (assert-repl (select 1 :a :b nil nil :c)))
-          (ok? msg) (pcall fennel.eval form)]
+          (ok? _msg) (pcall fennel.eval form)]
       (t.= false ok? "assertion should fail from repl when returning nil")
       (t.= [true :a :b nil nil :c] [(pcall fennel.eval multi-args-form)]
            "assert-repl should pass along all runtime ret vals upon success"))))

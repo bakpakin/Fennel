@@ -40,10 +40,10 @@
   (when (and test-all? (file-exists? "fennel"))
     (let [;; running io.popen for all 20 combinations of lua versions is slow,
           ;; so we'll just pick the next one in the list after host-lua
-          lua-exec ((fn pick-lua [lua-vs i lua-v]
-                      (if (= host-lua lua-v)
-                          (. lua-vs (+ 1 (% i (# lua-vs)))) ; circular next
-                          (pick-lua lua-vs (next lua-vs i))))
+          lua-exec ((fn pick-lua [lua-vs ?i ?lua-v]
+                      (if (= host-lua ?lua-v)
+                          (. lua-vs (+ 1 (% ?i (# lua-vs)))) ; circular next
+                          (pick-lua lua-vs (next lua-vs ?i))))
                     [:lua5.1 :lua5.2 :lua5.3 :lua5.4 :luajit])
           run #(pick-values 2 (peval $ (: "--lua %q" :format lua-exec)))]
       (t.= [true lua-exec]

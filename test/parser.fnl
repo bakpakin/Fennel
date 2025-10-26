@@ -25,7 +25,7 @@
        [((fennel.parser (fennel.string-stream "&abc ")))]))
 
 (fn test-spicy-numbers []
-  (when math.type
+  (when (. math :type)
     (t.= 34 (- (fennel.eval "141791343654234")
                (fennel.eval "141791343654200"))))
   (t.= 1.41791343654238e+14 (fennel.eval "1.41791343654238e+14"))

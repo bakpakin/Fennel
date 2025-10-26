@@ -91,7 +91,7 @@
       (t.= (supertype kind (. fennel key)) kind
            (.. "expect deprecated fennel." key " to be \"" kind "\"")))
 
-    (each [key value (pairs fennel)]
+    (each [key (pairs fennel)]
       (t.is (or (. expected key)
                 (. expected-aliases key)
                 (. expected-deprecations key))

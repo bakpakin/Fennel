@@ -1384,7 +1384,7 @@ Deprecated.")
 
 (fn emit-included-fennel [src path opts sub-chunk]
   "Emit Fennel code in src into sub-chunk."
-  (let [subscope (compiler.make-scope utils.root.scope.parent)
+  (let [subscope (compiler.make-scope utils.root.scope)
         forms []]
     (when utils.root.options.requireAsInclude
       (set subscope.specials.require compiler.require-include))

@@ -288,6 +288,11 @@ When given a second string argument, will check that the sym's name matches it."
 
 (fn string? [x] (if (= (type x) :string) x false))
 
+(fn callable? [x]
+  "Returns value if it's a function or callable table, else nil"
+  (and (or (= :function (type x)) (case (getmetatable x) {: __call} __call))
+       x))
+
 (fn multi-sym? [str]
   "Returns a table containing the symbol's segments if passed a multi-sym.
 A multi-sym refers to a table field reference like tbl.x or access.channel:deny.
@@ -432,6 +437,7 @@ handlers will be skipped."
  : sym?
  : table?
  : kv-table?
+ : callable?
  : varg?
  : call-of?
  : quoted?

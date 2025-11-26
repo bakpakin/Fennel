@@ -25,4 +25,6 @@
  :gensym-shadow (fn []
                   (let [g (gensym)]
                     `(let [,g (let [,g 1] 2)]
-                       ,g)))}
+                       ,g)))
+ :tbl-macro (setmetatable {:sub-macro (fn [] "sub-macro on a callable table macro")}
+                          {:__call (fn tbl-macro [_] "callable table macro")})}

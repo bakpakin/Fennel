@@ -1,3 +1,5 @@
-(import-macros {: inc} (.. ... ".macros"))
+(import-macros {: inc : tbl-macro} (.. ... ".macros"))
 
-(inc 2)
+[(inc 2)
+ (tbl-macro)
+ (tbl-macro.sub-macro)]

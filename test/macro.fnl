@@ -105,7 +105,9 @@
       "[\"no\" \"sandbox\"]" "should disable sandbox" {:compiler-env _G})
   (let [not-unqualified "(import-macros hi :test.macros) (print (inc 1))"]
     (t.is (not (pcall fennel.eval not-unqualified))))
-  (== 2 (do (import-macros {: gensym-shadow} :test.macros) (gensym-shadow))))
+  (== 2 (do (import-macros {: gensym-shadow} :test.macros) (gensym-shadow)))
+  (== ["callable table macro" "sub-macro on a callable table macro"]
+      (do (import-macros {: tbl-macro} :test.macros) [(tbl-macro) (tbl-macro.sub-macro)])))
 
 (fn test-macro-path []
   (== (do (import-macros m :test.other-macros) (m.m)) "testing macro path")
@@ -113,7 +115,7 @@
       [3 2 1]))
 
 (fn test-relative-macros []
-  (== (require :test.relative) 3))
+  (== [3 "callable table macro" "sub-macro on a callable table macro"] (require :test.relative)))
 
 (fn test-relative-chained-mac-mod-mac []
   (== (require :test.relative-chained-mac-mod-mac) [:a :b :c]))
@@ -129,7 +131,10 @@
   (== (do (require-macros :test.macros)
           (defn1 hui [x y] (global z (+ x y)))
           (hui 8 4) z)
-      12 nil {: env}))
+      12 nil {: env})
+  (== ["callable table macro" "sub-macro on a callable table macro"]
+      (do (require-macros :test.macros)
+          [(tbl-macro) (tbl-macro.sub-macro)])))
 
 (fn test-inline-macros []
   (== (do (macro five [] 5) (five)) 5)

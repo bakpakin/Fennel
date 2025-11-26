@@ -8,7 +8,10 @@ deprecated forms.
 
 ## 1.6.1 / ???
 
-* ???
+### New Features
+
+* Macros (and specials) can now also be implemented as callable tables,
+  allowing the introduction of new built-ins without scope conflicts
 
 ## 1.6.0 / 2025-10-13
 

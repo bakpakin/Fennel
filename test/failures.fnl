@@ -77,7 +77,7 @@
     "(macros {:m (fn [y] `(let [x 1] (+ x ,y)))}) (m 4)"
     "tried to bind x without gensym"
     "(macros {:foo {:bar (fn [] `(print :test))}})"
-    "expected each macro to be function"
+    "expected each macro to be function or callable table"
     "(macro m [] (getmetatable :foo)) (m)"
     "Illegal metatable"
     "(import-macros test :test.macros) (test.asdf)"

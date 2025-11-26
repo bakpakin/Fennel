@@ -509,7 +509,8 @@ if opts contains the nval option."
   (let [len (length ast)
         first (. ast 1)
         multi-sym-parts (utils.multi-sym? first)
-        special (and (utils.sym? first) (. scope.specials (tostring first)))]
+        special (if multi-sym-parts (utils.get-in scope.specials multi-sym-parts)
+                    (utils.sym? first) (. scope.specials (tostring first)))]
     (assert-compile (< 0 len) "expected a function, macro, or special to call"
                     ast)
     (if special

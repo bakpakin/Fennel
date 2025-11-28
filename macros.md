@@ -349,7 +349,7 @@ input tables. This can lead to less effective error messages.
 
 ```fennel
 (macro f [a]
-  (print (. a 1) :/ (type (. a 1)) :/ (length a)))
+  (print (. a 1) "/" (type (. a 1)) "/" (length a)))
 
 (f [nil 1 8]) ; -> nil / table / 3
 ```

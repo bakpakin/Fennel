@@ -428,7 +428,8 @@ and lacking args will be nil, use lambda for functions with nil checks." true)
   nil)
 
 (doc-special :set [:name :val]
-             "Set a local variable to a new value. Only works on locals using var.")
+             "Set a local variable or table field to a new value.
+Only works on table fields or locals declared with var.")
 
 (fn set-forcibly!* [ast scope parent]
   (compiler.assert (= (length ast) 3) "expected name and value" ast)
@@ -510,7 +511,7 @@ and lacking args will be nil, use lambda for functions with nil checks." true)
     (compiler.emit parent (fmtstr:format root (table.concat keys "][") value) ast)))
 
 (doc-special :tset [:tbl :key1 "..." :keyN :val]
-             "Set the value of a table field. Deprecated in favor of set.")
+             "Set the value of a table field. Usually better to use set.")
 
 (fn calculate-if-target [scope opts]
   (if (not (or opts.tail opts.target opts.nval))

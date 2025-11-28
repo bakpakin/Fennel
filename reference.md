@@ -1732,9 +1732,11 @@ This prints all the functions available in compiler scope.
 
 Inside `eval-compiler`, `macros`, or `macro` blocks, as well as
 `import-macros` modules, the functions listed below are visible to
-your code.
+your code. The predicate functions are meant to be used on AST nodes
+that macros accept as arguments.
 
 * `list` - return a list, which is a special kind of table used for code.
+* `sequence` - return a sequence AST node
 * `sym` - turn a string into a symbol.
 * `gensym` - generates a unique symbol for use in macros, accepts an optional prefix string.
 * `list?` - is the argument a list? Returns the argument or `false`.

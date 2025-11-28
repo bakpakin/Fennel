@@ -178,14 +178,14 @@ You can use `.` to get data out of tables:
   (. tbl key))
 ```
 
-And `tset` to put them in:
+And `set` to put them in:
 
 ```fennel
 (let [tbl {}
       key1 "a long string"
       key2 12]
-  (tset tbl key1 "the first value")
-  (tset tbl key2 "the second one")
+  (set (. tbl key1) "the first value")
+  (set (. tbl key2) "the second one")
   tbl) ; -> {"a long string" "the first value" 12 "the second one"}
 ```
 

@@ -233,6 +233,9 @@ If ~/.fennelrc exists, it will be loaded before launching a REPL.")
                                    form) options)))
 
 (fn compile [files]
+  (when (= nil options.allowedGlobals)
+    (io.stderr:write (.. "WARNING: compiling without global checks; "
+                         "recommend using --globals \"\"\n")))
   (each [_ filename (ipairs files)]
     (set options.filename filename)
     (let [f (if (= filename "-")

@@ -107,7 +107,15 @@
     (t.is (not (pcall fennel.eval not-unqualified))))
   (== 2 (do (import-macros {: gensym-shadow} :test.macros) (gensym-shadow)))
   (== ["callable table macro" "sub-macro on a callable table macro"]
-      (do (import-macros {: tbl-macro} :test.macros) [(tbl-macro) (tbl-macro.sub-macro)])))
+      (do (import-macros {: tbl-macro} :test.macros) [(tbl-macro) (tbl-macro.sub-macro)])
+      "import callable table macros with destructuring")
+  (== ["callable table macro" "sub-macro on a callable table macro"
+       "CALLABLE MACRO MODULE??"]
+      (do (import-macros M :test.macros)
+          [(M.tbl-macro)
+           (M.tbl-macro.sub-macro)
+           (M)])
+      "import callable table macros to bound macro table"))
 
 (fn test-macro-path []
   (== (do (import-macros m :test.other-macros) (m.m)) "testing macro path")

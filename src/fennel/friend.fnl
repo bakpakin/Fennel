@@ -105,8 +105,9 @@
 (pal "local (.*) was overshadowed by a special form or macro"
      ["renaming local %s"])
 
-(pal "macro not found in macro module"
-     ["checking the keys of the imported macro module's returned table"])
+(pal "macro not found, or not callable, in macro table"
+     ["checking the keys of the imported macro module's returned table"
+      "ensuring that if the invoked macro is a table, it has a __call metamethod"])
 
 (pal "macro tried to bind (.*) without gensym"
      ["changing to %s# when introducing identifiers inside macros"])

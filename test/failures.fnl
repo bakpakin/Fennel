@@ -81,7 +81,9 @@
     "(macro m [] (getmetatable :foo)) (m)"
     "Illegal metatable"
     "(import-macros test :test.macros) (test.asdf)"
-    "macro not found in imported macro module"
+    "macro not found, or not callable, in macro table"
+    "(macros {:M (setmetatable {:foo #:YES} {:__call (fn [$ ...] ($.foo ...))})}) (M.bar 1)"
+    "macro not found, or not callable, in macro table"
     ;; macros should shadow locals as values, not just when calling:
     "(let [t {:b 2}] (import-macros t :test.macros) t.b)"
     "tried to reference a macro"

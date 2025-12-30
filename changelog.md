@@ -6,12 +6,16 @@ Note that since 0.3.0, no deprecations have actually resulted in
 removals. They are advisory only and we have no plans to break the
 deprecated forms.
 
-## 1.6.1 / ???
+## 1.7.0 / ???
 
 ### New Features
 
 * Macros (and specials) can now also be implemented as callable tables,
   allowing the introduction of new built-ins without scope conflicts
+
+## 1.6.1 / 2025-12-30
+
+* Fix a bug where pattern matches on `...` could error out.
 
 ## 1.6.0 / 2025-10-13
 

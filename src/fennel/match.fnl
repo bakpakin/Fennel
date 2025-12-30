@@ -6,12 +6,6 @@
 
 (local utils ...)
 
-;; Make this reusable?
-(fn double-eval-safe? [x]
-  (let [type-of (type x)]
-    (or (= :number type-of) (= :string type-of) (= :boolean type-of) (varg? x)
-        (and (sym? x) (not (multi-sym? x))))))
-
 (fn with [opts k]
   (doto (utils.copy opts) (tset k true)))
 
@@ -309,14 +303,14 @@ introduce for the duration of the body if it does match."
   (assert (not= 0 (select :# ...))
           "expected at least one pattern/body pair")
   (let [(val clauses) (maybe-optimize-table init-val [...])
-        vals-count (case-count-syms clauses)
-        skips-multiple-eval-protection? (and (= vals-count 1) (double-eval-safe? val))]
-    (if skips-multiple-eval-protection?
-      (case-condition (list val) clauses match? (table? init-val))
-      ;; protect against multiple evaluation of the value, bind against as
-      ;; many values as we ever match against in the clauses.
-      (let [vals (fcollect [_ 1 vals-count &into (list)] (gensym :case))]
-        (list `let [vals val] (case-condition vals clauses match? (table? init-val)))))))
+        vals-count (case-count-syms clauses)]
+    ;; might need to protect against zero-values or multiple evaluation of val;
+    ;; bind against as many values as we ever match against in the clauses.
+    (if (and (= vals-count 1) (not (varg? val)) (utils.idempotent-expr? val))
+        (case-condition (list val) clauses match? (table? init-val))
+        (let [vals (fcollect [_ 1 vals-count &into (list)] (gensym :case))]
+          (list `let [vals val]
+                (case-condition vals clauses match? (table? init-val)))))))
 
 (fn case* [val ...]
   "Perform pattern matching on val. See reference for details.

@@ -8,7 +8,7 @@ deprecated forms.
 
 ## 1.6.1 / ???
 
-* ???
+* Fix a bug where pattern matches on `...` could error out.
 
 ## 1.6.0 / 2025-10-13
 

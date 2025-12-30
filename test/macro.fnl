@@ -539,7 +539,11 @@
           ;; [99 20] = [99 x]
           ;; note that x is bound in the pattern, so the body uses that value
           (where [(= x) x]) (+ x x)))
-     (+ 20 20))
+      (+ 20 20))
+
+  ;; ensure that we let-bind zero values out during pattern matches
+  (== ((fn [...] (case ... {: a} a _ 0))) 0)
+  (== (case (values) {: a} a _ 0) 0)
 
   (== (let [x 99]
         (case [20 99]

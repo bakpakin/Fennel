@@ -431,22 +431,18 @@ and lacking args will be nil, use lambda for functions with nil checks." true)
              "Set a local variable or table field to a new value.
 Only works on table fields or locals declared with var.")
 
-(fn set-forcibly!* [ast scope parent]
+(fn SPECIALS.set-forcibly! [ast scope parent]
   (compiler.assert (= (length ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent
                         {:forceset true :symtype :set})
   nil)
 
-(set SPECIALS.set-forcibly! set-forcibly!*)
-
-(fn local* [ast scope parent opts]
+(fn SPECIALS.local [ast scope parent opts]
   (compiler.assert (or (= 0 opts.nval) opts.tail) "can't introduce local here" ast)
   (compiler.assert (= (length ast) 3) "expected name and value" ast)
   (compiler.destructure (. ast 2) (. ast 3) ast scope parent
                         {:declaration true :nomulti true :symtype :local})
   nil)
-
-(set SPECIALS.local local*)
 
 (doc-special :local [:name :val] "Introduce new top-level immutable local.")
 
@@ -528,7 +524,7 @@ Only works on table fields or locals declared with var.")
       (values :none opts.tail opts.target)))
 
 ;; TODO: refactor; too long!
-(fn if* [ast scope parent opts]
+(fn SPECIALS.if [ast scope parent opts]
   (compiler.assert (< 2 (length ast)) "expected condition and body" ast)
 
   ;; Remove redundant "true" conditions
@@ -611,8 +607,6 @@ Only works on table fields or locals declared with var.")
                 (compiler.emit parent (. buffer i) ast))
               target-exprs))))))
 
-(set SPECIALS.if if*)
-
 (doc-special :if [:cond1 :body1 "..." :condN :bodyN]
              "Conditional form.
 Takes any number of condition/body pairs and evaluates the first body where
@@ -690,7 +684,7 @@ the condition evaluates to truthy. Similar to cond in other lisps.")
 Most commonly used with ipairs for sequential tables or pairs for undefined
 order, but can be used with any iterator with any number of values." true)
 
-(fn while* [ast scope parent]
+(fn SPECIALS.while [ast scope parent]
   (let [len1 (length parent)
         condition (. (compiler.compile1 (. ast 2) scope parent {:nval 1}) 1)
         len2 (length parent)
@@ -711,13 +705,11 @@ order, but can be used with any iterator with any number of values." true)
     (compiler.emit parent sub-chunk ast)
     (compiler.emit parent :end ast)))
 
-(set SPECIALS.while while*)
-
 (doc-special :while [:condition "..."]
              "The classic while loop. Evaluates body until a condition is non-truthy."
              true)
 
-(fn for* [ast scope parent]
+(fn SPECIALS.for [ast scope parent]
   (compiler.assert (utils.table? (. ast 2)) "expected binding table" ast)
   (let [ranges (setmetatable (utils.copy (. ast 2)) (getmetatable (. ast 2)))
         until-condition (remove-until-condition ranges ast)
@@ -744,8 +736,6 @@ order, but can be used with any iterator with any number of values." true)
     (compile-do ast sub-scope chunk 3)
     (compiler.emit parent chunk ast)
     (compiler.emit parent :end ast)))
-
-(set SPECIALS.for for*)
 
 (doc-special :for [[:index :start :stop :?step] :...]
              "Numeric loop construct.
